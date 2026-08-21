@@ -1,0 +1,1562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS Restaurant ERP — Interactive Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Mono:wght@300;400;500&family=Fraunces:ital,wght@0,300;0,600;0,800;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   DESIGN SYSTEM
+═══════════════════════════════════════════════════════════ */
+:root {
+  --bg:           #080C12;
+  --bg-2:         #0D1320;
+  --bg-3:         #111827;
+  --surface:      #141E2E;
+  --surface-2:    #1A2740;
+  --surface-3:    #1E2E48;
+  --border:       #1F2E45;
+  --border-2:     #263850;
+  --primary:      #E8A045;
+  --primary-dim:  #C4822E;
+  --primary-glow: rgba(232,160,69,0.15);
+  --primary-soft: rgba(232,160,69,0.08);
+  --teal:         #2DD4BF;
+  --teal-dim:     #0D9488;
+  --teal-soft:    rgba(45,212,191,0.08);
+  --blue:         #60A5FA;
+  --blue-soft:    rgba(96,165,250,0.08);
+  --red:          #F87171;
+  --red-soft:     rgba(248,113,113,0.08);
+  --green:        #4ADE80;
+  --green-soft:   rgba(74,222,128,0.08);
+  --purple:       #A78BFA;
+  --purple-soft:  rgba(167,139,250,0.08);
+  --text:         #F0F4FF;
+  --text-2:       #94A3B8;
+  --text-3:       #5A6E8A;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body:    'Sora', sans-serif;
+  --font-mono:    'DM Mono', monospace;
+  --radius:       10px;
+  --radius-lg:    16px;
+  --radius-xl:    22px;
+  --t-fast:       150ms ease;
+  --t-med:        250ms ease;
+  --t-slow:       400ms ease;
+  --shadow:       0 4px 24px rgba(0,0,0,0.4);
+  --shadow-lg:    0 8px 48px rgba(0,0,0,0.6);
+  --glow-primary: 0 0 32px rgba(232,160,69,0.2);
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; scroll-behavior: smooth; }
+body { font-family: var(--font-body); background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+button { cursor: pointer; font-family: var(--font-body); border: none; background: none; }
+input, select, textarea { font-family: var(--font-body); }
+a { text-decoration: none; color: inherit; }
+
+/* ═══════════════════════════════════════════════════════════
+   LAYOUT SHELL
+═══════════════════════════════════════════════════════════ */
+.app-shell { display: flex; height: 100vh; overflow: hidden; }
+
+/* ── SIDEBAR ──────────────────────────────────────────── */
+.sidebar {
+  width: 240px; min-width: 240px;
+  background: var(--bg-2);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  transition: width var(--t-med);
+  z-index: 100;
+  position: relative;
+}
+.sidebar::after {
+  content: '';
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, var(--primary) 40%, var(--teal) 70%, transparent);
+  opacity: 0.3;
+}
+
+.sidebar-logo {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-mark {
+  width: 34px; height: 34px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dim));
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 800; font-size: 16px; color: var(--bg);
+  box-shadow: 0 2px 12px rgba(232,160,69,0.3);
+  flex-shrink: 0;
+}
+.logo-text { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: var(--text); }
+.logo-sub { font-size: 10px; color: var(--text-3); font-weight: 400; letter-spacing: 0.05em; }
+
+.sidebar-nav { flex: 1; overflow-y: auto; padding: 10px 0; }
+.nav-group { margin-bottom: 4px; }
+.nav-group-label {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--text-3);
+  padding: 10px 20px 4px; text-transform: uppercase;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 20px; cursor: pointer; border-radius: 0;
+  color: var(--text-2); font-size: 13px; font-weight: 400;
+  transition: all var(--t-fast); position: relative;
+}
+.nav-item:hover { color: var(--text); background: var(--surface); }
+.nav-item.active {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+.nav-item.active::before {
+  content: ''; position: absolute; left: 0; top: 4px; bottom: 4px;
+  width: 3px; border-radius: 0 3px 3px 0;
+  background: var(--primary);
+  box-shadow: 0 0 8px var(--primary);
+}
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.8; }
+.nav-item.active svg { opacity: 1; }
+.nav-badge {
+  margin-left: auto; font-size: 10px; font-weight: 600;
+  background: var(--red); color: white;
+  padding: 1px 6px; border-radius: 10px;
+}
+.nav-badge.gold { background: var(--primary); color: var(--bg); }
+
+.sidebar-footer {
+  padding: 12px 16px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.avatar-sm {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--teal));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--bg); flex-shrink: 0;
+}
+.user-info-sm { flex: 1; min-width: 0; }
+.user-name-sm { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-role-sm { font-size: 10px; color: var(--text-3); }
+
+/* ── MAIN AREA ─────────────────────────────────────────── */
+.main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+.topbar {
+  height: 56px; min-height: 56px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 24px;
+}
+.topbar-breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-2); }
+.topbar-breadcrumb .current { color: var(--text); font-weight: 600; }
+.topbar-sep { opacity: 0.3; }
+
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.topbar-time { font-family: var(--font-mono); font-size: 12px; color: var(--text-3); }
+.topbar-btn {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--surface); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-2); transition: all var(--t-fast); position: relative;
+}
+.topbar-btn:hover { color: var(--text); border-color: var(--border-2); }
+.notif-dot {
+  position: absolute; top: 6px; right: 6px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--red); border: 1px solid var(--bg-2);
+}
+.live-pill {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--green-soft); border: 1px solid rgba(74,222,128,0.2);
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; color: var(--green); letter-spacing: 0.05em;
+}
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+
+.content-area { flex: 1; overflow-y: auto; padding: 24px; }
+
+/* ═══════════════════════════════════════════════════════════
+   SCREENS
+═══════════════════════════════════════════════════════════ */
+.screen { display: none; animation: fadeIn 0.25s ease; }
+.screen.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ═══════════════════════════════════════════════════════════
+   SHARED COMPONENTS
+═══════════════════════════════════════════════════════════ */
+.page-header { margin-bottom: 24px; }
+.page-title { font-family: var(--font-display); font-size: 26px; font-weight: 600; color: var(--text); line-height: 1; }
+.page-subtitle { font-size: 12px; color: var(--text-3); margin-top: 4px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+.card-sm { padding: 16px; }
+.card-title { font-size: 12px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+
+/* KPI Cards */
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  position: relative; overflow: hidden;
+  transition: all var(--t-fast);
+}
+.kpi-card:hover { border-color: var(--border-2); transform: translateY(-1px); box-shadow: var(--shadow); }
+.kpi-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.kpi-card.gold::before { background: linear-gradient(90deg, var(--primary), transparent); }
+.kpi-card.teal::before { background: linear-gradient(90deg, var(--teal), transparent); }
+.kpi-card.blue::before { background: linear-gradient(90deg, var(--blue), transparent); }
+.kpi-card.red::before { background: linear-gradient(90deg, var(--red), transparent); }
+.kpi-card.green::before { background: linear-gradient(90deg, var(--green), transparent); }
+.kpi-card.purple::before { background: linear-gradient(90deg, var(--purple), transparent); }
+
+.kpi-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 12px;
+}
+.kpi-icon.gold { background: var(--primary-soft); color: var(--primary); }
+.kpi-icon.teal { background: var(--teal-soft); color: var(--teal); }
+.kpi-icon.blue { background: var(--blue-soft); color: var(--blue); }
+.kpi-icon.red { background: var(--red-soft); color: var(--red); }
+.kpi-icon.green { background: var(--green-soft); color: var(--green); }
+.kpi-icon.purple { background: var(--purple-soft); color: var(--purple); }
+.kpi-icon svg { width: 18px; height: 18px; }
+
+.kpi-label { font-size: 11px; color: var(--text-3); font-weight: 500; letter-spacing: 0.05em; margin-bottom: 4px; }
+.kpi-value { font-family: var(--font-display); font-size: 28px; font-weight: 600; color: var(--text); line-height: 1; }
+.kpi-change { display: flex; align-items: center; gap: 4px; margin-top: 6px; font-size: 11px; font-weight: 600; }
+.kpi-change.up { color: var(--green); }
+.kpi-change.down { color: var(--red); }
+.kpi-change .kpi-meta { color: var(--text-3); font-weight: 400; }
+
+/* Status badges */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+}
+.badge.green { background: var(--green-soft); color: var(--green); border: 1px solid rgba(74,222,128,0.2); }
+.badge.red { background: var(--red-soft); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+.badge.gold { background: var(--primary-soft); color: var(--primary); border: 1px solid rgba(232,160,69,0.2); }
+.badge.blue { background: var(--blue-soft); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
+.badge.teal { background: var(--teal-soft); color: var(--teal); border: 1px solid rgba(45,212,191,0.2); }
+.badge.gray { background: rgba(255,255,255,0.04); color: var(--text-2); border: 1px solid var(--border); }
+.badge-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  transition: all var(--t-fast); cursor: pointer;
+}
+.btn-primary { background: var(--primary); color: var(--bg); }
+.btn-primary:hover { background: #F0AE56; box-shadow: 0 0 20px rgba(232,160,69,0.3); }
+.btn-ghost { background: transparent; color: var(--text-2); border: 1px solid var(--border); }
+.btn-ghost:hover { color: var(--text); border-color: var(--border-2); background: var(--surface); }
+.btn-teal { background: var(--teal); color: var(--bg); }
+.btn-teal:hover { background: #38E2CD; }
+.btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+.btn svg { width: 14px; height: 14px; }
+
+/* Tables */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th {
+  text-align: left; padding: 10px 14px;
+  font-size: 11px; font-weight: 600; color: var(--text-3); letter-spacing: 0.07em; text-transform: uppercase;
+  border-bottom: 1px solid var(--border); background: var(--bg-3);
+}
+.data-table td {
+  padding: 11px 14px; font-size: 13px; color: var(--text-2);
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.data-table tr:hover td { background: var(--surface-2); }
+.data-table td:first-child, .data-table th:first-child { padding-left: 20px; }
+.data-table td:last-child, .data-table th:last-child { padding-right: 20px; text-align: right; }
+.td-primary { color: var(--text) !important; font-weight: 500; }
+.td-mono { font-family: var(--font-mono); }
+
+/* Progress bars */
+.progress-bar { height: 5px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 3px; transition: width 0.8s ease; }
+
+/* Tabs */
+.tabs { display: flex; gap: 4px; background: var(--bg-3); border: 1px solid var(--border); border-radius: 10px; padding: 4px; }
+.tab {
+  padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 600;
+  color: var(--text-3); transition: all var(--t-fast); cursor: pointer;
+}
+.tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+.tab:hover:not(.active) { color: var(--text-2); }
+
+/* Input */
+.input {
+  background: var(--bg-3); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); padding: 8px 12px; font-size: 13px; font-family: var(--font-body);
+  outline: none; transition: border-color var(--t-fast);
+}
+.input:focus { border-color: var(--primary); }
+.input::placeholder { color: var(--text-3); }
+
+/* Section gap */
+.mt-4 { margin-top: 16px; }
+.mt-6 { margin-top: 24px; }
+.mb-4 { margin-bottom: 16px; }
+.flex { display: flex; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.flex-center { display: flex; align-items: center; gap: 8px; }
+.flex-col { flex-direction: column; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+.ml-auto { margin-left: auto; }
+.text-sm { font-size: 12px; }
+.text-xs { font-size: 11px; }
+.text-muted { color: var(--text-2); }
+.text-dim { color: var(--text-3); }
+.text-primary { color: var(--primary); }
+.text-teal { color: var(--teal); }
+.text-green { color: var(--green); }
+.text-red { color: var(--red); }
+.text-bold { font-weight: 600; }
+.font-mono { font-family: var(--font-mono); }
+.w-full { width: 100%; }
+
+/* ═══════════════════════════════════════════════════════════
+   DASHBOARD SCREEN
+═══════════════════════════════════════════════════════════ */
+.alert-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.alert-item:last-child { border-bottom: none; }
+.alert-icon { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.alert-text { font-size: 12px; color: var(--text-2); }
+.alert-text strong { color: var(--text); font-weight: 600; }
+.alert-time { margin-left: auto; font-size: 10px; color: var(--text-3); white-space: nowrap; }
+
+/* ═══════════════════════════════════════════════════════════
+   POS SCREEN
+═══════════════════════════════════════════════════════════ */
+.pos-layout { display: grid; grid-template-columns: 1fr 340px; gap: 16px; height: calc(100vh - 56px - 48px); }
+.pos-left { display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+.pos-right { display: flex; flex-direction: column; gap: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+
+.menu-cats { display: flex; gap: 6px; flex-wrap: wrap; }
+.cat-btn {
+  padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  background: var(--surface); border: 1px solid var(--border); color: var(--text-2);
+  cursor: pointer; transition: all var(--t-fast);
+}
+.cat-btn:hover { color: var(--text); border-color: var(--border-2); }
+.cat-btn.active { background: var(--primary); color: var(--bg); border-color: var(--primary); }
+
+.menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; overflow-y: auto; flex: 1; }
+.menu-item-card {
+  background: var(--bg-3); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px; cursor: pointer; transition: all var(--t-fast);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.menu-item-card:hover { border-color: var(--primary); background: var(--surface); transform: translateY(-1px); }
+.menu-item-card:active { transform: translateY(0); }
+.menu-item-emoji { font-size: 24px; line-height: 1; }
+.menu-item-name { font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.3; }
+.menu-item-price { font-size: 13px; font-weight: 700; color: var(--primary); font-family: var(--font-mono); }
+.menu-item-avail { display: flex; align-items: center; gap: 3px; font-size: 10px; }
+.avail-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
+.avail-dot.low { background: var(--primary); }
+.avail-dot.out { background: var(--red); }
+
+/* Order ticket */
+.ticket-header { padding: 14px 16px; border-bottom: 1px solid var(--border); background: var(--bg-3); }
+.ticket-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.ticket-meta { font-size: 11px; color: var(--text-3); }
+.ticket-items { flex: 1; overflow-y: auto; padding: 10px 0; }
+.ticket-item { display: flex; align-items: center; padding: 8px 14px; gap: 8px; }
+.ticket-item-name { flex: 1; font-size: 12px; color: var(--text); font-weight: 500; }
+.qty-ctrl { display: flex; align-items: center; gap: 4px; }
+.qty-btn { width: 22px; height: 22px; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-2); font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all var(--t-fast); }
+.qty-btn:hover { background: var(--surface-3); color: var(--text); }
+.qty-num { width: 20px; text-align: center; font-size: 13px; font-weight: 700; color: var(--text); font-family: var(--font-mono); }
+.ticket-price { font-size: 12px; font-weight: 600; color: var(--primary); font-family: var(--font-mono); min-width: 50px; text-align: right; }
+
+.ticket-divider { border: none; border-top: 1px dashed var(--border); margin: 8px 14px; opacity: 0.5; }
+.ticket-summary { padding: 10px 16px; }
+.summary-row { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; }
+.summary-row .lbl { color: var(--text-3); }
+.summary-row .val { color: var(--text-2); font-family: var(--font-mono); }
+.summary-row.total { font-size: 15px; font-weight: 700; padding-top: 8px; margin-top: 4px; border-top: 1px solid var(--border); }
+.summary-row.total .lbl { color: var(--text); }
+.summary-row.total .val { color: var(--primary); }
+
+.ticket-actions { padding: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; border-top: 1px solid var(--border); }
+.pay-btn {
+  padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all var(--t-fast); border: none; font-family: var(--font-body);
+}
+.pay-btn.cash { background: var(--primary); color: var(--bg); grid-column: span 2; }
+.pay-btn.cash:hover { background: #F0AE56; box-shadow: 0 0 16px rgba(232,160,69,0.3); }
+.pay-btn.card { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+.pay-btn.card:hover { border-color: var(--teal); color: var(--teal); }
+.pay-btn.hold { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); }
+
+/* Table selector */
+.table-selector { display: flex; gap: 6px; flex-wrap: wrap; }
+.table-chip { width: 38px; height: 38px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; cursor: pointer; transition: all var(--t-fast); color: var(--text-2); }
+.table-chip.occupied { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
+.table-chip.active { background: var(--primary); color: var(--bg); border-color: var(--primary); }
+.table-chip:hover:not(.active) { border-color: var(--border-2); color: var(--text); }
+
+/* ═══════════════════════════════════════════════════════════
+   INVENTORY SCREEN
+═══════════════════════════════════════════════════════════ */
+.stock-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.stock-status.ok { background: var(--green); box-shadow: 0 0 6px rgba(74,222,128,0.4); }
+.stock-status.low { background: var(--primary); box-shadow: 0 0 6px rgba(232,160,69,0.4); }
+.stock-status.critical { background: var(--red); box-shadow: 0 0 6px rgba(248,113,113,0.4); }
+
+/* ═══════════════════════════════════════════════════════════
+   FINANCE SCREEN
+═══════════════════════════════════════════════════════════ */
+.fin-stat-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.fin-stat-row:last-child { border-bottom: none; }
+.fin-stat-label { font-size: 13px; color: var(--text-2); }
+.fin-stat-value { font-size: 14px; font-weight: 700; font-family: var(--font-mono); }
+.fin-stat-row.total { margin-top: 4px; padding-top: 14px; border-top: 1px solid var(--border-2); }
+.fin-stat-row.total .fin-stat-label { color: var(--text); font-weight: 600; font-size: 14px; }
+.fin-stat-row.total .fin-stat-value { font-size: 18px; color: var(--teal); }
+
+/* ═══════════════════════════════════════════════════════════
+   HR SCREEN
+═══════════════════════════════════════════════════════════ */
+.staff-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 16px; display: flex; flex-direction: column; gap: 10px;
+  transition: all var(--t-fast);
+}
+.staff-card:hover { border-color: var(--border-2); transform: translateY(-1px); }
+.staff-avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: var(--bg); flex-shrink: 0; }
+.staff-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.staff-role { font-size: 11px; color: var(--text-3); }
+.shift-bar { display: flex; align-items: center; gap: 6px; }
+.shift-segment { height: 6px; border-radius: 3px; }
+
+/* ═══════════════════════════════════════════════════════════
+   ANALYTICS SCREEN
+═══════════════════════════════════════════════════════════ */
+.chart-container { position: relative; }
+
+/* ═══════════════════════════════════════════════════════════
+   CRM SCREEN
+═══════════════════════════════════════════════════════════ */
+.loyalty-tier {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px;
+}
+.tier-gold { background: rgba(212,175,55,0.15); color: #D4AF37; border: 1px solid rgba(212,175,55,0.3); }
+.tier-silver { background: rgba(180,180,200,0.15); color: #B0B4C8; border: 1px solid rgba(180,180,200,0.25); }
+.tier-bronze { background: rgba(176,112,60,0.15); color: #CD7F32; border: 1px solid rgba(176,112,60,0.25); }
+
+/* ═══════════════════════════════════════════════════════════
+   VENDOR SCREEN
+═══════════════════════════════════════════════════════════ */
+.score-circle {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; font-family: var(--font-mono);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SCROLLBAR
+═══════════════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+/* ═══════════════════════════════════════════════════════════
+   TOAST NOTIFICATION
+═══════════════════════════════════════════════════════════ */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--surface-3); border: 1px solid var(--border-2);
+  border-radius: 10px; padding: 12px 16px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--text);
+  box-shadow: var(--shadow-lg); z-index: 9999;
+  transform: translateY(100px); opacity: 0;
+  transition: all 0.3s ease;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast-icon { width: 22px; height: 22px; border-radius: 50%; background: var(--green-soft); display: flex; align-items: center; justify-content: center; color: var(--green); }
+
+/* ═══════════════════════════════════════════════════════════
+   SPARKLINE
+═══════════════════════════════════════════════════════════ */
+.sparkline { display: flex; align-items: flex-end; gap: 2px; height: 28px; }
+.spark-bar { flex: 1; border-radius: 2px; min-width: 4px; }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ═══════════════ SIDEBAR ═══════════════ -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">N</div>
+      <div>
+        <div class="logo-text">NEXUS</div>
+        <div class="logo-sub">Restaurant ERP</div>
+      </div>
+    </div>
+
+    <div class="sidebar-nav">
+      <div class="nav-group">
+        <div class="nav-group-label">Overview</div>
+        <div class="nav-item active" onclick="showScreen('dashboard')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Dashboard
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">Operations</div>
+        <div class="nav-item" onclick="showScreen('pos')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 12l2 2 4-4"/><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+          POS Terminal
+          <span class="nav-badge gold">3</span>
+        </div>
+        <div class="nav-item" onclick="showScreen('inventory')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+          Inventory
+          <span class="nav-badge">5</span>
+        </div>
+        <div class="nav-item" onclick="showScreen('orders')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+          Orders
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">Business</div>
+        <div class="nav-item" onclick="showScreen('finance')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+          Finance
+        </div>
+        <div class="nav-item" onclick="showScreen('hr')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          HR & Payroll
+        </div>
+        <div class="nav-item" onclick="showScreen('vendors')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 16v1a2 2 0 01-2 2H3a2 2 0 01-2-2V7a2 2 0 012-2h2m5.66 0H19a2 2 0 012 2v7.66"/><path d="M3 4h9"/><path d="M12 3v10"/></svg>
+          Vendors
+        </div>
+        <div class="nav-item" onclick="showScreen('crm')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+          CRM & Loyalty
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">Insights</div>
+        <div class="nav-item" onclick="showScreen('analytics')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Analytics
+        </div>
+        <div class="nav-item" onclick="showScreen('reports')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Reports
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">System</div>
+        <div class="nav-item" onclick="showScreen('admin')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.42 1.42M4.93 4.93l1.42 1.42M4.93 19.07l1.42-1.42M19.07 19.07l-1.42-1.42M20 12h2M2 12h2M12 2v2M12 20v2"/></svg>
+          Admin & RBAC
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="avatar-sm">AR</div>
+      <div class="user-info-sm">
+        <div class="user-name-sm">Ahmed Raza</div>
+        <div class="user-role-sm">Super Admin</div>
+      </div>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5A6E8A" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.42 1.42"/></svg>
+    </div>
+  </nav>
+
+  <!-- ═══════════════ MAIN AREA ═══════════════ -->
+  <div class="main-area">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-breadcrumb">
+        <span>NEXUS</span>
+        <span class="topbar-sep">/</span>
+        <span class="current" id="topbar-current">Dashboard</span>
+      </div>
+      <div class="topbar-right">
+        <div class="live-pill"><div class="live-dot"></div>LIVE</div>
+        <div class="topbar-time" id="clock">—</div>
+        <button class="topbar-btn" style="position:relative">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <div class="notif-dot"></div>
+        </button>
+        <button class="topbar-btn" onclick="showScreen('admin')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content-area">
+
+      <!-- ═══════════════ DASHBOARD ═══════════════ -->
+      <div id="screen-dashboard" class="screen active">
+        <div class="page-header flex-between">
+          <div>
+            <div class="page-title">Good morning, Ahmed ☕</div>
+            <div class="page-subtitle">Monday, 14 April 2025 — Al-Baik Restaurant, Branch 1</div>
+          </div>
+          <div class="flex gap-2">
+            <button class="btn btn-ghost btn-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Export</button>
+            <button class="btn btn-primary btn-sm" onclick="showScreen('pos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New Order</button>
+          </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="grid-4 mb-4">
+          <div class="kpi-card gold">
+            <div class="kpi-icon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+            <div class="kpi-label">Today's Revenue</div>
+            <div class="kpi-value">$4,218</div>
+            <div class="kpi-change up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>+12.4% <span class="kpi-meta">vs last Mon</span></div>
+          </div>
+          <div class="kpi-card teal">
+            <div class="kpi-icon teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 12l2 2 4-4M20 12a8 8 0 11-16 0 8 8 0 0116 0z"/></svg></div>
+            <div class="kpi-label">Orders Today</div>
+            <div class="kpi-value">127</div>
+            <div class="kpi-change up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>+8 <span class="kpi-meta">vs yesterday</span></div>
+          </div>
+          <div class="kpi-card blue">
+            <div class="kpi-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            <div class="kpi-label">Avg. Order Value</div>
+            <div class="kpi-value">$33.2</div>
+            <div class="kpi-change up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>+3.1% <span class="kpi-meta">vs last week</span></div>
+          </div>
+          <div class="kpi-card red">
+            <div class="kpi-icon red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg></div>
+            <div class="kpi-label">Food Cost %</div>
+            <div class="kpi-value">28.4%</div>
+            <div class="kpi-change down"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 9 12 15 6 9"/></svg>−1.2% <span class="kpi-meta">vs budget 30%</span></div>
+          </div>
+        </div>
+
+        <div class="grid-2 mb-4" style="grid-template-columns:2fr 1fr">
+          <!-- Revenue chart -->
+          <div class="card">
+            <div class="flex-between mb-4">
+              <div class="card-title">Revenue This Week</div>
+              <div class="tabs">
+                <div class="tab active">Week</div>
+                <div class="tab">Month</div>
+                <div class="tab">Year</div>
+              </div>
+            </div>
+            <div class="chart-container" style="height:200px"><canvas id="revenueChart"></canvas></div>
+          </div>
+
+          <!-- Quick stats -->
+          <div class="card">
+            <div class="card-title">Live Operations</div>
+            <div style="display:flex;flex-direction:column;gap:14px;margin-top:4px">
+              <div>
+                <div class="flex-between text-sm mb-4" style="margin-bottom:6px"><span class="text-muted">Tables Occupied</span><span class="text-bold">8 / 14</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:57%;background:var(--primary)"></div></div>
+              </div>
+              <div>
+                <div class="flex-between text-sm mb-4" style="margin-bottom:6px"><span class="text-muted">Labour Cost %</span><span class="text-bold" style="color:var(--green)">18.2%</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:61%;background:var(--green)"></div></div>
+              </div>
+              <div>
+                <div class="flex-between text-sm mb-4" style="margin-bottom:6px"><span class="text-muted">Inventory Value</span><span class="text-bold">$12,840</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:78%;background:var(--blue)"></div></div>
+              </div>
+              <div>
+                <div class="flex-between text-sm mb-4" style="margin-bottom:6px"><span class="text-muted">Loyalty Members Active</span><span class="text-bold">342</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:45%;background:var(--teal)"></div></div>
+              </div>
+              <div>
+                <div class="flex-between text-sm mb-4" style="margin-bottom:6px"><span class="text-muted">Staff On Shift</span><span class="text-bold">11 / 14</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:79%;background:var(--purple)"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <!-- Top items -->
+          <div class="card">
+            <div class="card-title">Top Menu Items Today</div>
+            <table class="data-table" style="margin-top:4px">
+              <thead><tr><th>Item</th><th>Qty</th><th>Revenue</th></tr></thead>
+              <tbody>
+                <tr><td class="td-primary">Grilled Salmon</td><td>34</td><td class="td-mono text-primary">$952</td></tr>
+                <tr><td class="td-primary">Chicken Shawarma</td><td>28</td><td class="td-mono text-primary">$532</td></tr>
+                <tr><td class="td-primary">Beef Burger</td><td>22</td><td class="td-mono text-primary">$418</td></tr>
+                <tr><td class="td-primary">Pasta Primavera</td><td>19</td><td class="td-mono text-primary">$342</td></tr>
+                <tr><td class="td-primary">Caesar Salad</td><td>16</td><td class="td-mono text-primary">$224</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Alerts -->
+          <div class="card">
+            <div class="card-title">Alerts & Actions</div>
+            <div class="alert-item">
+              <div class="alert-icon" style="background:var(--red-soft);color:var(--red)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>
+              <div class="alert-text"><strong>Salmon fillet</strong> below reorder point (320g left)</div>
+              <div class="alert-time">2m ago</div>
+            </div>
+            <div class="alert-item">
+              <div class="alert-icon" style="background:var(--primary-soft);color:var(--primary)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4M20 12a8 8 0 11-16 0 8 8 0 0116 0z"/></svg></div>
+              <div class="alert-text"><strong>PO #2041</strong> awaiting your approval</div>
+              <div class="alert-time">14m ago</div>
+            </div>
+            <div class="alert-item">
+              <div class="alert-icon" style="background:var(--blue-soft);color:var(--blue)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+              <div class="alert-text"><strong>Payroll</strong> due in 3 days — 14 staff pending</div>
+              <div class="alert-time">1h ago</div>
+            </div>
+            <div class="alert-item">
+              <div class="alert-icon" style="background:var(--green-soft);color:var(--green)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+              <div class="alert-text"><strong>Revenue target</strong> 84% reached at 6pm</div>
+              <div class="alert-time">3h ago</div>
+            </div>
+            <div class="alert-item">
+              <div class="alert-icon" style="background:var(--purple-soft);color:var(--purple)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div>
+              <div class="alert-text"><strong>Sarah K.</strong> earned Gold loyalty status</div>
+              <div class="alert-time">5h ago</div>
+            </div>
+          </div>
+
+          <!-- Category breakdown -->
+          <div class="card">
+            <div class="flex-between mb-4">
+              <div class="card-title">Sales by Category</div>
+            </div>
+            <div class="chart-container" style="height:160px"><canvas id="categoryChart"></canvas></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px">
+              <div class="flex-center gap-2"><span style="width:8px;height:8px;border-radius:50%;background:var(--primary)"></span><span class="text-xs text-muted">Mains 42%</span></div>
+              <div class="flex-center gap-2"><span style="width:8px;height:8px;border-radius:50%;background:var(--teal)"></span><span class="text-xs text-muted">Beverages 24%</span></div>
+              <div class="flex-center gap-2"><span style="width:8px;height:8px;border-radius:50%;background:var(--blue)"></span><span class="text-xs text-muted">Starters 18%</span></div>
+              <div class="flex-center gap-2"><span style="width:8px;height:8px;border-radius:50%;background:var(--purple)"></span><span class="text-xs text-muted">Desserts 16%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ POS ═══════════════ -->
+      <div id="screen-pos" class="screen">
+        <div class="page-header flex-between" style="margin-bottom:12px">
+          <div>
+            <div class="page-title">POS Terminal</div>
+            <div class="page-subtitle">Dine-In · Table 5 · Server: Omar K.</div>
+          </div>
+          <div class="flex gap-2">
+            <div class="table-selector">
+              <div class="table-chip">1</div><div class="table-chip occupied">2</div><div class="table-chip occupied">3</div><div class="table-chip">4</div><div class="table-chip active">5</div><div class="table-chip occupied">6</div><div class="table-chip">7</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pos-layout">
+          <div class="pos-left">
+            <div class="menu-cats">
+              <div class="cat-btn active" onclick="filterMenu('all',this)">All Items</div>
+              <div class="cat-btn" onclick="filterMenu('mains',this)">Mains</div>
+              <div class="cat-btn" onclick="filterMenu('starters',this)">Starters</div>
+              <div class="cat-btn" onclick="filterMenu('beverages',this)">Beverages</div>
+              <div class="cat-btn" onclick="filterMenu('desserts',this)">Desserts</div>
+            </div>
+            <div class="menu-grid" id="menuGrid"></div>
+          </div>
+
+          <div class="pos-right">
+            <div class="ticket-header">
+              <div class="flex-between">
+                <div>
+                  <div class="ticket-title">Table 5 — Order</div>
+                  <div class="ticket-meta">Server: Omar K. · 19:42</div>
+                </div>
+                <span class="badge teal"><span class="badge-dot"></span>Open</span>
+              </div>
+            </div>
+            <div class="ticket-items" id="ticketItems"></div>
+            <hr class="ticket-divider">
+            <div class="ticket-summary">
+              <div class="summary-row"><span class="lbl">Subtotal</span><span class="val" id="subtotal">$0.00</span></div>
+              <div class="summary-row"><span class="lbl">Discount (10%)</span><span class="val" id="discountAmt" style="color:var(--green)">−$0.00</span></div>
+              <div class="summary-row"><span class="lbl">Tax (15%)</span><span class="val" id="taxAmt">$0.00</span></div>
+              <div class="summary-row total"><span class="lbl">Total Due</span><span class="val" id="totalAmt">$0.00</span></div>
+            </div>
+            <div class="ticket-actions">
+              <button class="pay-btn cash" onclick="processPayment()">💳 Charge $<span id="chargeAmt">0.00</span></button>
+              <button class="pay-btn card">Card</button>
+              <button class="pay-btn hold">Hold</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ INVENTORY ═══════════════ -->
+      <div id="screen-inventory" class="screen">
+        <div class="page-header flex-between">
+          <div><div class="page-title">Inventory Management</div><div class="page-subtitle">138 ingredients · 5 alerts · Last count: Today 08:00</div></div>
+          <div class="flex gap-2">
+            <button class="btn btn-ghost btn-sm">📊 Stock Count</button>
+            <button class="btn btn-primary btn-sm" onclick="showToast('Purchase order drafted')">+ Draft PO</button>
+          </div>
+        </div>
+
+        <div class="grid-4 mb-4">
+          <div class="kpi-card teal"><div class="kpi-icon teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/></svg></div><div class="kpi-label">Total Ingredients</div><div class="kpi-value">138</div><div class="kpi-change up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>3 new <span class="kpi-meta">this week</span></div></div>
+          <div class="kpi-card gold"><div class="kpi-icon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="kpi-label">Stock Value</div><div class="kpi-value">$12,840</div><div class="kpi-change down"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 9 12 15 6 9"/></svg>−$420 <span class="kpi-meta">today</span></div></div>
+          <div class="kpi-card red"><div class="kpi-icon red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div><div class="kpi-label">Low / Critical</div><div class="kpi-value">5</div><div class="kpi-change down"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 9 12 15 6 9"/></svg>2 need PO <span class="kpi-meta">urgent</span></div></div>
+          <div class="kpi-card green"><div class="kpi-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div class="kpi-label">Waste This Week</div><div class="kpi-value">$184</div><div class="kpi-change up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>−32% <span class="kpi-meta">vs last week</span></div></div>
+        </div>
+
+        <div class="grid-2" style="grid-template-columns:2fr 1fr">
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="flex-between" style="padding:16px 20px;border-bottom:1px solid var(--border)">
+              <div class="card-title" style="margin-bottom:0">Stock Levels</div>
+              <input class="input" style="width:180px" placeholder="🔍 Search ingredient...">
+            </div>
+            <table class="data-table">
+              <thead><tr><th></th><th>Ingredient</th><th>Category</th><th>On Hand</th><th>Par Level</th><th>Unit Cost</th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                <tr><td><div class="stock-status critical"></div></td><td class="td-primary">Salmon Fillet</td><td class="text-dim">Protein</td><td class="td-mono">0.32 kg</td><td class="td-mono">2.0 kg</td><td class="td-mono">$28.00</td><td><span class="badge red"><span class="badge-dot"></span>Critical</span></td><td><button class="btn btn-ghost btn-sm" onclick="showToast('PO drafted for Salmon Fillet')">PO</button></td></tr>
+                <tr><td><div class="stock-status low"></div></td><td class="td-primary">Heavy Cream</td><td class="text-dim">Dairy</td><td class="td-mono">1.2 L</td><td class="td-mono">5.0 L</td><td class="td-mono">$4.20</td><td><span class="badge gold"><span class="badge-dot"></span>Low</span></td><td><button class="btn btn-ghost btn-sm" onclick="showToast('PO drafted for Heavy Cream')">PO</button></td></tr>
+                <tr><td><div class="stock-status ok"></div></td><td class="td-primary">Chicken Breast</td><td class="text-dim">Protein</td><td class="td-mono">8.4 kg</td><td class="td-mono">5.0 kg</td><td class="td-mono">$12.50</td><td><span class="badge green"><span class="badge-dot"></span>OK</span></td><td><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+                <tr><td><div class="stock-status ok"></div></td><td class="td-primary">Basmati Rice</td><td class="text-dim">Grains</td><td class="td-mono">14.0 kg</td><td class="td-mono">8.0 kg</td><td class="td-mono">$2.80</td><td><span class="badge green"><span class="badge-dot"></span>OK</span></td><td><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+                <tr><td><div class="stock-status ok"></div></td><td class="td-primary">Roma Tomatoes</td><td class="text-dim">Produce</td><td class="td-mono">6.5 kg</td><td class="td-mono">4.0 kg</td><td class="td-mono">$3.40</td><td><span class="badge green"><span class="badge-dot"></span>OK</span></td><td><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+                <tr><td><div class="stock-status low"></div></td><td class="td-primary">Parmesan</td><td class="text-dim">Dairy</td><td class="td-mono">0.8 kg</td><td class="td-mono">2.0 kg</td><td class="td-mono">$22.00</td><td><span class="badge gold"><span class="badge-dot"></span>Low</span></td><td><button class="btn btn-ghost btn-sm" onclick="showToast('PO drafted for Parmesan')">PO</button></td></tr>
+                <tr><td><div class="stock-status ok"></div></td><td class="td-primary">Olive Oil EV</td><td class="text-dim">Oils</td><td class="td-mono">4.2 L</td><td class="td-mono">2.0 L</td><td class="td-mono">$9.80</td><td><span class="badge green"><span class="badge-dot"></span>OK</span></td><td><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="card">
+              <div class="card-title">AI Forecast — Next 7 Days</div>
+              <div class="chart-container" style="height:150px"><canvas id="forecastChart"></canvas></div>
+              <div style="margin-top:10px;padding:10px;background:var(--primary-soft);border:1px solid rgba(232,160,69,0.2);border-radius:8px">
+                <div class="text-xs text-primary text-bold" style="margin-bottom:4px">⚡ AI Recommendation</div>
+                <div class="text-xs text-muted">Order 4kg Salmon + 6L Cream by Wednesday based on weekend demand pattern.</div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Wastage This Week</div>
+              <div class="chart-container" style="height:120px"><canvas id="wasteChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ ORDERS ═══════════════ -->
+      <div id="screen-orders" class="screen">
+        <div class="page-header flex-between">
+          <div><div class="page-title">Order Management</div><div class="page-subtitle">127 orders today · $4,218 revenue · 3 active</div></div>
+          <div class="flex gap-2">
+            <button class="btn btn-ghost btn-sm">Filter</button>
+            <button class="btn btn-primary btn-sm" onclick="showScreen('pos')">+ New Order</button>
+          </div>
+        </div>
+        <div class="grid-4 mb-4">
+          <div class="kpi-card teal"><div class="kpi-icon teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="kpi-label">Active Orders</div><div class="kpi-value">3</div></div>
+          <div class="kpi-card gold"><div class="kpi-icon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 12l2 2 4-4"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg></div><div class="kpi-label">Completed</div><div class="kpi-value">121</div></div>
+          <div class="kpi-card blue"><div class="kpi-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div><div class="kpi-label">Avg. Prep Time</div><div class="kpi-value">14 min</div></div>
+          <div class="kpi-card red"><div class="kpi-icon red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div><div class="kpi-label">Voids / Refunds</div><div class="kpi-value">3</div></div>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <table class="data-table">
+            <thead><tr><th>Order #</th><th>Table</th><th>Items</th><th>Type</th><th>Time</th><th>Prep</th><th>Total</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              <tr><td class="td-primary td-mono">#2147</td><td>Table 5</td><td>3 items</td><td><span class="badge teal">Dine-in</span></td><td>19:42</td><td>12 min</td><td class="td-mono text-primary">$87.40</td><td><span class="badge gold"><span class="badge-dot"></span>In Kitchen</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+              <tr><td class="td-primary td-mono">#2146</td><td>Table 3</td><td>5 items</td><td><span class="badge teal">Dine-in</span></td><td>19:38</td><td>18 min</td><td class="td-mono text-primary">$124.60</td><td><span class="badge gold"><span class="badge-dot"></span>In Kitchen</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+              <tr><td class="td-primary td-mono">#2145</td><td>—</td><td>2 items</td><td><span class="badge blue">Takeaway</span></td><td>19:35</td><td>10 min</td><td class="td-mono text-primary">$42.00</td><td><span class="badge green"><span class="badge-dot"></span>Ready</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+              <tr><td class="td-primary td-mono">#2144</td><td>Table 2</td><td>4 items</td><td><span class="badge teal">Dine-in</span></td><td>19:20</td><td>16 min</td><td class="td-mono text-primary">$98.20</td><td><span class="badge gray">Served</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+              <tr><td class="td-primary td-mono">#2143</td><td>Table 6</td><td>6 items</td><td><span class="badge teal">Dine-in</span></td><td>19:10</td><td>22 min</td><td class="td-mono text-primary">$156.80</td><td><span class="badge green"><span class="badge-dot"></span>Completed</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+              <tr><td class="td-primary td-mono">#2142</td><td>—</td><td>3 items</td><td><span class="badge blue">Delivery</span></td><td>18:55</td><td>30 min</td><td class="td-mono text-primary">$68.50</td><td><span class="badge green"><span class="badge-dot"></span>Completed</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══════════════ FINANCE ═══════════════ -->
+      <div id="screen-finance" class="screen">
+        <div class="page-header flex-between">
+          <div><div class="page-title">Financial Overview</div><div class="page-subtitle">April 2025 · All figures in USD</div></div>
+          <div class="flex gap-2">
+            <button class="btn btn-ghost btn-sm">+ Expense</button>
+            <button class="btn btn-ghost btn-sm">+ Invoice</button>
+            <button class="btn btn-primary btn-sm">Reconcile</button>
+          </div>
+        </div>
+
+        <div class="grid-4 mb-4">
+          <div class="kpi-card green"><div class="kpi-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg></div><div class="kpi-label">Revenue (MTD)</div><div class="kpi-value">$68,420</div><div class="kpi-change up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>+11.2% <span class="kpi-meta">vs budget</span></div></div>
+          <div class="kpi-card red"><div class="kpi-icon red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/></svg></div><div class="kpi-label">COGS (MTD)</div><div class="kpi-value">$19,432</div><div class="kpi-change up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>28.4% <span class="kpi-meta">food cost %</span></div></div>
+          <div class="kpi-card blue"><div class="kpi-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></div><div class="kpi-label">Operating Expenses</div><div class="kpi-value">$22,180</div><div class="kpi-change up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>32.4% <span class="kpi-meta">of revenue</span></div></div>
+          <div class="kpi-card teal"><div class="kpi-icon teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="kpi-label">Net Income (MTD)</div><div class="kpi-value">$26,808</div><div class="kpi-change up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>39.2% <span class="kpi-meta">net margin</span></div></div>
+        </div>
+
+        <div class="grid-2" style="grid-template-columns:3fr 2fr">
+          <div class="card" style="padding:0;overflow:hidden">
+            <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
+              <div class="flex-between"><div class="card-title" style="margin:0">Recent Transactions</div><div class="tabs"><div class="tab active">All</div><div class="tab">Income</div><div class="tab">Expense</div></div></div>
+            </div>
+            <table class="data-table">
+              <thead><tr><th>Date</th><th>Description</th><th>Account</th><th>Reference</th><th>Amount</th></tr></thead>
+              <tbody>
+                <tr><td class="text-dim">14 Apr</td><td class="td-primary">Dinner Service Revenue</td><td class="text-dim">Revenue</td><td class="td-mono text-dim">#INV-2041</td><td class="td-mono" style="color:var(--green)">+$4,218</td></tr>
+                <tr><td class="text-dim">14 Apr</td><td class="td-primary">Vegetable Supply — Green Gardens</td><td class="text-dim">COGS</td><td class="td-mono text-dim">PO-1094</td><td class="td-mono text-red">−$840</td></tr>
+                <tr><td class="text-dim">13 Apr</td><td class="td-primary">Full Day Revenue</td><td class="text-dim">Revenue</td><td class="td-mono text-dim">#INV-2040</td><td class="td-mono" style="color:var(--green)">+$5,124</td></tr>
+                <tr><td class="text-dim">13 Apr</td><td class="td-primary">Staff Payroll — Week 15</td><td class="text-dim">Labour</td><td class="td-mono text-dim">PR-W15</td><td class="td-mono text-red">−$3,220</td></tr>
+                <tr><td class="text-dim">12 Apr</td><td class="td-primary">Seafood Supply — Ocean Fresh</td><td class="text-dim">COGS</td><td class="td-mono text-dim">PO-1093</td><td class="td-mono text-red">−$1,240</td></tr>
+                <tr><td class="text-dim">12 Apr</td><td class="td-primary">Full Day Revenue</td><td class="text-dim">Revenue</td><td class="td-mono text-dim">#INV-2039</td><td class="td-mono" style="color:var(--green)">+$4,892</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="card">
+              <div class="card-title">P&L Summary — April 2025</div>
+              <div class="fin-stat-row"><span class="fin-stat-label">Gross Revenue</span><span class="fin-stat-value" style="color:var(--green)">$68,420</span></div>
+              <div class="fin-stat-row"><span class="fin-stat-label">Cost of Goods Sold</span><span class="fin-stat-value text-red">($19,432)</span></div>
+              <div class="fin-stat-row"><span class="fin-stat-label">Gross Profit</span><span class="fin-stat-value text-primary">$48,988</span></div>
+              <div class="fin-stat-row"><span class="fin-stat-label">Labour Cost</span><span class="fin-stat-value text-red">($12,460)</span></div>
+              <div class="fin-stat-row"><span class="fin-stat-label">Rent & Utilities</span><span class="fin-stat-value text-red">($6,200)</span></div>
+              <div class="fin-stat-row"><span class="fin-stat-label">Other OpEx</span><span class="fin-stat-value text-red">($3,520)</span></div>
+              <div class="fin-stat-row total"><span class="fin-stat-label">Net Income</span><span class="fin-stat-value">$26,808</span></div>
+            </div>
+            <div class="card">
+              <div class="card-title">AP Aging</div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+                <div><div class="flex-between text-xs mb-4" style="margin-bottom:5px"><span class="text-muted">Current</span><span class="td-mono" style="color:var(--green)">$4,820</span></div><div class="progress-bar"><div class="progress-fill" style="width:72%;background:var(--green)"></div></div></div>
+                <div><div class="flex-between text-xs mb-4" style="margin-bottom:5px"><span class="text-muted">30 Days</span><span class="td-mono text-primary">$1,240</span></div><div class="progress-bar"><div class="progress-fill" style="width:20%;background:var(--primary)"></div></div></div>
+                <div><div class="flex-between text-xs mb-4" style="margin-bottom:5px"><span class="text-muted">60 Days</span><span class="td-mono text-red">$380</span></div><div class="progress-bar"><div class="progress-fill" style="width:8%;background:var(--red)"></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ HR ═══════════════ -->
+      <div id="screen-hr" class="screen">
+        <div class="page-header flex-between">
+          <div><div class="page-title">HR & Payroll</div><div class="page-subtitle">14 staff · 11 on shift today · Payroll due Apr 20</div></div>
+          <div class="flex gap-2">
+            <button class="btn btn-ghost btn-sm">Schedule</button>
+            <button class="btn btn-primary btn-sm" onclick="showToast('Payroll run initiated for 14 staff')">Run Payroll</button>
+          </div>
+        </div>
+
+        <div class="grid-4 mb-4">
+          <div class="kpi-card blue"><div class="kpi-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="kpi-label">Total Staff</div><div class="kpi-value">14</div></div>
+          <div class="kpi-card green"><div class="kpi-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="20 6 9 17 4 12"/></svg></div><div class="kpi-label">On Shift Now</div><div class="kpi-value">11</div></div>
+          <div class="kpi-card gold"><div class="kpi-icon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="kpi-label">Monthly Payroll</div><div class="kpi-value">$22,400</div></div>
+          <div class="kpi-card purple"><div class="kpi-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="kpi-label">Labour Cost %</div><div class="kpi-value">18.2%</div><div class="kpi-change up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>Under budget <span class="kpi-meta">(20%)</span></div></div>
+        </div>
+
+        <div class="grid-2" style="grid-template-columns:2fr 1fr;margin-bottom:16px">
+          <div class="card" style="padding:0;overflow:hidden">
+            <div style="padding:16px 20px;border-bottom:1px solid var(--border)"><div class="card-title" style="margin:0">Staff Directory</div></div>
+            <table class="data-table">
+              <thead><tr><th>Employee</th><th>Role</th><th>Hours (Month)</th><th>Salary</th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                <tr><td><div class="flex-center"><div class="avatar-sm" style="width:28px;height:28px;font-size:11px;background:linear-gradient(135deg,#E8A045,#C4822E)">AK</div><span class="td-primary" style="margin-left:8px">Ahmed Khan</span></div></td><td class="text-dim">Head Chef</td><td class="td-mono">168h</td><td class="td-mono text-primary">$3,200</td><td><span class="badge green"><span class="badge-dot"></span>On Shift</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+                <tr><td><div class="flex-center"><div class="avatar-sm" style="width:28px;height:28px;font-size:11px;background:linear-gradient(135deg,#2DD4BF,#0D9488)">SR</div><span class="td-primary" style="margin-left:8px">Sarah Rashid</span></div></td><td class="text-dim">Sous Chef</td><td class="td-mono">160h</td><td class="td-mono text-primary">$2,400</td><td><span class="badge green"><span class="badge-dot"></span>On Shift</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+                <tr><td><div class="flex-center"><div class="avatar-sm" style="width:28px;height:28px;font-size:11px;background:linear-gradient(135deg,#60A5FA,#3B82F6)">OM</div><span class="td-primary" style="margin-left:8px">Omar Malik</span></div></td><td class="text-dim">Cashier</td><td class="td-mono">154h</td><td class="td-mono text-primary">$1,600</td><td><span class="badge green"><span class="badge-dot"></span>On Shift</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+                <tr><td><div class="flex-center"><div class="avatar-sm" style="width:28px;height:28px;font-size:11px;background:linear-gradient(135deg,#A78BFA,#7C3AED)">FZ</div><span class="td-primary" style="margin-left:8px">Fatima Zaidi</span></div></td><td class="text-dim">Waitstaff</td><td class="td-mono">140h</td><td class="td-mono text-primary">$1,400</td><td><span class="badge gray">Off Today</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+                <tr><td><div class="flex-center"><div class="avatar-sm" style="width:28px;height:28px;font-size:11px;background:linear-gradient(135deg,#4ADE80,#16A34A)">HB</div><span class="td-primary" style="margin-left:8px">Hassan Baloch</span></div></td><td class="text-dim">Inventory Mgr</td><td class="td-mono">168h</td><td class="td-mono text-primary">$1,800</td><td><span class="badge green"><span class="badge-dot"></span>On Shift</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="card">
+              <div class="card-title">Labour Cost Trend</div>
+              <div class="chart-container" style="height:140px"><canvas id="labourChart"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Today's Shift Coverage</div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+                <div class="flex-between text-xs"><span class="text-muted">Morning (07:00–15:00)</span><span class="text-bold text-green">5 / 5</span></div>
+                <div class="flex-between text-xs"><span class="text-muted">Afternoon (12:00–20:00)</span><span class="text-bold text-primary">4 / 5</span></div>
+                <div class="flex-between text-xs"><span class="text-muted">Evening (17:00–23:00)</span><span class="text-bold text-primary">3 / 4</span></div>
+                <div style="margin-top:8px;padding:8px;background:var(--primary-soft);border:1px solid rgba(232,160,69,0.2);border-radius:8px;font-size:11px;color:var(--primary)">
+                  ⚡ Afternoon short 1 staff — Fatima available, confirm shift?
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ VENDORS ═══════════════ -->
+      <div id="screen-vendors" class="screen">
+        <div class="page-header flex-between">
+          <div><div class="page-title">Vendor & Supply Chain</div><div class="page-subtitle">12 active vendors · 3 open POs · $6,440 outstanding</div></div>
+          <div class="flex gap-2">
+            <button class="btn btn-ghost btn-sm">+ Vendor</button>
+            <button class="btn btn-primary btn-sm" onclick="showToast('New PO draft created')">+ Purchase Order</button>
+          </div>
+        </div>
+        <div class="grid-2" style="grid-template-columns:2fr 1fr">
+          <div class="card" style="padding:0;overflow:hidden">
+            <div style="padding:16px 20px;border-bottom:1px solid var(--border)"><div class="card-title" style="margin:0">Vendor Directory</div></div>
+            <table class="data-table">
+              <thead><tr><th>Vendor</th><th>Category</th><th>Lead Time</th><th>Score</th><th>Outstanding</th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                <tr><td class="td-primary">Ocean Fresh Co.</td><td class="text-dim">Seafood</td><td class="td-mono">2 days</td><td><div class="score-circle" style="background:var(--green-soft);color:var(--green)">94</div></td><td class="td-mono text-red">$1,240</td><td><span class="badge green">Active</span></td><td><button class="btn btn-ghost btn-sm">PO</button></td></tr>
+                <tr><td class="td-primary">Green Gardens</td><td class="text-dim">Produce</td><td class="td-mono">1 day</td><td><div class="score-circle" style="background:var(--green-soft);color:var(--green)">91</div></td><td class="td-mono text-primary">$840</td><td><span class="badge green">Active</span></td><td><button class="btn btn-ghost btn-sm">PO</button></td></tr>
+                <tr><td class="td-primary">Prime Dairy Ltd</td><td class="text-dim">Dairy</td><td class="td-mono">1 day</td><td><div class="score-circle" style="background:var(--primary-soft);color:var(--primary)">78</div></td><td class="td-mono text-primary">$620</td><td><span class="badge green">Active</span></td><td><button class="btn btn-ghost btn-sm">PO</button></td></tr>
+                <tr><td class="td-primary">Grain Masters</td><td class="text-dim">Grains & Dry</td><td class="td-mono">3 days</td><td><div class="score-circle" style="background:var(--green-soft);color:var(--green)">88</div></td><td class="td-mono text-dim">$0</td><td><span class="badge green">Active</span></td><td><button class="btn btn-ghost btn-sm">PO</button></td></tr>
+                <tr><td class="td-primary">SpiceRoute Int.</td><td class="text-dim">Spices & Herbs</td><td class="td-mono">4 days</td><td><div class="score-circle" style="background:var(--red-soft);color:var(--red)">62</div></td><td class="td-mono text-dim">$380</td><td><span class="badge gold">Review</span></td><td><button class="btn btn-ghost btn-sm">PO</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="card">
+              <div class="card-title">Open Purchase Orders</div>
+              <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+                <div style="padding:10px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border)">
+                  <div class="flex-between text-sm"><span class="text-bold">PO-1094</span><span class="badge gold">Pending Approval</span></div>
+                  <div class="text-xs text-dim" style="margin-top:4px">Ocean Fresh Co. · Salmon 4kg + Prawns 2kg</div>
+                  <div class="flex-between text-xs" style="margin-top:6px"><span class="text-muted">Est. $448</span><button class="btn btn-primary btn-sm" onclick="showToast('PO #1094 approved and sent to vendor')">Approve</button></div>
+                </div>
+                <div style="padding:10px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border)">
+                  <div class="flex-between text-sm"><span class="text-bold">PO-1093</span><span class="badge blue">In Transit</span></div>
+                  <div class="text-xs text-dim" style="margin-top:4px">Green Gardens · Mixed veg 20kg</div>
+                  <div class="flex-between text-xs" style="margin-top:6px"><span class="text-muted">$184 · ETA: Tomorrow</span><button class="btn btn-ghost btn-sm">Track</button></div>
+                </div>
+                <div style="padding:10px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border)">
+                  <div class="flex-between text-sm"><span class="text-bold">PO-1092</span><span class="badge teal">Delivered</span></div>
+                  <div class="text-xs text-dim" style="margin-top:4px">Prime Dairy · Cream 8L + Parmesan 2kg</div>
+                  <div class="flex-between text-xs" style="margin-top:6px"><span class="text-muted">$208 · Received today</span><button class="btn btn-ghost btn-sm">Confirm</button></div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Monthly Spend by Vendor</div>
+              <div class="chart-container" style="height:140px"><canvas id="vendorChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ CRM ═══════════════ -->
+      <div id="screen-crm" class="screen">
+        <div class="page-header flex-between">
+          <div><div class="page-title">CRM & Loyalty</div><div class="page-subtitle">1,842 customers · 342 active this month · NPS: 72</div></div>
+          <div class="flex gap-2">
+            <button class="btn btn-ghost btn-sm">Segment</button>
+            <button class="btn btn-primary btn-sm" onclick="showToast('Campaign created and queued')">+ Campaign</button>
+          </div>
+        </div>
+        <div class="grid-4 mb-4">
+          <div class="kpi-card teal"><div class="kpi-icon teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="kpi-label">Total Members</div><div class="kpi-value">1,842</div><div class="kpi-change up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>+28 <span class="kpi-meta">this week</span></div></div>
+          <div class="kpi-card gold"><div class="kpi-icon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div class="kpi-label">Gold Members</div><div class="kpi-value">184</div><div class="kpi-change up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>+3 <span class="kpi-meta">upgraded</span></div></div>
+          <div class="kpi-card purple"><div class="kpi-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div><div class="kpi-label">Points Redeemed</div><div class="kpi-value">8,420</div></div>
+          <div class="kpi-card blue"><div class="kpi-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div class="kpi-label">NPS Score</div><div class="kpi-value">72</div><div class="kpi-change up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>+4 <span class="kpi-meta">vs last month</span></div></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card" style="padding:0;overflow:hidden">
+            <div style="padding:16px 20px;border-bottom:1px solid var(--border)"><div class="flex-between"><div class="card-title" style="margin:0">Top Customers</div><input class="input" style="width:160px" placeholder="Search..."></div></div>
+            <table class="data-table">
+              <thead><tr><th>Customer</th><th>Visits</th><th>Lifetime Value</th><th>Points</th><th>Tier</th><th></th></tr></thead>
+              <tbody>
+                <tr><td class="td-primary">Sarah Khalid</td><td>42</td><td class="td-mono text-primary">$2,840</td><td class="td-mono text-teal">12,400</td><td><div class="loyalty-tier tier-gold">★ Gold</div></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+                <tr><td class="td-primary">Tariq Mansour</td><td>38</td><td class="td-mono text-primary">$2,210</td><td class="td-mono text-teal">9,800</td><td><div class="loyalty-tier tier-gold">★ Gold</div></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+                <tr><td class="td-primary">Nadia Al-Farsi</td><td>24</td><td class="td-mono text-primary">$1,440</td><td class="td-mono" style="color:#B0B4C8">5,200</td><td><div class="loyalty-tier tier-silver">◆ Silver</div></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+                <tr><td class="td-primary">Omar Qureshi</td><td>18</td><td class="td-mono text-primary">$980</td><td class="td-mono" style="color:#B0B4C8">3,600</td><td><div class="loyalty-tier tier-silver">◆ Silver</div></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+                <tr><td class="td-primary">Yasmin Hassan</td><td>11</td><td class="td-mono text-primary">$540</td><td class="td-mono" style="color:#CD7F32">1,200</td><td><div class="loyalty-tier tier-bronze">● Bronze</div></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="card">
+              <div class="card-title">Loyalty Tier Distribution</div>
+              <div class="chart-container" style="height:160px"><canvas id="loyaltyChart"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Active Campaigns</div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+                <div style="padding:10px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border)">
+                  <div class="flex-between text-sm"><span class="text-bold">Weekend Double Points</span><span class="badge green">Live</span></div>
+                  <div class="text-xs text-dim" style="margin-top:3px">Sat–Sun · 2× earn on all mains · 284 redemptions</div>
+                </div>
+                <div style="padding:10px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border)">
+                  <div class="flex-between text-sm"><span class="text-bold">Birthday Free Dessert</span><span class="badge green">Live</span></div>
+                  <div class="text-xs text-dim" style="margin-top:3px">Automated · Birthday month · 42 sent this month</div>
+                </div>
+                <div style="padding:10px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border)">
+                  <div class="flex-between text-sm"><span class="text-bold">Win-Back — 60 Days Silent</span><span class="badge blue">Scheduled</span></div>
+                  <div class="text-xs text-dim" style="margin-top:3px">Starts Mon · 15% voucher · 38 customers targeted</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ ANALYTICS ═══════════════ -->
+      <div id="screen-analytics" class="screen">
+        <div class="page-header flex-between">
+          <div><div class="page-title">Analytics & Intelligence</div><div class="page-subtitle">Real-time data · April 2025</div></div>
+          <div class="flex gap-2">
+            <div class="tabs"><div class="tab active">This Month</div><div class="tab">Quarter</div><div class="tab">Year</div></div>
+            <button class="btn btn-ghost btn-sm">Export</button>
+          </div>
+        </div>
+
+        <div class="grid-2 mb-4" style="grid-template-columns:3fr 2fr">
+          <div class="card">
+            <div class="flex-between mb-4"><div class="card-title">Revenue vs COGS — Daily</div><span class="badge teal">Live</span></div>
+            <div class="chart-container" style="height:220px"><canvas id="revCOGSChart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="margin-bottom:16px">Key Performance Ratios</div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div><div class="flex-between text-sm" style="margin-bottom:6px"><span class="text-muted">Food Cost %</span><span class="text-bold" style="color:var(--green)">28.4% ✓</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:56%;background:linear-gradient(90deg,var(--green),var(--teal))"></div></div><div class="text-xs text-dim" style="margin-top:3px">Budget: 30%</div></div>
+              <div><div class="flex-between text-sm" style="margin-bottom:6px"><span class="text-muted">Labour Cost %</span><span class="text-bold text-primary">18.2%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:36%;background:linear-gradient(90deg,var(--primary),#E8C045)"></div></div><div class="text-xs text-dim" style="margin-top:3px">Budget: 20%</div></div>
+              <div><div class="flex-between text-sm" style="margin-bottom:6px"><span class="text-muted">Net Margin</span><span class="text-bold text-teal">39.2%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:78%;background:linear-gradient(90deg,var(--teal),var(--blue))"></div></div><div class="text-xs text-dim" style="margin-top:3px">Target: 35%</div></div>
+              <div><div class="flex-between text-sm" style="margin-bottom:6px"><span class="text-muted">Avg. Table Turn Time</span><span class="text-bold text-purple">48 min</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:60%;background:linear-gradient(90deg,var(--purple),var(--blue))"></div></div><div class="text-xs text-dim" style="margin-top:3px">Target: 45 min</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-title">Revenue by Hour (Today)</div>
+            <div class="chart-container" style="height:160px"><canvas id="hourlyChart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Menu Margin Ranking</div>
+            <table class="data-table" style="margin-top:4px">
+              <thead><tr><th>Item</th><th>Cost%</th><th>Margin</th></tr></thead>
+              <tbody>
+                <tr><td class="td-primary">Beef Burger</td><td class="td-mono" style="color:var(--green)">21%</td><td class="td-mono text-primary">$15.00</td></tr>
+                <tr><td class="td-primary">Pasta Prim.</td><td class="td-mono" style="color:var(--green)">24%</td><td class="td-mono text-primary">$13.60</td></tr>
+                <tr><td class="td-primary">Chicken Shar.</td><td class="td-mono text-primary">28%</td><td class="td-mono text-primary">$13.70</td></tr>
+                <tr><td class="td-primary">Grilled Salmon</td><td class="td-mono text-primary">35%</td><td class="td-mono text-primary">$18.20</td></tr>
+                <tr><td class="td-primary">Caesar Salad</td><td class="td-mono text-red">42%</td><td class="td-mono" style="color:var(--text-2)">$8.10</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card">
+            <div class="card-title">AI — Natural Language Query</div>
+            <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
+              <div style="padding:10px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border)">
+                <div class="text-xs text-dim" style="margin-bottom:4px">You asked:</div>
+                <div class="text-sm text-bold">"What was my best margin item last Tuesday?"</div>
+              </div>
+              <div style="padding:10px;background:var(--primary-soft);border:1px solid rgba(232,160,69,0.2);border-radius:8px">
+                <div class="text-xs text-primary text-bold" style="margin-bottom:4px">⚡ NEXUS AI</div>
+                <div class="text-sm text-muted">Beef Burger — 79% gross margin ($15.00/unit), sold 22 units, generated $330 in gross profit on Tuesday April 8.</div>
+              </div>
+              <div class="flex gap-2">
+                <input class="input w-full" placeholder="Ask anything about your data..." style="font-size:12px">
+                <button class="btn btn-primary btn-sm" onclick="showToast('AI query processed')">Ask</button>
+              </div>
+              <div class="text-xs text-dim">Try: "Compare food cost % week over week" or "Which vendor had late deliveries?"</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ REPORTS ═══════════════ -->
+      <div id="screen-reports" class="screen">
+        <div class="page-header flex-between">
+          <div><div class="page-title">Reports</div><div class="page-subtitle">50+ pre-built reports · Scheduled delivery · Export ready</div></div>
+          <button class="btn btn-primary btn-sm" onclick="showToast('Custom report builder opened')">+ Custom Report</button>
+        </div>
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-title">Financial Reports</div>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+              <div onclick="showToast('P&L Report generating...')" style="padding:10px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div class="flex-between"><span class="text-sm text-bold">Profit & Loss Statement</span><span class="badge green">Ready</span></div>
+                <div class="text-xs text-dim" style="margin-top:3px">Monthly, Quarterly, Annual · By branch</div>
+              </div>
+              <div onclick="showToast('Balance Sheet generating...')" style="padding:10px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div class="flex-between"><span class="text-sm text-bold">Balance Sheet</span><span class="badge green">Ready</span></div>
+                <div class="text-xs text-dim" style="margin-top:3px">Assets, liabilities, equity snapshot</div>
+              </div>
+              <div onclick="showToast('AP Aging report generating...')" style="padding:10px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div class="flex-between"><span class="text-sm text-bold">AP Aging Report</span><span class="badge green">Ready</span></div>
+                <div class="text-xs text-dim" style="margin-top:3px">Outstanding payables by vendor</div>
+              </div>
+              <div onclick="showToast('Cash Flow report generating...')" style="padding:10px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div class="flex-between"><span class="text-sm text-bold">Cash Flow Statement</span><span class="badge gold">Scheduled</span></div>
+                <div class="text-xs text-dim" style="margin-top:3px">Daily auto-send to your email</div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Operations Reports</div>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+              <div onclick="showToast('Food Cost report generating...')" style="padding:10px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--teal)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div class="flex-between"><span class="text-sm text-bold">Food Cost % Report</span><span class="badge teal">Live</span></div>
+                <div class="text-xs text-dim" style="margin-top:3px">By item, category, and period</div>
+              </div>
+              <div onclick="showToast('Wastage Analysis generating...')" style="padding:10px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--teal)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div class="flex-between"><span class="text-sm text-bold">Wastage Analysis</span><span class="badge teal">Live</span></div>
+                <div class="text-xs text-dim" style="margin-top:3px">Root-cause, trend, by ingredient</div>
+              </div>
+              <div onclick="showToast('Sales by Category generating...')" style="padding:10px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--teal)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div class="flex-between"><span class="text-sm text-bold">Sales by Category</span><span class="badge green">Ready</span></div>
+                <div class="text-xs text-dim" style="margin-top:3px">Mains, starters, beverages, desserts</div>
+              </div>
+              <div onclick="showToast('Menu Margin report generating...')" style="padding:10px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--teal)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div class="flex-between"><span class="text-sm text-bold">Menu Margin Ranking</span><span class="badge green">Ready</span></div>
+                <div class="text-xs text-dim" style="margin-top:3px">Best and worst performing items</div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">HR & Vendor Reports</div>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+              <div onclick="showToast('Payroll Summary generating...')" style="padding:10px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--purple)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div class="flex-between"><span class="text-sm text-bold">Payroll Summary</span><span class="badge green">Ready</span></div>
+                <div class="text-xs text-dim" style="margin-top:3px">By employee, role, and period</div>
+              </div>
+              <div onclick="showToast('Labour Cost Report generating...')" style="padding:10px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--purple)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div class="flex-between"><span class="text-sm text-bold">Labour vs Revenue Report</span><span class="badge teal">Live</span></div>
+                <div class="text-xs text-dim" style="margin-top:3px">Cost % by shift and department</div>
+              </div>
+              <div onclick="showToast('Vendor Spend report generating...')" style="padding:10px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--purple)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div class="flex-between"><span class="text-sm text-bold">Vendor Spend Analysis</span><span class="badge green">Ready</span></div>
+                <div class="text-xs text-dim" style="margin-top:3px">By vendor, category, and month</div>
+              </div>
+              <div onclick="showToast('Customer Loyalty Report generating...')" style="padding:10px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--purple)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div class="flex-between"><span class="text-sm text-bold">Customer Loyalty Report</span><span class="badge green">Ready</span></div>
+                <div class="text-xs text-dim" style="margin-top:3px">Tier breakdown, NPS, churn risk</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ ADMIN ═══════════════ -->
+      <div id="screen-admin" class="screen">
+        <div class="page-header flex-between">
+          <div><div class="page-title">Admin & Access Control</div><div class="page-subtitle">Multi-branch ready · RBAC · Full audit log</div></div>
+          <button class="btn btn-primary btn-sm" onclick="showToast('New user invitation sent')">+ Invite User</button>
+        </div>
+
+        <div class="grid-2 mb-4" style="grid-template-columns:3fr 2fr">
+          <div class="card" style="padding:0;overflow:hidden">
+            <div style="padding:16px 20px;border-bottom:1px solid var(--border)"><div class="card-title" style="margin:0">User Management</div></div>
+            <table class="data-table">
+              <thead><tr><th>User</th><th>Role</th><th>Branch</th><th>Last Active</th><th>2FA</th><th></th></tr></thead>
+              <tbody>
+                <tr><td><div class="flex-center"><div class="avatar-sm" style="width:28px;height:28px;font-size:11px">AR</div><span class="td-primary" style="margin-left:8px">Ahmed Raza</span></div></td><td><span class="badge gold">Super Admin</span></td><td class="text-dim">All Branches</td><td class="text-dim text-xs">Now</td><td><span class="badge green">On</span></td><td><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+                <tr><td><div class="flex-center"><div class="avatar-sm" style="width:28px;height:28px;font-size:11px;background:linear-gradient(135deg,#2DD4BF,#0D9488)">MK</div><span class="td-primary" style="margin-left:8px">Maria Khan</span></div></td><td><span class="badge blue">Branch Manager</span></td><td class="text-dim">Branch 1</td><td class="text-dim text-xs">2h ago</td><td><span class="badge green">On</span></td><td><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+                <tr><td><div class="flex-center"><div class="avatar-sm" style="width:28px;height:28px;font-size:11px;background:linear-gradient(135deg,#60A5FA,#3B82F6)">FR</div><span class="td-primary" style="margin-left:8px">Farhan Rashid</span></div></td><td><span class="badge teal">Accountant</span></td><td class="text-dim">Branch 1</td><td class="text-dim text-xs">1h ago</td><td><span class="badge green">On</span></td><td><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+                <tr><td><div class="flex-center"><div class="avatar-sm" style="width:28px;height:28px;font-size:11px;background:linear-gradient(135deg,#4ADE80,#16A34A)">OK</div><span class="td-primary" style="margin-left:8px">Omar K.</span></div></td><td><span class="badge gray">Cashier</span></td><td class="text-dim">Branch 1</td><td class="text-dim text-xs">Active now</td><td><span class="badge gold">Off</span></td><td><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="card">
+              <div class="card-title">Branch Management</div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+                <div style="padding:10px;background:var(--bg-3);border:1px solid var(--primary);border-radius:8px">
+                  <div class="flex-between text-sm"><span class="text-bold text-primary">Branch 1 — Main</span><span class="badge green">Active</span></div>
+                  <div class="text-xs text-dim" style="margin-top:3px">Al-Baik Restaurant · 14 Staff · 14 Tables</div>
+                </div>
+                <div style="padding:10px;background:var(--bg-3);border:1px dashed var(--border);border-radius:8px;cursor:pointer;text-align:center" onclick="showToast('Branch setup wizard opened')">
+                  <div class="text-sm text-dim">+ Add Second Branch</div>
+                  <div class="text-xs" style="color:var(--text-3);margin-top:2px">Scalable to unlimited locations</div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Audit Log</div>
+              <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+                <div class="flex-between text-xs"><span class="text-muted">PO #1094 approved</span><span class="text-dim">Ahmed R. · 19:42</span></div>
+                <div class="flex-between text-xs"><span class="text-muted">User Maria K. logged in</span><span class="text-dim">Maria K. · 17:30</span></div>
+                <div class="flex-between text-xs"><span class="text-muted">Stock adjusted: Salmon −2kg</span><span class="text-dim">Hassan B. · 14:22</span></div>
+                <div class="flex-between text-xs"><span class="text-muted">Invoice #2040 marked paid</span><span class="text-dim">Farhan R. · 12:10</span></div>
+                <div class="flex-between text-xs"><span class="text-muted">Payroll run initiated</span><span class="text-dim">Ahmed R. · 09:00</span></div>
+                <button class="btn btn-ghost btn-sm" style="margin-top:6px;width:100%;justify-content:center" onclick="showToast('Full audit log exported')">View Full Log</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RBAC Matrix -->
+        <div class="card" style="padding:0;overflow:hidden">
+          <div style="padding:16px 20px;border-bottom:1px solid var(--border)"><div class="card-title" style="margin:0">Role Permission Matrix</div></div>
+          <table class="data-table">
+            <thead><tr><th>Module / Permission</th><th style="text-align:center">Super Admin</th><th style="text-align:center">Branch Mgr</th><th style="text-align:center">Accountant</th><th style="text-align:center">Cashier</th><th style="text-align:center">Kitchen</th></tr></thead>
+            <tbody>
+              <tr><td class="td-primary">POS — Process Orders</td><td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center" class="text-dim">—</td><td style="text-align:center">✓</td><td style="text-align:center" class="text-dim">View</td></tr>
+              <tr><td class="td-primary">POS — Void / Refund</td><td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center" class="text-dim">—</td><td style="text-align:center" class="text-dim">—</td><td style="text-align:center" class="text-dim">—</td></tr>
+              <tr><td class="td-primary">Inventory — Adjust Stock</td><td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center" class="text-dim">—</td><td style="text-align:center" class="text-dim">—</td><td style="text-align:center" class="text-dim">—</td></tr>
+              <tr><td class="td-primary">Finance — View P&L</td><td style="text-align:center">✓</td><td style="text-align:center" class="text-dim">Summary</td><td style="text-align:center">✓</td><td style="text-align:center" class="text-dim">—</td><td style="text-align:center" class="text-dim">—</td></tr>
+              <tr><td class="td-primary">Finance — Payroll</td><td style="text-align:center">✓</td><td style="text-align:center" class="text-dim">—</td><td style="text-align:center">✓</td><td style="text-align:center" class="text-dim">—</td><td style="text-align:center" class="text-dim">—</td></tr>
+              <tr><td class="td-primary">Vendors — Approve PO</td><td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center" class="text-dim">—</td><td style="text-align:center" class="text-dim">—</td><td style="text-align:center" class="text-dim">—</td></tr>
+              <tr><td class="td-primary">Users — Manage</td><td style="text-align:center">✓</td><td style="text-align:center" class="text-dim">—</td><td style="text-align:center" class="text-dim">—</td><td style="text-align:center" class="text-dim">—</td><td style="text-align:center" class="text-dim">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /content-area -->
+  </div><!-- /main-area -->
+</div><!-- /app-shell -->
+
+<!-- Toast -->
+<div id="toast" class="toast">
+  <div class="toast-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+  <span id="toast-msg">Action completed</span>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════
+const screenNames = {
+  dashboard:'Dashboard', pos:'POS Terminal', inventory:'Inventory',
+  orders:'Orders', finance:'Finance', hr:'HR & Payroll',
+  vendors:'Vendors', crm:'CRM & Loyalty', analytics:'Analytics',
+  reports:'Reports', admin:'Admin & RBAC'
+};
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+id+"'"))n.classList.add('active');
+  });
+  document.getElementById('topbar-current').textContent = screenNames[id]||id;
+}
+
+// ═══════════════════════════════════════════════════
+//  CLOCK
+// ═══════════════════════════════════════════════════
+function updateClock(){
+  const n=new Date();
+  document.getElementById('clock').textContent=n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+}
+setInterval(updateClock,1000); updateClock();
+
+// ═══════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  document.getElementById('toast-msg').textContent=msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ═══════════════════════════════════════════════════
+//  POS — MENU DATA & TICKET
+// ═══════════════════════════════════════════════════
+const menu = [
+  {id:1,name:'Grilled Salmon',price:28,cat:'mains',avail:'ok'},
+  {id:2,name:'Chicken Shawarma',price:19,cat:'mains',avail:'ok'},
+  {id:3,name:'Beef Burger',price:19,cat:'mains',avail:'ok'},
+  {id:4,name:'Pasta Primavera',price:18,cat:'mains',avail:'ok'},
+  {id:5,name:'Lamb Chops',price:34,cat:'mains',avail:'low'},
+  {id:6,name:'Veg Risotto',price:16,cat:'mains',avail:'ok'},
+  {id:7,name:'Chicken Soup',price:10,cat:'starters',avail:'ok'},
+  {id:8,name:'Bruschetta',price:9,cat:'starters',avail:'ok'},
+  {id:9,name:'Caesar Salad',price:14,cat:'starters',avail:'ok'},
+  {id:10,name:'Garlic Bread',price:6,cat:'starters',avail:'ok'},
+  {id:11,name:'Lemonade',price:5,cat:'beverages',avail:'ok'},
+  {id:12,name:'Mango Juice',price:6,cat:'beverages',avail:'ok'},
+  {id:13,name:'Sparkling Water',price:4,cat:'beverages',avail:'ok'},
+  {id:14,name:'Hot Chocolate',price:7,cat:'beverages',avail:'ok'},
+  {id:15,name:'Tiramisu',price:9,cat:'desserts',avail:'ok'},
+  {id:16,name:'Crème Brûlée',price:10,cat:'desserts',avail:'ok'},
+  {id:17,name:'Baklava',price:8,cat:'desserts',avail:'ok'},
+];
+const emojis={mains:'🍽',starters:'🥗',beverages:'🥤',desserts:'🍰'};
+let cart=[{id:1,name:'Grilled Salmon',price:28,qty:1},{id:4,name:'Pasta Primavera',price:18,qty:2}];
+let currentCat='all';
+
+function renderMenu(){
+  const g=document.getElementById('menuGrid');
+  if(!g)return;
+  const filtered=currentCat==='all'?menu:menu.filter(i=>i.cat===currentCat);
+  g.innerHTML=filtered.map(item=>`
+    <div class="menu-item-card" onclick="addToCart(${item.id})">
+      <div class="menu-item-emoji">${emojis[item.cat]}</div>
+      <div class="menu-item-name">${item.name}</div>
+      <div class="menu-item-price">$${item.price.toFixed(2)}</div>
+      <div class="menu-item-avail"><div class="avail-dot ${item.avail}"></div><span style="font-size:10px;color:var(--text-3)">${item.avail==='ok'?'Available':item.avail==='low'?'Low Stock':'Out'}</span></div>
+    </div>
+  `).join('');
+}
+
+function filterMenu(cat, el){
+  currentCat=cat;
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderMenu();
+}
+
+function addToCart(id){
+  const item=menu.find(i=>i.id===id);
+  const ex=cart.find(i=>i.id===id);
+  if(ex)ex.qty++;
+  else cart.push({...item,qty:1});
+  renderTicket();
+  showToast(item.name+' added to order');
+}
+
+function changeQty(id,delta){
+  const ex=cart.find(i=>i.id===id);
+  if(ex){ex.qty+=delta; if(ex.qty<=0)cart=cart.filter(i=>i.id!==id);}
+  renderTicket();
+}
+
+function renderTicket(){
+  const container=document.getElementById('ticketItems');
+  if(!container)return;
+  container.innerHTML=cart.map(i=>`
+    <div class="ticket-item">
+      <div class="ticket-item-name">${i.name}</div>
+      <div class="qty-ctrl">
+        <div class="qty-btn" onclick="changeQty(${i.id},-1)">−</div>
+        <div class="qty-num">${i.qty}</div>
+        <div class="qty-btn" onclick="changeQty(${i.id},1)">+</div>
+      </div>
+      <div class="ticket-price">$${(i.price*i.qty).toFixed(2)}</div>
+    </div>
+  `).join('');
+  const sub=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const disc=sub*0.10; const tax=(sub-disc)*0.15; const total=sub-disc+tax;
+  document.getElementById('subtotal').textContent='$'+sub.toFixed(2);
+  document.getElementById('discountAmt').textContent='−$'+disc.toFixed(2);
+  document.getElementById('taxAmt').textContent='$'+tax.toFixed(2);
+  document.getElementById('totalAmt').textContent='$'+total.toFixed(2);
+  document.getElementById('chargeAmt').textContent=total.toFixed(2);
+}
+
+function processPayment(){
+  showToast('Payment processed · Order #2148 sent to kitchen · Inventory updated');
+  cart=[];
+  renderTicket();
+}
+
+// ═══════════════════════════════════════════════════
+//  CHARTS
+// ═══════════════════════════════════════════════════
+Chart.defaults.color='#5A6E8A';
+Chart.defaults.font.family="'Sora', sans-serif";
+Chart.defaults.font.size=11;
+
+function gradientFrom(ctx, c1, c2){
+  const g=ctx.createLinearGradient(0,0,0,300);
+  g.addColorStop(0,c1); g.addColorStop(1,c2); return g;
+}
+
+function initCharts(){
+  // Revenue week
+  const rc=document.getElementById('revenueChart');
+  if(rc){
+    const ctx=rc.getContext('2d');
+    new Chart(ctx,{type:'bar',data:{
+      labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+      datasets:[
+        {label:'Revenue',data:[3820,4240,3980,4680,5120,6240,5840],backgroundColor:gradientFrom(ctx,'rgba(232,160,69,0.8)','rgba(232,160,69,0.3)'),borderRadius:6,order:2},
+        {label:'Budget',data:[4000,4000,4000,4000,5000,5500,5500],type:'line',borderColor:'rgba(45,212,191,0.6)',borderWidth:2,pointRadius:0,fill:false,tension:0.4,order:1}
+      ]
+    },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#5A6E8A',font:{size:11},boxWidth:10}},tooltip:{backgroundColor:'#1A2740',borderColor:'#263850',borderWidth:1,callbacks:{label:ctx=>'$'+ctx.raw.toLocaleString()}}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{callback:v=>'$'+v.toLocaleString()}}}}});
+  }
+
+  // Category donut
+  const cc=document.getElementById('categoryChart');
+  if(cc)new Chart(cc.getContext('2d'),{type:'doughnut',data:{labels:['Mains','Beverages','Starters','Desserts'],datasets:[{data:[42,24,18,16],backgroundColor:['#E8A045','#2DD4BF','#60A5FA','#A78BFA'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{backgroundColor:'#1A2740',borderColor:'#263850',borderWidth:1}}}});
+
+  // Forecast
+  const fc=document.getElementById('forecastChart');
+  if(fc){
+    const ctx=fc.getContext('2d');
+    new Chart(ctx,{type:'line',data:{labels:['Today','Tue','Wed','Thu','Fri','Sat','Sun'],datasets:[{label:'Chicken (kg)',data:[8.2,7.8,9.1,10.4,9.8,12.2,11.6],borderColor:'#E8A045',backgroundColor:'rgba(232,160,69,0.1)',fill:true,tension:0.4,borderWidth:2,pointRadius:3},{label:'Salmon (kg)',data:[3.2,4.1,4.4,3.8,5.2,6.8,6.2],borderColor:'#2DD4BF',backgroundColor:'rgba(45,212,191,0.08)',fill:true,tension:0.4,borderWidth:2,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#5A6E8A',font:{size:10},boxWidth:8}},tooltip:{backgroundColor:'#1A2740',borderColor:'#263850',borderWidth:1}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'}},y:{grid:{color:'rgba(255,255,255,0.04)'}}}}});
+  }
+
+  // Wastage
+  const wc=document.getElementById('wasteChart');
+  if(wc)new Chart(wc.getContext('2d'),{type:'bar',data:{labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],datasets:[{label:'Waste $',data:[42,38,54,28,22,18,12],backgroundColor:'rgba(248,113,113,0.7)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1A2740',borderColor:'#263850',borderWidth:1,callbacks:{label:ctx=>'$'+ctx.raw}}},scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{callback:v=>'$'+v}}}}});
+
+  // Labour
+  const lc=document.getElementById('labourChart');
+  if(lc)new Chart(lc.getContext('2d'),{type:'line',data:{labels:['W10','W11','W12','W13','W14','W15'],datasets:[{label:'Labour %',data:[21.4,20.8,19.6,18.9,18.4,18.2],borderColor:'#A78BFA',backgroundColor:'rgba(167,139,250,0.1)',fill:true,tension:0.4,borderWidth:2,pointRadius:3},{label:'Budget %',data:[20,20,20,20,20,20],borderColor:'rgba(255,255,255,0.2)',borderDash:[4,4],borderWidth:1.5,pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#5A6E8A',font:{size:10},boxWidth:8}},tooltip:{backgroundColor:'#1A2740',borderColor:'#263850',borderWidth:1}},scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(255,255,255,0.04)'},min:16,max:24}}}});
+
+  // Vendor spend
+  const vc=document.getElementById('vendorChart');
+  if(vc)new Chart(vc.getContext('2d'),{type:'bar',data:{labels:['Ocean\nFresh','Green\nGardens','Prime\nDairy','Grain\nMasters','SpiceRoute'],datasets:[{label:'Monthly $',data:[3240,1840,1220,880,460],backgroundColor:['#E8A045','#2DD4BF','#60A5FA','#A78BFA','#F87171'],borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{backgroundColor:'#1A2740',borderColor:'#263850',borderWidth:1,callbacks:{label:ctx=>'$'+ctx.raw.toLocaleString()}}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{callback:v=>'$'+v}},y:{grid:{display:false}}}}});
+
+  // Loyalty
+  const loyc=document.getElementById('loyaltyChart');
+  if(loyc)new Chart(loyc.getContext('2d'),{type:'doughnut',data:{labels:['Gold (184)','Silver (528)','Bronze (1130)'],datasets:[{data:[10,29,61],backgroundColor:['#D4AF37','#B0B4C8','#CD7F32'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{position:'bottom',labels:{color:'#5A6E8A',font:{size:10},boxWidth:10}},tooltip:{backgroundColor:'#1A2740',borderColor:'#263850',borderWidth:1,callbacks:{label:ctx=>ctx.label+' — '+ctx.raw+'%'}}}}});
+
+  // Rev vs COGS
+  const rc2=document.getElementById('revCOGSChart');
+  if(rc2){
+    const ctx=rc2.getContext('2d');
+    new Chart(ctx,{type:'line',data:{labels:['1','2','3','4','5','6','7','8','9','10','11','12','13','14'],datasets:[{label:'Revenue',data:[4820,5240,3980,4680,5120,6240,5840,5420,4980,5640,6120,6840,5960,4218],borderColor:'#2DD4BF',backgroundColor:'rgba(45,212,191,0.08)',fill:true,tension:0.4,borderWidth:2,pointRadius:2},{label:'COGS',data:[1370,1490,1130,1330,1455,1773,1659,1540,1415,1602,1740,1945,1692,1198],borderColor:'#F87171',backgroundColor:'rgba(248,113,113,0.06)',fill:true,tension:0.4,borderWidth:2,pointRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#5A6E8A',font:{size:11},boxWidth:10}},tooltip:{backgroundColor:'#1A2740',borderColor:'#263850',borderWidth:1,callbacks:{label:ctx=>'$'+ctx.raw.toLocaleString()}}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},title:{display:true,text:'April (Day)',color:'#5A6E8A'}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{callback:v=>'$'+v.toLocaleString()}}}}});
+  }
+
+  // Hourly
+  const hc=document.getElementById('hourlyChart');
+  if(hc){
+    const ctx=hc.getContext('2d');
+    new Chart(ctx,{type:'bar',data:{labels:['10','11','12','13','14','15','16','17','18','19','20','21'],datasets:[{label:'Revenue',data:[120,240,580,640,420,280,320,480,820,960,840,560],backgroundColor:gradientFrom(ctx,'rgba(232,160,69,0.8)','rgba(232,160,69,0.2)'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1A2740',borderColor:'#263850',borderWidth:1,callbacks:{label:ctx=>'$'+ctx.raw}}},scales:{x:{grid:{display:false},title:{display:true,text:'Hour',color:'#5A6E8A'}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{callback:v=>'$'+v}}}}});
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+renderMenu();
+renderTicket();
+initCharts();
+</script>
+</body>
+</html>
