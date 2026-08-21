@@ -57,6 +57,15 @@ Each of these produced a confident, wrong answer:
   lie. Demanding `Tests run: N` proves the suite executed; it says nothing about whether the summary
   someone extracted from it is complete. Read the raw assertion, or count what you claim to have
   counted.
+- **A zero-coverage guard is not a partial-coverage guard, and the bias has a direction.**
+  `ReportCatalog` guards food-cost with `if(countIf(cogs_paisa IS NOT NULL) = 0, NULL, sum(...))`.
+  That correctly refuses to answer when NOTHING is costed. It says nothing when SOME rows are
+  costed: a menu item with no recipe produces no DEPLETION movement, so its COGS is *unknown*, and
+  summing over all sales silently treats unknown as zero. The resulting food-cost percentage is
+  biased **LOW** — the direction that makes a struggling kitchen look healthy, which is the
+  direction nobody questions. **An aggregate over a nullable column must carry its coverage**, and
+  a guard on the empty case is the easiest possible version of that check to write and the least
+  useful. Ask what the number does when the data is half there, not when it is absent.
 - **A CSS selector list falls through to its last alternative and measures the wrong element.**
   `verify-38-wave3.mjs` selected `'[data-testid="pos-cart"], [data-testid="order-panel"], aside'`.
   Neither testid existed anywhere in the product, so every run matched `aside` — the app sidebar —
