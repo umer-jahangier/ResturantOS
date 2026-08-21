@@ -57,6 +57,14 @@ Each of these produced a confident, wrong answer:
   lie. Demanding `Tests run: N` proves the suite executed; it says nothing about whether the summary
   someone extracted from it is complete. Read the raw assertion, or count what you claim to have
   counted.
+- **A CSS selector list falls through to its last alternative and measures the wrong element.**
+  `verify-38-wave3.mjs` selected `'[data-testid="pos-cart"], [data-testid="order-panel"], aside'`.
+  Neither testid existed anywhere in the product, so every run matched `aside` — the app sidebar —
+  and the committed `cartWidth: 256` is the sidebar's width, in the BEFORE and the AFTER capture
+  alike. A plan's central measurement had never once observed the thing it was measuring, and it
+  looked stable precisely because it was measuring something that never changed. **A selector
+  fallback chain is a silent default.** If a probe must find a specific element, assert the match
+  is non-empty for the SPECIFIC selector before measuring it, or the fallback becomes the answer.
 - **A contrast gate that only measures one surface passes on the others.** The theme gate asserted
   every pairing against the PAGE background and never against a Card, so `--border-interactive` sat
   at **2.95:1** on cards in dark mode — under SC 1.4.11's 3:1 floor — from the day dark surfaces were
