@@ -84,17 +84,34 @@ public class ReportCatalog {
     private static ReportDefinition salesByItem() {
         String sql = """
                 SELECT menu_item_id, any(item_name) AS item_name, sum(qty) AS qty,
-                       sum(line_total_paisa) AS gross_revenue_paisa,
+                       -- RENAMED from gross_revenue_paisa. The VALUE was always correct; the
+                       -- NAME was a lie. line_total_paisa is net + tax (OrderServiceImpl:2155
+                       -- sets lineTotalPaisa(net + lineTax); OrderPricingCalculator:262 proves
+                       -- it by SUBTRACTING tax to recover the subtotal), so calling the sum
+                       -- "gross revenue" overstated revenue by the whole GST line -- at 16%,
+                       -- materially -- to anyone reading the report in English rather than SQL.
+                       --
+                       -- It is NOT corrected here by subtracting tax, because it cannot be:
+                       -- sales_item_facts carries neither tax_paisa nor discount_paisa (those
+                       -- live on sales_order_facts, at ORDER grain). Removing tax at ITEM grain
+                       -- needs a ClickHouse migration plus an ItemEntry contract change, which
+                       -- is the reporting-service critical path -- a bad fact-table migration
+                       -- stops the service booting and takes the deploy with it.
+                       --
+                       -- So: the name now says what the number is. Item-grain NET revenue stays
+                       -- honestly unavailable. Branch/period margin is computed on
+                       -- sales_order_facts, where tax IS separable.
+                       sum(line_total_paisa) AS revenue_inc_tax_paisa,
                        if(countIf(cogs_paisa IS NOT NULL) = 0, NULL, sum(cogs_paisa)) AS cogs_paisa,
                        if(countIf(gross_margin_paisa IS NOT NULL) = 0, NULL, sum(gross_margin_paisa)) AS gross_margin_paisa
                 FROM clickhouse_analytics.sales_item_facts
                 WHERE tenant_id = ? AND branch_id = ? AND business_date BETWEEN ? AND ?
                 GROUP BY menu_item_id
-                ORDER BY gross_revenue_paisa DESC
+                ORDER BY revenue_inc_tax_paisa DESC
                 LIMIT 10000
                 """;
         return define("sales-by-item", "Sales by Item", "sales",
-                List.of("menu_item_id", "item_name", "qty", "gross_revenue_paisa", "cogs_paisa", "gross_margin_paisa"),
+                List.of("menu_item_id", "item_name", "qty", "revenue_inc_tax_paisa", "cogs_paisa", "gross_margin_paisa"),
                 sql);
     }
 

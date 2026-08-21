@@ -119,18 +119,18 @@ export function OwnerDashboard() {
 
   const topItems = useMemo(() => {
     const sorted = [...itemRows].sort(
-      (a, b) => num(b, "gross_revenue_paisa") - num(a, "gross_revenue_paisa"),
+      (a, b) => num(b, "revenue_inc_tax_paisa") - num(a, "revenue_inc_tax_paisa"),
     );
-    const max = sorted.length > 0 ? num(sorted[0]!, "gross_revenue_paisa") : 0;
+    const max = sorted.length > 0 ? num(sorted[0]!, "revenue_inc_tax_paisa") : 0;
     return sorted.slice(0, 5).map((r) => ({
       key: String(r.menu_item_id ?? r.item_name),
       label: String(r.item_name ?? "Unnamed item"),
       // Money is BIGINT paisa on the wire and converted ONLY here, at display.
-      value: `Rs ${(num(r, "gross_revenue_paisa") / 100).toLocaleString(undefined, {
+      value: `Rs ${(num(r, "revenue_inc_tax_paisa") / 100).toLocaleString(undefined, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })} · ${num(r, "qty")} sold`,
-      fraction: max > 0 ? num(r, "gross_revenue_paisa") / max : 0,
+      fraction: max > 0 ? num(r, "revenue_inc_tax_paisa") / max : 0,
     }));
   }, [itemRows]);
 

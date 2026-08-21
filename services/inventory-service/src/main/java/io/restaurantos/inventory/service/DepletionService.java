@@ -220,7 +220,11 @@ public class DepletionService {
                     InventoryEventContract.STOCK_DEPLETED_KEY,
                     InventoryEventContract.STOCK_DEPLETED,
                     branchId,
-                    new StockDepletedPayload(payload.orderId(), depletedLines, totalCogsPaisa));
+                    // businessDate forwarded, not re-derived: the order already decided which
+                    // trading day it belonged to, and COGS must land on the SAME day as the
+                    // revenue it offsets.
+                    new StockDepletedPayload(payload.orderId(), depletedLines, totalCogsPaisa,
+                            payload.businessDate()));
         }
 
         // D-03: publish DEPLETION_INCOMPLETE whenever any line was skipped — independent of the
