@@ -57,6 +57,17 @@ Each of these produced a confident, wrong answer:
   lie. Demanding `Tests run: N` proves the suite executed; it says nothing about whether the summary
   someone extracted from it is complete. Read the raw assertion, or count what you claim to have
   counted.
+- **A file-scoped grep answers a file-scoped question, not the table-scoped one you asked.**
+  `grep -oE '^\s+[a-z_]+ ' V001__analytics_facts.sql | sort -u` returns the union of column names
+  across FOUR table definitions. I read that union as one table's columns and told a peer that
+  `sales_item_facts` carries `tax_paisa`, so the tax-inclusive-revenue defect was "a one-line query
+  fix". It does not: `tax_paisa`/`discount_paisa` are on `sales_order_facts` (ORDER grain),
+  `input_tax_paisa` is on `purchase_tax_facts`. The strings were real, in the right file, attached
+  to the wrong entity — and the wrong answer was the *convenient* one, which is why it went
+  unquestioned until the peer re-read the whole definition. **When a question is scoped to one
+  entity, scope the extraction to that entity** — parse per `CREATE TABLE`, not per file. The peer
+  was independently bitten by the mirror image the same hour: a `sed -n '66,88p'` line window that
+  stopped before the table did, giving a right answer for a wrong reason.
 - **A zero-coverage guard is not a partial-coverage guard, and the bias has a direction.**
   `ReportCatalog` guards food-cost with `if(countIf(cogs_paisa IS NOT NULL) = 0, NULL, sum(...))`.
   That correctly refuses to answer when NOTHING is costed. It says nothing when SOME rows are
