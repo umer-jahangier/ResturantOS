@@ -51,10 +51,26 @@ const REPORT_DEFINITIONS = [
     columns: ["order_type", "order_count", "revenue_paisa"],
   },
   {
+    // Re-synced with ReportCatalog.java:157-176 (12-08's fixture predated the move to
+    // sales_discount_facts and still described the old day-grain shape, while this file's
+    // header claimed all seven mirror the Java "exactly"). A fixture that misdescribes the
+    // wire is a test suite that passes on a contract nobody ships.
     code: "discount-summary",
     title: "Discount Summary",
     category: "sales",
-    columns: ["business_date", "discount_paisa", "subtotal_paisa"],
+    columns: [
+      "business_date",
+      "order_no",
+      "scope",
+      "item_name",
+      "discount_type",
+      "discount_source",
+      "discount_value",
+      "amount_paisa",
+      "reason",
+      "applied_by",
+      "closed_at",
+    ],
   },
   {
     code: "till-sessions",
@@ -107,6 +123,31 @@ const REPORT_ROWS: Record<string, Record<string, unknown>[]> = {
       tax_paisa: 53_550,
       total_paisa: 648_550,
     },
+  ],
+  /**
+   * The demo's own "Revenue by Hour" curve (DEMO-STATS L243), in paisa: the double peak at
+   * 13:00 and 19:00 that N12 calls the one demo stat that informs a rota decision. Hour 15 is
+   * deliberately ABSENT rather than zero — ClickHouse's `GROUP BY toHour(closed_at)` returns no
+   * row for an hour in which nothing closed, so the gap-filling path is the DEFAULT path here
+   * and not an edge case a test has to opt into.
+   */
+  "sales-by-hour": [
+    { hour_of_day: 10, order_count: 4, revenue_paisa: 12_000 },
+    { hour_of_day: 11, order_count: 7, revenue_paisa: 24_000 },
+    { hour_of_day: 12, order_count: 16, revenue_paisa: 58_000 },
+    { hour_of_day: 13, order_count: 19, revenue_paisa: 64_000 },
+    { hour_of_day: 14, order_count: 12, revenue_paisa: 42_000 },
+    { hour_of_day: 16, order_count: 9, revenue_paisa: 32_000 },
+    { hour_of_day: 17, order_count: 13, revenue_paisa: 48_000 },
+    { hour_of_day: 18, order_count: 22, revenue_paisa: 82_000 },
+    { hour_of_day: 19, order_count: 27, revenue_paisa: 96_000 },
+    { hour_of_day: 20, order_count: 24, revenue_paisa: 84_000 },
+    { hour_of_day: 21, order_count: 15, revenue_paisa: 56_000 },
+  ],
+  "sales-by-order-type": [
+    { order_type: "DINE_IN", order_count: 96, revenue_paisa: 348_000 },
+    { order_type: "TAKEAWAY", order_count: 41, revenue_paisa: 132_000 },
+    { order_type: "DELIVERY", order_count: 31, revenue_paisa: 118_000 },
   ],
   "sales-by-item": [
     {

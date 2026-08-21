@@ -31,6 +31,15 @@ interface PortletShellProps {
   drillLabel: string;
   density: "comfortable" | "compact";
   className?: string;
+  /**
+   * Inline style, forwarded to the card element. Exists for ONE reason: `PortletRow` clones each
+   * child to inject `--vdl-i`, the stagger index the stylesheet computes each tile's entrance
+   * delay from — and every portlet component swallowed that clone silently, because none of them
+   * declared `style`. So `.vdl-stagger` has been inert on every real dashboard since phase 34;
+   * the assertion that covers it (`dashboard-character.test.tsx`) passes plain `<div>`s, which do
+   * accept `style`. Declaring it here is what makes the mechanism reach the DOM.
+   */
+  style?: React.CSSProperties;
   children: React.ReactNode;
 }
 
@@ -41,6 +50,7 @@ export function PortletShell({
   drillLabel,
   density,
   className,
+  style,
   children,
 }: PortletShellProps) {
   return (
@@ -49,6 +59,7 @@ export function PortletShell({
       data-portlet={id}
       data-testid={`portlet-${id}`}
       aria-label={drillLabel}
+      style={style}
       className={cn(
         "group flex flex-col rounded-xl text-card-foreground",
         /*
@@ -95,35 +106,101 @@ export function PortletShell({
 
 // ── KpiTile ──────────────────────────────────────────────────────────────────
 
-export interface KpiTileProps {
+/**
+ * The chrome every portlet gets from its {@link PortletSpec}, never from the call site.
+ *
+ * <p>Split out so the DATA half can be named on its own: the generic renderer supplies chrome
+ * from the preset table and the dashboard supplies only this tile's numbers.
+ */
+export interface PortletChromeProps {
   id: string;
   title: string;
   drillTo: string;
   density: "comfortable" | "compact";
-  /** Already formatted for display. Money must be converted from paisa BEFORE it gets here. */
-  value: React.ReactNode;
+  /** See {@link PortletShellProps.style} — the stagger index, forwarded to the card. */
+  style?: React.CSSProperties;
+}
+
+/**
+ * The delta and its polarity modifier travel together, or neither is accepted.
+ *
+ * <h3>What this union repairs — the same defect, in the same wave, as `StatTile`'s</h3>
+ *
+ * <p>`higherIsBetter` describes a delta and nothing else reads it: the delta row renders only
+ * when `deltaPct !== undefined`, so with no delta the polarity, the arrow and the sentiment
+ * colour are all unreachable. It was declared as a free-floating optional beside `deltaPct`
+ * anyway, and the product duly filled it in — THREE call sites passed `higherIsBetter={false}`
+ * with no delta at all (`focused-dashboard.tsx:166` late tickets, `manager-dashboard.tsx:221`
+ * late tickets, `:238` till variance) and no compiler said a word.
+ *
+ * <p>A prop that has no effect is not harmless. It reads to the next author as evidence that
+ * the tile is doing something with it, and the natural "fix" for a polarity that never appears
+ * is to invent the delta that would make it appear. None of those three metrics HAS an honest
+ * prior period — they are counts of the current state, and this system stores no historical
+ * snapshot of late tickets or of a till's variance — so the invented delta would have been
+ * D-38-16's defect one level up: not a fabricated value, but a fabricated CHANGE in a value.
+ *
+ * <p>So the props were removed from the call sites and the type now refuses the state. Identical
+ * treatment to `components/ui/stat-tile.tsx:191-209`; the two primitives agree on purpose.
+ */
+type KpiTileDelta =
+  | {
+      /**
+       * Percentage change vs the prior period.
+       *
+       * <p>`null` means there is a comparison to make but no comparable prior period, and
+       * renders as a stated absence. `0` means measured, and flat. Omitting the prop is the
+       * third meaning: no delta row at all. `null` must never be coerced to `0`, which claims
+       * the business did not move.
+       */
+      deltaPct: number | null;
+      /** Whether an increase is good. Late tickets going up is not good news. */
+      higherIsBetter?: boolean;
+    }
+  | { deltaPct?: undefined; higherIsBetter?: never };
+
+/**
+ * A KPI either HAS a figure or states why it does not. It cannot do both (D-38-16).
+ *
+ * <p>Before this narrowing, `value` was required and `unavailableReason` sat beside it as a free
+ * optional — so a caller with nothing to show had to pass a `value` anyway, and three of them
+ * duly passed the literal `"—"` next to the reason (`owner-gross-margin`, `owner-avg-order`,
+ * `cashier-till`). That reads as belt-and-braces and is not: the dash was live whenever the
+ * reason went undefined, so `owner-gross-margin` rendered a hardcoded `"—"` as a VALUE on any
+ * day the margin became computable. The compiler now enforces the choice.
+ */
+type KpiTileFigure =
+  | {
+      /** Already formatted for display. Money must be converted from paisa BEFORE it gets here. */
+      value: React.ReactNode;
+      unavailableReason?: never;
+    }
+  | {
+      value?: never;
+      /** Set when the number genuinely cannot be computed — renders "—" plus the reason. */
+      unavailableReason: string;
+    };
+
+interface KpiTileBody {
   /** One line of context under the number. */
   caption: string;
-  /**
-   * Percentage change vs the prior period, or null when there is no comparable prior period.
-   * Null renders "no prior period" — NOT "0%", which claims the business was flat.
-   */
-  deltaPct?: number | null;
-  /** Whether an increase is good. Late tickets going up is not good news. */
-  higherIsBetter?: boolean;
   /** Values for a sparkline, oldest first. Omitted when there is no series to draw. */
   spark?: number[];
-  /** Set when the number genuinely cannot be computed — renders "—" plus the reason. */
-  unavailableReason?: string;
   /** Escalated appearance for a count that means "somebody must act". */
   tone?: "neutral" | "warning" | "danger";
 }
+
+/** Everything a KPI tile needs that the preset table does not already say. */
+export type KpiTileData = KpiTileBody & KpiTileDelta & KpiTileFigure;
+
+export type KpiTileProps = PortletChromeProps & KpiTileData;
 
 export function KpiTile({
   id,
   title,
   drillTo,
   density,
+  style,
   value,
   caption,
   deltaPct,
@@ -142,6 +219,7 @@ export function KpiTile({
       drillTo={drillTo}
       drillLabel={`${title} — open details`}
       density={density}
+      style={style}
     >
       {unavailableReason ? (
         <>
@@ -220,8 +298,17 @@ function Sparkline({ values }: { values: number[] }) {
 export interface RankedRow {
   key: string;
   label: string;
-  /** Formatted for display. */
-  value: string;
+  /**
+   * Formatted for display.
+   *
+   * <p>A `ReactNode` and not a `string`, so a money figure travels as `<MoneyDisplay paisa={…}/>`
+   * — the ONE money path in the product (38-08 task 2). While this was `string`, the owner
+   * dashboard's top-items rows had no way to use it and hand-rolled
+   * <code>Rs ${(paisa / 100).toFixed(2)}</code> instead: a second `toFixed(2)`, ungrouped, in an
+   * unpinned locale, producing a genuinely different string from the same amount rendered
+   * anywhere else. Widening the type is the fix; asking every caller to be careful is not.
+   */
+  value: React.ReactNode;
   /**
    * 0..1 — the bar length. Bars are labelled, so length is never the only channel.
    *
@@ -240,21 +327,22 @@ export interface RankedRow {
   fraction?: number;
 }
 
+/** Everything a RankedList needs that the preset table does not already say. */
+export interface RankedListData {
+  rows: RankedRow[];
+  /** What the panel says when the query succeeded and returned nothing. Never an error. */
+  emptyLabel: string;
+}
+
 export function RankedList({
   id,
   title,
   drillTo,
   density,
+  style,
   rows,
   emptyLabel,
-}: {
-  id: string;
-  title: string;
-  drillTo: string;
-  density: "comfortable" | "compact";
-  rows: RankedRow[];
-  emptyLabel: string;
-}) {
+}: PortletChromeProps & RankedListData) {
   return (
     <PortletShell
       id={id}
@@ -262,6 +350,7 @@ export function RankedList({
       drillTo={drillTo}
       drillLabel={`${title} — open the full list`}
       density={density}
+      style={style}
     >
       {rows.length === 0 ? (
         <p className={cn("text-foreground-tertiary", T_SMALL)}>{emptyLabel}</p>
@@ -299,7 +388,9 @@ export function RankedList({
 export interface ExceptionRow {
   key: string;
   label: string;
-  detail: string;
+  /** A `ReactNode` for the same reason as {@link RankedRow.value} — money goes through
+   *  `MoneyDisplay`, never through a second `toFixed(2)` in a template literal. */
+  detail: React.ReactNode;
   severity: "info" | "warning" | "danger";
 }
 
@@ -308,21 +399,22 @@ export interface ExceptionRow {
  * KDS board follows, for the same reason. An exception list read only by hue is a list a
  * colour-blind manager triages in the wrong order.
  */
+/** Everything a ExceptionList needs that the preset table does not already say. */
+export interface ExceptionListData {
+  rows: ExceptionRow[];
+  /** What the panel says when the query succeeded and returned nothing. Never an error. */
+  emptyLabel: string;
+}
+
 export function ExceptionList({
   id,
   title,
   drillTo,
   density,
+  style,
   rows,
   emptyLabel,
-}: {
-  id: string;
-  title: string;
-  drillTo: string;
-  density: "comfortable" | "compact";
-  rows: ExceptionRow[];
-  emptyLabel: string;
-}) {
+}: PortletChromeProps & ExceptionListData) {
   return (
     <PortletShell
       id={id}
@@ -330,6 +422,7 @@ export function ExceptionList({
       drillTo={drillTo}
       drillLabel={`${title} — open the full list`}
       density={density}
+      style={style}
     >
       {rows.length === 0 ? (
         <p className={cn("text-foreground-tertiary", T_SMALL)} data-testid={`portlet-${id}-clear`}>
@@ -371,21 +464,22 @@ export interface RecordRow {
   trailing: React.ReactNode;
 }
 
+/** Everything a RecordList needs that the preset table does not already say. */
+export interface RecordListData {
+  rows: RecordRow[];
+  /** What the panel says when the query succeeded and returned nothing. Never an error. */
+  emptyLabel: string;
+}
+
 export function RecordList({
   id,
   title,
   drillTo,
   density,
+  style,
   rows,
   emptyLabel,
-}: {
-  id: string;
-  title: string;
-  drillTo: string;
-  density: "comfortable" | "compact";
-  rows: RecordRow[];
-  emptyLabel: string;
-}) {
+}: PortletChromeProps & RecordListData) {
   return (
     <PortletShell
       id={id}
@@ -393,6 +487,7 @@ export function RecordList({
       drillTo={drillTo}
       drillLabel={`${title} — open the full list`}
       density={density}
+      style={style}
     >
       {rows.length === 0 ? (
         <p className={cn("text-foreground-tertiary", T_SMALL)}>{emptyLabel}</p>

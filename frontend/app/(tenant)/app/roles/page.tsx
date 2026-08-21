@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -115,11 +116,23 @@ export default function RolesPage() {
           </>
         }
         actions={
-          canManage ? (
-            <Button type="button" onClick={() => setBuilderTarget({ mode: "create" })}>
-              New role
+          /*
+           * Two controls, and the accent stays on one of them. UI-SPEC §4.1 reserves the solid
+           * fill for the single primary action per region, so the matrix — a READ view — travels
+           * as an outline link beside it. It is offered here rather than only in the sidebar
+           * because "who else can do this?" is a question an administrator arrives at from this
+           * screen, having just failed to answer it from nine separate cards.
+           */
+          <div className="flex flex-wrap items-center gap-(--space-sm)">
+            <Button type="button" variant="outline" asChild>
+              <Link href="/app/roles/matrix">Permission matrix</Link>
             </Button>
-          ) : undefined
+            {canManage && (
+              <Button type="button" onClick={() => setBuilderTarget({ mode: "create" })}>
+                New role
+              </Button>
+            )}
+          </div>
         }
       />
 

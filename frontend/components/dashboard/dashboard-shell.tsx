@@ -55,7 +55,17 @@ export function PortletRow({
   children,
 }: {
   density: "comfortable" | "compact";
-  columns: 1 | 2 | 4;
+  /**
+   * How many across at the widest breakpoint. Derived by the renderer from the row's DECLARED
+   * size in the preset table, not from how many portlets survived the permission filter — a
+   * reader who lacks one permission gets a gap where that tile would be, not a silently
+   * re-flowed page whose four-up KPI row has become a three-up one.
+   *
+   * <p>`3` was added in phase 38 for the four new role dashboards, whose rows are not all
+   * powers of two. Without it a three-portlet row had to render as `columns={4}` and leave a
+   * quarter-width hole on every desktop.
+   */
+  columns: 1 | 2 | 3 | 4;
   children: React.ReactNode;
 }) {
   return (
@@ -77,6 +87,7 @@ export function PortletRow({
         density === "compact" ? "gap-3" : "gap-4",
         columns === 1 && "grid-cols-1",
         columns === 2 && "grid-cols-1 lg:grid-cols-2",
+        columns === 3 && "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3",
         columns === 4 && "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4",
       )}
     >

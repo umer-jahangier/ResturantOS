@@ -1,7 +1,12 @@
 "use client";
 
-import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowDownLeft, ArrowUpRight, Receipt, ShoppingCart } from "lucide-react";
+
 import { MoneyDisplay } from "@/components/ui/money-display";
+import { Skeleton } from "@/components/ui/skeleton";
+import { StatTile } from "@/components/ui/stat-tile";
+import { ReportDataNotes } from "@/components/reporting/ReportDataNotes";
+import { formatNumber } from "@/lib/format/locale";
 import type { FbrTaxSummary } from "@/lib/models/reporting.model";
 
 interface FbrTaxSummaryCardProps {
@@ -11,84 +16,89 @@ interface FbrTaxSummaryCardProps {
 
 /**
  * FBR (Federal Board of Revenue) Tax Summary — output tax vs input tax vs net payable for a
- * period. This is an internal bookkeeping figure, not an e-filing submission.
+ * period. An internal bookkeeping figure, not an e-filing submission.
+ *
+ * <h3>Re-typeset onto the contract (N12)</h3>
+ *
+ * This was the single worst type-scale offender on the reporting surfaces — **sixteen**
+ * off-contract classes in ninety lines, mixing `text-xs`, `text-sm`, `text-base`, `text-lg` and
+ * `text-2xl` in one card, so five sizes carried four meanings and the headline figure (the whole
+ * point of the screen) was `text-2xl` where the contract's display role is 30px. The five money
+ * figures are `StatTile`s now, which is the product's one KPI primitive and the same thing
+ * `/app/dashboard` uses for exactly this kind of number.
+ *
+ * <h3>A refundable credit is a LABEL change, not a minus sign</h3>
+ *
+ * A negative `netPayablePaisa` is a legitimate refundable input-tax credit — 12-05 is explicit
+ * that it is never clamped, and `apiFbrTaxSummarySchema` deliberately omits `.nonnegative()` so
+ * it survives the parse. `−Rs 150.00` under a heading reading "Net payable" reads as a broken
+ * screen, so the sign is spent on the WORDS: the tile is titled "Refundable input-tax credit",
+ * the magnitude is rendered positive, and a sentence beneath says why. Three channels, none of
+ * them a glyph a reader has to notice.
+ *
+ * <h3>`dataNotes` goes through the shared block</h3>
+ *
+ * It used to be `summary.dataNotes.join(" ")` inside a muted strip — two caveats concatenated
+ * into one run-on line, in the quietest type in the card. It is {@link ReportDataNotes} now, the
+ * same component the named reports use, so a caveat looks the same wherever it appears and there
+ * is one implementation to keep honest.
  */
 export function FbrTaxSummaryCard({ summary, isLoading }: FbrTaxSummaryCardProps) {
   if (isLoading) {
     return (
-      <div className="space-y-4 rounded-lg border border-border p-6">
-        <Skeleton className="h-6 w-48" />
-        <Skeleton className="h-4 w-64" />
-        <Skeleton className="h-16 w-full" />
+      <div className="grid gap-(--space-md) sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-32 w-full" />
+        ))}
       </div>
     );
   }
 
-  if (!summary) {
-    return null;
-  }
+  // The caller wraps this in a `QueryBoundary`, which owns the error and pending states. This
+  // component is not able to tell a 503 from "not asked yet" and must not draw a conclusion.
+  if (!summary) return null;
 
-  // A negative netPayablePaisa is a legitimate refundable input-tax credit, never a bug — it must
-  // never render as "-PKR 1,234.00" under a "Net Payable" heading (that reads as broken).
   const isRefundable = summary.netPayablePaisa < 0;
   const netPayableAbs = isRefundable ? -summary.netPayablePaisa : summary.netPayablePaisa;
 
   return (
-    <div className="space-y-6 rounded-lg border border-border p-6">
-      <div>
-        <h2 className="text-lg font-semibold">{summary.branchName}</h2>
-        {summary.ntn || summary.fbrStrn ? (
-          <p className="text-sm text-muted-foreground">
-            {summary.ntn ? `NTN ${summary.ntn}` : null}
-            {summary.ntn && summary.fbrStrn ? " · " : null}
-            {summary.fbrStrn ? `FBR STRN ${summary.fbrStrn}` : null}
-          </p>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Branch tax registration unavailable — figures below are unaffected.
-          </p>
-        )}
-        <p className="text-xs text-muted-foreground">
-          {summary.periodFrom} to {summary.periodTo}
+    <div className="space-y-(--space-md)">
+      <ReportDataNotes notes={summary.dataNotes} />
+
+      <div className="grid gap-(--space-md) sm:grid-cols-2 lg:grid-cols-3">
+        <StatTile
+          label={isRefundable ? "Refundable input-tax credit" : "Net payable"}
+          value={<MoneyDisplay paisa={netPayableAbs} />}
+          icon={isRefundable ? ArrowDownLeft : ArrowUpRight}
+          accent="primary"
+        />
+        <StatTile
+          label="Taxable sales"
+          value={<MoneyDisplay paisa={summary.taxableSalesPaisa} />}
+          icon={Receipt}
+        />
+        <StatTile label="Output tax" value={<MoneyDisplay paisa={summary.outputTaxPaisa} />} />
+        <StatTile
+          label="Taxable purchases"
+          value={<MoneyDisplay paisa={summary.taxablePurchasesPaisa} />}
+          icon={ShoppingCart}
+        />
+        <StatTile label="Input tax" value={<MoneyDisplay paisa={summary.inputTaxPaisa} />} />
+      </div>
+
+      {isRefundable && (
+        <p className="text-small text-foreground-secondary">
+          Input tax exceeded output tax for this period — this is a credit, not an amount owed.
         </p>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-1">
-          <p className="text-xs text-muted-foreground">Taxable sales</p>
-          <MoneyDisplay paisa={summary.taxableSalesPaisa} className="text-base" />
-          <p className="text-sm text-muted-foreground">
-            Output tax: <MoneyDisplay paisa={summary.outputTaxPaisa} />
-          </p>
-          <p className="text-xs text-muted-foreground">{summary.salesOrderCount} orders</p>
-        </div>
-        <div className="space-y-1">
-          <p className="text-xs text-muted-foreground">Taxable purchases</p>
-          <MoneyDisplay paisa={summary.taxablePurchasesPaisa} className="text-base" />
-          <p className="text-sm text-muted-foreground">
-            Input tax: <MoneyDisplay paisa={summary.inputTaxPaisa} />
-          </p>
-          <p className="text-xs text-muted-foreground">{summary.purchaseInvoiceCount} invoices</p>
-        </div>
-      </div>
-
-      <div className="rounded-md border border-border bg-muted/40 px-4 py-3">
-        <p className="text-xs text-muted-foreground">
-          {isRefundable ? "Refundable input-tax credit" : "Net Payable"}
-        </p>
-        <MoneyDisplay paisa={netPayableAbs} className="text-2xl" />
-        {isRefundable && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            Input tax exceeded output tax for this period — this is a credit, not an amount owed.
-          </p>
-        )}
-      </div>
-
-      {summary.dataNotes.length > 0 && (
-        <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-          {summary.dataNotes.join(" ")}
-        </div>
       )}
+
+      <p className="text-small text-foreground-tertiary tabular-nums">
+        {formatNumber(summary.salesOrderCount)} sales order
+        {summary.salesOrderCount === 1 ? "" : "s"} · {formatNumber(summary.purchaseInvoiceCount)}{" "}
+        purchase invoice
+        {summary.purchaseInvoiceCount === 1 ? "" : "s"} · computed in{" "}
+        {formatNumber(summary.durationMs)} ms
+      </p>
     </div>
   );
 }

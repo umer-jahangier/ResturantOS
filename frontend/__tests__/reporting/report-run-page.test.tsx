@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { Suspense } from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
 import { server } from "@/mocks/server";
@@ -143,8 +143,16 @@ describe("/app/reports/[code]", () => {
     expect(screen.getByLabelText("Report period to")).toBeInTheDocument();
 
     // Real rows from the catalogued report, not an empty shell.
-    await waitFor(() => expect(screen.getByText("2026-07-15")).toBeInTheDocument());
-    expect(screen.getByText("Rs 5,350.00")).toBeInTheDocument();
+    //
+    // Scoped to the desktop table on purpose. The report now renders through `DataGrid`, which
+    // puts BOTH the table and its below-`md` card list in the DOM and lets CSS choose one — a
+    // JS media query would render one branch on the server and possibly the other on the
+    // client, which is a hydration mismatch on every list screen in the product. So every cell
+    // legitimately matches twice, and the assertion names which of the two faces it is reading.
+    // Same adaptation three `/app/inventory/stock` tests took when that screen migrated.
+    const grid = await screen.findByRole("table", { name: "Sales by Day" });
+    await waitFor(() => expect(within(grid).getByText("2026-07-15")).toBeInTheDocument());
+    expect(within(grid).getByText("Rs 5,350.00")).toBeInTheDocument();
     expect(screen.queryByTestId("report-not-found")).not.toBeInTheDocument();
   });
 

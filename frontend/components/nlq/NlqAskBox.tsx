@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -15,7 +16,15 @@ interface NlqAskBoxProps {
   isPending: boolean;
 }
 
-/** NLQ-01: a textarea + submit, with example questions so an empty box isn't a dead end. */
+/**
+ * NLQ-01: a textarea + submit, with example questions so an empty box isn't a dead end.
+ *
+ * <p>Re-typeset onto the contract roles (N12): the label was `text-sm`, the textarea `text-sm`
+ * and the example chips `text-xs` — three of Tailwind's stock steps on a screen whose siblings
+ * use `--text-body` / `--text-small` / `--text-label`. The example chips are `Button`s now
+ * rather than bare `<button>`s with a hand-written border, so they carry the shared focus ring
+ * and the 44px target the rest of the product's controls do.
+ */
 export function NlqAskBox({ onAsk, isPending }: NlqAskBoxProps) {
   const [question, setQuestion] = useState("");
 
@@ -27,8 +36,8 @@ export function NlqAskBox({ onAsk, isPending }: NlqAskBoxProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <label htmlFor="nlq-question" className="text-sm font-medium">
+    <form onSubmit={handleSubmit} className="space-y-(--space-sm)">
+      <label htmlFor="nlq-question" className="block text-small font-medium">
         Ask a question about your restaurant&apos;s data
       </label>
       <textarea
@@ -39,20 +48,21 @@ export function NlqAskBox({ onAsk, isPending }: NlqAskBoxProps) {
         placeholder="e.g. What was revenue last week?"
         rows={3}
         disabled={isPending}
-        className="w-full resize-none rounded-lg border border-input bg-transparent px-3 py-2 text-sm focus-visible:border-ring disabled:opacity-50"
+        className="w-full resize-none rounded-lg border border-input bg-transparent px-3 py-2 text-body focus-visible:border-ring disabled:opacity-50"
       />
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-(--space-sm)">
         {EXAMPLE_QUESTIONS.map((example) => (
-          <button
+          <Button
             key={example}
             type="button"
+            variant="outline"
+            size="sm"
             disabled={isPending}
             onClick={() => setQuestion(example)}
-            className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground hover:bg-muted disabled:opacity-50"
           >
             {example}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -61,7 +71,7 @@ export function NlqAskBox({ onAsk, isPending }: NlqAskBoxProps) {
       </Button>
 
       {isPending && (
-        <div className="space-y-2" aria-hidden="true">
+        <div className="space-y-(--space-sm)" aria-hidden="true">
           <Skeleton className="h-4 w-2/3" />
           <Skeleton className="h-4 w-1/2" />
         </div>
