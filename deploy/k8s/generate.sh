@@ -321,13 +321,19 @@ spec:
             - { name: CLICKHOUSE_PASSWORD, valueFrom: { secretKeyRef: { name: restaurantos-secrets, key: CLICKHOUSE_PASSWORD } } }
             - { name: CLICKHOUSE_DB, value: "clickhouse_analytics" }
             - { name: CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT, value: "1" }
+            # Measured at 1511Mi per namespace — the largest single pod here, and
+            # ~3Gi across both environments. ClickHouse sizes its caches from the
+            # HOST's RAM unless told otherwise, so on a 31Gi box it happily
+            # reserves for an analytics workload this deployment does not have.
+            - { name: CLICKHOUSE_SKIP_USER_SETUP, value: "0" }
           ports: [{ containerPort: 8123 }, { containerPort: 9000 }]
           volumeMounts:
             - { name: data, mountPath: /var/lib/clickhouse }
             - { name: tuning, mountPath: /etc/clickhouse-server/config.d/log-limits.xml, subPath: log-limits.xml }
+            - { name: memcap, mountPath: /etc/clickhouse-server/config.d/memory.xml, subPath: memory.xml }
           resources:
-            requests: { memory: "512Mi", cpu: "100m" }
-            limits:   { memory: "2Gi" }
+            requests: { memory: "256Mi", cpu: "100m" }
+            limits:   { memory: "1Gi" }
           readinessProbe:
             httpGet: { path: /ping, port: 8123 }
             initialDelaySeconds: 20
@@ -335,6 +341,7 @@ spec:
       volumes:
         - { name: data, persistentVolumeClaim: { claimName: clickhouse-data } }
         - { name: tuning, configMap: { name: clickhouse-tuning } }
+        - { name: memcap, configMap: { name: clickhouse-memcap } }
 EOF
 
 # ═══ 15  opa ═════════════════════════════════════════════════════════════════
@@ -466,11 +473,11 @@ EOF
 # ═══ 20/21  service discovery + config ═══════════════════════════════════════
 INIT_WAIT=""   # eureka depends on nothing
 emit_jvm eureka-server 8761 '            - { name: EUREKA_CLIENT_REGISTER_WITH_EUREKA, value: "false" }
-            - { name: EUREKA_CLIENT_FETCH_REGISTRY, value: "false" }' 200Mi 420Mi 20
+            - { name: EUREKA_CLIENT_FETCH_REGISTRY, value: "false" }' 160Mi 360Mi 20
 INIT_WAIT=""   # config-server serves files from a ConfigMap; no backing services
 # config-server runs the `native` profile against a ConfigMap of deploy/config-repo,
 # so no external git repo is required to boot the fleet.
-emit_jvm config-server 8888 '            - { name: CONFIG_SEARCH_LOCATIONS, value: "file:/config-repo" }' 200Mi 420Mi 21
+emit_jvm config-server 8888 '            - { name: CONFIG_SEARCH_LOCATIONS, value: "file:/config-repo" }' 160Mi 360Mi 21
 python3 - "$OUT/21-config-server.yaml" <<'PY'
 import sys, io
 p = sys.argv[1]; s = io.open(p).read()
@@ -516,7 +523,7 @@ while IFS='|' read -r name port style db dbuser; do
             - { name: AUDIT_DB_ADMIN_USER, value: \"audit_user\" }
             - { name: AUDIT_DB_ADMIN_PASSWORD, valueFrom: { secretKeyRef: { name: restaurantos-secrets, key: AUDIT_DB_PASSWORD } } }"
   fi
-  emit_jvm "$name" "$port" "$extra" 300Mi 640Mi 30
+  emit_jvm "$name" "$port" "$extra" 200Mi 560Mi 30
 done <<< "$SERVICES"
 
 # ═══ 40  gateway ═════════════════════════════════════════════════════════════
@@ -527,7 +534,7 @@ INIT_WAIT='      initContainers:
           resources: { requests: { memory: "8Mi", cpu: "10m" }, limits: { memory: "32Mi" } }
 '
 emit_jvm gateway 8080 '            - { name: LOG_LEVEL_GATEWAY, value: "INFO" }
-            - { name: FAIL_OPEN_ON_PLATFORM_DOWN, value: "false" }' 300Mi 640Mi 40
+            - { name: FAIL_OPEN_ON_PLATFORM_DOWN, value: "false" }' 200Mi 560Mi 40
 
 # ═══ 50  frontend ════════════════════════════════════════════════════════════
 cat > "$OUT/50-frontend.yaml" <<'EOF'
@@ -689,6 +696,20 @@ io.open(sys.argv[2], "w").write(json.dumps(d, indent=1))
 print("  rabbit topology: %d exchanges, %d queues, %d bindings (credentials stripped)"
       % (len(d["exchanges"]), len(d["queues"]), len(d["bindings"])))
 PYEOF
+# ClickHouse sizes its caches from the HOST's RAM, not the container limit, so on
+# a 31Gi box it reserved ~1.5Gi per namespace for an analytics workload that does
+# not exist here. These are the three knobs that actually move the number.
+cat > "$OUT/files/clickhouse-memory.xml" <<'CHEOF'
+<clickhouse>
+    <!-- Hard ceiling well inside the 1Gi container limit, so the OOM killer never decides this. -->
+    <max_server_memory_usage>805306368</max_server_memory_usage>
+    <!-- Default is 5GiB of mark cache alone. -->
+    <mark_cache_size>67108864</mark_cache_size>
+    <!-- Off: every read here is a fact-table scan, so a decompressed-block cache never pays back. -->
+    <uncompressed_cache_size>0</uncompressed_cache_size>
+    <max_concurrent_queries>16</max_concurrent_queries>
+</clickhouse>
+CHEOF
 mkdir -p "$OUT/files/policies"
 cp "$ROOT"/policies/restaurantos/*.rego               "$OUT/files/policies/"
 
@@ -710,6 +731,9 @@ configMapGenerator:
   - name: clickhouse-tuning
     files:
       - log-limits.xml=files/log-limits.xml
+  - name: clickhouse-memcap
+    files:
+      - memory.xml=files/clickhouse-memory.xml
   - name: config-repo
     files:
       - application.yml=files/application.yml

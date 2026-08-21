@@ -1,0 +1,65 @@
+# LiteSpeed vhost template for a RestaurantOS environment.
+# Install:  sed "s/__DOMAIN__/dev.restaurantos.softxlogic.com/g" vhost.conf.template \
+#             > /usr/local/lsws/conf/vhosts/__DOMAIN__/vhost.conf && lswsctrl restart
+#
+# LiteSpeed keeps :80/:443 — this box also serves mail, CyberPanel and other
+# customers' sites — and TERMINATES TLS here. Traefik listens on NodePort 30080
+# and routes by Host header, so the Host must survive the proxy hop; LiteSpeed
+# preserves it, and the Ingress rule for this domain depends on that.
+docRoot                   $VH_ROOT/public_html
+vhDomain                  $VH_NAME
+adminEmails               umer.jahangier@gmail.com
+enableGzip                1
+
+errorlog $VH_ROOT/logs/$VH_NAME.error_log {
+  useServer               0
+  logLevel                WARN
+  rollingSize             10M
+}
+
+accesslog $VH_ROOT/logs/$VH_NAME.access_log {
+  useServer               0
+  rollingSize             10M
+  keepDays                10
+  compressArchive         1
+}
+
+# ── DO NOT REMOVE THIS BLOCK ────────────────────────────────────────────────
+# Without vhssl, LiteSpeed silently falls back to the SERVER-level certificate
+# (srv1906962.hstgr.cloud) and every browser rejects the site with
+# ERR_CERT_COMMON_NAME_INVALID. This shipped exactly once, because every check
+# had been written as `curl -k` — and -k disables the one check that catches it.
+# Verify with `curl` WITHOUT -k, or the test proves nothing.
+vhssl  {
+  keyFile                 /etc/letsencrypt/live/__DOMAIN__/privkey.pem
+  certFile                /etc/letsencrypt/live/__DOMAIN__/fullchain.pem
+  certChain               1
+  sslProtocol             24
+  enableECDHE             1
+  renegProtection         1
+  sslSessionCache         1
+  enableSpdy              15
+}
+
+extprocessor k3s {
+  type                    proxy
+  address                 127.0.0.1:30080
+  maxConns                200
+  initTimeout             60
+  retryTimeout            0
+  respBuffer              0
+}
+
+# Path routing (/api and /ws to the gateway, the rest to Next.js) belongs to the
+# Ingress, not here — one place holds the whole truth about routing.
+context / {
+  type                    proxy
+  handler                 k3s
+  addDefaultCharset       off
+}
+
+# KDS and POS hold live order feeds open; a plain proxy context will not upgrade
+# the connection, so websockets need their own explicit mapping.
+websocket /ws {
+  address                 127.0.0.1:30080
+}

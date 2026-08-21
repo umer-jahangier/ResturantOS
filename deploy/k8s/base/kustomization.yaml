@@ -37,6 +37,9 @@ configMapGenerator:
   - name: clickhouse-tuning
     files:
       - log-limits.xml=files/log-limits.xml
+  - name: clickhouse-memcap
+    files:
+      - memory.xml=files/clickhouse-memory.xml
   - name: config-repo
     files:
       - application.yml=files/application.yml

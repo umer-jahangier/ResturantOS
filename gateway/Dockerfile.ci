@@ -23,5 +23,18 @@ EXPOSE 8080
 # MaxRAMPercentage (not -Xmx) so the heap tracks the container limit set in the
 # Deployment; SerialGC because at this pod density the parallel collectors'
 # per-JVM thread pools cost more than they return.
-ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=70 -XX:+UseSerialGC -Xss512k -XX:+ExitOnOutOfMemoryError"
+# Memory is TUNED DOWN deliberately. Measured before this: every service sat at
+# ~420Mi against a 640Mi limit — not because it needed 420Mi, but because a JVM
+# grows its heap toward whatever ceiling you give it and then keeps it. SerialGC
+# only uncommits when MORE than MaxHeapFreeRatio (default 70%) of the heap is
+# free, which after a Spring context loads effectively never happens.
+#
+#   MinHeapFreeRatio/MaxHeapFreeRatio 10/25 — shrink aggressively after each GC,
+#     so an idle service actually returns pages to the OS. This is the setting
+#     that makes "use RAM only when needed" true rather than aspirational.
+#   MaxRAMPercentage 55 — MaxRAMPercentage governs the HEAP ONLY. Metaspace,
+#     code cache and thread stacks are a further ~230Mi that it does not bound,
+#     which is why 70% of the limit overshot the limit in practice.
+#   MaxMetaspaceSize/ReservedCodeCacheSize — cap that non-heap side explicitly.
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=55 -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=25 -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=64m -XX:+UseSerialGC -Xss512k -XX:+ExitOnOutOfMemoryError"
 ENTRYPOINT ["java","-jar","/app/app.jar"]

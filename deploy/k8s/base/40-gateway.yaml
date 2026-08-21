@@ -39,8 +39,8 @@ spec:
             - { name: LOG_LEVEL_GATEWAY, value: "INFO" }
             - { name: FAIL_OPEN_ON_PLATFORM_DOWN, value: "false" }
           resources:
-            requests: { memory: "300Mi", cpu: "50m" }
-            limits:   { memory: "640Mi" }
+            requests: { memory: "200Mi", cpu: "50m" }
+            limits:   { memory: "560Mi" }
           startupProbe:
             httpGet: { path: /actuator/health, port: 8080 }
             periodSeconds: 5

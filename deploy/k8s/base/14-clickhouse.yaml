@@ -32,13 +32,19 @@ spec:
             - { name: CLICKHOUSE_PASSWORD, valueFrom: { secretKeyRef: { name: restaurantos-secrets, key: CLICKHOUSE_PASSWORD } } }
             - { name: CLICKHOUSE_DB, value: "clickhouse_analytics" }
             - { name: CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT, value: "1" }
+            # Measured at 1511Mi per namespace — the largest single pod here, and
+            # ~3Gi across both environments. ClickHouse sizes its caches from the
+            # HOST's RAM unless told otherwise, so on a 31Gi box it happily
+            # reserves for an analytics workload this deployment does not have.
+            - { name: CLICKHOUSE_SKIP_USER_SETUP, value: "0" }
           ports: [{ containerPort: 8123 }, { containerPort: 9000 }]
           volumeMounts:
             - { name: data, mountPath: /var/lib/clickhouse }
             - { name: tuning, mountPath: /etc/clickhouse-server/config.d/log-limits.xml, subPath: log-limits.xml }
+            - { name: memcap, mountPath: /etc/clickhouse-server/config.d/memory.xml, subPath: memory.xml }
           resources:
-            requests: { memory: "512Mi", cpu: "100m" }
-            limits:   { memory: "2Gi" }
+            requests: { memory: "256Mi", cpu: "100m" }
+            limits:   { memory: "1Gi" }
           readinessProbe:
             httpGet: { path: /ping, port: 8123 }
             initialDelaySeconds: 20
@@ -46,3 +52,4 @@ spec:
       volumes:
         - { name: data, persistentVolumeClaim: { claimName: clickhouse-data } }
         - { name: tuning, configMap: { name: clickhouse-tuning } }
+        - { name: memcap, configMap: { name: clickhouse-memcap } }

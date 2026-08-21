@@ -34,8 +34,8 @@ spec:
             - { name: EUREKA_CLIENT_REGISTER_WITH_EUREKA, value: "false" }
             - { name: EUREKA_CLIENT_FETCH_REGISTRY, value: "false" }
           resources:
-            requests: { memory: "200Mi", cpu: "50m" }
-            limits:   { memory: "420Mi" }
+            requests: { memory: "160Mi", cpu: "50m" }
+            limits:   { memory: "360Mi" }
           startupProbe:
             httpGet: { path: /actuator/health, port: 8761 }
             periodSeconds: 5

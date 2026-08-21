@@ -1,0 +1,9 @@
+<clickhouse>
+    <!-- Hard ceiling well inside the 1Gi container limit, so the OOM killer never decides this. -->
+    <max_server_memory_usage>805306368</max_server_memory_usage>
+    <!-- Default is 5GiB of mark cache alone. -->
+    <mark_cache_size>67108864</mark_cache_size>
+    <!-- Off: every read here is a fact-table scan, so a decompressed-block cache never pays back. -->
+    <uncompressed_cache_size>0</uncompressed_cache_size>
+    <max_concurrent_queries>16</max_concurrent_queries>
+</clickhouse>

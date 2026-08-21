@@ -40,8 +40,8 @@ spec:
             - { name: FILE_DB_USER, value: "file_service" }
             - { name: FILE_DB_PASSWORD, valueFrom: { secretKeyRef: { name: restaurantos-secrets, key: FILE_DB_PASSWORD } } }
           resources:
-            requests: { memory: "300Mi", cpu: "50m" }
-            limits:   { memory: "640Mi" }
+            requests: { memory: "200Mi", cpu: "50m" }
+            limits:   { memory: "560Mi" }
           startupProbe:
             httpGet: { path: /actuator/health, port: 8095 }
             periodSeconds: 5
