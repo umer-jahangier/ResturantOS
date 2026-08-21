@@ -43,8 +43,8 @@ spec:
             - { name: AUDIT_DB_ADMIN_USER, value: "audit_user" }
             - { name: AUDIT_DB_ADMIN_PASSWORD, valueFrom: { secretKeyRef: { name: restaurantos-secrets, key: AUDIT_DB_PASSWORD } } }
           resources:
-            requests: { memory: "200Mi", cpu: "50m" }
-            limits:   { memory: "560Mi" }
+            requests: { memory: "220Mi", cpu: "50m" }
+            limits:   { memory: "640Mi" }
           startupProbe:
             httpGet: { path: /actuator/health, port: 8093 }
             periodSeconds: 5

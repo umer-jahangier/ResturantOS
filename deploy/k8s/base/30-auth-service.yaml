@@ -42,8 +42,8 @@ spec:
             - { name: DB_USER, value: "auth_user" }
             - { name: DB_PASSWORD, valueFrom: { secretKeyRef: { name: restaurantos-secrets, key: AUTH_DB_PASSWORD } } }
           resources:
-            requests: { memory: "200Mi", cpu: "50m" }
-            limits:   { memory: "560Mi" }
+            requests: { memory: "220Mi", cpu: "50m" }
+            limits:   { memory: "640Mi" }
           startupProbe:
             httpGet: { path: /actuator/health, port: 8081 }
             periodSeconds: 5

@@ -35,6 +35,12 @@ EXPOSE 8083
 #   MaxRAMPercentage 55 — MaxRAMPercentage governs the HEAP ONLY. Metaspace,
 #     code cache and thread stacks are a further ~230Mi that it does not bound,
 #     which is why 70% of the limit overshot the limit in practice.
-#   MaxMetaspaceSize/ReservedCodeCacheSize — cap that non-heap side explicitly.
-ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=55 -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=25 -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=64m -XX:+UseSerialGC -Xss512k -XX:+ExitOnOutOfMemoryError"
+#   MaxMetaspaceSize 256m — MEASURED, not guessed. 128m was tried first and
+#     killed pos, inventory, hr, kitchen and platform-admin outright: Spring Boot
+#     with Hibernate generates enough classes to need more than that. These are
+#     CEILINGS, not reservations — the JVM commits what it uses — so a generous
+#     ceiling costs nothing while a tight one is an instant crash loop.
+#   ExitOnOutOfMemoryError earned its place here: the failure was exit code 3
+#     with "Metaspace" named in the log, not a JVM limping along half-dead.
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=50 -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=25 -XX:MaxMetaspaceSize=256m -XX:ReservedCodeCacheSize=64m -XX:+UseSerialGC -Xss512k -XX:+ExitOnOutOfMemoryError"
 ENTRYPOINT ["java","-jar","/app/app.jar"]

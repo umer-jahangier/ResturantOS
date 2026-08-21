@@ -523,7 +523,7 @@ while IFS='|' read -r name port style db dbuser; do
             - { name: AUDIT_DB_ADMIN_USER, value: \"audit_user\" }
             - { name: AUDIT_DB_ADMIN_PASSWORD, valueFrom: { secretKeyRef: { name: restaurantos-secrets, key: AUDIT_DB_PASSWORD } } }"
   fi
-  emit_jvm "$name" "$port" "$extra" 200Mi 560Mi 30
+  emit_jvm "$name" "$port" "$extra" 220Mi 640Mi 30
 done <<< "$SERVICES"
 
 # ═══ 40  gateway ═════════════════════════════════════════════════════════════
@@ -534,7 +534,7 @@ INIT_WAIT='      initContainers:
           resources: { requests: { memory: "8Mi", cpu: "10m" }, limits: { memory: "32Mi" } }
 '
 emit_jvm gateway 8080 '            - { name: LOG_LEVEL_GATEWAY, value: "INFO" }
-            - { name: FAIL_OPEN_ON_PLATFORM_DOWN, value: "false" }' 200Mi 560Mi 40
+            - { name: FAIL_OPEN_ON_PLATFORM_DOWN, value: "false" }' 220Mi 640Mi 40
 
 # ═══ 50  frontend ════════════════════════════════════════════════════════════
 cat > "$OUT/50-frontend.yaml" <<'EOF'
