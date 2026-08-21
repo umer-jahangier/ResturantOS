@@ -12,7 +12,7 @@ export interface ResolveTenantSlugInput {
 
 const IGNORED_LEFTMOST_LABELS = new Set(["www", "localhost"]);
 
-export function resolveTenantSlug({ host, searchParam }: ResolveTenantSlugInput): string | null {
+export function resolveTenantSlug({ host, searchParam, appHosts }: ResolveTenantSlugInput): string | null {
   const fromParam = searchParam?.trim();
   if (fromParam) {
     return fromParam;
@@ -25,6 +25,11 @@ export function resolveTenantSlug({ host, searchParam }: ResolveTenantSlugInput)
   // Strip any port (`host:3000` → `host`).
   const hostname = host.split(":")[0]?.trim().toLowerCase() ?? "";
   if (!hostname) {
+    return null;
+  }
+
+  // An application hostname carries no tenant, however many labels it has.
+  if (appHosts?.some((h) => h.trim().toLowerCase() === hostname)) {
     return null;
   }
 

@@ -17,7 +17,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const headerList = await headers();
   const host = headerList.get("host");
 
-  const tenantSlug = resolveTenantSlug({ host, searchParam: params.tenant });
+  // NEXT_PUBLIC_APP_HOSTS lists this deployment's OWN hostnames so they are not
+  // mistaken for tenant subdomains; NEXT_PUBLIC_DEFAULT_TENANT_SLUG is the
+  // fallback used when the host carries no tenant (a single-tenant demo site).
+  const appHosts = (process.env.NEXT_PUBLIC_APP_HOSTS ?? "").split(",").filter(Boolean);
+  const tenantSlug =
+    resolveTenantSlug({ host, searchParam: params.tenant, appHosts }) ||
+    (process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG || null);
   const tenantBrandName = tenantSlug ? await resolveTenantBrand(tenantSlug) : null;
 
   return (
