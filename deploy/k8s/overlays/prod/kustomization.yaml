@@ -21,3 +21,8 @@ patches:
       - op: add
         path: /data/LIQUIBASE_CONTEXTS
         value: "prod"
+  - target: { kind: ConfigMap, name: restaurantos-config }
+    patch: |-
+      - op: replace
+        path: /data/CORS_ALLOWED_ORIGINS
+        value: "https://restaurantos.softxlogic.com,https://*.restaurantos.io,http://localhost:3000"

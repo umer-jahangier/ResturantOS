@@ -33,6 +33,30 @@ public class GatewaySecurityConfig {
     private String jwksUri;
 
     /**
+     * Browser origins allowed to call the gateway, comma-separated.
+     *
+     * <p>This was hardcoded to {@code https://*.restaurantos.io, http://localhost:3000},
+     * which meant any deployment on a different domain rejected EVERY browser request
+     * with 403 before it reached a service. It presented as "login is broken" while
+     * curl reported the same endpoint perfectly healthy — because curl sends no
+     * {@code Origin} header, so CORS never engages. Measured on the live deployment:
+     * with {@code Origin: https://dev.restaurantos.softxlogic.com} the login returned
+     * 403; with the header omitted, 200.
+     *
+     * <p>The default preserves the previous behaviour exactly, so nothing that worked
+     * before changes. Set CORS_ALLOWED_ORIGINS per environment to add a domain.
+     */
+    @Value("${CORS_ALLOWED_ORIGINS:https://*.restaurantos.io,http://localhost:3000}")
+    private String corsAllowedOrigins;
+
+    private List<String> allowedOriginPatterns() {
+        return java.util.Arrays.stream(corsAllowedOrigins.split(","))
+            .map(String::trim)
+            .filter(o -> !o.isEmpty())
+            .toList();
+    }
+
+    /**
      * Provides a {@link JwksKeyProvider} bean that fetches and caches RS256 public keys
      * from the auth-service JWKS endpoint. JwtGlobalFilter uses this for JWT signature
      * verification (reuse shared-lib; do NOT re-implement key caching).
@@ -88,7 +112,7 @@ public class GatewaySecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("https://*.restaurantos.io", "http://localhost:3000"));
+        config.setAllowedOriginPatterns(allowedOriginPatterns());
         config.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key", "If-Match", "X-Request-Id"));
         config.setExposedHeaders(List.of("X-Upgrade-CTA-URL", "X-Quota-Resource", "X-Quota-Warning"));

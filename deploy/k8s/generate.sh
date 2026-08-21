@@ -72,6 +72,11 @@ data:
   PLATFORM_ADMIN_SERVICE_URI: "http://platform-admin-service:8096"
   SPRING_PROFILES_ACTIVE: "native"
   AUTH_COOKIE_SECURE: "true"
+  # Browser origins the gateway will accept. Overridden per environment by the
+  # overlay — without the deployment's own hostname here, every browser request
+  # is refused with 403 before it reaches a service, while curl (which sends no
+  # Origin header) reports the same endpoint healthy.
+  CORS_ALLOWED_ORIGINS: "https://*.restaurantos.io,http://localhost:3000"
   # Fifteen services x HikariCP's default pool of 10 = 150 connections against a
   # Postgres whose default max_connections is 100. Measured: audit, pos and
   # reporting all died with "remaining connection slots are reserved for roles
