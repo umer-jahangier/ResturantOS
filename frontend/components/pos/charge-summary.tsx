@@ -1057,7 +1057,7 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
                 className={cn(
                   "h-12 w-full rounded-xl text-sm font-semibold transition-all",
                   "disabled:cursor-not-allowed disabled:opacity-40",
-                  "bg-primary text-primary-foreground enabled:hover:bg-primary/90 enabled:active:scale-[0.98]",
+                  "bg-primary-solid text-primary-solid-foreground enabled:hover:bg-primary-solid/90 enabled:active:scale-[0.98]",
                 )}
               >
                 {recordPayment.isPending ? "Recording…" : "Record Payment"}

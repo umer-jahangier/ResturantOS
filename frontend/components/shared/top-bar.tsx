@@ -255,7 +255,7 @@ export function TopBar({ onMobileMenuToggle }: TopBarProps) {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="touch-target inline-flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-semibold transition-opacity hover:opacity-90"
+                className="touch-target inline-flex size-8 items-center justify-center rounded-full bg-primary-solid text-primary-solid-foreground text-sm font-semibold transition-opacity hover:opacity-90"
                 aria-label="Open profile menu"
               >
                 {userInitial}

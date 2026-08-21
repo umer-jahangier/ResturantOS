@@ -617,7 +617,7 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
               className={cn(
                 "rounded-full px-4 py-2 text-sm font-medium transition-colors",
                 statusFilter === f.id
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary-solid text-primary-solid-foreground"
                   : "bg-muted text-muted-foreground hover:bg-muted/80",
               )}
             >
@@ -667,7 +667,7 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
                 data-testid="toggle-my-orders"
                 className={cn(
                   "rounded-full px-3 py-1.5 font-medium transition-colors",
-                  !viewAll ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+                  !viewAll ? "bg-primary-solid text-primary-solid-foreground" : "text-muted-foreground",
                 )}
               >
                 My Orders
@@ -678,7 +678,7 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
                 data-testid="toggle-all-branch"
                 className={cn(
                   "rounded-full px-3 py-1.5 font-medium transition-colors",
-                  viewAll ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+                  viewAll ? "bg-primary-solid text-primary-solid-foreground" : "text-muted-foreground",
                 )}
               >
                 All Branch

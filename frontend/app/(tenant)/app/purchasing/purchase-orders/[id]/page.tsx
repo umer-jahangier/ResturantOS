@@ -222,7 +222,7 @@ export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ 
           )}
           <button
             type="button"
-            className="mt-2 rounded bg-primary px-3 py-1 text-sm text-primary-foreground disabled:opacity-50"
+            className="mt-2 rounded bg-primary-solid px-3 py-1 text-sm text-primary-solid-foreground disabled:opacity-50"
             disabled={closeDisabled}
             onClick={() => closePo.mutate(isShortClose ? closeReason.trim() : undefined)}
           >

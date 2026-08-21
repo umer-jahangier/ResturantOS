@@ -160,7 +160,7 @@ function OpenPeriodDatePicker({ value, onChange }: OpenPeriodDatePickerProps) {
               title={selectable ? undefined : "Not in an open accounting period"}
               className={`h-9 rounded-lg font-mono text-body tabular-nums ${
                 selected
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary-solid text-primary-solid-foreground"
                   : selectable
                     ? "hover:bg-accent"
                     : "cursor-not-allowed text-muted-foreground/40"

@@ -189,7 +189,7 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
             className={cn(
               "min-h-11 shrink-0 px-4 py-2 rounded-full text-pos font-medium transition-colors",
               !activeCategoryId
-                ? "bg-primary text-primary-foreground"
+                ? "bg-primary-solid text-primary-solid-foreground"
                 : "bg-muted text-muted-foreground hover:bg-muted/80",
             )}
           >
@@ -205,7 +205,7 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
                 className={cn(
                   "min-h-11 shrink-0 px-4 py-2 rounded-full text-pos font-medium transition-colors",
                   activeCategoryId === cat.id
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-primary-solid text-primary-solid-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/80",
                 )}
               >
@@ -356,7 +356,7 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
                     <>
                       <span
                         data-testid={`menu-item-qty-${item.id}`}
-                        className="pointer-events-none absolute -top-2 -right-2 flex min-h-[22px] min-w-[22px] items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground"
+                        className="pointer-events-none absolute -top-2 -right-2 flex min-h-[22px] min-w-[22px] items-center justify-center rounded-full bg-primary-solid px-1 text-xs font-semibold text-primary-solid-foreground"
                       >
                         {selected.quantity}
                       </span>

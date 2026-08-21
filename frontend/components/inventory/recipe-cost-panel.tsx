@@ -138,7 +138,7 @@ export function RecipeCostLineShare({ line, className }: RecipeCostLineShareProp
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
-        <div className="h-full bg-primary" style={{ width: `${share}%` }} />
+        <div className="h-full bg-primary-solid" style={{ width: `${share}%` }} />
       </div>
       <span className="text-xs text-muted-foreground">{share}%</span>
     </div>

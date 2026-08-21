@@ -363,7 +363,7 @@ function AppearanceFormFields({
         <button
           type="submit"
           disabled={contrastFailing}
-          className="touch-target inline-flex items-center justify-center rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          className="touch-target inline-flex items-center justify-center rounded-md bg-primary-solid px-6 py-2 text-sm font-medium text-primary-solid-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           aria-disabled={contrastFailing}
         >
           Save appearance

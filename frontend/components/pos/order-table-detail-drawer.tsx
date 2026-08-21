@@ -256,7 +256,7 @@ export function OrderTableDetailDrawer({
                     data-testid="send-new-items-button"
                     onClick={() => void handleSendNewItems()}
                     disabled={sendToKds.isPending}
-                    className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full rounded-xl bg-primary-solid py-3 text-sm font-semibold text-primary-solid-foreground transition-all hover:bg-primary-solid/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {sendToKds.isPending ? "Sending..." : `Send New Items (${pendingItems.length})`}
                   </button>
@@ -451,7 +451,7 @@ function InstructionsField({ orderId, notes, disabled }: InstructionsFieldProps)
           <button
             type="button"
             onClick={save}
-            className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground"
+            className="rounded bg-primary-solid px-2 py-1 text-xs text-primary-solid-foreground"
           >
             Save
           </button>
@@ -532,7 +532,7 @@ function QuickAddSearch({ orderId, branchId, tableId, onFullMenu }: QuickAddSear
                   type="button"
                   onClick={() => void handleAdd(item)}
                   disabled={addItem.isPending}
-                  className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground disabled:opacity-50"
+                  className="rounded bg-primary-solid px-2 py-1 text-xs text-primary-solid-foreground disabled:opacity-50"
                 >
                   Add
                 </button>

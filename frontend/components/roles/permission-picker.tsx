@@ -176,7 +176,7 @@ export function PermissionPicker({
                           {readOnly ? (
                             <span
                               aria-hidden="true"
-                              className="mt-1 size-2 shrink-0 rounded-full bg-primary"
+                              className="mt-1 size-2 shrink-0 rounded-full bg-primary-solid"
                             />
                           ) : (
                             <input

@@ -285,7 +285,7 @@ function PreSendCart({
           data-testid="send-to-kitchen-button"
           onClick={() => void onSendToKitchen()}
           disabled={!canSend}
-          className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 active:scale-[0.98] transition-all"
+          className="w-full py-3 rounded-xl bg-primary-solid text-primary-solid-foreground font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary-solid/90 active:scale-[0.98] transition-all"
         >
           {isPersisting ? "Sending..." : "Send to Kitchen"}
         </button>
@@ -520,7 +520,7 @@ function SentOrder({ order, onClearNewOrder }: SentOrderProps) {
             data-testid="send-to-kitchen-button"
             onClick={() => void handleSendToKitchen()}
             disabled={sendToKds.isPending}
-            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 active:scale-[0.98] transition-all"
+            className="w-full py-3 rounded-xl bg-primary-solid text-primary-solid-foreground font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary-solid/90 active:scale-[0.98] transition-all"
           >
             {sendToKds.isPending ? "Sending..." : ctaLabel}
           </button>
@@ -651,7 +651,7 @@ function SpecialInstructionsField({ notes, disabled, onSave }: SpecialInstructio
               onSave(draft);
               setEditing(false);
             }}
-            className="text-xs px-2 py-1 rounded bg-primary text-primary-foreground"
+            className="text-xs px-2 py-1 rounded bg-primary-solid text-primary-solid-foreground"
           >
             Save
           </button>
@@ -822,7 +822,7 @@ function OrderLineItem({ item, orderId, orderStatus, isSettled }: OrderLineItemP
           <button
             type="button"
             onClick={saveNote}
-            className="text-xs px-2 py-1 rounded bg-primary text-primary-foreground"
+            className="text-xs px-2 py-1 rounded bg-primary-solid text-primary-solid-foreground"
           >
             Save
           </button>

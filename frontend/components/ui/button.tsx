@@ -13,7 +13,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/80",
+        default: "bg-primary-solid text-primary-solid-foreground hover:bg-primary-solid/80",
         outline:
           // `--input` no longer doubles as a translucent fill (see input.tsx): the dark
           // states name the surface ramp, and the dark border names the interactive

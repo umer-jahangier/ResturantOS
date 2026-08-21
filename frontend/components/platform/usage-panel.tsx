@@ -136,7 +136,7 @@ function MeterRow({ meter }: { meter: UsageMeter }) {
                 ? "bg-destructive"
                 : severity === "warning"
                   ? "bg-warning"
-                  : "bg-primary",
+                  : "bg-primary-solid",
             )}
             style={{ width: `${Math.min(pct, 100)}%` }}
           />
