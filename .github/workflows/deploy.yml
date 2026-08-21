@@ -181,7 +181,29 @@ jobs:
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          # Retry, and verify the RESULT rather than the exit code.
+          #
+          # This step runs under `bash -e`, and ssh-keyscan returns non-zero on a
+          # transient DNS or network hiccup. That killed the deploy on two
+          # consecutive commits while succeeding on the one between them — a flaky
+          # step failing a build that was otherwise fine. 2>/dev/null then hid the
+          # reason, so the job reported only "exit code 1".
+          #
+          # Three attempts, then assert known_hosts actually has a key. Still fails
+          # loudly if the host is genuinely unreachable; no longer fails because a
+          # single lookup blipped.
+          for attempt in 1 2 3; do
+            if ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/tmp/keyscan.err; then
+              break
+            fi
+            echo "  ssh-keyscan attempt $attempt failed; retrying"
+            sleep 5
+          done
+          if ! grep -q . ~/.ssh/known_hosts 2>/dev/null; then
+            echo "::error::ssh-keyscan produced no host key for the VPS after 3 attempts"
+            cat /tmp/keyscan.err || true
+            exit 1
+          fi
 
       - name: Refresh the GHCR pull secret
         # The kubelet pulls images long after this job ends (any pod restart,
@@ -218,7 +240,7 @@ jobs:
             for d in \$(k3s kubectl -n $NS get deploy -o name); do
               if ! k3s kubectl -n $NS rollout status \$d --timeout=8m; then
                 failed=1
-                echo \"::error:: rollout failed for \$d\"
+                echo "::error:: rollout failed for $d"
                 k3s kubectl -n $NS describe \$d | tail -25
                 k3s kubectl -n $NS logs \$d --tail=60 --all-containers 2>/dev/null || true
               fi

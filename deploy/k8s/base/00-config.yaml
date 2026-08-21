@@ -29,6 +29,13 @@ data:
   PLATFORM_ADMIN_SERVICE_URI: "http://platform-admin-service:8096"
   SPRING_PROFILES_ACTIVE: "native"
   AUTH_COOKIE_SECURE: "true"
+  # Second-factor step-up. TRUE here on purpose so any environment that does not
+  # explicitly opt out keeps it. The dev overlay sets it false, temporarily, because
+  # there is no enrolment UI yet: the seeder writes TOTP secrets to a local state
+  # directory, so a human with only the password cannot get past the owner, tenant
+  # admin or accountant. That is a missing FEATURE, not a reason to weaken prod —
+  # prod keeps this on.
+  AUTH_STEP_UP_ENABLED: "true"
   # Browser origins the gateway will accept. Overridden per environment by the
   # overlay — without the deployment's own hostname here, every browser request
   # is refused with 403 before it reaches a service, while curl (which sends no
