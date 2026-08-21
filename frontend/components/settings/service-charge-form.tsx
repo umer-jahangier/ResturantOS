@@ -217,7 +217,7 @@ export function ServiceChargeForm({ branchId }: { branchId: string | null }) {
                   <p
                     data-testid="service-charge-read-only-notice"
                     role="status"
-                    className="rounded-lg border border-muted bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+                    className="rounded-lg border border-muted bg-muted/40 px-3 py-2 text-small text-muted-foreground"
                   >
                     You can see this branch&apos;s service charge but not change it. Changing it
                     re-prices every check in the building, so it is held by an owner or a tenant
@@ -242,7 +242,7 @@ export function ServiceChargeForm({ branchId }: { branchId: string | null }) {
                           />
                         </FormControl>
                         <span>
-                          <span className="text-sm font-medium">
+                          <span className="text-small font-medium">
                             Charge a service charge at this branch
                           </span>
                           <FormDescription>
@@ -304,8 +304,8 @@ export function ServiceChargeForm({ branchId }: { branchId: string | null }) {
                 </div>
 
                 <fieldset className="space-y-2">
-                  <legend className="text-sm font-medium">Applies to</legend>
-                  <p className="text-xs text-muted-foreground">
+                  <legend className="text-small font-medium">Applies to</legend>
+                  <p className="text-small text-muted-foreground">
                     A service charge pays for table service. Charging a counter guest for waiting on
                     themselves is the most common way a restaurant gets this wrong in public.
                   </p>
@@ -334,7 +334,7 @@ export function ServiceChargeForm({ branchId }: { branchId: string | null }) {
                                   className="size-4 accent-primary"
                                 />
                               </FormControl>
-                              <span className="text-sm">{caption}</span>
+                              <span className="text-small">{caption}</span>
                             </label>
                           </FormItem>
                         )}
@@ -347,7 +347,7 @@ export function ServiceChargeForm({ branchId }: { branchId: string | null }) {
                 <div
                   data-testid="service-charge-preview"
                   data-paisa={previewPaisa}
-                  className="rounded-lg border bg-muted/30 px-3 py-2 text-sm"
+                  className="rounded-lg border bg-muted/30 px-3 py-2 text-small"
                 >
                   <span className="text-muted-foreground">
                     On a <MoneyDisplay paisa={PREVIEW_BASE_PAISA} className="font-mono" /> check
@@ -368,13 +368,13 @@ export function ServiceChargeForm({ branchId }: { branchId: string | null }) {
                     {update.isPending ? "Saving…" : "Save service charge"}
                   </Button>
                   {savedAt && (
-                    <span data-testid="service-charge-saved-at" className="text-xs text-muted-foreground">
+                    <span data-testid="service-charge-saved-at" className="text-small text-muted-foreground">
                       Saved at {savedAt}
                     </span>
                   )}
                 </div>
 
-                <p className="text-xs text-muted-foreground">
+                <p className="text-small text-muted-foreground">
                   A change applies to checks from now on. A check already presented to a guest keeps
                   the rate it was rung at, and a bill reprinted next year still shows what they
                   actually paid.

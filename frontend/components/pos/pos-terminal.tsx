@@ -641,7 +641,7 @@ function SendFailureBanner({
         onClick={onDismiss}
         aria-label="Dismiss send failure"
         data-testid="send-failure-dismiss"
-        className="absolute right-2 top-2 flex min-h-[32px] min-w-[32px] items-center justify-center rounded text-destructive/70 hover:text-destructive"
+        className="absolute right-2 top-2 flex min-h-[32px] min-w-[32px] items-center justify-center rounded-sm text-destructive/70 hover:text-destructive"
       >
         <X className="size-4" aria-hidden="true" />
       </button>
