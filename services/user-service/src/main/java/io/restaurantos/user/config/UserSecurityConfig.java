@@ -24,6 +24,29 @@ import java.util.List;
 @Configuration
 @EnableMethodSecurity
 public class UserSecurityConfig {
+    /**
+     * Browser origins allowed to call this service, comma-separated.
+     *
+     * <p>Hardcoded until 2026-08-21 to {@code https://*.restaurantos.io,
+     * http://localhost:3000}, which meant any deployment on another domain
+     * rejected every browser request with 403 "Invalid CORS request" — AFTER the
+     * gateway had already allowed it and attached its own Access-Control headers,
+     * so the response looked CORS-approved and was refused anyway.
+     *
+     * <p>It hid from testing because curl sends no Origin header, so CORS never
+     * engages and the endpoint reports perfectly healthy. Only a browser sees it.
+     *
+     * <p>The default preserves the previous behaviour exactly.
+     */
+    @org.springframework.beans.factory.annotation.Value(
+        "${CORS_ALLOWED_ORIGINS:https://*.restaurantos.io,http://localhost:3000}")
+    private String corsAllowedOrigins;
+
+    private List<String> corsOriginPatterns() {
+        return java.util.Arrays.stream(corsAllowedOrigins.split(","))
+            .map(String::trim).filter(o -> !o.isEmpty()).toList();
+    }
+
 
     private final UserInternalServiceFilter internalServiceFilter;
     private final TenantContext tenantContext;
@@ -68,7 +91,7 @@ public class UserSecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("https://*.restaurantos.io", "http://localhost:3000"));
+        config.setAllowedOriginPatterns(corsOriginPatterns());
         config.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Request-Id"));
         config.setAllowCredentials(true);
