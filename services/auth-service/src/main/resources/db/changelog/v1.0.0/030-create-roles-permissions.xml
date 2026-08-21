@@ -62,7 +62,31 @@
         <rollback><dropTable tableName="role_permissions"/></rollback>
     </changeSet>
 
-    <changeSet id="auth-1.0.0-034-seed-permissions" author="restaurantos-agent" runOnChange="false" context="seed">
+    <!--
+        CONTEXT DELIBERATELY REMOVED (was context="seed") from 034/035/036.
+
+        These three changesets are the RBAC CATALOGUE, not demo data: the
+        permission codes, the seven system roles (OWNER, TENANT_ADMIN, MANAGER,
+        CASHIER, ACCOUNTANT, FINANCE_VIEWER, INVENTORY_MANAGER) and the grants
+        between them. No tenant of this product can operate without them. Demo
+        data is the USERS holding those roles, which stays seed-gated elsewhere.
+
+        Tagging them "seed" made the migration chain UNRUNNABLE on any database
+        without demo data. KITCHEN_STAFF (042) and the later permission grants
+        (044/045/047/049) carry NO context and always run, so on a seedless
+        database those grants exist while the roles they reference do not — and
+        changeset 082's guard then refuses the migration outright:
+          "role_permissions still grants to role(s) that do not exist in roles:
+           ACCOUNTANT, ..."
+        auth-service cannot migrate, so it cannot start, and with it nothing else
+        can, because every other service validates tokens against its JWKS.
+
+        Found by building a genuinely empty production environment. Every
+        database this had ever run against was seeded, so the dependency was
+        invisible. Liquibase excludes contexts from the changeset checksum, so
+        removing it does not invalidate databases where it already ran.
+    -->
+    <changeSet id="auth-1.0.0-034-seed-permissions" author="restaurantos-agent" runOnChange="false">
         <insert tableName="permissions"><column name="code" value="rbac.manage"/><column name="module" value="rbac"/><column name="description" value="Manage RBAC"/></insert>
         <insert tableName="permissions"><column name="code" value="finance.period.close"/><column name="module" value="finance"/><column name="description" value="Close accounting period"/></insert>
         <insert tableName="permissions"><column name="code" value="pos.order.create"/><column name="module" value="pos"/><column name="description" value="Create POS orders"/></insert>
@@ -80,7 +104,7 @@
         <rollback><delete tableName="permissions"/></rollback>
     </changeSet>
 
-    <changeSet id="auth-1.0.0-035-seed-system-roles" author="restaurantos-agent" runOnChange="false" context="seed">
+    <changeSet id="auth-1.0.0-035-seed-system-roles" author="restaurantos-agent" runOnChange="false">
         <insert tableName="roles"><column name="code" value="OWNER"/><column name="name" value="Owner"/><column name="is_system" valueBoolean="true"/></insert>
         <insert tableName="roles"><column name="code" value="TENANT_ADMIN"/><column name="name" value="Tenant Admin"/><column name="is_system" valueBoolean="true"/></insert>
         <insert tableName="roles"><column name="code" value="MANAGER"/><column name="name" value="Manager"/><column name="is_system" valueBoolean="true"/></insert>
@@ -92,7 +116,7 @@
         <rollback><delete tableName="roles"><where>is_system = true</where></delete></rollback>
     </changeSet>
 
-    <changeSet id="auth-1.0.0-036-seed-role-permissions" author="restaurantos-agent" runOnChange="false" context="seed">
+    <changeSet id="auth-1.0.0-036-seed-role-permissions" author="restaurantos-agent" runOnChange="false">
         <!-- OWNER: all permissions -->
         <sql>
             INSERT INTO role_permissions (role_code, permission_code)

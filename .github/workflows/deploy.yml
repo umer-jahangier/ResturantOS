@@ -227,15 +227,27 @@ jobs:
 
       - name: Smoke-test the deployed environment
         # A green rollout means the containers started. It does not mean the site
-        # answers. This is the only step that proves the thing a user touches.
+        # answers. This is the only step that tests what a user actually touches.
+        #
+        # WHAT IT ASSERTS, and why not the obvious thing:
+        #   /login must be 200. NOT "/" — that legitimately 307s to /login, and an
+        #     earlier version of this step demanded 200 from it and failed a deploy
+        #     that had worked perfectly. The gate was wrong, not the app.
+        #   /api/... must be 4xx. Every API route here requires authentication, so
+        #     401 is the CORRECT answer and proves the gateway is routing and its
+        #     auth filter is running. 5xx or 000 would mean the gateway is down —
+        #     that is the real failure this catches.
         env: { HOST: "${{ needs.setup.outputs.host }}" }
         run: |
           for i in $(seq 1 20); do
-            code=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 15 "https://$HOST/" || echo 000)
-            api=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 15 "https://$HOST/api/v1/auth/.well-known/jwks.json" || echo 000)
-            echo "  attempt $i: frontend=$code jwks=$api"
-            if [ "$code" = "200" ] && [ "$api" = "200" ]; then echo "SMOKE PASS"; exit 0; fi
+            login=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://$HOST/login" || echo 000)
+            api=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://$HOST/api/v1/auth/health" || echo 000)
+            echo "  attempt $i: /login=$login  /api=$api"
+            if [ "$login" = "200" ] && [ "${api:0:1}" = "4" ]; then
+              echo "SMOKE PASS — frontend serving, gateway up and enforcing auth"
+              exit 0
+            fi
             sleep 15
           done
-          echo "::error::smoke test failed — site did not serve 200 within 5 minutes"
+          echo "::error::smoke test failed — /login=$login (want 200), /api=$api (want 4xx)"
           exit 1

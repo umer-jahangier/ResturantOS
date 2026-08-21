@@ -10,3 +10,14 @@ commonLabels:
 # of the commit being deployed. The :latest here is a placeholder that CI always
 # replaces — it is never what actually runs.
 images: []
+
+# LIQUIBASE_CONTEXTS decides whether the 19 changesets tagged context="seed" run.
+# Leaving it UNSET is not neutral: Liquibase runs ALL changesets when no context
+# is given, which is how prod ended up with the demo tenant and demo logins.
+# dev carries the full demo dataset
+patches:
+  - target: { kind: ConfigMap, name: restaurantos-config }
+    patch: |-
+      - op: add
+        path: /data/LIQUIBASE_CONTEXTS
+        value: "seed"
