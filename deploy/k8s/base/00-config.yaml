@@ -7,6 +7,10 @@ data:
   EUREKA_URI: "http://eureka-server:8761/eureka"
   CONFIG_URI: "http://config-server:8888"
   JWKS_URI: "http://auth-service:8081/.well-known/jwks.json"
+  # authorization-service reads ${JWT_JWKS_URL} with NO fallback, so an unset
+  # value is not a bad default — it is a PlaceholderResolutionException and the
+  # context never starts. Same URL, third spelling.
+  JWT_JWKS_URL: "http://auth-service:8081/.well-known/jwks.json"
   REDIS_HOST: "redis"
   REDIS_PORT: "6379"
   RABBITMQ_HOST: "rabbitmq"
@@ -25,3 +29,13 @@ data:
   PLATFORM_ADMIN_SERVICE_URI: "http://platform-admin-service:8096"
   SPRING_PROFILES_ACTIVE: "native"
   AUTH_COOKIE_SECURE: "true"
+  # Fifteen services x HikariCP's default pool of 10 = 150 connections against a
+  # Postgres whose default max_connections is 100. Measured: audit, pos and
+  # reporting all died with "remaining connection slots are reserved for roles
+  # with the SUPERUSER attribute" — Postgres holds back
+  # superuser_reserved_connections so an admin can still get in once the pool is
+  # exhausted, which is why the message blames SUPERUSER rather than saying the
+  # server is full. Each backend is a PROCESS with its own memory, so the right
+  # fix is to stop asking for connections nobody uses, not only to raise the cap.
+  SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "5"
+  SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: "1"

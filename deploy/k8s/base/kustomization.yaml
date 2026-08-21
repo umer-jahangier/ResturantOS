@@ -27,6 +27,7 @@ resources:
   - 30-user-service.yaml
   - 40-gateway.yaml
   - 50-frontend.yaml
+  - 60-bootstrap-jobs.yaml
 configMapGenerator:
   - name: postgres-init
     files:
@@ -39,6 +40,16 @@ configMapGenerator:
   - name: config-repo
     files:
       - application.yml=files/application.yml
+  - name: rabbit-topology
+    files:
+      - definitions.json=files/rabbitmq-topology.json
+  - name: clickhouse-migrations
+    files:
+      - V001__analytics_facts.sql=files/V001__analytics_facts.sql
+      - V002__nlq_readonly_user.sql=files/V002__nlq_readonly_user.sql
+      - V003__business_date_realignment.sql=files/V003__business_date_realignment.sql
+      - V004__discount_facts.sql=files/V004__discount_facts.sql
+      - V005__discount_source.sql=files/V005__discount_source.sql
   - name: opa-policies
     files:
       - common.rego=files/policies/common.rego

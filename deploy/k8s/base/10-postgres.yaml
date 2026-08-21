@@ -25,6 +25,12 @@ spec:
       containers:
         - name: postgres
           image: postgres:18.4
+          # 200, not the default 100. The pool cap above brings steady-state
+          # demand to ~75 per namespace, but services with a SECOND datasource
+          # (audit-service migrates as audit_user and writes as audit_writer)
+          # bind it under a custom property name that
+          # SPRING_DATASOURCE_HIKARI_* does not reach, so headroom still matters.
+          args: ["postgres", "-c", "max_connections=200", "-c", "shared_buffers=256MB"]
           # A SEPARATE secret, not restaurantos-secrets. The init SQL needs every
           # *_DB_PASSWORD in this container's environment, but envFrom-ing the
           # application secret would also hand the database container the JWT

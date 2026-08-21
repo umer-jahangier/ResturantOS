@@ -50,6 +50,10 @@ data:
   EUREKA_URI: "http://eureka-server:8761/eureka"
   CONFIG_URI: "http://config-server:8888"
   JWKS_URI: "http://auth-service:8081/.well-known/jwks.json"
+  # authorization-service reads ${JWT_JWKS_URL} with NO fallback, so an unset
+  # value is not a bad default — it is a PlaceholderResolutionException and the
+  # context never starts. Same URL, third spelling.
+  JWT_JWKS_URL: "http://auth-service:8081/.well-known/jwks.json"
   REDIS_HOST: "redis"
   REDIS_PORT: "6379"
   RABBITMQ_HOST: "rabbitmq"
@@ -68,6 +72,16 @@ data:
   PLATFORM_ADMIN_SERVICE_URI: "http://platform-admin-service:8096"
   SPRING_PROFILES_ACTIVE: "native"
   AUTH_COOKIE_SECURE: "true"
+  # Fifteen services x HikariCP's default pool of 10 = 150 connections against a
+  # Postgres whose default max_connections is 100. Measured: audit, pos and
+  # reporting all died with "remaining connection slots are reserved for roles
+  # with the SUPERUSER attribute" — Postgres holds back
+  # superuser_reserved_connections so an admin can still get in once the pool is
+  # exhausted, which is why the message blames SUPERUSER rather than saying the
+  # server is full. Each backend is a PROCESS with its own memory, so the right
+  # fix is to stop asking for connections nobody uses, not only to raise the cap.
+  SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "5"
+  SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: "1"
 EOF
 
 # ═══ 10  postgres ════════════════════════════════════════════════════════════
@@ -103,6 +117,12 @@ spec:
       containers:
         - name: postgres
           image: postgres:18.4
+          # 200, not the default 100. The pool cap above brings steady-state
+          # demand to ~75 per namespace, but services with a SECOND datasource
+          # (audit-service migrates as audit_user and writes as audit_writer)
+          # bind it under a custom property name that
+          # SPRING_DATASOURCE_HIKARI_* does not reach, so headroom still matters.
+          args: ["postgres", "-c", "max_connections=200", "-c", "shared_buffers=256MB"]
           # A SEPARATE secret, not restaurantos-secrets. The init SQL needs every
           # *_DB_PASSWORD in this container's environment, but envFrom-ing the
           # application secret would also hand the database container the JWT
@@ -552,6 +572,95 @@ EOF
 
 echo "  generated $(ls "$OUT" | wc -l | tr -d ' ') manifests in deploy/k8s/base/"
 
+# ═══ 60  one-shot bootstrap Jobs ═════════════════════════════════════════════
+# Two things the application cannot create for itself, and which failed loudly
+# when they were missing:
+#
+#  - RabbitMQ topology. Compose pre-provisions it via load_definitions; this
+#    deployment does not, because that file also carries a hashed user and
+#    RABBITMQ_DEFAULT_USER goes inert once definitions are loaded. audit-service
+#    then died on channel.close(404) — it @RabbitListener's a queue it does not
+#    itself declare. So the topology is imported over the management API with
+#    users/permissions STRIPPED, leaving the generated credentials authoritative.
+#
+#  - ClickHouse fact tables. reporting-service fails startup with
+#    "expected 4 ClickHouse fact tables" — it verifies rather than assumes, which
+#    is right, but it means the migrations must have run first.
+#
+# Both are Jobs, and a Job's spec is IMMUTABLE — re-applying an existing one is
+# rejected. deploy/k8s/apply.sh deletes them before applying for that reason.
+cat > "$OUT/60-bootstrap-jobs.yaml" <<'EOF'
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rabbit-topology-import
+spec:
+  backoffLimit: 30
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata: { labels: { app: rabbit-topology-import, tier: bootstrap } }
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: import
+          image: curlimages/curl:8.10.1
+          env:
+            - { name: RU, valueFrom: { secretKeyRef: { name: restaurantos-secrets, key: RABBITMQ_USERNAME } } }
+            - { name: RP, valueFrom: { secretKeyRef: { name: restaurantos-secrets, key: RABBITMQ_PASSWORD } } }
+          command:
+            - sh
+            - -c
+            - |
+              until curl -sf -u "$RU:$RP" http://rabbitmq:15672/api/overview >/dev/null 2>&1; do
+                echo "waiting for the rabbitmq management api"; sleep 5
+              done
+              curl -sf -u "$RU:$RP" -H 'content-type: application/json'                    -X POST http://rabbitmq:15672/api/definitions                    --data-binary @/defs/definitions.json
+              echo "topology imported"
+          volumeMounts: [{ name: defs, mountPath: /defs, readOnly: true }]
+          resources: { requests: { memory: "16Mi", cpu: "10m" }, limits: { memory: "64Mi" } }
+      volumes:
+        - { name: defs, configMap: { name: rabbit-topology } }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: clickhouse-migrate
+spec:
+  backoffLimit: 30
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata: { labels: { app: clickhouse-migrate, tier: bootstrap } }
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: clickhouse/clickhouse-server:25.9
+          env:
+            - { name: CU,  valueFrom: { secretKeyRef: { name: restaurantos-secrets, key: CLICKHOUSE_USER } } }
+            - { name: CP,  valueFrom: { secretKeyRef: { name: restaurantos-secrets, key: CLICKHOUSE_PASSWORD } } }
+            - { name: ROP, valueFrom: { secretKeyRef: { name: restaurantos-secrets, key: CLICKHOUSE_READONLY_PASSWORD } } }
+          command:
+            - sh
+            - -c
+            - |
+              until clickhouse-client --host clickhouse --user "$CU" --password "$CP"                     --query "SELECT 1" >/dev/null 2>&1; do
+                echo "waiting for clickhouse"; sleep 5
+              done
+              for f in /mig/V0*.sql; do
+                echo "applying $(basename "$f")"
+                # V002 carries ${CLICKHOUSE_READONLY_PASSWORD}; apply.sh does this with
+                # envsubst, which this image does not ship. sed is equivalent here and
+                # keeps the password out of the process list.
+                sed "s|\${CLICKHOUSE_READONLY_PASSWORD}|$ROP|g" "$f" > /tmp/m.sql
+                clickhouse-client --host clickhouse --user "$CU" --password "$CP"                   --multiquery < /tmp/m.sql || exit 1
+              done
+              echo "clickhouse migrations applied"
+          volumeMounts: [{ name: mig, mountPath: /mig, readOnly: true }]
+          resources: { requests: { memory: "64Mi", cpu: "25m" }, limits: { memory: "512Mi" } }
+      volumes:
+        - { name: mig, configMap: { name: clickhouse-migrations } }
+EOF
+
 # ═══ ConfigMap source files ══════════════════════════════════════════════════
 # Copied in rather than referenced with ../../ because kustomize refuses to read
 # files above the kustomization root unless you pass --load-restrictor
@@ -564,6 +673,22 @@ cp "$ROOT/deploy/init/02-create-roles.sql"            "$OUT/files/"
 cp "$ROOT/deploy/init/03-grant-schema-privileges.sql" "$OUT/files/"
 cp "$ROOT/deploy/init/clickhouse-log-limits.xml"      "$OUT/files/log-limits.xml"
 cp "$ROOT/deploy/config-repo/application.yml"         "$OUT/files/application.yml"
+cp "$ROOT"/deploy/clickhouse/V0*.sql                    "$OUT/files/" 2>/dev/null || true
+# Topology-only definitions, DERIVED here rather than committed by hand: this
+# whole directory is rm -rf'd at the top of this script, so anything dropped in
+# by hand disappears on the next run and kustomize then fails on a missing file.
+# users/permissions are stripped so RABBITMQ_DEFAULT_USER stays authoritative —
+# the shipped definitions file carries a hashed user, and load_definitions makes
+# the env-var credentials inert.
+python3 - "$ROOT/deploy/init/rabbitmq-definitions.json" "$OUT/files/rabbitmq-topology.json" <<'PYEOF'
+import json, io, sys
+d = json.load(io.open(sys.argv[1]))
+for k in ("users", "permissions", "topic_permissions"):
+    d.pop(k, None)
+io.open(sys.argv[2], "w").write(json.dumps(d, indent=1))
+print("  rabbit topology: %d exchanges, %d queues, %d bindings (credentials stripped)"
+      % (len(d["exchanges"]), len(d["queues"]), len(d["bindings"])))
+PYEOF
 mkdir -p "$OUT/files/policies"
 cp "$ROOT"/policies/restaurantos/*.rego               "$OUT/files/policies/"
 
@@ -588,6 +713,14 @@ configMapGenerator:
   - name: config-repo
     files:
       - application.yml=files/application.yml
+  - name: rabbit-topology
+    files:
+      - definitions.json=files/rabbitmq-topology.json
+  - name: clickhouse-migrations
+    files:
+EOF
+  for f in "$OUT"/files/V0*.sql; do echo "      - $(basename "$f")=files/$(basename "$f")"; done
+  cat <<'EOF'
   - name: opa-policies
     files:
 EOF
