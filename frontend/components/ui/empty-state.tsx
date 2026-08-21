@@ -35,7 +35,9 @@ function EmptyState({
        */}
       <div
         aria-hidden="true"
-        className="flex size-20 items-center justify-center rounded-full bg-surface-2 shadow-depth-1"
+        className="flex size-20 items-center justify-center rounded-full bg-decorative shadow-depth-1"
+        /* bg-decorative, not bg-surface-2 (D-38-19): this disc is decoration and must stay
+           colourless, so an error notice remains visibly LOUDER than an empty result. */
       >
         <Icon className="size-9 text-foreground-tertiary" aria-hidden="true" />
       </div>

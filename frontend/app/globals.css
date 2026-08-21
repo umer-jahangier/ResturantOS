@@ -83,6 +83,7 @@
   /* ── added: surfaces, foregrounds, the two-tier border split (§3.2) ────── */
   --color-surface-1: var(--surface-1);
   --color-surface-2: var(--surface-2);
+  --color-decorative: var(--decorative);
   --color-surface-3: var(--surface-3);
   --color-foreground-secondary: var(--foreground-secondary);
   --color-foreground-tertiary: var(--foreground-tertiary);
@@ -417,11 +418,19 @@
   --neutral-400: oklch(0.74 0.013 var(--neutral-h));
   --neutral-500: oklch(0.61 0.016 var(--neutral-h));
   --neutral-600: oklch(0.508 0.018 var(--neutral-h));
-  --neutral-700: oklch(0.41 0.022 var(--neutral-h));
-  --neutral-800: oklch(0.302 0.03 var(--neutral-h));
-  --neutral-900: oklch(0.226 0.036 var(--neutral-h));
-  --neutral-950: oklch(0.168 0.042 var(--neutral-h));
-  --neutral-1000: oklch(0.132 0.046 var(--neutral-h));
+  /* CORRECTED 2026-08-22. The first derivation ran chroma UP as the ramp darkened, so
+     --neutral-1000 was the most chromatic stop at 0.046. The demo does the opposite, and
+     measuring it settles the question — its deepest ground is its LEAST coloured:
+         bg #080C12 L.153 C.0146 · bg-2 L.188 C.0283 · surface L.234 C.0343
+         surface-2 L.274 C.0500 · surface-3 L.301 C.0521
+     Chroma rises WITH lightness: the page recedes to near-black and the raised panels
+     carry the blue. Inverting that made the deepest background four times more coloured
+     than the demo's, and it had a second consequence recorded in --decorative below. */
+  --neutral-700: oklch(0.41 0.03 var(--neutral-h));
+  --neutral-800: oklch(0.302 0.042 var(--neutral-h));
+  --neutral-900: oklch(0.226 0.033 var(--neutral-h));
+  --neutral-950: oklch(0.168 0.024 var(--neutral-h));
+  --neutral-1000: oklch(0.132 0.014 var(--neutral-h));
 
   /* ── semantic ramps (§3.3) — base hues preserved from the old palette ──── */
   /* L = [.972 .945 .895 .830 .740 base, base−.085, −.170, −.250, −.320, −.400]
@@ -505,6 +514,23 @@
   --background: var(--neutral-0);
   --surface-1: var(--neutral-50);
   --surface-2: var(--neutral-100);
+  /* --decorative: a surface whose job is to be COLOURLESS (D-38-19).
+     Empty-state discs, placeholder blocks, skeleton grounds — decoration that must not
+     read as state. It is near-achromatic ON PURPOSE even though the page ground is tinted.
+
+     This exists because raising the neutral ramp's chroma for the demo's blue steel broke a
+     hard-won invariant: `state-character.test.tsx` asserts the ERROR surface carries >=3x the
+     chroma of the empty state's disc, and the disc was painted `bg-surface-2` -> --neutral-900.
+     With a tinted ground the ratio collapsed from ~5x to 0.95x, i.e. a failure notice became
+     no more coloured than an empty result. That test's own message says why it exists: phase
+     14b was written after a failure that read as an empty result told an owner their business
+     had no vendors while the service was down.
+
+     The alternative was to shout louder — bg-destructive/50 reaches 3.11x — but a panel that
+     red is a different design, and the real principle is narrower: ON A TINTED GROUND, CHROMA
+     MUST STILL MEAN MEANING. Decoration does not get to spend it. Measured, the disc at this
+     value restores 5.58x, inside the 4-7x band the test's docblock records as the original. */
+  --decorative: oklch(0.968 0.004 var(--neutral-h));
   --surface-3: var(--neutral-200);
   --foreground: var(--neutral-950);
   --foreground-secondary: var(--neutral-700);
@@ -741,6 +767,7 @@
   --background: var(--neutral-1000);
   --surface-1: var(--neutral-950);
   --surface-2: var(--neutral-900);
+  --decorative: oklch(0.226 0.006 var(--neutral-h)); /* see :root — deliberately colourless */
   --surface-3: var(--neutral-800);
   --foreground: var(--neutral-50);
   --foreground-secondary: var(--neutral-300);
