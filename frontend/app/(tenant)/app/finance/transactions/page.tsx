@@ -9,8 +9,8 @@ export default function TransactionsPage() {
       <div>
         <h1 className="text-2xl font-semibold">Transactions</h1>
         <p className="text-sm text-muted-foreground">
-          Every payment, refund and void. Open any row to see the order behind it and the
-          accounting entries it produced.
+          Every payment, refund and void. Open any row to see the order behind it and the accounting
+          entries it produced.
         </p>
       </div>
       <TransactionRegister />

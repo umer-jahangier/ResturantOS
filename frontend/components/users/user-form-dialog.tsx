@@ -400,7 +400,9 @@ export function EditUserDialog({
   // typo in their surname.
   const [pendingCategoryIds, setPendingCategoryIds] = useState<string[] | null>(null);
   const loadedMenuScope = branchMenuCategoryScope(menuScope.data, signedInBranchId);
-  const serverCategoryIds = loadedMenuScope.unrestricted ? EMPTY_CODES : loadedMenuScope.categoryIds;
+  const serverCategoryIds = loadedMenuScope.unrestricted
+    ? EMPTY_CODES
+    : loadedMenuScope.categoryIds;
   const categoryIds = pendingCategoryIds ?? serverCategoryIds;
   const menuCategoriesTouched = pendingCategoryIds !== null;
 
@@ -408,8 +410,7 @@ export function EditUserDialog({
 
   if (!user) return null;
 
-  const branchLabel =
-    branches.data?.find((b) => b.id === signedInBranchId)?.name ?? "this branch";
+  const branchLabel = branches.data?.find((b) => b.id === signedInBranchId)?.name ?? "this branch";
 
   /**
    * Three endpoints, run in order, each reported by name.

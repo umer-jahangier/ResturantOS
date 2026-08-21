@@ -59,7 +59,10 @@ const bandSchema = z.object({
   maxRupees: z
     .string()
     .trim()
-    .refine((v) => v === "" || /^\d+(\.\d{1,2})?$/.test(v), "Rupees only, or leave blank for the top band"),
+    .refine(
+      (v) => v === "" || /^\d+(\.\d{1,2})?$/.test(v),
+      "Rupees only, or leave blank for the top band",
+    ),
   baseTaxRupees: z
     .string()
     .trim()

@@ -46,7 +46,11 @@ export function TerminalList({
   return (
     <div className="divide-y rounded-lg border">
       {terminals.map((terminal) => (
-        <div key={terminal.id} data-testid="terminal-row" className="flex items-start gap-3 px-3 py-2.5 text-sm">
+        <div
+          key={terminal.id}
+          data-testid="terminal-row"
+          className="flex items-start gap-3 px-3 py-2.5 text-sm"
+        >
           <code className="mt-0.5 shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs font-medium">
             {terminal.code}
           </code>

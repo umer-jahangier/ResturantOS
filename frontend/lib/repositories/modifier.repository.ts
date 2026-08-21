@@ -11,10 +11,7 @@ import {
   type UpdateModifierGroupInput,
   type UpdateModifierInput,
 } from "@/lib/api-client/schemas/modifier.schema";
-import {
-  adaptModifierGroup,
-  adaptModifierOption,
-} from "@/lib/adapters/modifier.adapter";
+import { adaptModifierGroup, adaptModifierOption } from "@/lib/adapters/modifier.adapter";
 import type { ModifierGroup, ModifierOption } from "@/lib/models/modifier.model";
 import { z } from "zod";
 

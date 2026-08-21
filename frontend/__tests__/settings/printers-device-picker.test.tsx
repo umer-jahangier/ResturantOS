@@ -8,7 +8,9 @@ import { seedSession, clearSession } from "@/__tests__/utils/auth-fixtures";
 import { createQueryWrapper } from "@/__tests__/utils/query-wrapper";
 import { PrinterRegistryForm } from "@/components/settings/printer-registry-form";
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() } }));
+vi.mock("sonner", () => ({
+  toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
+}));
 
 /**
  * S8 — choosing the USB printer, and being told when a station has stopped printing.
@@ -153,9 +155,7 @@ describe("choosing the USB printer on the Printers screen", () => {
 
     // The machine that saw it is named on every option, because a branch has more than one till
     // and the manager has to know which one to walk to.
-    expect(
-      within(picker as HTMLSelectElement).getAllByText(/on Counter till/i),
-    ).toHaveLength(2);
+    expect(within(picker as HTMLSelectElement).getAllByText(/on Counter till/i)).toHaveLength(2);
   });
 
   it("stores the queue NAME, never the human description", async () => {
@@ -183,9 +183,7 @@ describe("choosing the USB printer on the Printers screen", () => {
 
     await screen.findByLabelText(/printer on the machine/i);
     expect(await screen.findByTestId("save-printers")).toBeDisabled();
-    expect(
-      screen.getByText(/Choose which printer on the machine this is/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Choose which printer on the machine this is/i)).toBeInTheDocument();
   });
 
   it("says WHY there is nothing to choose from, rather than showing an empty dropdown", async () => {
@@ -217,9 +215,7 @@ describe("choosing the USB printer on the Printers screen", () => {
 
     const picker = (await screen.findByLabelText(/printer on the machine/i)) as HTMLSelectElement;
     expect(picker.value).toBe("TILL_IN_THE_OTHER_ROOM");
-    expect(
-      within(picker).getByText(/not reported by any agent right now/i),
-    ).toBeInTheDocument();
+    expect(within(picker).getByText(/not reported by any agent right now/i)).toBeInTheDocument();
     // A form that silently erased a working configuration because a till is asleep would be a new
     // instance of the defect it was built to fix.
     expect(screen.queryByTestId("save-blocked")).toBeNull();

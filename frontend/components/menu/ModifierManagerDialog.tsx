@@ -215,7 +215,10 @@ export function ModifierManagerDialog({ item, onOpenChange }: ModifierManagerDia
           )}
 
           {showNewGroup ? (
-            <div className="space-y-3 rounded-lg border border-dashed p-3" data-testid="new-group-form">
+            <div
+              className="space-y-3 rounded-lg border border-dashed p-3"
+              data-testid="new-group-form"
+            >
               <div className="space-y-1">
                 <Label htmlFor="modifier-group-name">Group name</Label>
                 <Input
@@ -499,7 +502,11 @@ function GroupCard({
             </div>
           </div>
           {error && (
-            <p role="alert" data-testid={`option-error-${group.id}`} className="text-xs text-destructive">
+            <p
+              role="alert"
+              data-testid={`option-error-${group.id}`}
+              className="text-xs text-destructive"
+            >
               {error}
             </p>
           )}

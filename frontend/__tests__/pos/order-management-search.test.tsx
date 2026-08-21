@@ -61,7 +61,12 @@ const voidedRow = row({
   derivedStatus: "IN_PROGRESS",
   settlementStatus: "VOIDED",
   tableName: null,
-  voidDetail: { reason: "Guest left", byUserId: CASHIER_ME, byName: "Manager", at: new Date().toISOString() },
+  voidDetail: {
+    reason: "Guest left",
+    byUserId: CASHIER_ME,
+    byName: "Manager",
+    at: new Date().toISOString(),
+  },
 });
 const phoneRow = row({
   orderId: ORDER_PHONE,
@@ -197,9 +202,12 @@ describe("Order Management search (S0-05)", () => {
 
     await user.type(screen.getByTestId("order-management-search"), "nothing-here");
 
-    await waitFor(() => expect(screen.getByText("No orders match that search")).toBeInTheDocument(), {
-      timeout: 3000,
-    });
+    await waitFor(
+      () => expect(screen.getByText("No orders match that search")).toBeInTheDocument(),
+      {
+        timeout: 3000,
+      },
+    );
     expect(screen.queryByText("No active orders")).not.toBeInTheDocument();
   });
 

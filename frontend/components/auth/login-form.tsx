@@ -372,11 +372,11 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
     : notice
       ? notice
       : reason === "session_expired"
-      ? "Your session expired. Please sign in again."
-      : reason === STEP_UP_LOGIN_REASON
-        ? "That action needs a fresh authenticator code. Sign in again to continue — you’ll be " +
-          "asked for your code, then taken back to where you were."
-        : null;
+        ? "Your session expired. Please sign in again."
+        : reason === STEP_UP_LOGIN_REASON
+          ? "That action needs a fresh authenticator code. Sign in again to continue — you’ll be " +
+            "asked for your code, then taken back to where you were."
+          : null;
 
   return (
     /*

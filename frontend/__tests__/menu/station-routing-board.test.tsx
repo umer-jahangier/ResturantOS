@@ -30,7 +30,14 @@ const BAR: Station = {
   stationType: "BAR",
   displayFamily: "BAR",
 };
-const GRILL: Station = { ...BAR, id: "22222222-2222-4222-8222-222222222222", code: "GRILL", name: "Hot line", stationType: "KITCHEN", displayFamily: "KITCHEN" };
+const GRILL: Station = {
+  ...BAR,
+  id: "22222222-2222-4222-8222-222222222222",
+  code: "GRILL",
+  name: "Hot line",
+  stationType: "KITCHEN",
+  displayFamily: "KITCHEN",
+};
 
 const drinks: CategoryRoute = {
   categoryId: "c0000000-0000-4000-8000-000000000001",
@@ -92,7 +99,9 @@ function renderBoard(
 }
 
 function row(name: string) {
-  return document.querySelector(`[data-testid="routing-item"][data-item-name="${name}"]`) as HTMLElement;
+  return document.querySelector(
+    `[data-testid="routing-item"][data-item-name="${name}"]`,
+  ) as HTMLElement;
 }
 
 describe("StationRoutingBoard", () => {
@@ -130,12 +139,20 @@ describe("StationRoutingBoard", () => {
     expect(within(pina).getByTestId("routing-item-destination").textContent).toMatch(
       /Fires to\s*GRILL\s*· Set for this item/,
     );
-    expect((within(pina).getByLabelText("Station for Pinacolada") as HTMLSelectElement).value).toBe(GRILL.id);
+    expect((within(pina).getByLabelText("Station for Pinacolada") as HTMLSelectElement).value).toBe(
+      GRILL.id,
+    );
   });
 
   it("renders an unrouted item as DEFAULT rather than as a blank cell", () => {
     renderBoard([
-      item({ stationId: null, effectiveStationId: null, effectiveStationCode: null, effectiveStationName: null, source: "NONE" }),
+      item({
+        stationId: null,
+        effectiveStationId: null,
+        effectiveStationCode: null,
+        effectiveStationName: null,
+        source: "NONE",
+      }),
     ]);
     expect(within(row("Fresh Lime")).getByTestId("routing-item-destination").textContent).toMatch(
       /Fires to\s*DEFAULT\s*· Not routed/,

@@ -70,9 +70,7 @@ export function RoleList({
                 <div className="flex items-baseline gap-1.5">
                   <dt className="sr-only">Permissions granted</dt>
                   <dd>
-                    <span className="font-semibold text-foreground">
-                      {role.permissions.length}
-                    </span>{" "}
+                    <span className="font-semibold text-foreground">{role.permissions.length}</span>{" "}
                     {role.permissions.length === 1 ? "permission" : "permissions"}
                   </dd>
                 </div>

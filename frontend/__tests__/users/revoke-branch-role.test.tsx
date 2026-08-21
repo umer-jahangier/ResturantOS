@@ -144,7 +144,9 @@ describe("a role can be taken back from the Roles-by-branch panel", () => {
     );
 
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText(/Revoke CASHIER at Floating Terrace — Rooftop\?/)).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(/Revoke CASHIER at Floating Terrace — Rooftop\?/),
+    ).toBeInTheDocument();
     // The consequence, not "are you sure".
     expect(dialog).toHaveTextContent(/loses every permission/i);
     expect(dialog).toHaveTextContent(/roles at other branches are untouched/i);

@@ -90,9 +90,7 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
     data: recon,
     isPending: reconPending,
     refetch: refetchRecon,
-  } = useTillReconciliation(
-    activeTill && activeTill.status === "OPEN" ? activeTill.id : null,
-  );
+  } = useTillReconciliation(activeTill && activeTill.status === "OPEN" ? activeTill.id : null);
 
   const handleOpenTill = async () => {
     const paisa = Math.round(parseFloat(openingFloat || "0") * 100);
@@ -191,9 +189,7 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
       <div className="border-b border-warning/30">
         {!showOpenModal ? (
           <div className="flex items-center gap-2 px-3 py-2 bg-warning/15">
-            <span className="text-small text-warning font-medium">
-              No active till
-            </span>
+            <span className="text-small text-warning font-medium">No active till</span>
             <button
               data-testid="open-till-button"
               onClick={() => setShowOpenModal(true)}
@@ -262,9 +258,7 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
     <div className="border-b border-success/30">
       {!showCloseModal ? (
         <div className="flex items-center gap-3 px-3 py-2 bg-success/15">
-          <span className="text-small font-medium text-success">
-            Till OPEN
-          </span>
+          <span className="text-small font-medium text-success">Till OPEN</span>
           <span className="text-xs text-muted-foreground">
             Float: <MoneyDisplay paisa={activeTill.openingFloatPaisa} className="text-xs" />
           </span>

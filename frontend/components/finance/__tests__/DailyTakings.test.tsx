@@ -173,7 +173,14 @@ const LIVE_2026_08_12_TIPS = {
       reconciliationState: "MATCHED",
     },
   ],
-  unclosed: { cashPaisa: 0, cashTipPaisa: 0, totalPaisa: 0, tipPaisa: 0, orderCount: 0, paymentCount: 0 },
+  unclosed: {
+    cashPaisa: 0,
+    cashTipPaisa: 0,
+    totalPaisa: 0,
+    tipPaisa: 0,
+    orderCount: 0,
+    paymentCount: 0,
+  },
   unknowns: [],
 };
 
@@ -351,11 +358,7 @@ describe("TenderSplit — observed methods only", () => {
   // line. A reader who adds the two columns must get a number that is wrong, not a number that
   // looks plausible — hence the amount column keeps the full figure.
   it("shows the unclosed portion as part of the line, not as extra money", () => {
-    render(
-      <TenderSplit
-        lines={adaptDailyTakings(LIVE_OPEN_ORDER_CASH).byTender}
-      />,
-    );
+    render(<TenderSplit lines={adaptDailyTakings(LIVE_OPEN_ORDER_CASH).byTender} />);
     expect(screen.getByTestId("tender-amount-CASH")).toHaveAttribute("data-paisa", "7700");
     expect(screen.getByTestId("tender-unclosed-CASH")).toHaveAttribute("data-paisa", "7700");
     // CARD took money on bills that were finalised, so nothing of it is outstanding — an em dash,
@@ -396,9 +399,7 @@ describe("TenderSplit — observed methods only", () => {
     const t = adaptDailyTakings(LIVE_2026_08_12_TIPS);
     render(<TenderSplit lines={t.byTender} />);
 
-    const cashAmount = Number(
-      screen.getByTestId("tender-amount-CASH").getAttribute("data-paisa"),
-    );
+    const cashAmount = Number(screen.getByTestId("tender-amount-CASH").getAttribute("data-paisa"));
     const cashTip = Number(screen.getByTestId("tender-tip-CASH").getAttribute("data-paisa"));
     const till = t.tills[0];
     if (!till) throw new Error("fixture must carry the closed till this identity is about");
@@ -416,9 +417,7 @@ describe("TenderSplit — observed methods only", () => {
 
     // The card tip is on the page and is NOT in the drawer. One combined "tips" row would have
     // sent the cashier looking for Rs 300.00 that was never there.
-    expect(
-      till.openingFloatPaisa + cashAmount + cashTip + 30000,
-    ).not.toBe(expected);
+    expect(till.openingFloatPaisa + cashAmount + cashTip + 30000).not.toBe(expected);
   });
 
   it("draws an em dash for a tender that took no tip, never Rs 0.00", () => {

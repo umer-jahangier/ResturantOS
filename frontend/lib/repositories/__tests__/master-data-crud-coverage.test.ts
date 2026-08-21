@@ -146,9 +146,12 @@ const PURCHASING_MATRIX: EntityRow[] = [
 function assertRow(row: EntityRow, repo: Record<string, unknown>, repoName: string) {
   for (const op of ["create", "read", "update", "retire"] as Op[]) {
     const spec = row.ops[op];
-    expect(spec, `${row.entity}: the matrix says nothing about "${op}". Every entity must either
+    expect(
+      spec,
+      `${row.entity}: the matrix says nothing about "${op}". Every entity must either
 name the method or declare an exemption with a reason — an omitted row is how a gap becomes
-invisible.`).toBeDefined();
+invisible.`,
+    ).toBeDefined();
 
     if (isExempt(spec!)) {
       expect(
@@ -172,7 +175,11 @@ only discovered by a person trying to use the product.`,
 describe("master data is complete CRUD, entity by entity (D-36-06)", () => {
   for (const row of INVENTORY_MATRIX) {
     it(`${row.entity} — create, read, change, retire`, () => {
-      assertRow(row, InventoryRepository as unknown as Record<string, unknown>, "InventoryRepository");
+      assertRow(
+        row,
+        InventoryRepository as unknown as Record<string, unknown>,
+        "InventoryRepository",
+      );
     });
   }
 

@@ -148,7 +148,9 @@ describe("ChargeSummary cash tender — the unit on screen is RUPEES (S1-05)", (
     await user.clear(amount);
     await user.type(amount, "3456.80");
 
-    await waitFor(() => expect(screen.getByTestId("tender-total-value")).toHaveAttribute("data-paisa", "345680"));
+    await waitFor(() =>
+      expect(screen.getByTestId("tender-total-value")).toHaveAttribute("data-paisa", "345680"),
+    );
 
     await user.click(screen.getByTestId("record-payment-button"));
 

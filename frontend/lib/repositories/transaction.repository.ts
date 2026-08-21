@@ -1,8 +1,5 @@
 import { get } from "@/lib/api-client/request";
-import {
-  adaptLinkedJournalEntry,
-  adaptTransactionPage,
-} from "@/lib/adapters/transaction.adapter";
+import { adaptLinkedJournalEntry, adaptTransactionPage } from "@/lib/adapters/transaction.adapter";
 import type {
   LinkedJournalEntry,
   TransactionFilters,

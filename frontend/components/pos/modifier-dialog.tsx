@@ -87,10 +87,7 @@ export function ModifierDialog({
     setSubmitAttempted(false);
   }
 
-  const activeGroups = useMemo(
-    () => (groups ?? []).filter((g) => g.active),
-    [groups],
-  );
+  const activeGroups = useMemo(() => (groups ?? []).filter((g) => g.active), [groups]);
 
   /** Per-group refusal text, or null when the group is satisfied. The server's own wording. */
   const groupErrors = useMemo(() => {
@@ -320,7 +317,10 @@ export function ModifierDialog({
             id="modifier-dialog-blocked"
             role={submitAttempted ? "alert" : "status"}
             data-testid="modifier-dialog-blocked"
-            className={cn("text-xs", submitAttempted ? "text-destructive" : "text-muted-foreground")}
+            className={cn(
+              "text-xs",
+              submitAttempted ? "text-destructive" : "text-muted-foreground",
+            )}
           >
             {blockingErrors[0]}
           </p>

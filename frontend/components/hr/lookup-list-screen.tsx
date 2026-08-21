@@ -132,9 +132,7 @@ export function LookupListScreen({ kind }: { kind: "department" | "designation" 
                 <tr key={row.id} className="border-b">
                   <td className="py-2">{row.name}</td>
                   <td>{row.code ?? "—"}</td>
-                  {isDesignation && (
-                    <td>{parentDepartmentName(row, departmentNameById)}</td>
-                  )}
+                  {isDesignation && <td>{parentDepartmentName(row, departmentNameById)}</td>}
                   <td>{row.active ? "In use" : "Retired"}</td>
                   <td className="space-x-1 text-right">
                     <PermissionGuard require="hr.config.manage" fallback={null}>
@@ -148,11 +146,7 @@ export function LookupListScreen({ kind }: { kind: "department" | "designation" 
                       >
                         Edit
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setActive(row, !row.active)}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => setActive(row, !row.active)}>
                         {row.active ? "Retire" : "Restore"}
                       </Button>
                     </PermissionGuard>
@@ -161,7 +155,10 @@ export function LookupListScreen({ kind }: { kind: "department" | "designation" 
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={isDesignation ? 5 : 4} className="text-muted-foreground py-4 text-center">
+                  <td
+                    colSpan={isDesignation ? 5 : 4}
+                    className="text-muted-foreground py-4 text-center"
+                  >
                     Every {noun} is retired. Tick “Show retired” to bring one back.
                   </td>
                 </tr>

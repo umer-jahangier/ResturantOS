@@ -73,13 +73,7 @@ function tillFigure(raw: number | null | undefined, state: string, label: string
   return { state: "KNOWN", paisa: Number(raw) };
 }
 
-const KNOWN_STATES: readonly string[] = [
-  "OPEN",
-  "MATCHED",
-  "OVER",
-  "SHORT",
-  "NOT_COUNTED",
-];
+const KNOWN_STATES: readonly string[] = ["OPEN", "MATCHED", "OVER", "SHORT", "NOT_COUNTED"];
 
 export function adaptTillReconciliation(raw: any): TillReconciliation {
   const state = String(raw.reconciliationState ?? "");
@@ -95,9 +89,7 @@ export function adaptTillReconciliation(raw: any): TillReconciliation {
     closedAt: raw.closedAt ? new Date(raw.closedAt) : null,
     // Preserved as the server sent it. An unrecognised state is passed through rather than
     // coerced onto a known one; the renderer degrades it, the adapter does not hide it.
-    reconciliationState: (KNOWN_STATES.includes(state)
-      ? state
-      : state) as TillReconciliationState,
+    reconciliationState: (KNOWN_STATES.includes(state) ? state : state) as TillReconciliationState,
   };
 }
 

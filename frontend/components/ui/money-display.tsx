@@ -20,7 +20,12 @@ interface MoneyDisplayProps {
  * with `toMoney` and pinned against the JVM formatter by a vector file both stacks read
  * (37-01). This component owns the markup and nothing about the number.
  */
-function MoneyDisplay({ paisa, currency = "PKR", className, maxFractionDigits = 2 }: MoneyDisplayProps) {
+function MoneyDisplay({
+  paisa,
+  currency = "PKR",
+  className,
+  maxFractionDigits = 2,
+}: MoneyDisplayProps) {
   const formatted = formatPaisa(paisa, { maxFractionDigits, currency });
 
   return <span className={cn("tabular-nums font-medium", className)}>{formatted}</span>;

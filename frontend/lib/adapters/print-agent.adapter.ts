@@ -41,7 +41,8 @@ export function adaptPrintAgent(raw: ApiPrintAgent): PrintAgent {
     lastSeenAt: raw.lastSeenAt ?? null,
     // `?? null`, NOT `?? []`. An absent list means the agent has never reported; an empty one means
     // it looked and the machine has no queues. The screen says a different sentence for each.
-    devices: raw.devices === undefined || raw.devices === null ? null : raw.devices.map(adaptDevice),
+    devices:
+      raw.devices === undefined || raw.devices === null ? null : raw.devices.map(adaptDevice),
     devicesUnavailable: raw.devicesUnavailable ?? null,
     devicesReportedAt: raw.devicesReportedAt ?? null,
   };

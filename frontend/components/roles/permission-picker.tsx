@@ -124,7 +124,10 @@ export function PermissionPicker({
       </div>
 
       {totalVisible === 0 ? (
-        <p role="status" className="rounded-md border border-dashed px-4 py-8 text-center text-body text-muted-foreground">
+        <p
+          role="status"
+          className="rounded-md border border-dashed px-4 py-8 text-center text-body text-muted-foreground"
+        >
           {query
             ? `Nothing in the catalogue matches “${search.trim()}”.`
             : "This role grants no permissions."}
@@ -145,9 +148,7 @@ export function PermissionPicker({
                     {group.module}
                   </h3>
                   {readOnly ? (
-                    <span className="text-small text-muted-foreground">
-                      {chosen} granted
-                    </span>
+                    <span className="text-small text-muted-foreground">{chosen} granted</span>
                   ) : (
                     <button
                       type="button"

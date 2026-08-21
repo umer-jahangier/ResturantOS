@@ -47,10 +47,7 @@ export async function patch<TBody = unknown, T = unknown>(url: string, body?: TB
  * and was answered `400 Required request parameter 'branchId' is missing` — which is how a revoke
  * call could sit in the codebase with no caller and no possibility of ever working.
  */
-export async function del<T = unknown>(
-  url: string,
-  params?: Record<string, unknown>,
-): Promise<T> {
+export async function del<T = unknown>(url: string, params?: Record<string, unknown>): Promise<T> {
   const response = await apiClient.delete<ApiResponse<T>>(url, { params });
   return response.data.data;
 }

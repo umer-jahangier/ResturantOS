@@ -63,8 +63,7 @@ export default function RolesPage() {
     permissions.includes("rbac.manage") ||
     permissions.includes("rbac.user.manage") ||
     permissions.includes("rbac.role.manage");
-  const canManage =
-    permissions.includes("rbac.manage") || permissions.includes("rbac.role.manage");
+  const canManage = permissions.includes("rbac.manage") || permissions.includes("rbac.role.manage");
 
   const rolesQuery = useAssignableRoles(canRead);
   const catalogueQuery = usePermissionCatalogue(canRead);

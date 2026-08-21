@@ -88,9 +88,7 @@ export default function PeriodsPage() {
                   <td className="py-3 pr-4">
                     <PeriodStatusChip status={period.status} />
                   </td>
-                  <td className="py-3 pr-4 text-muted-foreground">
-                    {period.lockedBy ?? "—"}
-                  </td>
+                  <td className="py-3 pr-4 text-muted-foreground">{period.lockedBy ?? "—"}</td>
                   <td className="py-3 text-right">
                     {period.status === "OPEN" && (
                       <Button variant="outline" size="sm" onClick={() => setClosingPeriod(period)}>

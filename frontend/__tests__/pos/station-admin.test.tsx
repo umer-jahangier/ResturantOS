@@ -212,9 +212,7 @@ describe("Stations page", () => {
 
     expect(await screen.findByText("Main bar")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add station" })).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Actions for Main bar" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Actions for Main bar" })).not.toBeInTheDocument();
   });
 
   it("is still refused by the server when the hidden action is reached another way", async () => {

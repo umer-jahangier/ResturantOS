@@ -22,7 +22,8 @@ export function TransactionLedgerLinks({ orderId }: { orderId: string }) {
     // "this order produced no entries" when the truth is "we could not ask".
     return (
       <p className="text-sm text-destructive">
-        Could not load the accounting entries — {error instanceof Error ? error.message : "unknown error"}
+        Could not load the accounting entries —{" "}
+        {error instanceof Error ? error.message : "unknown error"}
       </p>
     );
   }
@@ -30,9 +31,7 @@ export function TransactionLedgerLinks({ orderId }: { orderId: string }) {
   if (entries && entries.length === 0) {
     // A true and useful answer, and distinct from a failure. 37-04 returns 200 + [] here.
     return (
-      <p className="text-sm text-muted-foreground">
-        This order produced no accounting entries.
-      </p>
+      <p className="text-sm text-muted-foreground">This order produced no accounting entries.</p>
     );
   }
 

@@ -89,12 +89,10 @@ describe("ConfirmDialog — the six bespoke implementations are gone (G4)", () =
   it.each(MIGRATED)("%s uses the shared primitive", (file) => {
     const source = read(file);
     expect(source, `${file} does not import ConfirmDialog`).toContain(
-      '@/components/ui/confirm-dialog',
+      "@/components/ui/confirm-dialog",
     );
     // The tell for a bespoke confirmation: a raw Dialog with a footer of its own.
-    expect(source, `${file} still hand-rolls a confirmation Dialog`).not.toMatch(
-      /<DialogFooter\b/,
-    );
+    expect(source, `${file} still hand-rolls a confirmation Dialog`).not.toMatch(/<DialogFooter\b/);
   });
 
   it("there is exactly one ConfirmDialog implementation", () => {

@@ -103,7 +103,11 @@ export function addLine(cart: CartLine[], input: AddLineInput): CartLine[] {
   const modifiers = input.modifiers ?? [];
   const notes = input.notes ?? null;
   const quantity = input.quantity ?? 1;
-  const key = cartLineKey(input.menuItemId, modifiers.map((m) => m.id), notes);
+  const key = cartLineKey(
+    input.menuItemId,
+    modifiers.map((m) => m.id),
+    notes,
+  );
   const idx = cart.findIndex((line) => keyOf(line) === key);
 
   if (idx === -1) {
@@ -201,7 +205,6 @@ export function cartTaxPaisa(lines: CartLine[]): number {
     return sum + Math.floor((lineNet * basisPoints + 5000) / 10000);
   }, 0);
 }
-
 
 /**
  * The branch's service charge on the pre-send cart — the term missing from every dine-in quote

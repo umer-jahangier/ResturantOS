@@ -114,7 +114,9 @@ function mockOrdersByStatus() {
   server.use(
     http.get("*/api/v1/pos/orders", ({ request }) => {
       const url = new URL(request.url);
-      const statuses = url.searchParams.getAll("status[]").concat(url.searchParams.getAll("status"));
+      const statuses = url.searchParams
+        .getAll("status[]")
+        .concat(url.searchParams.getAll("status"));
       requested.push(statuses);
       if (statuses.includes("VOIDED")) return pagedResponse([voidedRow]);
       if (statuses.includes("REFUNDED")) return pagedResponse([refundedRow]);

@@ -32,7 +32,13 @@ const noop = () => {};
 describe("BillIssuedStrip", () => {
   it("names the moment the bill was issued, and the printer it went to", () => {
     render(
-      <BillIssuedStrip isLoading={false} isError={false} onRetry={noop} bill={issue()} reprintCount={0} />,
+      <BillIssuedStrip
+        isLoading={false}
+        isError={false}
+        onRetry={noop}
+        bill={issue()}
+        reprintCount={0}
+      />,
     );
 
     const strip = screen.getByTestId("bill-issued-strip");
@@ -44,7 +50,13 @@ describe("BillIssuedStrip", () => {
 
   it("never claims paper came out — only that the job was sent", () => {
     render(
-      <BillIssuedStrip isLoading={false} isError={false} onRetry={noop} bill={issue()} reprintCount={0} />,
+      <BillIssuedStrip
+        isLoading={false}
+        isError={false}
+        onRetry={noop}
+        bill={issue()}
+        reprintCount={0}
+      />,
     );
 
     // A QUEUED job is one the branch agent has not collected yet. Saying "printed" here would be
@@ -54,7 +66,13 @@ describe("BillIssuedStrip", () => {
 
   it("says plainly when no bill has been produced", () => {
     render(
-      <BillIssuedStrip isLoading={false} isError={false} onRetry={noop} bill={null} reprintCount={0} />,
+      <BillIssuedStrip
+        isLoading={false}
+        isError={false}
+        onRetry={noop}
+        bill={null}
+        reprintCount={0}
+      />,
     );
 
     const strip = screen.getByTestId("bill-issued-strip");
@@ -64,7 +82,13 @@ describe("BillIssuedStrip", () => {
 
   it("counts the copies issued after the original without moving the original's time", () => {
     render(
-      <BillIssuedStrip isLoading={false} isError={false} onRetry={noop} bill={issue()} reprintCount={2} />,
+      <BillIssuedStrip
+        isLoading={false}
+        isError={false}
+        onRetry={noop}
+        bill={issue()}
+        reprintCount={2}
+      />,
     );
 
     const strip = screen.getByTestId("bill-issued-strip");
@@ -106,7 +130,9 @@ describe("BillIssuedStrip", () => {
   });
 
   it("says it is still looking rather than asserting an answer it does not have", () => {
-    render(<BillIssuedStrip isLoading isError={false} onRetry={noop} bill={null} reprintCount={0} />);
+    render(
+      <BillIssuedStrip isLoading isError={false} onRetry={noop} bill={null} reprintCount={0} />,
+    );
 
     expect(screen.getByTestId("bill-issued-loading")).toHaveTextContent(/Checking for/i);
     expect(screen.queryByTestId("bill-issued-strip")).toBeNull();

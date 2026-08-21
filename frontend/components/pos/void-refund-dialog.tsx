@@ -196,9 +196,7 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
     // A FULL refund reverses what was TAKEN, not what was billed. Sending `order.totalPaisa`
     // made a legitimate full reversal of a partly-settled check fail the server's cap.
     const refundPaisa =
-      refundScope === "FULL"
-        ? amountPaidPaisa
-        : Math.round(parseFloat(refundAmount || "0") * 100);
+      refundScope === "FULL" ? amountPaidPaisa : Math.round(parseFloat(refundAmount || "0") * 100);
     if (refundPaisa <= 0) return;
     const idempotencyKey = generateKey();
     await refundMutation.mutateAsync({
@@ -431,10 +429,7 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
         that cannot tell them apart would pass while the screen named the wrong remedy.
       */}
       {platedNotice && (
-        <span
-          data-testid="void-blocked-plated-notice"
-          className="text-xs text-muted-foreground"
-        >
+        <span data-testid="void-blocked-plated-notice" className="text-xs text-muted-foreground">
           {platedNotice}
         </span>
       )}

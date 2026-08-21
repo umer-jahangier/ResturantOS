@@ -36,7 +36,9 @@ import type {
 export const PrintAgentRepository = {
   async list(branchId: string): Promise<PrintAgent[]> {
     const raw = await get<unknown[]>("/api/v1/pos/print-agents", { branchId });
-    return (Array.isArray(raw) ? raw : []).map((r) => adaptPrintAgent(apiPrintAgentSchema.parse(r)));
+    return (Array.isArray(raw) ? raw : []).map((r) =>
+      adaptPrintAgent(apiPrintAgentSchema.parse(r)),
+    );
   },
 
   async enrol(payload: EnrolPrintAgentInput): Promise<EnrolledPrintAgent> {

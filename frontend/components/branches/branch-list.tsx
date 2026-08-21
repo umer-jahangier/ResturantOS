@@ -62,10 +62,7 @@ export function BranchList({
           >
             <div className="min-w-0 sm:col-start-1">
               <div className="flex flex-wrap items-center gap-1.5">
-                <Building2
-                  className="size-3.5 shrink-0 text-muted-foreground"
-                  aria-hidden="true"
-                />
+                <Building2 className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                 <span className="truncate font-medium">{branch.name}</span>
                 {/*
                  * HQ is plain text, not a badge. Badges here carry STATE — where you are, and

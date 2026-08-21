@@ -57,7 +57,10 @@ const serviceChargeSchema = z
     // tender inputs are strings: `type="number"` reports `.value === ""` mid-keystroke on "5.5",
     // so a numeric field silently eats the digits after the point.
     ratePct: z.string(),
-    label: z.string().min(1, "The bill needs a word for this charge").max(60, "60 characters at most"),
+    label: z
+      .string()
+      .min(1, "The bill needs a word for this charge")
+      .max(60, "60 characters at most"),
     dineIn: z.boolean(),
     takeaway: z.boolean(),
     pickup: z.boolean(),
@@ -203,9 +206,9 @@ export function ServiceChargeForm({ branchId }: { branchId: string | null }) {
       <CardHeader>
         <CardTitle>Service charge</CardTitle>
         <CardDescription>
-          A percentage added to every check at this branch, before tax. It is your money, not a
-          tax — it is booked to its own revenue account and shows on the guest&apos;s bill under
-          the wording you choose here.
+          A percentage added to every check at this branch, before tax. It is your money, not a tax
+          — it is booked to its own revenue account and shows on the guest&apos;s bill under the
+          wording you choose here.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -246,8 +249,8 @@ export function ServiceChargeForm({ branchId }: { branchId: string | null }) {
                             Charge a service charge at this branch
                           </span>
                           <FormDescription>
-                            Off means no service-charge line appears on the bill at all — not a
-                            line reading Rs 0.00.
+                            Off means no service-charge line appears on the bill at all — not a line
+                            reading Rs 0.00.
                           </FormDescription>
                         </span>
                       </label>
@@ -368,7 +371,10 @@ export function ServiceChargeForm({ branchId }: { branchId: string | null }) {
                     {update.isPending ? "Saving…" : "Save service charge"}
                   </Button>
                   {savedAt && (
-                    <span data-testid="service-charge-saved-at" className="text-xs text-muted-foreground">
+                    <span
+                      data-testid="service-charge-saved-at"
+                      className="text-xs text-muted-foreground"
+                    >
                       Saved at {savedAt}
                     </span>
                   )}

@@ -35,9 +35,7 @@ interface MenuChangedFrame {
 
 function isMenuChangedFrame(raw: unknown): raw is MenuChangedFrame {
   return (
-    typeof raw === "object" &&
-    raw !== null &&
-    (raw as { event?: unknown }).event === "menu.changed"
+    typeof raw === "object" && raw !== null && (raw as { event?: unknown }).event === "menu.changed"
   );
 }
 

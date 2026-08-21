@@ -143,7 +143,9 @@ function JournalEntryTable({ filters }: JournalEntryTableProps) {
                   <td className="py-2 pr-4">{je.entryDate}</td>
                   <td className="py-2 pr-4">{je.description}</td>
                   <td className="py-2 pr-4">
-                    <span className={je.status === "POSTED" ? "text-emerald-700" : "text-amber-700"}>
+                    <span
+                      className={je.status === "POSTED" ? "text-emerald-700" : "text-amber-700"}
+                    >
                       {je.status}
                     </span>
                   </td>

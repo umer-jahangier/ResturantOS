@@ -212,9 +212,7 @@ export default function TablesPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onSelect={() => setFormTarget({ mode: "edit", table })}
-                          >
+                          <DropdownMenuItem onSelect={() => setFormTarget({ mode: "edit", table })}>
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => handleToggleActive(table)}>

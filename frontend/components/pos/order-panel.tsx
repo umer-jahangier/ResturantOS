@@ -372,10 +372,7 @@ function CartLineRow({ line, lineKey, onIncrement, onDecrement, onRemove }: Cart
           subtotal and with the server's own `OrderPricingCalculator.lineSubtotal`. It read
           `unitPricePaisa * quantity` here, which would have shown the plain dish price beside a
           cart total that already carried the extras. */}
-      <MoneyDisplay
-        paisa={lineSubtotalPaisa(line)}
-        className="text-sm font-mono w-20 text-right"
-      />
+      <MoneyDisplay paisa={lineSubtotalPaisa(line)} className="text-sm font-mono w-20 text-right" />
 
       {/* Remove line outright — faster than decrementing quantity down to 0 */}
       <button
@@ -564,8 +561,8 @@ function QueuedStrip({ queued }: { queued: ReturnType<typeof useQueuedOps> }) {
             ? "Queued — the kitchen has not seen this yet."
             : "Queued — not saved to the server yet."}
         </span>{" "}
-        {queued.queued} change{queued.queued === 1 ? "" : "s"} will send the moment the
-        connection returns. Keep this order open, or find it in Order Management afterwards.
+        {queued.queued} change{queued.queued === 1 ? "" : "s"} will send the moment the connection
+        returns. Keep this order open, or find it in Order Management afterwards.
       </p>
     </div>
   );

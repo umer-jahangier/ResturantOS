@@ -93,10 +93,7 @@ export function FigureValue({
   }
   const prefix = signed && figure.paisa > 0 ? "+" : "";
   return (
-    <span
-      data-testid="known-figure"
-      className={cn("tabular-nums", className)}
-    >
+    <span data-testid="known-figure" className={cn("tabular-nums", className)}>
       {prefix}
       {formatPaisa(figure.paisa)}
     </span>

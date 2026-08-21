@@ -25,10 +25,7 @@
       "surface": "cross-cutting",
       "claim": "Settling in cash needs an open till; settling by card does not.",
       "why": "Cash physically enters a drawer, so the system insists on knowing which drawer — that is what makes an end-of-shift count meaningful. A card payment never touches a drawer, so it needs no till. If a cashier tries to settle a bill in cash before opening a till, the payment is refused with NO_OPEN_TILL and nothing at all is recorded against the order; open the till and the same settlement goes through. Waiting staff are a separate matter — they are not permitted to take payments at all, so they are turned away earlier and for a different reason. Handing the bill to a cashier is the designed table-service flow, not a fault.",
-      "literals": [
-        "NO_OPEN_TILL",
-        "409"
-      ],
+      "literals": ["NO_OPEN_TILL", "409"],
       "assertedBy": [
         {
           "file": "services/pos-service/src/test/java/io/restaurantos/pos/CashPaymentRequiresTillIT.java",
@@ -45,10 +42,7 @@
       "surface": "periods",
       "claim": "Once you close an accounting period, the system refuses any new entry dated inside it.",
       "why": "Closing a month is a promise that the month's numbers will not move again — that is the whole reason a closed month can be reported on, taxed on, and argued from. An entry dated back into a closed period is refused with PERIOD_LOCKED rather than quietly accepted, so a figure you printed last week still says the same thing today. If something genuinely belongs to the closed month, post it in the open one with a note, or reopen the period deliberately.",
-      "literals": [
-        "PERIOD_LOCKED",
-        "423"
-      ],
+      "literals": ["PERIOD_LOCKED", "423"],
       "assertedBy": [
         {
           "file": "services/finance-service/src/test/java/io/restaurantos/finance/AccountingPeriodIT.java",
@@ -61,10 +55,7 @@
       "surface": "journal",
       "claim": "A discount lowers what the customer pays, not what your books call sales: the full menu price is still credited to sales, and the discount is recorded separately against it.",
       "why": "If a Rs 800 dish goes out at Rs 680, the books credit the whole Rs 800 to Food Sales (4100) and put the Rs 120 on Discounts Given (4920), which sits against sales rather than inside it. You can therefore answer 'what did we give away this month?' — a question a netted figure cannot answer at all, because the discount has already vanished into a smaller sales number. It also keeps the entry balanced: netting sales AND recording the discount would count the same Rs 120 twice.",
-      "literals": [
-        "4100",
-        "4920"
-      ],
+      "literals": ["4100", "4920"],
       "assertedBy": [
         {
           "file": "services/finance-service/src/test/java/io/restaurantos/finance/autopost/DiscountedOrderRevenuePostingIT.java",
@@ -81,9 +72,7 @@
       "surface": "cross-cutting",
       "claim": "A few actions ask for a six-digit code from your authenticator app, even though you are already signed in.",
       "why": "Closing a period, approving payroll and changing who can do what are the actions where a stolen or borrowed session does the most damage, so the system asks the person in front of the screen to prove they are still there. The prompt is tied to the action, not to seniority — an accountant is asked for it and a manager is not, because the accountant is the one who can close a period. Without the code the request comes back TOTP_REQUIRED and nothing changes.",
-      "literals": [
-        "TOTP_REQUIRED"
-      ],
+      "literals": ["TOTP_REQUIRED"],
       "assertedBy": [
         {
           "file": "frontend/e2e/journeys/step-up-totp.spec.ts",
@@ -96,9 +85,7 @@
       "surface": "journal",
       "claim": "Every entry in your books has two sides that must come to exactly the same amount, and the database itself refuses to save one that does not.",
       "why": "This is not a check the app performs and could forget — it is a rule inside the database, so it holds no matter which part of the system writes the entry, including a script or a future feature nobody has written yet. An entry whose two sides disagree by even one paisa is rejected at the moment it is saved, with JE_UNBALANCED. That is why you can add up any page of the ledger and expect it to come out.",
-      "literals": [
-        "JE_UNBALANCED"
-      ],
+      "literals": ["JE_UNBALANCED"],
       "assertedBy": [
         {
           "file": "services/finance-service/src/test/java/io/restaurantos/finance/JournalEntryBalanceTriggerIT.java",
@@ -136,11 +123,7 @@
       "surface": "transactions",
       "claim": "Open an order and you can see every entry it created in your books — the sale, the cost of the food, and any refund.",
       "why": "A number in your accounts that you cannot trace back to something that happened in the restaurant is a number you cannot check. Every order that closes writes its entries with the order's own id attached, so the two directions both work: from the order to what it did to your books, and from an entry back to the order behind it. A single order commonly produces two entries — the sale, and separately the cost of the ingredients that went out of the door — and a refund later adds a third.",
-      "literals": [
-        "ORDER_REVENUE",
-        "ORDER_COGS",
-        "ORDER_REFUND"
-      ],
+      "literals": ["ORDER_REVENUE", "ORDER_COGS", "ORDER_REFUND"],
       "assertedBy": [
         {
           "file": "services/finance-service/src/test/java/io/restaurantos/finance/JournalEntryTraceabilityIT.java",
@@ -157,9 +140,7 @@
       "surface": "coa",
       "claim": "A new restaurant is set up with a full set of accounts on day one — you do not have to invent them.",
       "why": "The accounts are the buckets your money moves between: a bucket for the cash in the drawer, a bucket for food sales, a bucket for the tax you are holding on the government's behalf, and so on. Setting them up from scratch is the job most people get wrong and most accountants charge for, so the system seeds a complete set the first time your restaurant is provisioned, and seeding it twice does not duplicate anything.",
-      "literals": [
-        "1010"
-      ],
+      "literals": ["1010"],
       "assertedBy": [
         {
           "file": "services/finance-service/src/test/java/io/restaurantos/finance/CoaProvisioningIT.java",
@@ -210,9 +191,7 @@
       "surface": "takings",
       "claim": "A till still open and a till closed without anyone counting the drawer are shown as two different things.",
       "why": "Both leave the difference blank, and they mean opposite things. A till still open is a shift in progress and there is nothing to reconcile yet — a normal Tuesday evening. A till closed with no count means the shift ended and nobody counted the money, so nobody knows whether it matched. Showing both as the same dash would make the second one invisible, which is precisely the situation you would want to be told about.",
-      "literals": [
-        "NOT_COUNTED"
-      ],
+      "literals": ["NOT_COUNTED"],
       "assertedBy": [
         {
           "file": "frontend/components/finance/__tests__/DailyTakings.test.tsx",

@@ -762,7 +762,10 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
               description={EMPTY_SCOPED_COPY[serverScopedFilter].description}
               action={
                 EMPTY_SCOPED_COPY[serverScopedFilter].goToPos
-                  ? { label: "Go to POS", onClick: () => onFullMenu?.({ orderId: null, tableId: null }) }
+                  ? {
+                      label: "Go to POS",
+                      onClick: () => onFullMenu?.({ orderId: null, tableId: null }),
+                    }
                   : undefined
               }
             />

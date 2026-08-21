@@ -424,8 +424,7 @@ export function AuditLog() {
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm text-muted-foreground" data-testid="audit-zone-note">
-            Times are shown in{" "}
-            <strong>{zone ?? "your device's time zone"}</strong>
+            Times are shown in <strong>{zone ?? "your device's time zone"}</strong>
             {zone
               ? " — this branch's time zone. Dates you pick above are whole days in that zone."
               : " — this branch has no time zone saved, so days are cut in UTC. Set one in Settings so the log matches the shift."}
@@ -581,7 +580,6 @@ export function AuditLog() {
           )}
         </>
       </QueryBoundary>
-
     </div>
   );
 }

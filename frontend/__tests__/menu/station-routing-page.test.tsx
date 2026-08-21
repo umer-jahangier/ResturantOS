@@ -177,9 +177,7 @@ function mockEndpoints({
   return writes;
 }
 
-function renderPage(
-  opts: Parameters<typeof mockEndpoints>[0] & { permissions?: string[] } = {},
-) {
+function renderPage(opts: Parameters<typeof mockEndpoints>[0] & { permissions?: string[] } = {}) {
   const { permissions = ["pos.menu.manage"], ...endpointOpts } = opts;
   seedSession({ permissions, branchId: BRANCH });
   const writes = mockEndpoints(endpointOpts);

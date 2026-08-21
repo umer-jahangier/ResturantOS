@@ -197,10 +197,7 @@ export function StationRoutingBoard({
                         className="w-56 shrink-0"
                         disabled={!canManage || itemPending}
                         value={item.stationId ?? UNSET}
-                        options={[
-                          { value: UNSET, label: itemInheritLabel },
-                          ...stationOptions,
-                        ]}
+                        options={[{ value: UNSET, label: itemInheritLabel }, ...stationOptions]}
                         onValueChange={(value) => onRouteItem(item, value === UNSET ? null : value)}
                       />
                       <span

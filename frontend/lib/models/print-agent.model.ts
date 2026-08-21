@@ -73,7 +73,9 @@ export function discoveredDevices(
   const seen = new Map<string, DiscoveredDevice>();
   const ordered = [...agents]
     .filter((a) => a.revokedAt === null)
-    .sort((a, b) => Date.parse(b.devicesReportedAt ?? "0") - Date.parse(a.devicesReportedAt ?? "0"));
+    .sort(
+      (a, b) => Date.parse(b.devicesReportedAt ?? "0") - Date.parse(a.devicesReportedAt ?? "0"),
+    );
   for (const agent of ordered) {
     for (const device of agent.devices ?? []) {
       if (seen.has(device.name)) continue;
@@ -164,12 +166,7 @@ export interface PrintAgentPresence {
  * "Sent to the receipt printer".
  * <br>`REFUSED` — the agent tried and gave up, or the attempt budget is spent.
  */
-export type ReceiptDeliveryState =
-  | "NO_PRINTER"
-  | "ON_PAPER"
-  | "IN_FLIGHT"
-  | "NO_AGENT"
-  | "REFUSED";
+export type ReceiptDeliveryState = "NO_PRINTER" | "ON_PAPER" | "IN_FLIGHT" | "NO_AGENT" | "REFUSED";
 
 export type PrintJobStatus =
   | "ISSUED"

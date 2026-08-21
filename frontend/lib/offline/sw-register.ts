@@ -25,11 +25,7 @@ let registration: ServiceWorkerRegistration | null = null;
  * stale-chunk trap needs a cached chunk, and in dev there is never one.
  */
 export async function registerSW(): Promise<void> {
-  if (
-    typeof window === "undefined" ||
-    !("serviceWorker" in navigator) ||
-    registration !== null
-  ) {
+  if (typeof window === "undefined" || !("serviceWorker" in navigator) || registration !== null) {
     return;
   }
 

@@ -30,7 +30,8 @@ const MEASURE_TYPES = [
 ] as const;
 
 const cellClass = "px-3 py-2 text-small";
-const headClass = "px-3 py-2 text-left text-label uppercase tracking-[0.04em] text-muted-foreground";
+const headClass =
+  "px-3 py-2 text-left text-label uppercase tracking-[0.04em] text-muted-foreground";
 
 /** How a unit converts, in words. A base unit has nothing above it — saying "1 G = 1 G" would be
  * noise, so it reads as the anchor it is. */
@@ -384,7 +385,11 @@ function UomRowActions({ uom }: { uom: Uom }) {
         </Button>
       </div>
       {refusal && (
-        <p role="alert" data-testid={`uom-retire-refusal-${uom.code}`} className="max-w-sm text-right text-small text-destructive">
+        <p
+          role="alert"
+          data-testid={`uom-retire-refusal-${uom.code}`}
+          className="max-w-sm text-right text-small text-destructive"
+        >
           {refusal}
         </p>
       )}

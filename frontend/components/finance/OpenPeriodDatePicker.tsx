@@ -102,8 +102,8 @@ function OpenPeriodDatePicker({ value, onChange }: OpenPeriodDatePickerProps) {
   if (!openPeriods?.length) {
     return (
       <p className="rounded-md border border-dashed p-3 text-body text-muted-foreground">
-        No accounting period is open, so an entry cannot be dated. Open or provision a period on
-        the Periods screen first.
+        No accounting period is open, so an entry cannot be dated. Open or provision a period on the
+        Periods screen first.
       </p>
     );
   }

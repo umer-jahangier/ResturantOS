@@ -290,9 +290,7 @@ describe("ReceiptView", () => {
 
     renderView();
 
-    await waitFor(() =>
-      expect(screen.getByTestId("delivery-unconfirmed")).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByTestId("delivery-unconfirmed")).toBeInTheDocument());
     expect(screen.getByTestId("delivery-unconfirmed")).toHaveTextContent(
       "can no longer confirm what happened to the paper",
     );

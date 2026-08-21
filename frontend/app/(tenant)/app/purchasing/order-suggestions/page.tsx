@@ -26,7 +26,8 @@ import { MoneyDisplay } from "@/components/ui/money-display";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const cellClass = "px-3 py-2 text-small";
-const headClass = "px-3 py-2 text-left text-label uppercase tracking-[0.04em] text-muted-foreground";
+const headClass =
+  "px-3 py-2 text-left text-label uppercase tracking-[0.04em] text-muted-foreground";
 
 /** Keyed by vendorItemId — the only stable identifier a line carries all the way to a PO. */
 type Overrides = Record<string, string>;

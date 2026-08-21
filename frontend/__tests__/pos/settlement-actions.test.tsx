@@ -114,9 +114,7 @@ describe("SettlementActions", () => {
 
   it("renders the Void action when the user holds pos.order.void.own on an OPEN order", async () => {
     renderActions(makeOrder({ status: "OPEN" }), ["pos.order.void.own"]);
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /void/i })).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByRole("button", { name: /void/i })).toBeInTheDocument());
   });
 
   /**
@@ -173,10 +171,7 @@ describe("SettlementActions", () => {
         kind: "REFUND",
       },
     ]);
-    renderActions(makeOrder({ status: "REFUNDED" }), [
-      "pos.order.void.own",
-      "pos.order.refund",
-    ]);
+    renderActions(makeOrder({ status: "REFUNDED" }), ["pos.order.void.own", "pos.order.refund"]);
 
     await waitFor(() => expect(getPaymentsMock).toHaveBeenCalled());
     expect(screen.queryByRole("button", { name: /void order/i })).not.toBeInTheDocument();

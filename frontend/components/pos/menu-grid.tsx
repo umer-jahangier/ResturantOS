@@ -83,7 +83,8 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
   // every item this operator may see, so filtering the rail alone would leave a preview that
   // renamed the tabs and changed nothing underneath them.
   const activeItems = items.filter(
-    (i) => i.active && (!scopePreview || (i.categoryId !== null && scopePreview.includes(i.categoryId))),
+    (i) =>
+      i.active && (!scopePreview || (i.categoryId !== null && scopePreview.includes(i.categoryId))),
   );
   const trimmedQuery = debouncedSearch.trim().toLowerCase();
   const filteredItems = trimmedQuery

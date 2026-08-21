@@ -564,9 +564,7 @@ describe("the station field in the user form", () => {
 
     const field = await screen.findByTestId("station-assignment-field");
     // The current assignment is loaded, not blank.
-    await waitFor(() =>
-      expect(within(field).getByLabelText(/Main bar/)).toBeChecked(),
-    );
+    await waitFor(() => expect(within(field).getByLabelText(/Main bar/)).toBeChecked());
 
     const user = userEvent.setup();
     await user.click(within(field).getByLabelText(/Hot line/));
@@ -592,7 +590,12 @@ describe("the assignment on the user detail panel", () => {
           data: {
             user: USER,
             assignments: [
-              { branchId: BRANCH_A, roleCode: "KITCHEN_STAFF", primary: true, approvalLimitPaisa: null },
+              {
+                branchId: BRANCH_A,
+                roleCode: "KITCHEN_STAFF",
+                primary: true,
+                approvalLimitPaisa: null,
+              },
             ],
           },
           meta: null,

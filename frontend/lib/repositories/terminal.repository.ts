@@ -34,7 +34,9 @@ export const TerminalRepository = {
     const query: Record<string, unknown> = { branchId };
     if (includeInactive) query.includeInactive = true;
     const raw = await get<unknown[]>("/api/v1/pos/terminals", query);
-    return (Array.isArray(raw) ? raw : []).map((r) => adaptPosTerminal(apiPosTerminalSchema.parse(r)));
+    return (Array.isArray(raw) ? raw : []).map((r) =>
+      adaptPosTerminal(apiPosTerminalSchema.parse(r)),
+    );
   },
 
   async create(branchId: string, payload: CreateTerminalInput): Promise<PosTerminal> {

@@ -247,11 +247,14 @@ export function TransactionRegister() {
                             </div>
                             <div className="text-sm text-muted-foreground">
                               Order totals — subtotal {formatPaisa(r.orderSubtotalPaisa)} · discount{" "}
-                              {formatPaisa(r.orderDiscountPaisa)} · tax {formatPaisa(r.orderTaxPaisa)}{" "}
-                              · service {formatPaisa(r.orderServiceChargePaisa)} · total{" "}
+                              {formatPaisa(r.orderDiscountPaisa)} · tax{" "}
+                              {formatPaisa(r.orderTaxPaisa)} · service{" "}
+                              {formatPaisa(r.orderServiceChargePaisa)} · total{" "}
                               {formatPaisa(r.orderTotalPaisa)}
                             </div>
-                            {expandedOrderId === r.orderId && <TransactionLedgerLinks orderId={r.orderId} />}
+                            {expandedOrderId === r.orderId && (
+                              <TransactionLedgerLinks orderId={r.orderId} />
+                            )}
                           </div>
                         </td>
                       </tr>

@@ -176,9 +176,7 @@ describe("F10 — the ledger names the order, and the order can be found", () =>
 
     await user.type(searchBox(), "ORD-19990101-0001");
 
-    await waitFor(() =>
-      expect(screen.getByText(/No entry matches/)).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText(/No entry matches/)).toBeInTheDocument());
     // Not "no journal entries" — the books are not empty, this term simply has no match, and the
     // difference is the whole of GA-001.
     expect(screen.queryByText("No journal entries")).not.toBeInTheDocument();

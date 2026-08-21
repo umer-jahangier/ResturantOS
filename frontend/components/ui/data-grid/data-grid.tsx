@@ -191,9 +191,7 @@ export function DataGrid<TData>({
   const totalRows = table.getFilteredRowModel().rows.length;
   const pageCount = table.getPageCount();
   const pageIndex = table.getState().pagination.pageIndex;
-  const selectedRows = getRowId
-    ? data.filter((r) => selected.has(getRowId(r)))
-    : [];
+  const selectedRows = getRowId ? data.filter((r) => selected.has(getRowId(r))) : [];
 
   const toggle = (id: string) =>
     setSelected((current) => {
@@ -280,7 +278,13 @@ export function DataGrid<TData>({
                       // is announced without its header.
                       scope="col"
                       aria-sort={
-                        !canSort ? undefined : sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : "none"
+                        !canSort
+                          ? undefined
+                          : sorted === "asc"
+                            ? "ascending"
+                            : sorted === "desc"
+                              ? "descending"
+                              : "none"
                       }
                       className={cn(
                         "sticky top-0 z-(--z-sticky) bg-surface-2",
@@ -304,7 +308,10 @@ export function DataGrid<TData>({
                           ) : sorted === "desc" ? (
                             <ChevronDown className="size-3.5 shrink-0" aria-hidden="true" />
                           ) : (
-                            <ChevronsUpDown className="size-3.5 shrink-0 opacity-50" aria-hidden="true" />
+                            <ChevronsUpDown
+                              className="size-3.5 shrink-0 opacity-50"
+                              aria-hidden="true"
+                            />
                           )}
                         </button>
                       ) : (
@@ -389,7 +396,9 @@ export function DataGrid<TData>({
                 )}
               </div>
               {card.trailing && (
-                <div className="shrink-0 text-small tabular-nums">{card.trailing(row.original)}</div>
+                <div className="shrink-0 text-small tabular-nums">
+                  {card.trailing(row.original)}
+                </div>
               )}
               {card.actions?.(row.original) ?? null}
             </li>

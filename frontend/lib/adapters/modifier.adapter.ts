@@ -1,9 +1,6 @@
 // Layer-2 adapters: raw API shapes → domain models (S6).
 
-import type {
-  ApiModifierGroup,
-  ApiModifierOption,
-} from "@/lib/api-client/schemas/modifier.schema";
+import type { ApiModifierGroup, ApiModifierOption } from "@/lib/api-client/schemas/modifier.schema";
 import type { ModifierGroup, ModifierOption } from "@/lib/models/modifier.model";
 
 export function adaptModifierOption(raw: ApiModifierOption): ModifierOption {

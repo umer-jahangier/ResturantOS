@@ -6,10 +6,7 @@ import { queryKeys } from "@/lib/hooks/query-keys";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
 import type { OpenTillPayload, CloseTillPayload, TillSession } from "@/lib/models/pos.model";
-import type {
-  EligibleCashier,
-  OpenTillForCashierPayload,
-} from "@/lib/models/till-cashier.model";
+import type { EligibleCashier, OpenTillForCashierPayload } from "@/lib/models/till-cashier.model";
 import type { ApiError } from "@/lib/api-client/errors";
 
 const OFFLINE_ERROR =
@@ -216,8 +213,7 @@ export function useEligibleCashiers(branchId: string | null | undefined, enabled
 export function useOpenTillForCashier() {
   const queryClient = useQueryClient();
   return useMutation<TillSession, ApiError, OpenTillForCashierPayload>({
-    mutationFn: (payload: OpenTillForCashierPayload) =>
-      PosRepository.openTillForCashier(payload),
+    mutationFn: (payload: OpenTillForCashierPayload) => PosRepository.openTillForCashier(payload),
     onSuccess: (_data, payload) => {
       // The branch till table gains a row, and the picker's `hasOpenTill` flags change.
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.branchTillsAll(payload.branchId) });

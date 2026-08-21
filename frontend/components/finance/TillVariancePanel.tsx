@@ -70,13 +70,7 @@ function presentation(state: string) {
  * Over and short are visually distinct and NEITHER is an error state. An overage is not a success
  * and a shortfall is not a system fault; both are things a manager investigates.
  */
-function VarianceCell({
-  variance,
-  state,
-}: {
-  variance: MoneyFigure;
-  state: string;
-}) {
+function VarianceCell({ variance, state }: { variance: MoneyFigure; state: string }) {
   if (variance.state === "UNKNOWN") {
     return <UnknownFigure figure={variance} compact />;
   }
@@ -202,24 +196,13 @@ export function TillVariancePanel({
                       {formatPaisa(till.openingFloatPaisa)}
                     </td>
                     <td className="py-2.5 text-right">
-                      <FigureValue
-                        figure={till.expectedClosing}
-                        compact
-                        className="font-mono"
-                      />
+                      <FigureValue figure={till.expectedClosing} compact className="font-mono" />
                     </td>
                     <td className="py-2.5 text-right">
-                      <FigureValue
-                        figure={till.declaredClosing}
-                        compact
-                        className="font-mono"
-                      />
+                      <FigureValue figure={till.declaredClosing} compact className="font-mono" />
                     </td>
                     <td className="py-2.5 text-right">
-                      <VarianceCell
-                        variance={till.variance}
-                        state={till.reconciliationState}
-                      />
+                      <VarianceCell variance={till.variance} state={till.reconciliationState} />
                     </td>
                   </tr>
                 );

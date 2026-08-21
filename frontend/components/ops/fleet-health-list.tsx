@@ -129,7 +129,11 @@ function ServiceRow({ service }: { service: ServiceHealth }) {
  */
 export function formatLastReachable(at: Date | null, now: Date = new Date()): string {
   if (!at) return "Not since this gateway started";
-  const clock = at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const clock = at.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
   const seconds = Math.max(0, Math.round((now.getTime() - at.getTime()) / 1000));
   if (seconds < 10) return `${clock} (just now)`;
   if (seconds < 90) return `${clock} (${seconds}s ago)`;

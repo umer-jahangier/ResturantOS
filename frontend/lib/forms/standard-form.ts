@@ -48,8 +48,10 @@ import { createZodResolver } from "./zod-resolver";
  * debounced string-length rule just feels broken.
  */
 
-export interface StandardFormOptions<TValues extends FieldValues>
-  extends Omit<UseFormProps<TValues>, "resolver" | "mode" | "reValidateMode"> {
+export interface StandardFormOptions<TValues extends FieldValues> extends Omit<
+  UseFormProps<TValues>,
+  "resolver" | "mode" | "reValidateMode"
+> {
   schema: ZodType<TValues>;
   defaultValues: DefaultValues<TValues>;
 }

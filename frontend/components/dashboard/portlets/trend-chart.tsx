@@ -127,14 +127,7 @@ export function TrendChart({ categories, series, className }: TrendChartProps) {
            * reduced motion, so in both of those cases the mask sits at dashoffset 0 — fully
            * open, chart complete at first paint. Not fast: complete.
            */}
-          <mask
-            id={maskId}
-            maskUnits="userSpaceOnUse"
-            x="0"
-            y="0"
-            width={VIEW_W}
-            height={VIEW_H}
-          >
+          <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width={VIEW_W} height={VIEW_H}>
             <line
               data-testid="trend-chart-reveal-mask"
               x1="0"

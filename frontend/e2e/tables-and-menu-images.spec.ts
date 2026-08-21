@@ -76,7 +76,10 @@ function writeRealPng(file: string): string {
 function writeDisguisedExecutable(file: string): string {
   mkdirSync(TMP, { recursive: true });
   const p = path.join(TMP, file);
-  writeFileSync(p, Buffer.from("MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00 not an image", "binary"));
+  writeFileSync(
+    p,
+    Buffer.from("MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00 not an image", "binary"),
+  );
   return p;
 }
 
@@ -225,9 +228,9 @@ test.describe("19b — menu item pictures", () => {
     // ── the forged upload: named .png, offered as image/png, not an image ──────
     // Every client-side check passes it. Only file-service's magic-byte read can refuse it,
     // which is the entire reason that check reads bytes instead of the Content-Type header.
-    await dialog.getByTestId("menu-item-image-input").setInputFiles(
-      writeDisguisedExecutable("disguised.png"),
-    );
+    await dialog
+      .getByTestId("menu-item-image-input")
+      .setInputFiles(writeDisguisedExecutable("disguised.png"));
     const uploadError = dialog.getByTestId("menu-item-image-error-message");
     await expect(uploadError).toBeVisible({ timeout: 30_000 });
     await expect(uploadError).toContainText(/not a JPEG, PNG or WebP/i);
@@ -244,7 +247,10 @@ test.describe("19b — menu item pictures", () => {
 
     // The saved item's thumbnail is fetched through the authenticated client and rendered from
     // an object URL — a plain <img src> at the gated download route would 401 here.
-    const row = page.locator("div").filter({ hasText: new RegExp(`^${itemName}`) }).last();
+    const row = page
+      .locator("div")
+      .filter({ hasText: new RegExp(`^${itemName}`) })
+      .last();
     await expect(page.getByText(itemName, { exact: true })).toBeVisible({ timeout: 30_000 });
     const thumb = page.getByTestId("menu-item-image").first();
     await expect(thumb).toBeVisible({ timeout: 30_000 });

@@ -50,9 +50,7 @@ export default function EmployeesPage() {
       if (!showInactive && !e.active) return false;
       if (departmentFilter && e.departmentId !== departmentFilter) return false;
       if (!term) return true;
-      return (
-        e.fullName.toLowerCase().includes(term) || e.employeeNo.toLowerCase().includes(term)
-      );
+      return e.fullName.toLowerCase().includes(term) || e.employeeNo.toLowerCase().includes(term);
     });
   }, [employees, search, departmentFilter, showInactive]);
 
@@ -175,9 +173,7 @@ export default function EmployeesPage() {
             {rows.length === 0 && (
               <tr>
                 <td colSpan={8} className="text-muted-foreground py-4 text-center">
-                  {total === 0
-                    ? "No employees yet."
-                    : "No employee matches this search or filter."}
+                  {total === 0 ? "No employees yet." : "No employee matches this search or filter."}
                 </td>
               </tr>
             )}

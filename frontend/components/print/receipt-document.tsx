@@ -121,9 +121,7 @@ export function ReceiptDocumentView({ document }: { document: PrintDocument }) {
             <div className="receipt-row" data-testid="receipt-service-charge-row">
               <span className="receipt-row-label">
                 {totals.serviceChargeLabel ?? "Service charge"}
-                {totals.serviceChargeRatePercent
-                  ? ` (${totals.serviceChargeRatePercent}%)`
-                  : ""}
+                {totals.serviceChargeRatePercent ? ` (${totals.serviceChargeRatePercent}%)` : ""}
               </span>
               <span className="receipt-amount">{totals.serviceCharge.formatted}</span>
             </div>

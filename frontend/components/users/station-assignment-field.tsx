@@ -59,9 +59,7 @@ export function StationAssignmentField({
   const stations = useStations();
 
   const offered = isSignedInBranch ? (stations.data ?? []) : [];
-  const selectedNames = offered
-    .filter((s) => value.includes(s.code))
-    .map((s) => s.name);
+  const selectedNames = offered.filter((s) => value.includes(s.code)).map((s) => s.name);
 
   function toggle(code: string) {
     const next = value.includes(code) ? value.filter((c) => c !== code) : [...value, code];
@@ -77,8 +75,8 @@ export function StationAssignmentField({
           data-testid="station-assignment-cross-branch"
           className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
         >
-          Stations are listed for the branch you are signed in to. Switch to {branchLabel} to
-          choose its stations — you can set them any time by editing this account.
+          Stations are listed for the branch you are signed in to. Switch to {branchLabel} to choose
+          its stations — you can set them any time by editing this account.
         </p>
       ) : stations.isPending ? (
         <Skeleton className="h-16 w-full" />
@@ -93,8 +91,8 @@ export function StationAssignmentField({
         />
       ) : offered.length === 0 ? (
         <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-          {branchLabel} has no stations yet. Add one on the Stations screen and it will appear
-          here; until then everyone at this branch sees the whole board.
+          {branchLabel} has no stations yet. Add one on the Stations screen and it will appear here;
+          until then everyone at this branch sees the whole board.
         </p>
       ) : (
         <>
@@ -111,7 +109,8 @@ export function StationAssignmentField({
                   />
                   <span className="min-w-0 flex-1 truncate">{station.name}</span>
                   <span className="shrink-0 text-xs text-muted-foreground">
-                    {stationTypeLabel(station.stationType)} — {stationTypeScreen(station.stationType)}
+                    {stationTypeLabel(station.stationType)} —{" "}
+                    {stationTypeScreen(station.stationType)}
                   </span>
                 </label>
               </li>

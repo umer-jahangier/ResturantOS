@@ -62,7 +62,10 @@ export function TenderSplit({ lines }: { lines: TenderLine[] }) {
         <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
           <th className="pb-2 font-medium">Tender</th>
           <th className="pb-2 text-right font-medium">Payments</th>
-          <th className="pb-2 text-right font-medium" title="What settled the bill on this tender. Tips are not in it — they are the next column.">
+          <th
+            className="pb-2 text-right font-medium"
+            title="What settled the bill on this tender. Tips are not in it — they are the next column."
+          >
             Amount
           </th>
           <th
@@ -124,9 +127,7 @@ export function TenderSplit({ lines }: { lines: TenderLine[] }) {
               {line.unclosedAmountPaisa > 0 ? (
                 <>
                   {formatPaisa(line.unclosedAmountPaisa)}
-                  <span className="ml-1 text-label">
-                    ({line.unclosedPaymentCount})
-                  </span>
+                  <span className="ml-1 text-label">({line.unclosedPaymentCount})</span>
                 </>
               ) : (
                 <span aria-label="none">—</span>

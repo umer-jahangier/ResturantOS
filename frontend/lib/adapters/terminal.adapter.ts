@@ -1,17 +1,8 @@
 import type { ApiPosTerminal } from "@/lib/api-client/schemas/terminal.schema";
-import type {
-  PosTerminal,
-  ServiceModel,
-  TerminalOrderType,
-} from "@/lib/models/terminal.model";
+import type { PosTerminal, ServiceModel, TerminalOrderType } from "@/lib/models/terminal.model";
 
 const SERVICE_MODEL_SET = new Set<ServiceModel>(["COUNTER", "TABLE_SERVICE", "SELF_SERVE"]);
-const ORDER_TYPE_SET = new Set<TerminalOrderType>([
-  "DINE_IN",
-  "TAKEAWAY",
-  "DELIVERY",
-  "PICKUP",
-]);
+const ORDER_TYPE_SET = new Set<TerminalOrderType>(["DINE_IN", "TAKEAWAY", "DELIVERY", "PICKUP"]);
 
 /**
  * Wire → domain for a POS terminal.

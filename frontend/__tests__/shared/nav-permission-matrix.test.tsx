@@ -239,7 +239,14 @@ describe("nav permission matrix — the set each role sees must not move", () =>
         // was red before S1-09 touched it — a matrix that describes a nav nobody has any more is
         // not a gate. Recorded here so the list matches the tree; each of those plans owns its
         // own row.
-        items: ["Inventory", "Menu Items", "Stations", "Station Routing", "POS Terminals", "Printers"],
+        items: [
+          "Inventory",
+          "Menu Items",
+          "Stations",
+          "Station Routing",
+          "POS Terminals",
+          "Printers",
+        ],
       },
       {
         group: "Finance",
@@ -293,7 +300,14 @@ describe("nav permission matrix — the set each role sees must not move", () =>
         // was red before S1-09 touched it — a matrix that describes a nav nobody has any more is
         // not a gate. Recorded here so the list matches the tree; each of those plans owns its
         // own row.
-        items: ["Inventory", "Menu Items", "Stations", "Station Routing", "POS Terminals", "Printers"],
+        items: [
+          "Inventory",
+          "Menu Items",
+          "Stations",
+          "Station Routing",
+          "POS Terminals",
+          "Printers",
+        ],
       },
       {
         group: "Finance",
@@ -360,7 +374,14 @@ describe("nav permission matrix — the set each role sees must not move", () =>
         // was red before S1-09 touched it — a matrix that describes a nav nobody has any more is
         // not a gate. Recorded here so the list matches the tree; each of those plans owns its
         // own row.
-        items: ["Inventory", "Menu Items", "Stations", "Station Routing", "POS Terminals", "Printers"],
+        items: [
+          "Inventory",
+          "Menu Items",
+          "Stations",
+          "Station Routing",
+          "POS Terminals",
+          "Printers",
+        ],
       },
       // 37-12 CHANGED THIS LINE DELIBERATELY. A branch manager holds no `finance.journal.view`
       // and still sees Takings — because a manager is the person who counts the drawer, and

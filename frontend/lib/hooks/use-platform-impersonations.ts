@@ -25,8 +25,12 @@ export const impersonationKeys = {
   all: () => ["platform", "impersonations"] as const,
   forTenant: (tenantId: string, page: number) =>
     ["platform", "tenants", tenantId, "impersonations", page] as const,
-  search: (adminUserId: string | undefined, from: string | undefined, to: string | undefined, page: number) =>
-    ["platform", "impersonations", { adminUserId, from, to, page }] as const,
+  search: (
+    adminUserId: string | undefined,
+    from: string | undefined,
+    to: string | undefined,
+    page: number,
+  ) => ["platform", "impersonations", { adminUserId, from, to, page }] as const,
 };
 
 const STALE_MS = 30_000;
@@ -49,12 +53,14 @@ export function useTenantImpersonations(tenantId: string, page = 0) {
 }
 
 /** Impersonations across every tenant, optionally narrowed to one acting administrator. */
-export function usePlatformImpersonations(params: {
-  adminUserId?: string;
-  from?: string;
-  to?: string;
-  page?: number;
-} = {}) {
+export function usePlatformImpersonations(
+  params: {
+    adminUserId?: string;
+    from?: string;
+    to?: string;
+    page?: number;
+  } = {},
+) {
   const page = params.page ?? 0;
   return useQuery<ImpersonationPage>({
     queryKey: impersonationKeys.search(params.adminUserId, params.from, params.to, page),

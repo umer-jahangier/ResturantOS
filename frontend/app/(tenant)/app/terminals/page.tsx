@@ -4,10 +4,7 @@ import { useMemo, useState } from "react";
 import { MonitorSmartphone } from "lucide-react";
 import { toast } from "sonner";
 
-import {
-  useTerminalCatalogue,
-  useSetTerminalActive,
-} from "@/lib/hooks/pos/use-terminal-admin";
+import { useTerminalCatalogue, useSetTerminalActive } from "@/lib/hooks/pos/use-terminal-admin";
 import { useMenuCategories } from "@/lib/hooks/pos/use-menu";
 import { useStations } from "@/lib/hooks/pos/use-station-admin";
 import type { PosTerminal } from "@/lib/models/terminal.model";

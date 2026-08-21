@@ -169,7 +169,11 @@ describe("the offline order carries its real money (S0-07)", () => {
 
     // The create replays and the server issues its own id.
     mockCreateOrder.mockResolvedValue({ id: "real-order-9", clientOrderId: stubId });
-    await enqueue({ clientOrderId: stubId, type: "CREATE_ORDER", payload: { branchId: BRANCH_ID } });
+    await enqueue({
+      clientOrderId: stubId,
+      type: "CREATE_ORDER",
+      payload: { branchId: BRANCH_ID },
+    });
     await act(async () => {
       await replay();
     });
