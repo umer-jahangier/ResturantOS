@@ -48,6 +48,20 @@ Each of these produced a confident, wrong answer:
   non-matching pattern fails loudly rather than passing vacuously. This was broadcast fleet-wide as
   a hazard, challenged by an agent, verified, and found **wrong on both counts**. Retracted.
 - **A compile check against the working tree proves nothing about a path-scoped commit.** See §3.
+- **`grep` over a multi-line assertion reports the LAST file, not all of them.** A session filtered
+  vitest output through `grep` to list off-contract files and reported **five**. There were
+  **twenty-nine**: each of the five names was merely the alphabetically-last entry of a multi-line
+  assertion, and the grep saw only that line. The suite had run correctly and produced the truth.
+  **This is a fifth variant of the green-suite trap, and the usual countermeasure does not catch
+  it** — the run was real, a positive test count was present and honest, and the *reading* was the
+  lie. Demanding `Tests run: N` proves the suite executed; it says nothing about whether the summary
+  someone extracted from it is complete. Read the raw assertion, or count what you claim to have
+  counted.
+- **A contrast gate that only measures one surface passes on the others.** The theme gate asserted
+  every pairing against the PAGE background and never against a Card, so `--border-interactive` sat
+  at **2.95:1** on cards in dark mode — under SC 1.4.11's 3:1 floor — from the day dark surfaces were
+  introduced. Re-measured against the pre-existing cyan tokens at **2.94:1**, so it long predated the
+  palette work that found it. A gate is only evidence for the combinations it actually enumerates.
 - **A clean `tsc --noEmit` can mean the exclude got too broad.** After excluding duplicate files,
   falsify it: `tsc --listFilesOnly` and diff against `git ls-files` — the set of tracked sources not
   compiled must be empty.
