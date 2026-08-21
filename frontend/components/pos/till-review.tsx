@@ -40,6 +40,7 @@ import {
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import type { TillSession, TillReviewStatus } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
+import { formatDateTime } from "@/lib/format/locale";
 
 const PAGE_SIZE = 20;
 
@@ -67,9 +68,7 @@ const REVIEW_BADGE: Record<TillReviewStatus, string> = {
 };
 
 function fmtTime(iso: string | null): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
+  return formatDateTime(iso);
 }
 
 /**

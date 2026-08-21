@@ -6,7 +6,8 @@ import { ClipboardList, Clock, FileEdit, Wallet } from "lucide-react";
 
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { usePurchaseOrders, useVendors } from "@/lib/hooks/purchasing/use-purchasing";
-import { countLine, statLine } from "@/lib/format/stat-line";
+import { filteredCountLine, statLine } from "@/lib/format/stat-line";
+import { formatNumber } from "@/lib/format/locale";
 import type { PurchaseOrder } from "@/lib/adapters/purchasing.adapter";
 import { PO_STATUSES, type PoStatus } from "@/lib/models/purchasing-status";
 import { PurchaseOrderFormDialog } from "@/components/purchasing/PurchaseOrderFormDialog";
@@ -37,8 +38,32 @@ export default function PurchaseOrdersPage() {
 
   // GA-001: `data ?? []` turned a failed read into "No purchase orders yet" — on the screen a
   // buyer uses to check what is already on order before raising another one.
-  const poQuery = usePurchaseOrders(branchId, statusFilter ? [statusFilter] : undefined);
-  const purchaseOrders = useMemo(() => poQuery.data ?? [], [poQuery.data]);
+  //
+  // ONE UNFILTERED READ, narrowed in the browser — the shape `inventory/stock/page.tsx` already
+  // uses, and it is load-bearing here for two separate reasons.
+  //
+  // 1. The tiles below count STATUSES and the filter selects a STATUS. Asking the server to
+  //    narrow the list meant "Awaiting approval" was derived from an array that, under
+  //    `statusFilter="DRAFT"`, could not contain a single PENDING_APPROVAL order — so that tile
+  //    was not merely wrong under a filter, it was structurally always 0 while orders really
+  //    were waiting to be approved. Fetching a SECOND, unfiltered list beside this one would fix
+  //    the number and reintroduce the very drift the comment below is guarding against; one
+  //    array cannot disagree with itself.
+  // 2. The server-side filter never worked anyway. `PurchaseOrderController:42` declares
+  //    `@RequestParam(required = false) List<PoStatus> status`, which binds `?status=DRAFT`,
+  //    while axios serialises an array param as `?status[]=DRAFT`. Spring found no parameter
+  //    named `status`, `required = false` swallowed the absence, and the whole list came back —
+  //    so choosing a status changed nothing on screen. Narrowing here is the first time this
+  //    control does anything at all.
+  const poQuery = usePurchaseOrders(branchId);
+  const allPurchaseOrders = useMemo(() => poQuery.data ?? [], [poQuery.data]);
+  const purchaseOrders = useMemo(
+    () =>
+      statusFilter
+        ? allPurchaseOrders.filter((po) => po.status === statusFilter)
+        : allPurchaseOrders,
+    [allPurchaseOrders, statusFilter],
+  );
 
   // The list carried a `vendorId` and nothing else, so every row named its supplier with a UUID
   // stub. The vendor list is a separate cached read on the same service — joining here is what
@@ -49,10 +74,16 @@ export default function PurchaseOrdersPage() {
     [vendorsQuery.data],
   );
 
-  // Derived from `purchaseOrders` — the identical array the grid renders below, so the header
-  // and the table can never state different totals.
-  const draftCount = purchaseOrders.filter((po) => po.status === "DRAFT").length;
-  const awaitingCount = purchaseOrders.filter((po) => po.status === "PENDING_APPROVAL").length;
+  // Two bases, and every figure states on its own tile which one it is counting.
+  //
+  // `purchaseOrders` is the identical array the grid renders below, so anything labelled "shown"
+  // is derived from it and the header can never state a total the table contradicts. The STATUS
+  // counts come from `allPurchaseOrders` instead, because they answer a question the reader's
+  // filter does not change: "is anything waiting for me to approve it?" is a fact about the
+  // branch, not about whichever slice a buyer is currently looking at. A tile reading 0 because
+  // of the filter the reader just set is the screen contradicting itself.
+  const draftCount = allPurchaseOrders.filter((po) => po.status === "DRAFT").length;
+  const awaitingCount = allPurchaseOrders.filter((po) => po.status === "PENDING_APPROVAL").length;
   const committedPaisa = purchaseOrders.reduce((sum, po) => sum + po.totalPaisa, 0);
 
   const columns = useMemo<ColumnDef<PurchaseOrder, unknown>[]>(() => {
@@ -120,8 +151,12 @@ export default function PurchaseOrdersPage() {
       <PageHeader
         title="Purchase orders"
         description="What is on order for this branch, and where each order has reached."
+        // `filteredCountLine`, not `countLine` (stat-line.ts:20-25): a narrowed list that states
+        // only its own size makes a filtered screen and an empty branch look identical. And the
+        // exception clause counts the WHOLE branch, so filtering to any status other than
+        // PENDING_APPROVAL no longer deletes the one line an approver reads this header for.
         meta={statLine(
-          countLine(purchaseOrders.length, "purchase order"),
+          filteredCountLine(purchaseOrders.length, allPurchaseOrders.length, "purchase order"),
           awaitingCount > 0 ? `${awaitingCount} awaiting approval` : null,
           statusFilter ? `Filtered to ${statusFilter.replaceAll("_", " ").toLowerCase()}` : null,
         )}
@@ -131,16 +166,22 @@ export default function PurchaseOrdersPage() {
       <div className="grid gap-(--space-md) sm:grid-cols-2 xl:grid-cols-4">
         <StatTile
           label={statusFilter ? "Orders shown" : "Purchase orders"}
-          value={purchaseOrders.length.toLocaleString()}
+          value={formatNumber(purchaseOrders.length)}
           icon={ClipboardList}
           accent="primary"
         />
-        <StatTile label="Draft" value={draftCount.toLocaleString()} icon={FileEdit} />
+        {/* Both count every order in the branch. Under a filter they say so, because a
+            branch-wide figure sitting unmarked beside a filtered one leaves the reader unable to
+            tell which tiles moved with their filter and which did not. */}
         <StatTile
-          label="Awaiting approval"
-          value={awaitingCount.toLocaleString()}
+          label={statusFilter ? "Draft (all orders)" : "Draft"}
+          value={formatNumber(draftCount)}
+          icon={FileEdit}
+        />
+        <StatTile
+          label={statusFilter ? "Awaiting approval (all orders)" : "Awaiting approval"}
+          value={formatNumber(awaitingCount)}
           icon={Clock}
-          higherIsBetter={false}
         />
         <StatTile
           label="Value of orders shown"
@@ -167,7 +208,11 @@ export default function PurchaseOrdersPage() {
         className="mt-4"
         query={poQuery}
         what="purchase orders"
-        isEmpty={purchaseOrders.length === 0}
+        // The BRANCH's count, not the filtered one. Filtering to a status nobody has used yet is
+        // not an empty branch, and "No purchase orders yet · raise your first order" is the wrong
+        // sentence to show a buyer who has 84 of them. Letting the filtered-empty case fall
+        // through to `DataGrid` gets UI-SPEC §8.3's separate state, which offers a way back out.
+        isEmpty={allPurchaseOrders.length === 0}
         loading={
           <div className="mt-4 grid gap-2">
             <Skeleton className="h-16" />

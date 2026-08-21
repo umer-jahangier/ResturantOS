@@ -261,13 +261,11 @@ export default function AttendancePage() {
               <StatTile
                 label="Late"
                 density="compact"
-                higherIsBetter={false}
                 value={`${summaryQuery.data.lateMinutes} min`}
               />
               <StatTile
                 label="Early leave"
                 density="compact"
-                higherIsBetter={false}
                 value={`${summaryQuery.data.earlyMinutes} min`}
               />
               <p className="text-label text-muted-foreground sm:col-span-2">

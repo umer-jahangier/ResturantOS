@@ -4,6 +4,7 @@ import * as React from "react";
 
 import { useZone } from "@/components/providers/zone-provider";
 import { MoneyDisplay } from "@/components/ui/money-display";
+import { formatNumber } from "@/lib/format/locale";
 import { cn } from "@/lib/utils";
 
 /**
@@ -196,11 +197,14 @@ const NO_DENOMINATOR = "No denominator to measure against";
  * decimal separators differ — measured, `de-DE` gives `1.234,5` where `en-US` gives `1,234.5` —
  * which is a hydration text mismatch on precisely the numbers a meter exists to display.
  *
- * `en-PK` matches `lib/adapters/shared.ts:30`, which documents itself as "THE one construction …
- * so there is no second place where a locale could be chosen differently". This is not a second
- * place; it is the same choice, restated where a reader of this file can see it.
+ * This file used to restate that choice as its own `"en-PK"` literal, on the argument that a
+ * reader of this file should be able to see it. That argument lost: a restated constant is a
+ * constant that can be edited in one place and not the other, and the eleven call sites added
+ * after this fix restated nothing at all. The choice now arrives from `lib/format/locale.ts`,
+ * which is the single literal, and `__tests__/lib/theme/locale-pinning.test.ts` fails any file
+ * that goes back to deciding for itself.
  */
-const numberFormat = new Intl.NumberFormat("en-PK", { maximumFractionDigits: 1 });
+const formatMeterNumber = (value: number) => formatNumber(value, { maximumFractionDigits: 1 });
 
 /** `null` for anything that cannot honestly become a finite number — `NaN` and `Infinity` included. */
 function finite(input: number | bigint | null | undefined): number | null {
@@ -249,9 +253,9 @@ function Meter({
     format === "money" ? (
       <MoneyDisplay paisa={n} currency={currency} />
     ) : format === "percent" ? (
-      `${numberFormat.format(Number(n))}%`
+      `${formatMeterNumber(Number(n))}%`
     ) : (
-      numberFormat.format(Number(n))
+      formatMeterNumber(Number(n))
     );
 
   // Built as a plain string only where no money is involved — this component must never own a
@@ -259,7 +263,7 @@ function Meter({
   const valueText =
     numerator === null || denominator === null || format === "money"
       ? undefined
-      : `${numberFormat.format(numerator)} of ${numberFormat.format(denominator)}` +
+      : `${formatMeterNumber(numerator)} of ${formatMeterNumber(denominator)}` +
         (noun && format === "count" ? ` ${noun}` : format === "percent" ? " percent" : "") +
         (over ? " — over" : "");
 

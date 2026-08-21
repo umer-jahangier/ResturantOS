@@ -8,6 +8,7 @@ import { useMyBranches } from "@/lib/hooks/auth/use-my-branches";
 import { useCategories, useStockLevels } from "@/lib/hooks/inventory/use-inventory";
 import { useDebouncedValue } from "@/lib/hooks/use-debounce";
 import { countLine, filteredCountLine, statLine } from "@/lib/format/stat-line";
+import { formatNumber } from "@/lib/format/locale";
 import type { StockLevel } from "@/lib/adapters/inventory.adapter";
 import { OpeningBalanceDialog } from "@/components/inventory/OpeningBalanceDialog";
 import { StockReceiptDialog } from "@/components/inventory/StockReceiptDialog";
@@ -197,22 +198,12 @@ export default function StockPage() {
       <div className="grid gap-(--space-md) sm:grid-cols-2 xl:grid-cols-4">
         <StatTile
           label={isFiltered ? "Ingredients shown" : "Ingredients tracked"}
-          value={rows.length.toLocaleString()}
+          value={formatNumber(rows.length)}
           icon={Boxes}
           accent="primary"
         />
-        <StatTile
-          label="Below reorder point"
-          value={lowCount.toLocaleString()}
-          icon={AlertTriangle}
-          higherIsBetter={false}
-        />
-        <StatTile
-          label="Out of stock"
-          value={outCount.toLocaleString()}
-          icon={XCircle}
-          higherIsBetter={false}
-        />
+        <StatTile label="Below reorder point" value={formatNumber(lowCount)} icon={AlertTriangle} />
+        <StatTile label="Out of stock" value={formatNumber(outCount)} icon={XCircle} />
         <StatTile
           label={isFiltered ? "Stock value shown" : "Total stock value"}
           value={

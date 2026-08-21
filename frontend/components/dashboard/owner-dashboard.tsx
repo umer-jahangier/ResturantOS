@@ -10,6 +10,7 @@ import { DASHBOARD_PRESETS, visiblePortlets } from "@/components/dashboard/prese
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
+import { formatNumber } from "@/lib/format/locale";
 import { useOrderSummaries } from "@/lib/hooks/pos/use-orders";
 import { useRunReport } from "@/lib/hooks/reporting/use-reports";
 import type { ReportRow } from "@/lib/models/reporting.model";
@@ -103,7 +104,7 @@ export function OwnerDashboard() {
         label: "Net sales",
         values: salesRows.map((r) => num(r, "total_paisa") / 100),
         colorVar: "--chart-1",
-        format: (v) => `Rs ${Math.round(v).toLocaleString()}`,
+        format: (v) => `Rs ${formatNumber(Math.round(v))}`,
       },
       {
         label: "Orders",
@@ -126,7 +127,7 @@ export function OwnerDashboard() {
       key: String(r.menu_item_id ?? r.item_name),
       label: String(r.item_name ?? "Unnamed item"),
       // Money is BIGINT paisa on the wire and converted ONLY here, at display.
-      value: `Rs ${(num(r, "revenue_inc_tax_paisa") / 100).toLocaleString(undefined, {
+      value: `Rs ${formatNumber(num(r, "revenue_inc_tax_paisa") / 100, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })} · ${num(r, "qty")} sold`,
@@ -187,7 +188,7 @@ export function OwnerDashboard() {
               title="Covers"
               drillTo="/app/pos/orders"
               density={PRESET.density}
-              value={covers.toLocaleString()}
+              value={formatNumber(covers)}
               caption={`Across ${closedOrders.length} closed order${closedOrders.length === 1 ? "" : "s"}`}
             />
           )}

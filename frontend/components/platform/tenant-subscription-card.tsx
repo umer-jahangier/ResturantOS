@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatUserFacingError } from "@/lib/errors";
+import { formatNumber } from "@/lib/format/locale";
 import { useChangeTier, useUpdateTenant } from "@/lib/hooks/use-platform-tenants";
 import type { PlatformTenant, TenantTier } from "@/lib/models/platform.model";
 
@@ -116,7 +117,7 @@ export function TenantSubscriptionCard({ tenant }: { tenant: PlatformTenant }) {
           <Field label="Renews" value={formatDate(tenant.renewsAt)} />
           <Field label="Branch limit" value={String(tenant.maxBranches ?? "—")} />
           <Field label="User limit" value={String(tenant.maxUsers ?? "—")} />
-          <Field label="NLQ quota" value={`${tenant.nlqQuota?.toLocaleString() ?? "—"} / month`} />
+          <Field label="NLQ quota" value={`${formatNumber(tenant.nlqQuota)} / month`} />
         </dl>
       )}
 

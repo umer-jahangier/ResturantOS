@@ -150,13 +150,18 @@ describe("ActivityRow — tone", () => {
     }
   });
 
-  it("lets a caller name a categorical tone, and silence a state one with an empty string", () => {
+  it("lets a caller name a categorical tone, which otherwise carries no word at all", () => {
     const named = renderFeed({ tone: "secondary", toneLabel: "Front of house" });
     expect(screen.getByRole("listitem")).toHaveTextContent("Front of house");
     named.unmount();
 
-    renderFeed({ tone: "danger", toneLabel: "" });
-    expect(screen.getByRole("listitem")).not.toHaveTextContent("Critical");
+    // A blank label on a CATEGORICAL tone still says nothing: there is no default to fall back
+    // to, and no severity for a word to carry. A blank on a STATE tone falls back to the tone's
+    // own word instead of deleting it — see the reconciliation block at the foot of this file.
+    renderFeed({ tone: "secondary", toneLabel: "" });
+    expect(screen.getByRole("listitem")).not.toHaveTextContent(
+      /Critical|Warning|Completed|Information/,
+    );
   });
 
   it("names the teal by its ramp, never by the word the G3 scanner counts", () => {
@@ -244,5 +249,125 @@ describe("ActivityRow — born on-contract (G1-G4)", () => {
 
   it("formats no money itself — MoneyDisplay owns that, and paisa are BIGINT", () => {
     expect(SOURCE).not.toMatch(/toFixed|Intl\.NumberFormat|paisa|PKR|Rs\b/);
+  });
+});
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────────────────────
+ * The reconciliation with `StatTile` (D-38-13, UI-SPEC §4.2).
+ *
+ * Two primitives from the same wave took opposite positions on the same rule. `stat-tile.tsx`
+ * argues in its docblock that the delta's sentiment word "is visible text and not `sr-only`",
+ * because hue alone is the one channel a reader may confuse. `ActivityRow` rendered its tone word
+ * `sr-only` — so a sighted reader with a colour-vision deficiency got the chip hue and a
+ * caller-supplied glyph, and the glyph is NOT derived from `tone`, which means two different
+ * severities were free to render the same icon and differ by nothing but colour.
+ *
+ * Settled in favour of the visible word, and written down in both docblocks. It is also what the
+ * sibling feed already does: `ExceptionList` (`dashboard/portlets/portlet.tsx`) triages by a
+ * visible uppercase ACT / CHECK / FYI. Deriving the glyph instead would have taken the domain
+ * icon away from the caller — the shape that makes a feed scannable in the first place.
+ *
+ * <h3>Negative controls — run, OBSERVED RED, restored</h3>
+ *
+ * 1. Put the tone word back in `sr-only` — the state this whole block was written against.
+ *    → RED (3 failed / 24 passed): "gives no two state tones the same visible signature"
+ *      (`"warning" and "danger" are indistinguishable once colour is gone: Salmon fillet below
+ *      reorder point (320g left)2m ago | glyph:<svg data-testid="chip-glyph"></svg>`), plus
+ *      "prints the tone word visibly" and "leaves no state tone mistakable for a categorical
+ *      one". Restored.
+ * 2. Put back the `toneLabel ?? TONE_WORD[tone]` empty-string escape hatch.
+ *    → RED (1 failed / 26 passed): "lets a caller rename a state tone's word but never silence
+ *      it". Restored to `||`.
+ * 3. Deleted the `components/ui/activity-row.tsx` cross-reference from `stat-tile.tsx`.
+ *    → RED (1 failed / 26 passed): "records the agreement in BOTH docblocks". Restored.
+ */
+
+const STATE_TONES = ["danger", "warning", "success", "info"] as const;
+const CATEGORICAL_TONES = ["accent", "secondary", "neutral"] as const;
+
+const RAW_ACTIVITY_ROW = readFileSync(
+  resolve(frontendRoot(), "components/ui/activity-row.tsx"),
+  "utf8",
+);
+const RAW_STAT_TILE = readFileSync(resolve(frontendRoot(), "components/ui/stat-tile.tsx"), "utf8");
+
+/**
+ * Everything about the row that survives the loss of colour.
+ *
+ * Visually hidden text is stripped — it is exactly the channel that does NOT reach the reader
+ * this rule is about. The chip is folded in as its inner markup rather than its class list, so
+ * the GLYPH counts as a channel and the chip's hue does not; a row that derived its icon from
+ * `tone` instead of printing a word would therefore also pass, which is deliberate — the test
+ * pins the property, not the implementation that satisfies it today.
+ */
+function visibleSignature(row: HTMLElement): string {
+  const clone = row.cloneNode(true) as HTMLElement;
+  clone.querySelectorAll(".sr-only").forEach((n) => n.remove());
+  const chip = clone.querySelector('[data-slot="activity-icon"]');
+  const glyph = chip?.innerHTML ?? "";
+  chip?.remove();
+  const text = (clone.textContent ?? "").replace(/\s+/g, " ").trim();
+  return `${text} | glyph:${glyph}`;
+}
+
+/** Every tone gets the SAME caller glyph, which is what a caller is free to do. */
+function signatureOf(tone: (typeof STATE_TONES)[number] | (typeof CATEGORICAL_TONES)[number]) {
+  const view = renderFeed({ tone });
+  const sig = visibleSignature(screen.getByRole("listitem"));
+  view.unmount();
+  return sig;
+}
+
+describe("ActivityRow — hue is never the only channel a sighted reader has", () => {
+  it("prints the tone word visibly, not only to a screen reader", () => {
+    renderFeed({ tone: "warning" });
+    const word = screen.getByText("Warning");
+    expect(word).toHaveAttribute("data-slot", "activity-tone");
+    expect(word.className).not.toContain("sr-only");
+  });
+
+  it("gives no two state tones the same visible signature", () => {
+    const seen = new Map<string, string>();
+    for (const tone of STATE_TONES) {
+      const sig = signatureOf(tone);
+      const clash = seen.get(sig);
+      expect(
+        clash,
+        `"${tone}" and "${clash}" are indistinguishable once colour is gone: ${sig}`,
+      ).toBeUndefined();
+      seen.set(sig, tone);
+    }
+    expect(seen.size).toBe(STATE_TONES.length);
+  });
+
+  it("leaves no state tone mistakable for a categorical one", () => {
+    // The categorical three are ALLOWED to share a signature with each other — they claim no
+    // severity, and are told apart by the caller's glyph and the sentence. What may never happen
+    // is a row that means "Critical" reading identically to one that means nothing.
+    const categorical = new Set(CATEGORICAL_TONES.map(signatureOf));
+    for (const tone of STATE_TONES) {
+      expect(categorical.has(signatureOf(tone)), `${tone} reads as an untoned row`).toBe(false);
+    }
+  });
+
+  it("lets a caller rename a state tone's word but never silence it", () => {
+    // `toneLabel=""` used to delete the word. With the word carrying the state, an empty label
+    // would hand the row back to hue alone — the defect, reachable from a prop.
+    const empty = renderFeed({ tone: "danger", toneLabel: "" });
+    expect(screen.getByRole("listitem")).toHaveTextContent("Critical");
+    empty.unmount();
+
+    renderFeed({ tone: "danger", toneLabel: "Stop the line" });
+    const row = screen.getByRole("listitem");
+    expect(row).toHaveTextContent("Stop the line");
+    expect(row).not.toHaveTextContent("Critical");
+  });
+
+  it("records the agreement in BOTH docblocks, so it is not re-litigated", () => {
+    expect(RAW_ACTIVITY_ROW).toMatch(/stat-tile\.tsx/);
+    expect(RAW_ACTIVITY_ROW).toMatch(/UI-SPEC §4\.2/);
+    expect(RAW_STAT_TILE).toMatch(/activity-row\.tsx/);
+    expect(RAW_STAT_TILE).toMatch(/UI-SPEC §4\.2/);
   });
 });

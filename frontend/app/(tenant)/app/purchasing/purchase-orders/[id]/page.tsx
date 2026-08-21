@@ -16,6 +16,7 @@ import {
   useWithdrawPurchaseOrder,
 } from "@/lib/hooks/purchasing/use-purchasing";
 import { MoneyDisplay } from "@/components/ui/money-display";
+import { formatDateTime } from "@/lib/format/locale";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -134,7 +135,7 @@ export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ 
       )}
       {po.status === "CLOSED" && po.closedAt && (
         <p className="text-sm text-muted-foreground">
-          Closed {new Date(po.closedAt).toLocaleString()}
+          Closed {formatDateTime(po.closedAt)}
           {po.closeReason ? ` — ${po.closeReason}` : ""}
         </p>
       )}

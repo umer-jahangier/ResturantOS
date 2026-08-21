@@ -140,6 +140,34 @@ describe("StatTile — delta polarity is computed, never hand-picked", () => {
 
     expect(screen.getByText("vs last Mon")).toBeInTheDocument();
   });
+
+  it("will not compile when a polarity is declared with no delta to apply it to", () => {
+    // The state this refuses is the one the product actually shipped: NINE call sites passed
+    // `higherIsBetter={false}` and none of them passed a delta, so nine screens declared a
+    // polarity that `showDelta` could never reach. A prop with no effect reads to the next author
+    // as evidence the tile is doing something with it, and the natural "fix" for a polarity that
+    // never appears is to invent the prior period that would make it appear (D-38-16).
+    // @ts-expect-error — `higherIsBetter` requires the `deltaPct` it describes.
+    const inertPolarity = <StatTile label="Out of stock" value="3" higherIsBetter={false} />;
+    expect(inertPolarity).toBeTruthy();
+  });
+
+  it("will not compile when a comparison basis is declared with nothing to compare", () => {
+    // `comparisonLabel` renders INSIDE the delta row. With no delta there is no row, so "vs last
+    // week" would name a comparison this tile is not making.
+    // @ts-expect-error — `comparisonLabel` requires the `deltaPct` it qualifies.
+    const inertBasis = <StatTile label="Out of stock" value="3" comparisonLabel="vs last week" />;
+    expect(inertBasis).toBeTruthy();
+  });
+
+  it("accepts a polarity beside a null delta — 'no comparable prior period' is still a comparison", () => {
+    // The union must not be so tight that it refuses the honest absence: `null` means there IS a
+    // comparison to make and no period to make it against, which is a different statement from
+    // omitting the delta entirely, and the caller still knows which direction would be good news.
+    render(<StatTile label="Waste" value="3.1%" deltaPct={null} higherIsBetter={false} />);
+
+    expect(part("delta")).toHaveTextContent("No comparable prior period");
+  });
 });
 
 describe("StatTile — an uncomputable figure is an absence, not a number (D-38-16)", () => {

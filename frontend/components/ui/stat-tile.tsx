@@ -40,7 +40,7 @@ import { cn } from "@/lib/utils";
  *     percentage change on a number we do not have is a second lie stacked on the first.
  * </ol>
  *
- * <h3>Three channels on the delta, not one (D-38-13, §40)</h3>
+ * <h3>Three channels on the delta, not one (D-38-13, UI-SPEC §4.2, §40)</h3>
  *
  * The delta states its sentiment as a <b>word</b> ("better" / "worse" / "No change"), its
  * arithmetic direction as an <b>arrow</b>, and its sentiment again as <b>colour</b>. The word is
@@ -51,6 +51,21 @@ import { cn } from "@/lib/utils";
  * <p>Note the arrow means <i>direction</i> and the colour means <i>sentiment</i>; they disagree on
  * purpose for an inverted metric (food cost down = down arrow, green). The word is what resolves
  * the apparent contradiction for a reader, which is why it is visible text and not `sr-only`.
+ *
+ * <p><b>And `components/ui/activity-row.tsx` now says the same thing, because it used to say the
+ * opposite.</b> Two primitives from this wave were reviewed together and found disagreeing:
+ * `ActivityRow` rendered its severity word `sr-only`, leaving a sighted reader with a
+ * colour-vision deficiency nothing but the chip hue and a caller-supplied glyph that is <i>not</i>
+ * derived from the tone — so two different severities were free to render identically. UI-SPEC
+ * §4.2 requires state carried by hue to ALSO be carried by text, shape or icon, <b>visibly</b>,
+ * and `sr-only` reaches only the reader who was never at risk from hue in the first place.
+ *
+ * <p>The settled rule, binding on both files: <b>hue never travels alone, and the second channel
+ * is on the screen.</b> Neither primitive offers a prop that can switch it off — this tile's
+ * delta word is unconditional, and over there the empty `toneLabel` that used to delete the tone
+ * word now falls back to it. Change one of these two files and change the other; the agreement is
+ * pinned from `__tests__/components/ui/activity-row.test.tsx` so a third reader does not have to
+ * re-litigate it.
  *
  * <h3>The accent channel is decorative and may never be a state hue</h3>
  *
@@ -112,20 +127,8 @@ interface StatTileBaseProps {
    * string all compose. Ignored when {@link StatTileBaseProps.unavailableReason} is set.
    */
   value?: React.ReactNode;
-  /**
-   * Percentage change vs the prior period.
-   *
-   * <p>Three distinct meanings, and the distinction is the point:
-   * <b>omitted</b> — no delta row at all (8 of the demo's 24 cards carry none, and that is correct
-   * for a count like "Open POs"); <b>`null`</b> — there is a comparison to make but no comparable
-   * prior period, rendered as a stated absence; <b>`0`</b> — measured, and it was flat.
-   * `null` must never be coerced to `0`, which claims the business did not move.
-   */
-  deltaPct?: number | null;
-  /** Whether an increase is good news. Food cost, waste and late tickets pass `false`. */
-  higherIsBetter?: boolean;
-  /** The comparison basis, in the demo's own words — "vs last Mon", "vs prior period". */
-  comparisonLabel?: string;
+  // NOTE: `deltaPct`, `higherIsBetter` and `comparisonLabel` are NOT declared here. They live in
+  // {@link StatTileDelta} below, which binds the two polarity props to the delta they describe.
   /**
    * Set when the figure genuinely cannot be computed from data this system holds. Renders `—`
    * plus this reason instead of the value, and suppresses the delta row. Say what is missing
@@ -155,6 +158,57 @@ type StatTileDrill =
   | { drillTo?: undefined; drillLabel?: undefined };
 
 /**
+ * The delta and its two modifiers travel together, or none of them is accepted at all.
+ *
+ * <h3>What this union is repairing</h3>
+ *
+ * <p>`higherIsBetter` and `comparisonLabel` describe a delta. Nothing else on the tile reads
+ * them: `showDelta` is `!unavailable && deltaPct !== undefined`, so with no `deltaPct` the
+ * sentiment, the arrow, the word and the comparison basis are all unreachable. They were
+ * declared as free-floating optionals beside `deltaPct` anyway — and the product duly filled
+ * them in. **Nine** call sites passed `higherIsBetter={false}` (purchasing/purchase-orders,
+ * purchasing/payments ×2, inventory/stock ×2, inventory/coverage, hr/attendance ×2, hr/payroll)
+ * and not one of them passed a delta, so nine screens declared a polarity that could not render
+ * and no compiler said a word. A prop that has no effect is not harmless: it reads to the next
+ * author as evidence that the tile is doing something with it, and the natural "fix" for a
+ * polarity that never shows up is to invent the delta that would make it show up.
+ *
+ * <h3>Why the props were removed from the call sites rather than fed a delta</h3>
+ *
+ * <p>Because none of those nine metrics has an honest prior period. They are counts of the
+ * CURRENT state — orders awaiting approval, ingredients below reorder point, late minutes
+ * today — and this system stores no historical snapshot of any of them. The only prior-period
+ * figure the backend actually computes is the purchasing spend comparison
+ * (`apiSpendBucketSchema.priorSpendPaisa`/`deltaPct`), and that already renders through
+ * `SpendAnalyticsTable`. Manufacturing a percentage for the other nine would be D-38-16's exact
+ * defect one level up: not a fabricated value, but a fabricated CHANGE in a value.
+ *
+ * <p>So the delta subsystem stays — it is specified, tested, and the first caller with a real
+ * prior period gets computed polarity for free — and the type now refuses the state where a
+ * polarity is asserted with nothing to apply it to. Same instinct as the `value` /
+ * `unavailableReason` union below: make the wrong shape uncompilable rather than documented.
+ */
+type StatTileDelta =
+  | {
+      /**
+       * Percentage change vs the prior period.
+       *
+       * <p>Two distinct meanings once the prop is present, and the distinction is the point:
+       * <b>`null`</b> — there is a comparison to make but no comparable prior period, rendered as
+       * a stated absence; <b>`0`</b> — measured, and it was flat. `null` must never be coerced to
+       * `0`, which claims the business did not move. Omitting the prop entirely is the third
+       * meaning: no delta row at all, which is correct for a count like "Open POs" (8 of the
+       * demo's 24 cards carry none) — and that case is the second member of this union.
+       */
+      deltaPct: number | null;
+      /** Whether an increase is good news. Food cost, waste and late tickets pass `false`. */
+      higherIsBetter?: boolean;
+      /** The comparison basis, in the demo's own words — "vs last Mon", "vs prior period". */
+      comparisonLabel?: string;
+    }
+  | { deltaPct?: undefined; higherIsBetter?: never; comparisonLabel?: never };
+
+/**
  * A StatTile either HAS a figure or states why it does not. It cannot do both, and it cannot
  * do neither (D-38-16, D-38-20).
  *
@@ -168,10 +222,13 @@ type StatTileDrill =
  * figures have no honest source in this system, and the whole of D-38-16 is that such a figure
  * renders as a stated absence rather than as a number. The compiler now enforces it.
  */
-export type StatTileProps = StatTileBaseProps & StatTileDrill & (
-  | { value: React.ReactNode; unavailableReason?: never }
-  | { value?: never; unavailableReason: string }
-);
+export type StatTileProps = StatTileBaseProps &
+  StatTileDrill &
+  StatTileDelta &
+  (
+    | { value: React.ReactNode; unavailableReason?: never }
+    | { value?: never; unavailableReason: string }
+  );
 
 type Sentiment = "better" | "worse" | "flat" | "unknown";
 

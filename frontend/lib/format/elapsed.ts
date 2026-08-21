@@ -86,6 +86,8 @@
  * included.
  */
 
+import { DATE_LOCALE } from "@/lib/format/locale";
+
 /** The bound. Past this the compact form stops counting and urgency is withdrawn. */
 export const ELAPSED_URGENCY_BOUND_MS = 24 * 60 * 60 * 1000;
 
@@ -135,7 +137,8 @@ export interface ElapsedReading {
   srLabel: string;
 }
 
-const DEFAULT_LOCALE = "en-GB";
+/** Re-exported name kept so the fallbacks below read as before; the literal lives in one place. */
+const DEFAULT_LOCALE = DATE_LOCALE;
 
 function toEpochMs(value: ElapsedInstant): number | null {
   if (value instanceof Date) {

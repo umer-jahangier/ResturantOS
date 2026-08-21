@@ -14,6 +14,7 @@ import { MoneyDisplay } from "@/components/ui/money-display";
 import { StatTile } from "@/components/ui/stat-tile";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { TransactionEventKind, TransactionRow } from "@/lib/models/transaction.model";
+import { formatDateTime } from "@/lib/format/locale";
 import { cn } from "@/lib/utils";
 
 function today(): string {
@@ -113,7 +114,7 @@ export function TransactionRegister() {
         header: "When",
         accessorFn: (r) => r.eventAt.getTime(),
         cell: ({ row }) => (
-          <span className="tabular-nums">{row.original.eventAt.toLocaleString()}</span>
+          <span className="tabular-nums">{formatDateTime(row.original.eventAt)}</span>
         ),
       },
       {
@@ -320,7 +321,7 @@ export function TransactionRegister() {
           emptyDescription="No payment, refund or void was recorded between these dates. That is what the register holds — it is not a failed read."
           card={{
             primary: (r) => r.orderNo,
-            secondary: (r) => `${KIND_BADGE[r.eventKind].label} · ${r.eventAt.toLocaleString()}`,
+            secondary: (r) => `${KIND_BADGE[r.eventKind].label} · ${formatDateTime(r.eventAt)}`,
             trailing: (r) => <MoneyDisplay paisa={r.eventAmountPaisa} sign="signed" />,
           }}
         />

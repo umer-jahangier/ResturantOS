@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import { useAuditEvents, useAuditFacets, useBranchTimeZone } from "@/lib/hooks/audit/use-audit-log";
 import type { AuditEvent } from "@/lib/models/audit.model";
+import { formatNumber } from "@/lib/format/locale";
 import { cn } from "@/lib/utils";
 
 /**
@@ -515,7 +516,7 @@ export function AuditLog() {
             <p className="text-small text-muted-foreground" data-testid="audit-page-summary">
               {total === 0
                 ? "0 events"
-                : `Showing ${firstIndex.toLocaleString()}–${lastIndex.toLocaleString()} of ${total.toLocaleString()} event${
+                : `Showing ${formatNumber(firstIndex)}–${formatNumber(lastIndex)} of ${formatNumber(total)} event${
                     total === 1 ? "" : "s"
                   }`}
             </p>

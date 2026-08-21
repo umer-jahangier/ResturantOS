@@ -24,13 +24,15 @@
  * to `DataGrid`, and where a filter has narrowed that array they say so ("42 of 138 shown").
  * {@link countLine} exists so that sentence has one spelling.
  */
+
+import { formatNumber } from "@/lib/format/locale";
 export function statLine(...parts: Array<string | false | null | undefined>): string {
   return parts.filter((part): part is string => typeof part === "string" && part !== "").join(" · ");
 }
 
 /** `1 vendor` / `12 vendors` — the scale part, pluralised without a second `if` at each site. */
 export function countLine(n: number, singular: string, plural = `${singular}s`): string {
-  return `${n.toLocaleString()} ${n === 1 ? singular : plural}`;
+  return `${formatNumber(n)} ${n === 1 ? singular : plural}`;
 }
 
 /**
@@ -46,5 +48,5 @@ export function filteredCountLine(
   plural = `${singular}s`,
 ): string {
   if (shown === total) return countLine(total, singular, plural);
-  return `${shown.toLocaleString()} of ${total.toLocaleString()} ${total === 1 ? singular : plural}`;
+  return `${formatNumber(shown)} of ${formatNumber(total)} ${total === 1 ? singular : plural}`;
 }

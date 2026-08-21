@@ -8,6 +8,15 @@ import type {
   TillReconciliationState,
 } from "@/lib/models/takings.model";
 import { cn } from "@/lib/utils";
+import { formatDateTime } from "@/lib/format/locale";
+
+/**
+ * `12/08/2026, 23:30` — a till row carries an opened AND a closed stamp on one line, so the
+ * numeric date is the only form that fits without wrapping. Rendered through the pinned
+ * formatter, so a manager reading a variance is reading the BRANCH's clock, not the server's:
+ * a till opened 23:30 in Karachi must not be filed under the previous day.
+ */
+const SHORT_STAMP: Intl.DateTimeFormatOptions = { dateStyle: "short", timeStyle: "short" };
 
 /**
  * The five states, each said in a restaurant owner's words.
@@ -216,15 +225,9 @@ export function TillVariancePanel({
                       <span className="block font-medium">{cashier}</span>
                       <span className="block text-label text-muted-foreground">
                         Opened{" "}
-                        {till.openedAt.toLocaleString(undefined, {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        })}
+                        {formatDateTime(till.openedAt, SHORT_STAMP)}
                         {till.closedAt
-                          ? ` · closed ${till.closedAt.toLocaleString(undefined, {
-                              dateStyle: "short",
-                              timeStyle: "short",
-                            })}`
+                          ? ` · closed ${formatDateTime(till.closedAt, SHORT_STAMP)}`
                           : " · not closed"}
                       </span>
                     </td>

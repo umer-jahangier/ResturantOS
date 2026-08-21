@@ -7,6 +7,7 @@ import { Clock, ReceiptText, Wallet } from "lucide-react";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useVendorInvoices, useVendors } from "@/lib/hooks/purchasing/use-purchasing";
 import { countLine, statLine } from "@/lib/format/stat-line";
+import { formatNumber } from "@/lib/format/locale";
 import type { VendorInvoice } from "@/lib/adapters/purchasing.adapter";
 import { MatchStatusBadge } from "@/components/purchasing/ThreeWayMatchTable";
 import { ApPaymentDialog } from "@/components/purchasing/ApPaymentDialog";
@@ -177,17 +178,15 @@ export default function ApPaymentsPage() {
       <div className="grid gap-(--space-md) sm:grid-cols-3">
         <StatTile
           label="Invoices to pay"
-          value={payable.length.toLocaleString()}
+          value={formatNumber(payable.length)}
           icon={ReceiptText}
           accent="primary"
-          higherIsBetter={false}
         />
         <StatTile
           label="Owed on these invoices"
           value={<MoneyDisplay paisa={owedPaisa} />}
           icon={Wallet}
           accent="secondary"
-          higherIsBetter={false}
         />
         {/* The demo's fourth tile here would be "Average days to pay". This system records no
             payment date on an invoice — `ApPaymentController` is POST-only and nothing reads

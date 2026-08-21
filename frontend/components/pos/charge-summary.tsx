@@ -21,6 +21,7 @@ import {
 import { formatServiceChargeRate } from "@/lib/models/service-charge.model";
 import { paisaToRupeeInput, parseRupeesToPaisa } from "@/lib/adapters/shared";
 import { cn } from "@/lib/utils";
+import { formatDateTime } from "@/lib/format/locale";
 
 interface ChargeSummaryProps {
   orderId: string;
@@ -173,10 +174,7 @@ function newTenderRow(amountText = ""): TenderRow {
 }
 
 function formatOrderTime(value: string | null): string {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+  return formatDateTime(value, { dateStyle: "medium", timeStyle: "short" });
 }
 
 function shortId(id: string | null): string {

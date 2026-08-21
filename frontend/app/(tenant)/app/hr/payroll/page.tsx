@@ -26,6 +26,7 @@ import {
   usePayrollRuns,
   usePayslips,
 } from "@/lib/hooks/hr/use-payroll";
+import { formatNumber } from "@/lib/format/locale";
 import type { ApiError } from "@/lib/errors";
 import type { Payslip, PayrollRun } from "@/lib/models/hr.model";
 
@@ -314,8 +315,10 @@ export default function PayrollPage() {
                           <StatTile
                             label="Share of revenue"
                             density="compact"
-                            higherIsBetter={false}
-                            value={`${labourQuery.data.labourCostPct.toFixed(1)}%`}
+                            value={`${formatNumber(labourQuery.data.labourCostPct, {
+                              minimumFractionDigits: 1,
+                              maximumFractionDigits: 1,
+                            })}%`}
                           />
                         ) : (
                           <StatTile

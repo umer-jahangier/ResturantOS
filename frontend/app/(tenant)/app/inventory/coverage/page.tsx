@@ -5,6 +5,7 @@ import { CircleCheck, CircleSlash, CalendarClock, UtensilsCrossed } from "lucide
 
 import { useCoverage } from "@/lib/hooks/inventory/use-inventory";
 import { countLine, filteredCountLine, statLine } from "@/lib/format/stat-line";
+import { formatNumber } from "@/lib/format/locale";
 import type { CoverageState } from "@/lib/adapters/inventory.adapter";
 import { DataGrid, type ColumnDef } from "@/components/ui/data-grid/data-grid";
 import { FilterBar } from "@/components/ui/filter-bar";
@@ -118,18 +119,13 @@ export default function CoveragePage() {
       <div className="grid gap-(--space-md) sm:grid-cols-2 xl:grid-cols-4">
         <StatTile
           label="Active menu items"
-          value={allItems.length.toLocaleString()}
+          value={formatNumber(allItems.length)}
           icon={UtensilsCrossed}
           accent="primary"
         />
-        <StatTile label="Covered" value={covered.toLocaleString()} icon={CircleCheck} />
-        <StatTile label="Scheduled" value={scheduled.toLocaleString()} icon={CalendarClock} />
-        <StatTile
-          label="No recipe"
-          value={noRecipe.toLocaleString()}
-          icon={CircleSlash}
-          higherIsBetter={false}
-        />
+        <StatTile label="Covered" value={formatNumber(covered)} icon={CircleCheck} />
+        <StatTile label="Scheduled" value={formatNumber(scheduled)} icon={CalendarClock} />
+        <StatTile label="No recipe" value={formatNumber(noRecipe)} icon={CircleSlash} />
       </div>
 
       {allCovered ? (

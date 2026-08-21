@@ -43,12 +43,27 @@ import { cn } from "@/lib/utils";
  * machine-readable `dateTime` — the precise instant reaches assistive tech and the DOM without
  * anything being *rendered* from it, so the hydration guarantee survives.
  *
- * <h3>Colour is never the only channel (D-38-13)</h3>
+ * <h3>Colour is never the only channel (D-38-13, UI-SPEC §4.2)</h3>
  *
- * `icon` is REQUIRED, not optional. The icon is the shape channel, and making it optional is how
- * a row ends up carrying its entire meaning in a hue. The state tones additionally announce a word
- * (`Critical` / `Warning` / `Completed` / `Information`) to assistive tech, and the sentence itself
- * always states the fact in words — hue only accelerates a scan, it never carries the fact alone.
+ * **A state tone prints its word on the screen.** Not `sr-only` — visibly, in the row, next to
+ * the chip. This is the rule `stat-tile.tsx` states for its delta ("which is why it is visible
+ * text and not `sr-only`") and the rule `ExceptionList` in `dashboard/portlets/portlet.tsx`
+ * already follows with its uppercase ACT / CHECK / FYI. §4.2 asks for text, shape **or** icon and
+ * it asks for it *visibly*; `sr-only` serves only the reader who was never at risk from hue.
+ *
+ * <p><b>Why the word and not a tone-derived glyph.</b> The other way to satisfy §4.2 here is to
+ * derive `icon` from `tone`, making shape the second channel. That was rejected: the glyph is the
+ * caller's domain noun — a box for stock, a receipt for a void — and it is what makes a feed
+ * scannable down its left edge. Deriving it would spend the row's only shape channel restating
+ * something the word says better, and would leave the caller nowhere to put the noun. The
+ * consequence is explicit and accepted: **the glyph is NOT a function of `tone`**, two severities
+ * may legitimately share an icon, and the *word* is what separates them. That is the one channel
+ * this component guarantees, so it is the one a caller cannot take away — `toneLabel` renames the
+ * word, but an empty string no longer deletes it.
+ *
+ * <p>`icon` stays REQUIRED for the same reason it always was: a row with no glyph at all leans
+ * that much harder on hue. The sentence itself also always states the fact in words — hue only
+ * accelerates a scan, it never carries the fact alone.
  *
  * `secondary` (the teal) is offered as a CATEGORICAL tone and must never mean state. D-38-12/13
  * measured teal(182) at ΔE2000 **18.68** from `--success-600` — the closest pair in the whole
@@ -89,23 +104,40 @@ export type ActivityTone =
 /**
  * Chip tints sit at 10 % — the demo measures its own at ~8 %, and 10 is the nearest step that
  * still reads on a white card in light mode, which the dark-only demo never had to survive.
- *
- * The icon runs at full strength, and two tones need an explicit per-theme stop to get there:
- * `--warning` resolves to `--warning-400` in BOTH themes (L 0.74 — a pale yellow that is a fine
- * fill and an illegible glyph on white), and `--secondary` is the shadcn neutral, not the teal
- * ramp, so the teal is named by its stop. The other five already flip themselves.
  */
-const TONE_CHIP: Record<ActivityTone, string> = {
-  danger: "bg-destructive/10 text-destructive",
-  warning: "bg-warning/10 text-warning-700 dark:text-warning-400",
-  success: "bg-success/10 text-success",
-  info: "bg-info/10 text-info",
-  accent: "bg-primary/10 text-primary",
-  secondary: "bg-secondary-500/10 text-secondary-700 dark:text-secondary-400",
-  neutral: "bg-muted text-foreground-secondary",
+const TONE_TINT: Record<ActivityTone, string> = {
+  danger: "bg-destructive/10",
+  warning: "bg-warning/10",
+  success: "bg-success/10",
+  info: "bg-info/10",
+  accent: "bg-primary/10",
+  secondary: "bg-secondary-500/10",
+  neutral: "bg-muted",
 };
 
-/** The text channel for the tones that mean something. Categorical tones announce nothing. */
+/**
+ * The ink — worn by the chip glyph AND by the tone word, from one record, so the two channels
+ * cannot drift into two different reds.
+ *
+ * Two tones need an explicit per-theme stop to run at full strength: `--warning` resolves to
+ * `--warning-400` in BOTH themes (L 0.74 — a pale yellow that is a fine fill and an illegible
+ * glyph on white), and `--secondary` is the shadcn neutral, not the teal ramp, so the teal is
+ * named by its stop. The other five already flip themselves.
+ */
+const TONE_INK: Record<ActivityTone, string> = {
+  danger: "text-destructive",
+  warning: "text-warning-700 dark:text-warning-400",
+  success: "text-success",
+  info: "text-info",
+  accent: "text-primary",
+  secondary: "text-secondary-700 dark:text-secondary-400",
+  neutral: "text-foreground-secondary",
+};
+
+/**
+ * The text channel for the tones that mean something. Categorical tones say nothing, because
+ * they claim no severity for a word to carry.
+ */
 const TONE_WORD: Record<ActivityTone, string | null> = {
   danger: "Critical",
   warning: "Warning",
@@ -115,6 +147,21 @@ const TONE_WORD: Record<ActivityTone, string | null> = {
   secondary: null,
   neutral: null,
 };
+
+/**
+ * Uppercased in CSS, not in the string. A DOM value of `CRITICAL` gets spelled out letter by
+ * letter by some screen readers; `text-transform` is a rendering instruction that the
+ * accessibility tree never sees. Same `text-label`/`tracking` treatment `DataGrid` gives a column
+ * header and `ExceptionList` gives its severity tag, so the word reads as a tag on the row rather
+ * than as the first word of the sentence.
+ *
+ * <p>`whitespace-nowrap` for the same reason the time column carries it: `INFORMATION` is the
+ * longest word here, and a tag that breaks across two lines mid-word reads as damage rather than
+ * as a severity. The sentence beside it is the flexible one — it holds `min-w-0 flex-1`, so it is
+ * the element that gives up the space on a 390px feed.
+ */
+const TONE_WORD_CLASS =
+  "shrink-0 text-label font-semibold uppercase tracking-wider whitespace-nowrap";
 
 /**
  * The time column. `--foreground-tertiary`, which D-38-13 LIFTED to L 0.62 for exactly this use:
@@ -145,8 +192,11 @@ export interface ActivityRowProps {
   /** Defaults to `neutral`: a row that forgot to declare a tone claims no severity. */
   tone?: ActivityTone;
   /**
-   * Overrides the announced tone word for a state tone, or supplies one for a categorical tone.
-   * Pass `""` to announce nothing.
+   * Renames the tone word for a state tone, or supplies one for a categorical tone.
+   *
+   * <p>It cannot DELETE a state tone's word: a blank falls back to the default. The word is the
+   * non-colour channel a state tone is required to carry (D-38-13), so a prop that removes it is
+   * a prop that hands the row back to hue alone.
    */
   toneLabel?: string;
   /** Makes the whole row a real link. Omit for a read-only feed; there is no `onClick` mode. */
@@ -165,21 +215,28 @@ export function ActivityRow({
   className,
 }: ActivityRowProps) {
   const zone = useZone();
-  const word = toneLabel ?? TONE_WORD[tone];
+  // `||`, not `??`: a blank `toneLabel` falls back to the tone's own word rather than deleting
+  // it. `??` would let `toneLabel=""` strip a state tone's only non-colour channel.
+  const word = toneLabel?.trim() || TONE_WORD[tone];
 
   const body = (
     <>
-      {word ? <span className="sr-only">{word}: </span> : null}
       <span
         aria-hidden="true"
         data-slot="activity-icon"
         className={cn(
           "flex size-7 shrink-0 items-center justify-center rounded-md [&_svg]:size-3.5",
-          TONE_CHIP[tone],
+          TONE_TINT[tone],
+          TONE_INK[tone],
         )}
       >
         {icon}
       </span>
+      {word ? (
+        <span data-slot="activity-tone" className={cn(TONE_WORD_CLASS, TONE_INK[tone])}>
+          {word}
+        </span>
+      ) : null}
       <span className="min-w-0 flex-1 text-small text-foreground-secondary">{children}</span>
       {/*
        * `<time>` only when there is a real instant to carry: a bare `<time>` whose content is

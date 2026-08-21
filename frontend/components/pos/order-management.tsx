@@ -37,6 +37,7 @@ import {
   unpaidLabel,
 } from "@/components/pos/order-list-stats";
 import { ELAPSED_UNKNOWN, readElapsed } from "@/lib/format/elapsed";
+import { formatDateTime } from "@/lib/format/locale";
 import { cn } from "@/lib/utils";
 
 interface OrderManagementProps {
@@ -193,7 +194,7 @@ function formatSettledAt(at: string | null | undefined): string | null {
   if (!at) return null;
   const ms = new Date(at).getTime();
   if (Number.isNaN(ms)) return null;
-  return new Date(ms).toLocaleString(undefined, {
+  return formatDateTime(ms, {
     day: "2-digit",
     month: "short",
     hour: "2-digit",
