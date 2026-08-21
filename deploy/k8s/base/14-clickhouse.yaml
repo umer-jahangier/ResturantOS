@@ -43,8 +43,13 @@ spec:
             - { name: tuning, mountPath: /etc/clickhouse-server/config.d/log-limits.xml, subPath: log-limits.xml }
             - { name: memcap, mountPath: /etc/clickhouse-server/config.d/memory.xml, subPath: memory.xml }
           resources:
+            # 2Gi, not 1Gi. The 1Gi cut was measured against an EMPTY ClickHouse
+            # and held there; a seeded one OOMKilled 19 times (exit 137) because
+            # max_server_memory_usage bounds QUERY memory, not the whole process —
+            # part loading, marks and the page cache at startup sit outside it.
+            # memory.xml still keeps queries well inside this ceiling.
             requests: { memory: "256Mi", cpu: "100m" }
-            limits:   { memory: "1Gi" }
+            limits:   { memory: "2Gi" }
           readinessProbe:
             httpGet: { path: /ping, port: 8123 }
             initialDelaySeconds: 20

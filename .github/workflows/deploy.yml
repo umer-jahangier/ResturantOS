@@ -218,7 +218,7 @@ jobs:
             for d in \$(k3s kubectl -n $NS get deploy -o name); do
               if ! k3s kubectl -n $NS rollout status \$d --timeout=8m; then
                 failed=1
-                echo \"::error::\$d did not roll out\"
+                echo \"::error:: rollout failed for \$d\"
                 k3s kubectl -n $NS describe \$d | tail -25
                 k3s kubectl -n $NS logs \$d --tail=60 --all-containers 2>/dev/null || true
               fi
