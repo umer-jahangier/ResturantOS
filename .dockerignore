@@ -1,0 +1,10 @@
+.claude/
+.git/
+.planning/
+.dev-logs/
+**/node_modules/
+**/target/classes/
+**/target/test-classes/
+**/target/generated-sources/
+**/target/maven-status/
+*.log

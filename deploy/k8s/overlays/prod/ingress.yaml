@@ -1,0 +1,24 @@
+# TLS is terminated by LiteSpeed on :443 and proxied to Traefik's NodePort 30080,
+# so this Ingress is plain HTTP and carries no tls: block. Adding one here would
+# mean double termination and a certificate the cluster has no way to renew.
+#
+# Path precedence: the Ingress spec resolves the LONGEST matching path first, so
+# /api, /iclock, /internal and /ws reach the gateway and everything else falls
+# through to the Next.js frontend.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: restaurantos
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: restaurantos.softxlogic.com
+      http:
+        paths:
+          - { path: /api,      pathType: Prefix, backend: { service: { name: gateway,  port: { number: 8080 } } } }
+          - { path: /iclock,   pathType: Prefix, backend: { service: { name: gateway,  port: { number: 8080 } } } }
+          - { path: /internal, pathType: Prefix, backend: { service: { name: gateway,  port: { number: 8080 } } } }
+          - { path: /ws,       pathType: Prefix, backend: { service: { name: gateway,  port: { number: 8080 } } } }
+          - { path: /,         pathType: Prefix, backend: { service: { name: frontend, port: { number: 3000 } } } }

@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Service
+metadata: { name: opa }
+spec:
+  selector: { app: opa }
+  ports: [{ name: http, port: 8181, targetPort: 8181 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: opa }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: opa } }
+  template:
+    metadata: { labels: { app: opa, tier: infra } }
+    spec:
+      containers:
+        - name: opa
+          image: openpolicyagent/opa:1.17.1
+          # --ignore=.* is REQUIRED, not tidiness. A ConfigMap volume is projected
+          # through two symlink layers so updates are atomic:
+          #     /policies/pos.rego -> ..data/pos.rego -> ..2026_08_21_.../pos.rego
+          # OPA loads /policies recursively, so without --ignore it reads every
+          # policy THREE times and dies with "multiple default rules
+          # data.restaurantos.pos.allow found". Measured on this cluster: 7 of 8
+          # policies failed exactly that way. Using subPath mounts instead would
+          # also silence it, but subPath does not receive ConfigMap updates — OPA
+          # would then enforce its boot-time policies forever while the repo said
+          # otherwise, which for a fail-closed engine is the more dangerous bug.
+          args: ["run","--server","--addr=0.0.0.0:8181","--log-level=info","--ignore=.*","/policies"]
+          ports: [{ containerPort: 8181 }]
+          volumeMounts: [{ name: policies, mountPath: /policies, readOnly: true }]
+          resources:
+            requests: { memory: "64Mi", cpu: "25m" }
+            limits:   { memory: "256Mi" }
+          readinessProbe:
+            httpGet: { path: /health, port: 8181 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - { name: policies, configMap: { name: opa-policies } }

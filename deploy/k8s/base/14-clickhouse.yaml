@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: clickhouse-data }
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: { requests: { storage: 10Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: clickhouse }
+spec:
+  selector: { app: clickhouse }
+  ports:
+    - { name: http, port: 8123, targetPort: 8123 }
+    - { name: native, port: 9000, targetPort: 9000 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: clickhouse }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector: { matchLabels: { app: clickhouse } }
+  template:
+    metadata: { labels: { app: clickhouse, tier: infra } }
+    spec:
+      containers:
+        - name: clickhouse
+          image: clickhouse/clickhouse-server:25.9
+          env:
+            - { name: CLICKHOUSE_USER, valueFrom: { secretKeyRef: { name: restaurantos-secrets, key: CLICKHOUSE_USER } } }
+            - { name: CLICKHOUSE_PASSWORD, valueFrom: { secretKeyRef: { name: restaurantos-secrets, key: CLICKHOUSE_PASSWORD } } }
+            - { name: CLICKHOUSE_DB, value: "clickhouse_analytics" }
+            - { name: CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT, value: "1" }
+          ports: [{ containerPort: 8123 }, { containerPort: 9000 }]
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/clickhouse }
+            - { name: tuning, mountPath: /etc/clickhouse-server/config.d/log-limits.xml, subPath: log-limits.xml }
+          resources:
+            requests: { memory: "512Mi", cpu: "100m" }
+            limits:   { memory: "2Gi" }
+          readinessProbe:
+            httpGet: { path: /ping, port: 8123 }
+            initialDelaySeconds: 20
+            periodSeconds: 15
+      volumes:
+        - { name: data, persistentVolumeClaim: { claimName: clickhouse-data } }
+        - { name: tuning, configMap: { name: clickhouse-tuning } }

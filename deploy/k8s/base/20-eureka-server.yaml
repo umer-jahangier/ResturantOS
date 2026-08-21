@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: eureka-server
+  labels: { app: eureka-server }
+spec:
+  selector: { app: eureka-server }
+  ports: [{ name: http, port: 8761, targetPort: 8761 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eureka-server
+  labels: { app: eureka-server }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: eureka-server } }
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  template:
+    metadata:
+      labels: { app: eureka-server, tier: app }
+    spec:
+      containers:
+        - name: eureka-server
+          image: restaurantos/eureka-server:latest
+          ports: [{ containerPort: 8761, name: http }]
+          envFrom:
+            - configMapRef: { name: restaurantos-config }
+            - secretRef:    { name: restaurantos-secrets }
+          env:
+            - { name: SERVER_PORT, value: "8761" }
+            - { name: EUREKA_CLIENT_REGISTER_WITH_EUREKA, value: "false" }
+            - { name: EUREKA_CLIENT_FETCH_REGISTRY, value: "false" }
+          resources:
+            requests: { memory: "200Mi", cpu: "50m" }
+            limits:   { memory: "420Mi" }
+          startupProbe:
+            httpGet: { path: /actuator/health, port: 8761 }
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: { path: /actuator/health, port: 8761 }
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket: { port: 8761 }
+            periodSeconds: 20
+            failureThreshold: 6

@@ -1,0 +1,56 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - 00-config.yaml
+  - 10-postgres.yaml
+  - 11-redis.yaml
+  - 12-rabbitmq.yaml
+  - 13-minio.yaml
+  - 14-clickhouse.yaml
+  - 15-opa.yaml
+  - 20-eureka-server.yaml
+  - 21-config-server.yaml
+  - 30-audit-service.yaml
+  - 30-auth-service.yaml
+  - 30-authorization-service.yaml
+  - 30-crm-service.yaml
+  - 30-file-service.yaml
+  - 30-finance-service.yaml
+  - 30-hr-service.yaml
+  - 30-inventory-service.yaml
+  - 30-kitchen-service.yaml
+  - 30-nlq-service.yaml
+  - 30-platform-admin-service.yaml
+  - 30-pos-service.yaml
+  - 30-purchasing-service.yaml
+  - 30-reporting-service.yaml
+  - 30-user-service.yaml
+  - 40-gateway.yaml
+  - 50-frontend.yaml
+configMapGenerator:
+  - name: postgres-init
+    files:
+      - files/01-create-databases.sql
+      - files/02-create-roles.sql
+      - files/03-grant-schema-privileges.sql
+  - name: clickhouse-tuning
+    files:
+      - log-limits.xml=files/log-limits.xml
+  - name: config-repo
+    files:
+      - application.yml=files/application.yml
+  - name: opa-policies
+    files:
+      - common.rego=files/policies/common.rego
+      - finance.rego=files/policies/finance.rego
+      - hr.rego=files/policies/hr.rego
+      - inventory.rego=files/policies/inventory.rego
+      - kds.rego=files/policies/kds.rego
+      - pos.rego=files/policies/pos.rego
+      - rbac.rego=files/policies/rbac.rego
+      - vendor.rego=files/policies/vendor.rego
+# Name-suffix hashes are KEPT ON PURPOSE. A policy or init-script edit produces a
+# new ConfigMap name, kustomize rewrites the reference, and the pod rolls. With
+# disableNameSuffixHash the ConfigMap would change under a running pod and
+# nothing would restart — OPA would keep enforcing the previous policy set while
+# the repo said otherwise.

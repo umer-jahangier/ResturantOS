@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: config-server
+  labels: { app: config-server }
+spec:
+  selector: { app: config-server }
+  ports: [{ name: http, port: 8888, targetPort: 8888 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-server
+  labels: { app: config-server }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: config-server } }
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  template:
+    metadata:
+      labels: { app: config-server, tier: app }
+    spec:
+      containers:
+        - name: config-server
+          image: restaurantos/config-server:latest
+          ports: [{ containerPort: 8888, name: http }]
+          envFrom:
+            - configMapRef: { name: restaurantos-config }
+            - secretRef:    { name: restaurantos-secrets }
+          env:
+            - { name: SERVER_PORT, value: "8888" }
+            - { name: CONFIG_SEARCH_LOCATIONS, value: "file:/config-repo" }
+          resources:
+            requests: { memory: "200Mi", cpu: "50m" }
+            limits:   { memory: "420Mi" }
+          volumeMounts:
+            - { name: config-repo, mountPath: /config-repo, readOnly: true }
+          startupProbe:
+            httpGet: { path: /actuator/health, port: 8888 }
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: { path: /actuator/health, port: 8888 }
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket: { port: 8888 }
+            periodSeconds: 20
+            failureThreshold: 6
+      volumes:
+        - { name: config-repo, configMap: { name: config-repo } }

@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-service
+  labels: { app: inventory-service }
+spec:
+  selector: { app: inventory-service }
+  ports: [{ name: http, port: 8085, targetPort: 8085 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-service
+  labels: { app: inventory-service }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: inventory-service } }
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  template:
+    metadata:
+      labels: { app: inventory-service, tier: app }
+    spec:
+      initContainers:
+        - name: wait-for-deps
+          image: busybox:1.36
+          command: ["sh","-c","until nc -z postgres 5432 && nc -z eureka-server 8761; do echo waiting for postgres+eureka; sleep 3; done"]
+          resources: { requests: { memory: "8Mi", cpu: "10m" }, limits: { memory: "32Mi" } }
+      containers:
+        - name: inventory-service
+          image: restaurantos/inventory-service:latest
+          ports: [{ containerPort: 8085, name: http }]
+          envFrom:
+            - configMapRef: { name: restaurantos-config }
+            - secretRef:    { name: restaurantos-secrets }
+          env:
+            - { name: SERVER_PORT, value: "8085" }
+            - { name: INVENTORY_DB_URL, value: "jdbc:postgresql://postgres:5432/inventory_db" }
+            - { name: INVENTORY_DB_USER, value: "inventory_user" }
+            - { name: INVENTORY_DB_PASSWORD, valueFrom: { secretKeyRef: { name: restaurantos-secrets, key: INVENTORY_DB_PASSWORD } } }
+          resources:
+            requests: { memory: "300Mi", cpu: "50m" }
+            limits:   { memory: "640Mi" }
+          startupProbe:
+            httpGet: { path: /actuator/health, port: 8085 }
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: { path: /actuator/health, port: 8085 }
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket: { port: 8085 }
+            periodSeconds: 20
+            failureThreshold: 6

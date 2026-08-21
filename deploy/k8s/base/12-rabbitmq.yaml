@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: rabbitmq-data }
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: { requests: { storage: 5Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: rabbitmq }
+spec:
+  selector: { app: rabbitmq }
+  ports:
+    - { name: amqp, port: 5672, targetPort: 5672 }
+    - { name: mgmt, port: 15672, targetPort: 15672 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: rabbitmq }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector: { matchLabels: { app: rabbitmq } }
+  template:
+    metadata: { labels: { app: rabbitmq, tier: infra } }
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:4.3-management
+          env:
+            - { name: RABBITMQ_DEFAULT_USER, valueFrom: { secretKeyRef: { name: restaurantos-secrets, key: RABBITMQ_USERNAME } } }
+            - { name: RABBITMQ_DEFAULT_PASS, valueFrom: { secretKeyRef: { name: restaurantos-secrets, key: RABBITMQ_PASSWORD } } }
+          ports: [{ containerPort: 5672 }, { containerPort: 15672 }]
+          volumeMounts: [{ name: data, mountPath: /var/lib/rabbitmq }]
+          resources:
+            requests: { memory: "256Mi", cpu: "50m" }
+            limits:   { memory: "768Mi" }
+          readinessProbe:
+            exec: { command: ["rabbitmq-diagnostics","-q","ping"] }
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 10
+      volumes:
+        - { name: data, persistentVolumeClaim: { claimName: rabbitmq-data } }

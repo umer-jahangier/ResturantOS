@@ -1,0 +1,7 @@
+# Local dev config served by Spring Cloud Config (native profile).
+# Per-service files: {application}.yml (e.g. auth-service.yml).
+
+info:
+  app:
+    name: restaurantos
+    environment: local
