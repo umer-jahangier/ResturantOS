@@ -187,7 +187,7 @@ function PreSendCart({
   const estTotal = subtotal + estTax + estServiceCharge;
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div className="flex flex-col h-full min-h-0" data-testid="order-panel">
       {/* Order type + table (D-03) */}
       <div className="shrink-0 px-4 py-3 border-b space-y-2">
         <OrderTypeToggle value={orderType} onChange={onOrderTypeChange} />
@@ -435,7 +435,7 @@ function SentOrder({ order, onClearNewOrder }: SentOrderProps) {
   };
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div className="flex flex-col h-full min-h-0" data-testid="order-panel">
       {/* Order header */}
       <div className="shrink-0 px-4 py-3 border-b space-y-1.5">
         <div className="flex items-center justify-between gap-2">
