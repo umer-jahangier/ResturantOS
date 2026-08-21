@@ -8,6 +8,17 @@ export interface ResolveTenantSlugInput {
   host?: string | null;
   /** The `?tenant=` query param, if present. */
   searchParam?: string | null;
+  /**
+   * Hostnames belonging to the APPLICATION itself rather than to a tenant.
+   *
+   * Without this the leftmost-label rule misfires on any deployment shaped
+   * <environment>.<company-domain> instead of <tenant>.<app-domain>. Measured
+   * live: dev.restaurantos.softxlogic.com resolved to the tenant "dev" and
+   * restaurantos.softxlogic.com to "restaurantos". Neither exists, so the login
+   * form pre-filled a value that made every sign-in 401 while its own help text
+   * called the field optional.
+   */
+  appHosts?: readonly string[];
 }
 
 const IGNORED_LEFTMOST_LABELS = new Set(["www", "localhost"]);
@@ -29,7 +40,7 @@ export function resolveTenantSlug({ host, searchParam, appHosts }: ResolveTenant
   }
 
   // An application hostname carries no tenant, however many labels it has.
-  if (appHosts?.some((h) => h.trim().toLowerCase() === hostname)) {
+  if (appHosts?.some((h: string) => h.trim().toLowerCase() === hostname)) {
     return null;
   }
 
