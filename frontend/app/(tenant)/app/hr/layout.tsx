@@ -30,7 +30,7 @@ function HrTabs() {
             key={tab.href}
             href={tab.href}
             className={cn(
-              "border-b-2 px-1 pb-2 text-sm font-medium",
+              "border-b-2 px-1 pb-2 text-small font-medium",
               active
                 ? "border-primary text-foreground"
                 : "border-transparent text-muted-foreground",

@@ -229,7 +229,7 @@ describe("Order Management search (S0-05)", () => {
     await waitFor(
       () =>
         expect(screen.getByTestId("order-search-scope-note").textContent).toContain(
-          "first 100 of 209 matches",
+          "Listing the first 100 of 209 matches",
         ),
       { timeout: 3000 },
     );

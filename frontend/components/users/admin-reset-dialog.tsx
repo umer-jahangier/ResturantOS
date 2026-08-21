@@ -116,7 +116,7 @@ export function AdminResetDialog({
                 required
                 aria-describedby="reset-reason-hint"
               />
-              <p id="reset-reason-hint" className="text-xs text-muted-foreground">
+              <p id="reset-reason-hint" className="text-label text-muted-foreground">
                 Recorded in the audit trail against your name. Required.
               </p>
             </div>

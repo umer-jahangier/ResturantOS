@@ -276,3 +276,36 @@ export function serviceChargeAppliesTo(
       return false;
   }
 }
+
+/**
+ * What the pre-send cart will be charged: subtotal + tax + service charge.
+ *
+ * <h3>Why this composition is a function and not three lines at each call site</h3>
+ *
+ * 38-04 gives a 390px terminal a persistent total bar outside the order sheet — so the cart's
+ * total is now read in TWO places on the same screen. Composed inline twice, the two figures
+ * agree only for as long as nobody edits one of them, and the first divergence a cashier meets is
+ * a bar quoting one number and the panel behind it quoting another over the same cart. That is
+ * the same defect shape as D-3's service charge, which quoted every dine-in guest in the building
+ * 5% low because one surface knew about a charge the other did not.
+ *
+ * <p>So there is one composition, here, beside the three pieces it composes.
+ *
+ * <p><b>Formatting is still {@code MoneyDisplay}'s job alone.</b> This returns BIGINT paisa and
+ * never a string; nothing in this file has ever formatted money and nothing in it should start.
+ *
+ * <p>Carries forward {@link cartServiceChargePaisa}'s expiry note verbatim: the base is the
+ * subtotal only because a cart cannot hold a discount before Send. The day it can, this is wrong.
+ */
+export function cartEstimatedTotalPaisa(
+  lines: CartLine[],
+  policy: { enabled: boolean; dineIn: boolean; takeaway: boolean; pickup: boolean; ratePct: number } | null,
+  orderType: OrderType,
+): number {
+  const subtotal = cartTotalPaisa(lines);
+  const tax = cartTaxPaisa(lines);
+  const service = serviceChargeAppliesTo(policy, orderType)
+    ? cartServiceChargePaisa(subtotal, policy!.ratePct)
+    : 0;
+  return subtotal + tax + service;
+}

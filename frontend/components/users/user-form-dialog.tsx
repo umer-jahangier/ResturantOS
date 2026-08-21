@@ -273,7 +273,7 @@ export function CreateUserDialog({
                             }}
                             id="create-user-branch"
                             disabled={branches.isPending}
-                            className="h-8 w-full rounded-lg border border-border-interactive bg-transparent px-2.5 text-sm transition-colors focus-visible:border-ring disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50 dark:bg-surface-2"
+                            className="h-8 w-full rounded-lg border border-border-interactive bg-transparent px-2.5 text-small transition-colors focus-visible:border-ring disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50 dark:bg-surface-2"
                           >
                             <option value="">No branch yet</option>
                             {(branches.data ?? []).map((branch) => (
@@ -314,7 +314,7 @@ export function CreateUserDialog({
                   be interpreted. */}
               {branchId ? (
                 <div className="space-y-1.5">
-                  <p className="text-sm font-medium">Stations</p>
+                  <p className="text-small font-medium">Stations</p>
                   <StationAssignmentField
                     branchId={branchId}
                     branchLabel={branchLabel}
@@ -340,7 +340,7 @@ export function CreateUserDialog({
                 </div>
               ) : null}
 
-              <p className="text-xs text-muted-foreground">
+              <p className="text-label text-muted-foreground">
                 Leave both blank to create the account now and assign a role later. Until a role is
                 assigned the account exists but cannot sign in.
               </p>
@@ -497,7 +497,7 @@ export function EditUserDialog({
             />
 
             <div className="space-y-1.5">
-              <p className="text-sm font-medium">Stations at {branchLabel}</p>
+              <p className="text-small font-medium">Stations at {branchLabel}</p>
               <StationAssignmentField
                 branchId={signedInBranchId}
                 branchLabel={branchLabel}

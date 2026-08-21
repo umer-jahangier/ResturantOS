@@ -6,6 +6,8 @@ import { AccessDenied } from "@/components/shared/access-denied";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { UserDetailPanel } from "@/components/users/user-detail-panel";
 import { UserList } from "@/components/users/user-list";
+import { PageBody } from "@/components/ui/page-body";
+import { PageHeader } from "@/components/ui/page-header";
 import type { TenantUser } from "@/lib/models/user.model";
 
 /**
@@ -31,14 +33,11 @@ function UsersPage() {
   const [selected, setSelected] = useState<TenantUser | null>(null);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Users</h1>
-        <p className="text-sm text-muted-foreground">
-          Everyone who can sign in to this restaurant. Add staff, set what they can do on each
-          branch, and issue a password when someone is locked out.
-        </p>
-      </div>
+    <PageBody className="space-y-(--space-lg)">
+      <PageHeader
+        title="Users"
+        description="Everyone who can sign in to this restaurant. Add staff, set what they can do on each branch, and issue a password when someone is locked out."
+      />
 
       {/*
         `grid-cols-[minmax(0,1fr)]` on the BASE, not only at `lg`.
@@ -56,7 +55,7 @@ function UsersPage() {
         <UserList selectedId={selected?.id ?? null} onSelect={setSelected} />
         <UserDetailPanel userId={selected?.id ?? null} />
       </div>
-    </div>
+    </PageBody>
   );
 }
 

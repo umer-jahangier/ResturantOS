@@ -3,6 +3,8 @@
 import { useArAging } from "@/lib/hooks/finance/use-finance";
 import { ArAgingTable } from "@/components/finance/ArAgingTable";
 import { FinanceEmptyState } from "@/components/finance/FinanceEmptyState";
+import { PageBody } from "@/components/ui/page-body";
+import { PageHeader } from "@/components/ui/page-header";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -14,13 +16,11 @@ export default function ArAgingPage() {
   const aging = arAging.data;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">AR Aging</h1>
-        <p className="text-sm text-muted-foreground">
-          Outstanding house-account charges bucketed by how overdue they are.
-        </p>
-      </div>
+    <PageBody className="space-y-(--space-lg)">
+      <PageHeader
+        title="AR Aging"
+        description="Outstanding house-account charges bucketed by how overdue they are."
+      />
 
       <QueryBoundary
         query={arAging}
@@ -43,6 +43,6 @@ export default function ArAgingPage() {
       >
         {aging && <ArAgingTable aging={aging} />}
       </QueryBoundary>
-    </div>
+    </PageBody>
   );
 }

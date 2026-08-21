@@ -4,6 +4,7 @@ import { AccessDenied } from "@/components/shared/access-denied";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { PrintAgentPanel } from "@/components/settings/print-agent-panel";
 import { PrinterRegistryForm } from "@/components/settings/printer-registry-form";
+import { PageHeader } from "@/components/ui/page-header";
 import { ZoneProvider } from "@/components/providers/zone-provider";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 
@@ -45,13 +46,10 @@ function PrintersPage() {
      * restrained back-office shell exactly as /app/settings is.
      */
     <ZoneProvider zone="expressive" className="space-y-6">
-      <div>
-        <h1 className="text-h1 font-semibold">Printers</h1>
-        <p className="text-small text-muted-foreground">
-          The receipt printer at the till and the ticket printers in the kitchen, and the machine
-          that drives them.
-        </p>
-      </div>
+      <PageHeader
+        title="Printers"
+        description="The receipt printer at the till and the ticket printers in the kitchen, and the machine that drives them."
+      />
 
       <PrintAgentPanel branchId={branchId || null} />
       <PrinterRegistryForm branchId={branchId || null} />

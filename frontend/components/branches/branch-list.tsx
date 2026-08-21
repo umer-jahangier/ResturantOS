@@ -45,7 +45,7 @@ export function BranchList({
 }) {
   return (
     <div className="overflow-hidden rounded-lg border">
-      <div className="hidden gap-3 border-b bg-muted/30 px-3 py-2 text-xs font-medium text-muted-foreground sm:grid sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_minmax(0,1.4fr)_auto]">
+      <div className="hidden gap-3 border-b bg-muted/30 px-3 py-2 text-label font-medium text-muted-foreground sm:grid sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_minmax(0,1.4fr)_auto]">
         <span>Branch</span>
         <span>Address</span>
         <span>Time zone</span>
@@ -58,7 +58,7 @@ export function BranchList({
             key={branch.id}
             data-testid="branch-row"
             data-branch-active={branch.isActive}
-            className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1.5 px-3 py-3 text-sm sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_minmax(0,1.4fr)_auto] sm:items-center sm:py-2"
+            className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1.5 px-3 py-3 text-small sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_minmax(0,1.4fr)_auto] sm:items-center sm:py-2"
           >
             <div className="min-w-0 sm:col-start-1">
               <div className="flex flex-wrap items-center gap-1.5">
@@ -73,7 +73,7 @@ export function BranchList({
                  * makes both harder to read for a fact that never changes.
                  */}
                 {branch.isHq ? (
-                  <span className="shrink-0 text-xs text-muted-foreground">Head office</span>
+                  <span className="shrink-0 text-label text-muted-foreground">Head office</span>
                 ) : null}
                 {branch.id === currentBranchId ? (
                   <StatusBadge status="active" label="Your branch" />

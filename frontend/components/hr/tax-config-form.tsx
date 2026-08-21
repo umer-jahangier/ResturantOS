@@ -207,7 +207,7 @@ export function TaxConfigForm({
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-medium">Income bands</h2>
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground text-small">
                 Bands must start at 0 and run without gaps or overlaps, and the highest band must
                 have no upper limit — leave its “up to” blank.
               </p>
@@ -224,7 +224,7 @@ export function TaxConfigForm({
             </Button>
           </div>
 
-          <table className="w-full text-sm">
+          <table className="w-full text-small">
             <thead>
               <tr className="text-muted-foreground border-b text-left">
                 <th className="py-1">From (Rs)</th>
@@ -372,7 +372,7 @@ export function TaxConfigForm({
         </section>
 
         {form.formState.errors.root ? (
-          <p role="alert" className="text-destructive text-sm">
+          <p role="alert" className="text-destructive text-small">
             {form.formState.errors.root.message}
           </p>
         ) : null}

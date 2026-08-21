@@ -209,7 +209,7 @@ export function AssignRoleDialog({
                 value={branchId}
                 disabled={branches.isPending}
                 onChange={(e) => setBranchId(e.target.value)}
-                className="h-8 w-full rounded-lg border border-border-interactive bg-transparent px-2.5 text-sm transition-colors focus-visible:border-ring disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50 dark:bg-surface-2"
+                className="h-8 w-full rounded-lg border border-border-interactive bg-transparent px-2.5 text-small transition-colors focus-visible:border-ring disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50 dark:bg-surface-2"
               >
                 <option value="">Choose a branch…</option>
                 {(branches.data ?? []).map((branch) => (
@@ -243,7 +243,7 @@ export function AssignRoleDialog({
           )}
 
           {needsLimit && !limitDecided && (
-            <p className="text-xs text-muted-foreground" data-testid="assign-limit-required">
+            <p className="text-label text-muted-foreground" data-testid="assign-limit-required">
               {roleCode} can approve spending, so an approval limit is required. Enter an amount, or
               choose no approval authority.
             </p>
@@ -269,7 +269,7 @@ export function AssignRoleDialog({
                   ? "Applying…"
                   : `Apply this limit to every ${roleCode} at this branch`}
               </Button>
-              <p className="mt-1.5 text-xs text-muted-foreground">
+              <p className="mt-1.5 text-label text-muted-foreground">
                 One assignment per holder, through the same endpoint and the same ceiling check as a
                 single assignment. Anyone you may not assign {roleCode} to is named rather than
                 skipped quietly.

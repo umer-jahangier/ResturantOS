@@ -19,7 +19,7 @@ import {
   type PaymentMethod,
 } from "@/lib/models/pos.model";
 import { formatServiceChargeRate } from "@/lib/models/service-charge.model";
-import { formatPaisa, paisaToRupeeInput, parseRupeesToPaisa } from "@/lib/adapters/shared";
+import { paisaToRupeeInput, parseRupeesToPaisa } from "@/lib/adapters/shared";
 import { cn } from "@/lib/utils";
 
 interface ChargeSummaryProps {
@@ -660,7 +660,15 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
                           data-paisa={payment.tipPaisa}
                           className="text-xs text-muted-foreground"
                         >
-                          Tip {formatPaisa(payment.tipPaisa)} — held for staff, not part of the bill
+                          {/*
+                            The tip amount goes through <MoneyDisplay>, not `formatPaisa`
+                            interpolated into the caption. It is a JSX child position, so the
+                            element fits with no restructuring, and the rendered text is
+                            unchanged — the e2e probes that read this node's `textContent` and
+                            its `data-paisa` see exactly what they saw before.
+                          */}
+                          Tip <MoneyDisplay paisa={payment.tipPaisa} /> — held for staff, not part
+                          of the bill
                         </span>
                       )}
                     </div>
@@ -985,7 +993,10 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
                               aria-live="polite"
                               className="text-xs text-destructive"
                             >
-                              Tendered is {formatPaisa(reading.shortPaisa)} short of the amount.
+                              {/* Same as the tip line: a JSX child, so the element fits. The
+                                  `aria-live` announcement still reads the whole sentence. */}
+                              Tendered is <MoneyDisplay paisa={reading.shortPaisa} /> short of the
+                              amount.
                             </p>
                           )}
                         </div>

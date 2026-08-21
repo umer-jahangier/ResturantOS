@@ -13,7 +13,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { formatAgeLong } from "@/components/kds/kds-aging";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatElapsedLong } from "@/lib/format/elapsed";
 import { T_BODY, T_H1, T_LABEL, T_SMALL } from "@/components/kds/kds-type";
 import { itemLabel, ticketLabel } from "@/components/kds/kds-counts";
 import { useClearStaleKdsTickets, useStaleKdsTickets } from "@/lib/hooks/kds/use-kds-tickets";
@@ -109,12 +110,19 @@ export function KdsClearStale({ branchId, stationCode, stationLabel }: KdsClearS
    * `kds-clear-stale.test.tsx`, which asserts the confirmation is READ, not merely rendered.
    */
   if (!open && staleQuery.isPending) {
+    /*
+     * STILL, not pulsing. This placeholder sits in the board's own header on a wall-mounted
+     * kitchen screen, and the hand-rolled `animate-pulse` it replaces was a perpetual
+     * decorative animation in the `operational` zone, which D-38-04 forbids. The stale check
+     * is polled on a minute, so on a board that cannot reach the server the pulse never ends.
+     * `<Skeleton>` reads the zone and sits still here; the fill is kept at the board's own
+     * `white/10` rather than `--muted`, which follows the office theme and would render a
+     * light block on a permanently dark surface.
+     */
     return (
-      <span
-        data-testid="kds-clear-stale-loading"
-        aria-hidden="true"
-        className="h-6 w-24 shrink-0 animate-pulse rounded-md bg-white/10"
-      />
+      <div data-testid="kds-clear-stale-loading" aria-hidden="true" className="shrink-0">
+        <Skeleton className="h-6 w-24 bg-white/10" />
+      </div>
     );
   }
 
@@ -147,7 +155,6 @@ export function KdsClearStale({ branchId, stationCode, stationLabel }: KdsClearS
   if (!open && !hasStale) return null;
 
   const boardName = stationLabel ?? stationCode ?? "this branch";
-  const oldestAgeMs = summary?.oldestReceivedAt ? now - summary.oldestReceivedAt.getTime() : 0;
   const oldestTicket = summary?.tickets[0];
 
   return (
@@ -243,7 +250,16 @@ export function KdsClearStale({ branchId, stationCode, stationLabel }: KdsClearS
                     {" "}
                     The oldest has been up for{" "}
                     <strong className="font-bold text-kds-text">
-                      {formatAgeLong(oldestAgeMs)}
+                      {/*
+                        `lib/format/elapsed.ts`, the one bounded formatter — not the board's
+                        deleted `formatAgeLong`, which said `5d 3h` where every other surface
+                        said `5d`. The branch's own zone, because past thirty days this prints
+                        a DATE and a date in the reader's zone is the failure this dialog was
+                        written to stop being invisible.
+                      */}
+                      {formatElapsedLong(summary.oldestReceivedAt, now, {
+                        timeZone: summary.branchTimezone,
+                      })}
                     </strong>
                     {oldestTicket?.orderNo ? ` — ${oldestTicket.orderNo}` : ""}, fired{" "}
                     {inBranchZone(summary.oldestReceivedAt, summary.branchTimezone, DAY_AND_TIME)}.
@@ -383,7 +399,7 @@ function TicketList({ summary, now }: { summary: KdsStaleBoardSummary; now: numb
               </span>
             </span>
             <span className="shrink-0 tabular-nums text-kds-muted">
-              {formatAgeLong(now - ticket.receivedAt.getTime())}
+              {formatElapsedLong(ticket.receivedAt, now, { timeZone: summary.branchTimezone })}
             </span>
           </li>
         ))}

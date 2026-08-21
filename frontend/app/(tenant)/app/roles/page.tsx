@@ -13,14 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryBoundary } from "@/components/ui/query-boundary";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { RoleList } from "@/components/roles/role-list";
 import { RoleBuilderDialog } from "@/components/roles/role-builder-dialog";
 import { RoleDetailDialog } from "@/components/roles/role-detail-dialog";
@@ -223,38 +216,38 @@ export default function RolesPage() {
         }}
       />
 
-      <Dialog
+      {/*
+        38-10 task 5: the shared ConfirmDialog. Deleting a role is the most destructive action on
+        this screen and it was the one place still hand-rolling the dialog — so the confirm button
+        rendered in the DEFAULT tone while /app/branches, three clicks away, painted a merely
+        reversible deactivation in destructive red. Same primitive now, same tone ladder.
+
+        The holder-count sentence is preserved verbatim: it is the only place the operator is told
+        WHY the server is about to refuse them, and the fix for that refusal is on another screen.
+      */}
+      <ConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(next) => {
           if (!next) setDeleteTarget(null);
         }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Delete {deleteTarget?.name}?</DialogTitle>
-            <DialogDescription>
-              {deleteTarget && deleteTarget.assignedUserCount > 0 ? (
-                <>
-                  {deleteTarget.assignedUserCount}{" "}
-                  {deleteTarget.assignedUserCount === 1 ? "person holds" : "people hold"} this role.
-                  Move them to another role on the Users screen first — deleting it now will be
-                  refused, because they would keep signing in and find every screen missing.
-                </>
-              ) : (
-                <>Nobody holds this role, so nothing changes for anyone. This cannot be undone.</>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDeleteTarget(null)}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={confirmDelete} disabled={deleteRole.isPending}>
-              {deleteRole.isPending ? "Deleting…" : "Delete role"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        title={`Delete ${deleteTarget?.name ?? "role"}?`}
+        body={
+          deleteTarget && deleteTarget.assignedUserCount > 0 ? (
+            <>
+              {deleteTarget.assignedUserCount}{" "}
+              {deleteTarget.assignedUserCount === 1 ? "person holds" : "people hold"} this role.
+              Move them to another role on the Users screen first — deleting it now will be
+              refused, because they would keep signing in and find every screen missing.
+            </>
+          ) : (
+            <>Nobody holds this role, so nothing changes for anyone. This cannot be undone.</>
+          )
+        }
+        confirmLabel="Delete role"
+        pendingLabel="Deleting…"
+        onConfirm={confirmDelete}
+        isPending={deleteRole.isPending}
+      />
     </div>
   );
 }

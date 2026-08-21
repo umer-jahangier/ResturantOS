@@ -344,7 +344,7 @@ export function EmployeeFormDialog({
             />
 
             {form.formState.errors.root ? (
-              <p role="alert" className="text-destructive sm:col-span-2 text-sm">
+              <p role="alert" className="text-destructive sm:col-span-2 text-small">
                 {form.formState.errors.root.message}
               </p>
             ) : null}

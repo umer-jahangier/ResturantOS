@@ -1,13 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { CircleCheck, CircleSlash, CalendarClock, UtensilsCrossed } from "lucide-react";
+
 import { useCoverage } from "@/lib/hooks/inventory/use-inventory";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AnimatedNumber } from "@/components/ui/animated-number";
+import { countLine, filteredCountLine, statLine } from "@/lib/format/stat-line";
+import type { CoverageState } from "@/lib/adapters/inventory.adapter";
+import { DataGrid, type ColumnDef } from "@/components/ui/data-grid/data-grid";
+import { FilterBar } from "@/components/ui/filter-bar";
+import { StatTile } from "@/components/ui/stat-tile";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageBody } from "@/components/ui/page-body";
+import { PageHeader } from "@/components/ui/page-header";
 import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+
+type CoverageRow = {
+  menuItemId: string;
+  name: string;
+  state: CoverageState;
+  scheduledFrom?: string | null;
+};
+
+const STATE_OPTIONS = [
+  { value: "COVERED", label: "Covered" },
+  { value: "SCHEDULED", label: "Scheduled" },
+  { value: "NO_RECIPE", label: "No recipe" },
+] as const;
 
 // URL: /app/inventory/coverage — INV-15's three-state recipe-coverage report (Covered/
 // Scheduled/No recipe). Every row renders the server's own `items[].state` verbatim; this page
@@ -17,115 +37,141 @@ import { Button } from "@/components/ui/button";
 export default function CoveragePage() {
   const coverageQuery = useCoverage();
   const { data: coverage, isLoading } = coverageQuery;
-  const [showAll, setShowAll] = useState(false);
+  // A coverage report is a worklist, so it opens on the gaps. The control is a real filter now
+  // rather than a lone "Show all" button, which is why it lives in the strip with everything else.
+  const [stateFilter, setStateFilter] = useState<string>("gaps");
+
+  const allItems = useMemo(() => (coverage?.items ?? []) as CoverageRow[], [coverage]);
+  const rows = useMemo(() => {
+    if (stateFilter === "gaps") return allItems.filter((item) => item.state !== "COVERED");
+    if (stateFilter === "") return allItems;
+    return allItems.filter((item) => item.state === stateFilter);
+  }, [allItems, stateFilter]);
+
+  // Derived from `allItems` — the array `rows` is filtered out of — so the tiles, the subtitle
+  // and the grid are three views of one list rather than three independent claims.
+  const covered = allItems.filter((i) => i.state === "COVERED").length;
+  const scheduled = allItems.filter((i) => i.state === "SCHEDULED").length;
+  const noRecipe = allItems.filter((i) => i.state === "NO_RECIPE").length;
+
+  const columns: ColumnDef<CoverageRow, unknown>[] = [
+    { accessorKey: "name", header: "Menu item" },
+    {
+      accessorKey: "state",
+      header: "Coverage",
+      cell: ({ row }) => (
+        <StatusBadge
+          status={row.original.state}
+          label={
+            row.original.state === "SCHEDULED" && row.original.scheduledFrom
+              ? `Scheduled from ${new Date(row.original.scheduledFrom).toLocaleDateString()}`
+              : undefined
+          }
+        />
+      ),
+    },
+  ];
 
   // GA-001, the "eternal spinner" variant: `isLoading || !coverage` also matched the ERROR case,
   // because a failed query has no data. The screen then said "Loading coverage…" forever — a
   // failure disguised as patience, which is the same lie in a different tense.
   if (coverageQuery.isError) {
     return (
-      <QueryErrorNotice
-        what="recipe coverage"
-        error={coverageQuery.error}
-        onRetry={() => void coverageQuery.refetch()}
-      />
+      <PageBody className="space-y-(--space-lg)">
+        <PageHeader title="Recipe coverage" />
+        <QueryErrorNotice
+          what="recipe coverage"
+          error={coverageQuery.error}
+          onRetry={() => void coverageQuery.refetch()}
+        />
+      </PageBody>
     );
   }
 
   if (isLoading || !coverage) {
-    return <p className="text-sm text-muted-foreground">Loading coverage…</p>;
+    return (
+      <PageBody className="space-y-(--space-lg)">
+        <PageHeader title="Recipe coverage" />
+        <div className="grid gap-2">
+          <Skeleton className="h-24" />
+          <Skeleton className="h-10" />
+          <Skeleton className="h-10" />
+        </div>
+      </PageBody>
+    );
   }
 
-  const allCovered = coverage.items.every((item) => item.state === "COVERED");
-  const rows = showAll ? coverage.items : coverage.items.filter((item) => item.state !== "COVERED");
+  const allCovered = noRecipe === 0 && scheduled === 0;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Recipe Coverage</h1>
-        <p className="text-sm text-muted-foreground">
-          Which active menu items currently resolve an effective recipe — covered, scheduled for a
-          future date, or with no recipe at all.
-        </p>
-      </div>
+    <PageBody className="space-y-(--space-lg)">
+      <PageHeader
+        title="Recipe coverage"
+        description="Which active menu items currently resolve an effective recipe — covered, scheduled for a future date, or with no recipe at all."
+        meta={statLine(
+          countLine(allItems.length, "active menu item"),
+          noRecipe > 0 ? `${noRecipe} with no recipe` : null,
+          scheduled > 0 ? `${scheduled} scheduled` : null,
+        )}
+      />
 
-      <div className="grid gap-4 sm:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <AnimatedNumber value={coverage.totalActiveMenuItems} />
-            </CardTitle>
-            <CardDescription>Total Active Menu Items</CardDescription>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <AnimatedNumber value={coverage.covered} />
-            </CardTitle>
-            <CardDescription>Covered</CardDescription>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <AnimatedNumber value={coverage.scheduled} />
-            </CardTitle>
-            <CardDescription>Scheduled</CardDescription>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <AnimatedNumber value={coverage.noRecipe} />
-            </CardTitle>
-            <CardDescription>No Recipe</CardDescription>
-          </CardHeader>
-        </Card>
+      <div className="grid gap-(--space-md) sm:grid-cols-2 xl:grid-cols-4">
+        <StatTile
+          label="Active menu items"
+          value={allItems.length.toLocaleString()}
+          icon={UtensilsCrossed}
+          accent="primary"
+        />
+        <StatTile label="Covered" value={covered.toLocaleString()} icon={CircleCheck} />
+        <StatTile label="Scheduled" value={scheduled.toLocaleString()} icon={CalendarClock} />
+        <StatTile
+          label="No recipe"
+          value={noRecipe.toLocaleString()}
+          icon={CircleSlash}
+          higherIsBetter={false}
+        />
       </div>
 
       {allCovered ? (
         <EmptyState title="Every active menu item has a recipe" />
       ) : (
         <>
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              {showAll
-                ? "Showing every active menu item."
-                : "Showing menu items that still need attention — a coverage report is a worklist."}
-            </p>
-            <Button type="button" variant="outline" size="sm" onClick={() => setShowAll((v) => !v)}>
-              {showAll ? "Show only gaps" : "Show all"}
-            </Button>
-          </div>
+          <FilterBar
+            title="Coverage"
+            filters={[
+              {
+                id: "state",
+                label: "Coverage",
+                value: stateFilter,
+                onChange: setStateFilter,
+                // "Gaps only" is the default and it IS a filter, so it appears as a real option
+                // beside the states rather than hiding behind the strip's "all" entry.
+                options: [{ value: "gaps", label: "Needs attention" }, ...STATE_OPTIONS],
+                allLabel: "Every menu item",
+              },
+            ]}
+          />
 
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-muted-foreground">
-                <th className="py-2 pr-4">Menu item</th>
-                <th className="py-2 pr-4">Coverage</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((item) => (
-                <tr key={item.menuItemId} className="border-b">
-                  <td className="py-2 pr-4">{item.name}</td>
-                  <td className="py-2 pr-4">
-                    <StatusBadge
-                      status={item.state}
-                      label={
-                        item.state === "SCHEDULED" && item.scheduledFrom
-                          ? `Scheduled from ${new Date(item.scheduledFrom).toLocaleDateString()}`
-                          : undefined
-                      }
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <p className="text-small text-muted-foreground">
+            {stateFilter === "gaps"
+              ? `Showing ${filteredCountLine(rows.length, allItems.length, "menu item")} that still need attention — a coverage report is a worklist.`
+              : `Showing ${filteredCountLine(rows.length, allItems.length, "menu item")}.`}
+          </p>
+
+          <DataGrid
+            label="Recipe coverage"
+            columns={columns}
+            data={rows}
+            density="comfortable"
+            isFiltered={stateFilter !== ""}
+            onClearFilters={() => setStateFilter("")}
+            card={{
+              primary: (row) => row.name,
+              trailing: (row) => <StatusBadge status={row.state} />,
+            }}
+          />
         </>
       )}
-    </div>
+    </PageBody>
   );
 }

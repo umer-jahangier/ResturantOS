@@ -101,9 +101,20 @@ function specifiersIn(source: string): string[] {
   return found;
 }
 
-/** Strip `/* … *\/` and `// …` so a comment cannot trip a source-text assertion. */
+/**
+ * Strip `/* … *\/` and `// …` so a comment cannot trip a source-text assertion, WITHOUT
+ * changing the line count.
+ *
+ * <p>The block-comment replacement used to delete the comment outright, which shifted every
+ * subsequent line. Callers report offenders as `file:line`, so the numbers they printed pointed
+ * at the wrong code — a gate failure that names line 73 when the offender is on line 115 sends
+ * the reader somewhere innocent, and the natural conclusion is that the gate is broken rather
+ * than the code. Newlines inside a stripped block are preserved so `index + 1` stays truthful.
+ */
 export function stripComments(source: string): string {
-  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/[^\n]*/g, "$1");
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, (match) => match.replace(/[^\n]/g, " "))
+    .replace(/(^|[^:"'`\\])\/\/[^\n]*/g, "$1");
 }
 
 export interface ClosureResult {

@@ -10,7 +10,7 @@ import { TenderSplit } from "@/components/finance/TenderSplit";
 import { TillVariancePanel } from "@/components/finance/TillVariancePanel";
 import { useDailyTakings } from "@/lib/hooks/finance/use-daily-takings";
 import { useUsers } from "@/lib/hooks/use-users";
-import { formatPaisa } from "@/lib/adapters/shared";
+import { MoneyDisplay } from "@/components/ui/money-display";
 import type {
   DailyTakings as DailyTakingsModel,
   MoneyFigure,
@@ -92,7 +92,7 @@ export function DailyTakings() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <label className="text-sm">
+        <label className="text-body">
           <span className="mb-1 block text-muted-foreground">Business date</span>
           <input
             type="date"
@@ -100,11 +100,11 @@ export function DailyTakings() {
             disabled={!shownDate}
             data-testid="takings-date"
             onChange={(e) => setDate(e.target.value)}
-            className="rounded border bg-background px-2 py-1 disabled:opacity-50"
+            className="rounded-md border bg-background px-2 py-1 disabled:opacity-50"
           />
         </label>
         {takings && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-small text-muted-foreground">
             {takings.orderCount} {takings.orderCount === 1 ? "order" : "orders"} closed on this
             trading day
           </p>
@@ -139,7 +139,7 @@ function TakingsBody({
   return (
     <div className="space-y-6">
       <section aria-labelledby="takings-summary-heading" className="space-y-3">
-        <h2 id="takings-summary-heading" className="text-sm font-semibold text-muted-foreground">
+        <h2 id="takings-summary-heading" className="text-small font-semibold text-muted-foreground">
           The day&apos;s money
         </h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -193,7 +193,7 @@ function TakingsBody({
 
       <section aria-labelledby="tender-heading" className="space-y-3">
         <div>
-          <h2 id="tender-heading" className="text-sm font-semibold text-muted-foreground">
+          <h2 id="tender-heading" className="text-small font-semibold text-muted-foreground">
             How it came in
           </h2>
           <p className="text-label text-muted-foreground">
@@ -225,10 +225,10 @@ function TakingsBody({
 
       <section aria-labelledby="till-heading" className="space-y-3">
         <div>
-          <h2 id="till-heading" className="text-sm font-semibold text-muted-foreground">
+          <h2 id="till-heading" className="text-small font-semibold text-muted-foreground">
             What each till counted
           </h2>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-label text-muted-foreground">
             Every till is listed on its own. Variances are never added together — two drawers out by
             opposite amounts is two problems, and one total of zero would hide both.
           </p>
@@ -242,12 +242,12 @@ function TakingsBody({
 
       {takings.residualUnknowns.length > 0 && (
         <section aria-labelledby="residual-heading" className="space-y-2">
-          <h2 id="residual-heading" className="text-sm font-semibold text-muted-foreground">
+          <h2 id="residual-heading" className="text-small font-semibold text-muted-foreground">
             Also not known
           </h2>
           <ul className="space-y-1" data-testid="residual-unknowns">
             {takings.residualUnknowns.map((u) => (
-              <li key={u.figure} className="text-sm">
+              <li key={u.figure} className="text-small">
                 <span className="font-medium">{u.figure}</span>
                 <span className="text-muted-foreground"> — {u.reason}</span>
               </li>
@@ -295,8 +295,8 @@ function UnclosedTakingsNote({ unclosed }: { unclosed: UnclosedTakings }) {
       {has ? (
         <>
           <p className="font-medium">
-            <span className="font-mono tabular-nums" data-testid="unclosed-cash-amount">
-              {formatPaisa(unclosed.cashPaisa)}
+            <span data-testid="unclosed-cash-amount">
+              <MoneyDisplay paisa={unclosed.cashPaisa} />
             </span>{" "}
             of today&apos;s cash is against{" "}
             {unclosed.orderCount === 1 ? "1 order" : `${unclosed.orderCount} orders`} that
@@ -305,8 +305,8 @@ function UnclosedTakingsNote({ unclosed }: { unclosed: UnclosedTakings }) {
               <>
                 {" "}
                 (
-                <span className="font-mono tabular-nums" data-testid="unclosed-total-amount">
-                  {formatPaisa(unclosed.totalPaisa)}
+                <span data-testid="unclosed-total-amount">
+                  <MoneyDisplay paisa={unclosed.totalPaisa} />
                 </span>{" "}
                 across all tenders)
               </>
@@ -322,11 +322,8 @@ function UnclosedTakingsNote({ unclosed }: { unclosed: UnclosedTakings }) {
           {unclosed.cashTipPaisa > 0 && (
             <p className="mt-1 font-medium">
               Plus{" "}
-              <span
-                className="font-mono tabular-nums"
-                data-testid="unclosed-cash-tip-amount"
-              >
-                {formatPaisa(unclosed.cashTipPaisa)}
+              <span data-testid="unclosed-cash-tip-amount">
+                <MoneyDisplay paisa={unclosed.cashTipPaisa} />
               </span>{" "}
               of cash tips taken on those same bills. Also in the drawer, also to be counted — but
               never a sale, on any day: a tip is held for the staff.
@@ -368,18 +365,24 @@ function FigureTile({
       )}
       data-testid={`figure-tile-${label.toLowerCase().replace(/\s+/g, "-")}`}
     >
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-label uppercase tracking-wide text-muted-foreground">{label}</p>
       <div className="mt-1">
+        {/* 38-08 task 3 — ONE money typeface. This screen rendered every amount in
+            `font-mono`, alone in the product: UI-SPEC §3.11 reserves Geist Mono for IDENTIFIERS
+            (an entry number, an account code, an order number) and makes every numeral tabular in
+            `@layer base`, so money already aligns in the sans face and the mono was buying
+            nothing but a second visual language for the same kind of value. An account code stays
+            mono here and everywhere; the money does not. */}
         <FigureValue
           figure={figure}
-          className={cn("font-mono", emphasis ? "text-2xl font-semibold" : "text-xl")}
+          className={emphasis ? "text-h1 font-semibold" : "text-h2"}
         />
       </div>
       {/* The hint explains what a figure MEANS. When the figure is not known, the reason has
           already said everything there is to say, and a second sentence underneath it describing
           a number that is not there reads as though the number is there. */}
       {hint && figure.state === "KNOWN" && (
-        <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+        <p className="mt-1 text-label text-muted-foreground">{hint}</p>
       )}
     </div>
   );

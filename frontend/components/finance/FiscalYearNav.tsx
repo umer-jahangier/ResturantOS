@@ -26,7 +26,7 @@ function FiscalYearNav({ fiscalYear, onChange }: FiscalYearNavProps) {
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      <span className="text-sm font-medium">
+      <span className="text-small font-medium">
         FY {fiscalYear - 1}–{fiscalYear} (Jul – Jun)
       </span>
       <Button

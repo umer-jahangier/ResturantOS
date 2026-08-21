@@ -2,6 +2,7 @@
 
 import { AccessDenied } from "@/components/shared/access-denied";
 import { AuditLog } from "@/components/audit/audit-log";
+import { PageHeader } from "@/components/ui/page-header";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { ZoneProvider } from "@/components/providers/zone-provider";
 
@@ -44,14 +45,10 @@ function AuditLogPage() {
      * so this reads as part of the same administrative area rather than as a stray console.
      */
     <ZoneProvider zone="expressive" className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Audit log</h1>
-        <p className="text-sm text-muted-foreground">
-          Every sign-in, void, refund, till session, role change and journal posting in this
-          business, with who did it and when. These records cannot be edited or deleted by anyone,
-          including an owner.
-        </p>
-      </div>
+      <PageHeader
+        title="Audit log"
+        description="Every sign-in, void, refund, till session, role change and journal posting in this business, with who did it and when. These records cannot be edited or deleted by anyone, including an owner."
+      />
 
       <AuditLog />
     </ZoneProvider>

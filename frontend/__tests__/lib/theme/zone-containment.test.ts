@@ -41,7 +41,27 @@ import {
  * </ol>
  */
 
-/** The Tailwind utility family and the raw property, in both CSS and JSX-style casings. */
+/**
+ * WIDENED 2026-08-22. This list used to contain only the `backdrop-*` family — ONE of the six
+ * things that create a containing block for `position: fixed`. That was a blind spot, and it was
+ * hiding a live one: `components/ui/dialog.tsx` carries `zoom-in-95`, a TRANSFORM-based entrance
+ * animation, and POS and KDS both import it. The zone violation is almost never direct — nobody
+ * puts glass on the POS on purpose; they put it on a shared component the POS imports.
+ *
+ * The full set that creates a containing block for a fixed-position descendant is:
+ * `transform`, `perspective`, `filter`, `backdrop-filter`, `will-change` (of those), and
+ * `contain: layout|paint|strict|content`. `receipt-print.css:180-187` pins `.receipt-root` with
+ * `position: fixed`, so ANY of them on an ancestor prints the app chrome onto a customer's bill.
+ *
+ * DELIBERATELY NOT MATCHED — and this is a judgement, so it is written down rather than left to
+ * be rediscovered: bare `scale-*`, `translate-*`, `rotate-*` and `skew-*` utilities. Every
+ * occurrence of those in the operational tree today is a LEAF — `active:scale-[0.98]` for tap
+ * feedback on a button, `-translate-y-1/2` centring an absolutely-positioned icon — and a leaf
+ * is not an ancestor of anything. Matching them would flag ~12 legitimate call sites, and a gate
+ * that cries wolf is a gate people delete. The residual risk is a transform utility placed on a
+ * WRAPPER, which this list does not catch; that case is covered by the ancestor-chain walk
+ * recorded in the 38-04 verification, not by a regex.
+ */
 const FILTER_PATTERNS: { label: string; pattern: RegExp }[] = [
   {
     label: "Tailwind backdrop-* utility",
@@ -51,6 +71,40 @@ const FILTER_PATTERNS: { label: string; pattern: RegExp }[] = [
   { label: "CSS backdrop-filter property", pattern: /(^|[^-\w])backdrop-filter\s*:/ },
   { label: "JSX backdropFilter style", pattern: /\bbackdropFilter\b/ },
   { label: "-webkit-backdrop-filter property", pattern: /-webkit-backdrop-filter\s*:/ },
+
+  // ── the five creators the list used to miss ──────────────────────────────────
+  {
+    label: "transform-carrying entrance/exit animation (zoom-*/slide-*)",
+    pattern: /\b(zoom-(in|out)|slide-(in-from|out-to))-[a-z0-9-]+\b/,
+  },
+  // VALUE-ANCHORED, and this is the fix for a bug I shipped in the first widening. The CSS
+  // property alternatives were originally written as `/filter\s*:\s*(?!none)/` and
+  // `/transform\s*:\s*(?!none)/`, which match a TYPESCRIPT PARAMETER ANNOTATION —
+  // `function labelFor(filter: FilterBarFilter)` and `isServerScopedFilter(filter: StatusFilter)`
+  // both fired. The gate went red on two type guards and zero compositing filters.
+  //
+  // A CSS declaration is `property: <value>`; a TS annotation is `name: <Type>`. They are only
+  // distinguishable by the VALUE, so every property pattern below requires a real CSS value —
+  // a filter function, a transform function, a length. A type name cannot satisfy them.
+  {
+    label: "CSS transform property",
+    pattern:
+      /(^|[^-\w])transform\s*:\s*[^;{}]*\b(translate|scale|rotate|skew|matrix|perspective)[XYZ3d]*\s*\(/i,
+  },
+  { label: "will-change (Tailwind utility or CSS property)", pattern: /\bwill-change(-[a-z]+)?\b/ },
+  {
+    label: "CSS contain / Tailwind contain-* (layout, paint, strict, content)",
+    pattern: /(^|[^-\w])contain\s*:\s*(layout|paint|strict|content)|\bcontain-(layout|paint|strict|content)\b/,
+  },
+  {
+    label: "perspective (CSS property with a length, or Tailwind utility)",
+    pattern: /(^|[^-\w])perspective\s*:\s*[\d.]+(px|rem|em|vh|vw)|\bperspective-\[?[\d.]/,
+  },
+  {
+    label: "non-backdrop filter (Tailwind utility or CSS property)",
+    pattern:
+      /(^|[^-\w])filter\s*:\s*[^;{}]*\b(blur|brightness|contrast|drop-shadow|grayscale|hue-rotate|invert|opacity|saturate|sepia|url)\s*\(|(?<!backdrop-)\b(blur|grayscale|sepia|invert|hue-rotate)-[a-z0-9[\]./]+\b/i,
+  },
 ];
 
 /**
@@ -69,7 +123,23 @@ function offendingLines(source: string): { line: number; text: string; label: st
   return found;
 }
 
-const OPERATIONAL_ROUTES = ["app/(tenant)/app/pos", "app/(tenant)/app/kitchen/[stationCode]"];
+/**
+ * WIDENED 2026-08-22 alongside the pattern list. This named TWO routes while SIX operational
+ * routes exist, so `expo-board.tsx` and `kds-cleared-board.tsx` — both heavily edited by plan
+ * 38-05 — sat outside the closure entirely and could have declared anything.
+ *
+ * A closure gate is only evidence for the entry points it is given. Same shape as the contrast
+ * gate that only ever checked the PAGE surface and never a card, and as the POS cart probe that
+ * fell through to `aside` and measured the sidebar for a whole wave.
+ */
+const OPERATIONAL_ROUTES = [
+  "app/(tenant)/app/pos",
+  "app/(tenant)/app/kitchen",
+  "app/(tenant)/app/kitchen/[stationCode]",
+  "app/(tenant)/app/kitchen/[stationCode]/cleared",
+  "app/(tenant)/app/kitchen/[stationCode]/orders/[ticketId]",
+  "app/(tenant)/app/kitchen/expo",
+];
 
 describe("D-34-02 · the operational zone carries no compositing filter", () => {
   it("no file in the POS or KDS import closure declares one", () => {

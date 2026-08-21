@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { ShieldCheck, UserPlus } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ShieldCheck, ShieldOff, UserPlus } from "lucide-react";
 
+import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { DataGrid, type ColumnDef } from "@/components/ui/data-grid/data-grid";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Input } from "@/components/ui/input";
+import { FilterBar } from "@/components/ui/filter-bar";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -46,6 +48,16 @@ function formatLastLogin(iso: string | null): string {
  * `GET /api/v1/users?search=` filters upstream against the whole tenant, and the page size is
  * capped at 200 there. Filtering the current page client-side would silently search one page and
  * report "nothing matches" for a user who is on page two.
+ *
+ * <h3>What the demo's `User Management` table asked for, and what this can honestly show</h3>
+ *
+ * The demo's admin screen (`:1285-1294`) has five columns: User / Role / Branch / Last Active /
+ * 2FA. Four of those are real here. **Role and Branch are not**: `GET /api/v1/users` returns
+ * `TenantUser`, which carries no role and no branch — those live on `TenantUserDetail`, one
+ * request per user, and the panel beside this list is where they are shown. Adding the columns
+ * would mean either N+1 requests to fill a list or a column of blanks, and a blank cell under a
+ * heading reading "Role" is a claim that the person has none. They are left out, and this
+ * paragraph is why. Last Active and 2FA — which the audit recorded as missing — are now here.
  */
 export function UserList({
   selectedId,
@@ -83,17 +95,119 @@ export function UserList({
     setPage(0);
   }
 
+  const columns = useMemo<ColumnDef<TenantUser, unknown>[]>(
+    () => [
+      {
+        id: "user",
+        accessorFn: (u) => u.fullName ?? u.email,
+        header: "User",
+        cell: ({ row }) => (
+          <button
+            type="button"
+            onClick={() => onSelect(row.original)}
+            aria-current={selectedId === row.original.id ? "true" : undefined}
+            data-testid="user-row"
+            className="flex items-center gap-(--space-sm) text-left"
+          >
+            {/* No `label`: the name is rendered right beside the disc, so a labelled avatar would
+                have every row announced twice. */}
+            <Avatar
+              name={row.original.fullName ?? row.original.email}
+              toneKey={row.original.id}
+              size="sm"
+            />
+            <span className="min-w-0">
+              <span className="block truncate font-medium underline-offset-2 hover:underline">
+                {row.original.fullName ?? row.original.email}
+              </span>
+              <span className="block truncate text-small text-foreground-secondary">
+                {row.original.email}
+              </span>
+            </span>
+          </button>
+        ),
+      },
+      {
+        id: "status",
+        header: "Status",
+        enableSorting: false,
+        cell: ({ row }) => (
+          <span className="flex flex-wrap items-center gap-(--space-xs)">
+            <StatusBadge
+              status={row.original.active ? "active" : "inactive"}
+              label={row.original.active ? "Active" : "Deactivated"}
+            />
+            {row.original.mustChangePassword && (
+              <StatusBadge status="pending" label="Password reset pending" />
+            )}
+          </span>
+        ),
+      },
+      {
+        id: "totp",
+        accessorKey: "totpEnabled",
+        header: "2FA",
+        // Icon AND word AND hue. An icon alone would make "enrolled" and "not enrolled" a
+        // difference of shape at 14px, on a security column.
+        cell: ({ row }) =>
+          row.original.totpEnabled ? (
+            <span className="inline-flex items-center gap-1 text-success">
+              <ShieldCheck className="size-3.5 shrink-0" aria-hidden="true" />
+              Enrolled
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-foreground-tertiary">
+              <ShieldOff className="size-3.5 shrink-0" aria-hidden="true" />
+              Not enrolled
+            </span>
+          ),
+      },
+      {
+        id: "lastLoginAt",
+        accessorKey: "lastLoginAt",
+        header: "Last active",
+        cell: ({ row }) => (
+          <span className="text-foreground-secondary">
+            {formatLastLogin(row.original.lastLoginAt)}
+          </span>
+        ),
+      },
+    ],
+    [onSelect, selectedId],
+  );
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <Input
-          value={term}
-          onChange={(e) => changeSearch(e.target.value)}
-          placeholder="Search by name or email…"
-          aria-label="Search users"
-          className="max-w-xs"
-        />
-        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+    <div className="space-y-(--space-md)">
+      <FilterBar
+        title="Roster"
+        search={{
+          value: term,
+          onChange: changeSearch,
+          label: "Search users by name or email",
+          placeholder: "Search by name or email…",
+        }}
+        extraActiveCount={activeOnly ? 1 : 0}
+        onClearAll={() => {
+          changeSearch("");
+          setActiveOnly(false);
+        }}
+        actions={
+          <>
+            {query.data && (
+              <span className="text-small tabular-nums text-foreground-secondary">
+                {total} {total === 1 ? "user" : "users"}
+              </span>
+            )}
+            {canCreate && (
+              <Button type="button" onClick={() => setCreateOpen(true)}>
+                <UserPlus className="size-4" aria-hidden="true" />
+                Add user
+              </Button>
+            )}
+          </>
+        }
+      >
+        <label className="flex items-center gap-2 text-small text-foreground-secondary">
           <input
             type="checkbox"
             checked={activeOnly}
@@ -101,24 +215,11 @@ export function UserList({
               setActiveOnly(e.target.checked);
               setPage(0);
             }}
-            className="size-4 rounded border-border-interactive"
+            className="size-4 rounded-sm border-border-interactive"
           />
           Active only
         </label>
-        <div className="ml-auto flex items-center gap-2">
-          {query.data && (
-            <span className="text-sm text-muted-foreground tabular-nums">
-              {total} {total === 1 ? "user" : "users"}
-            </span>
-          )}
-          {canCreate && (
-            <Button type="button" onClick={() => setCreateOpen(true)}>
-              <UserPlus className="size-4" aria-hidden="true" />
-              Add user
-            </Button>
-          )}
-        </div>
-      </div>
+      </FilterBar>
 
       <QueryBoundary
         query={query}
@@ -145,52 +246,35 @@ export function UserList({
           />
         }
       >
-        <ul className="divide-y rounded-lg border" data-testid="user-list">
-          {users.map((user) => (
-            <li key={user.id}>
-              <button
-                type="button"
-                onClick={() => onSelect(user)}
-                aria-current={selectedId === user.id ? "true" : undefined}
-                data-testid="user-row"
-                className={cn(
-                  "flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-muted/60",
-                  selectedId === user.id && "bg-muted",
-                )}
-              >
-                <span className="min-w-0">
-                  <span className="block truncate font-medium">{user.fullName ?? user.email}</span>
-                  <span className="block truncate text-sm text-muted-foreground">{user.email}</span>
-                </span>
-                <span className="flex shrink-0 items-center gap-3">
-                  {user.totpEnabled && (
-                    <span
-                      className="hidden items-center gap-1 text-xs text-muted-foreground sm:inline-flex"
-                      title="Two-factor authentication is enrolled"
-                    >
-                      <ShieldCheck className="size-3.5" aria-hidden="true" />
-                      2FA
-                    </span>
-                  )}
-                  {user.mustChangePassword && (
-                    <StatusBadge status="pending" label="Password reset pending" />
-                  )}
-                  <StatusBadge
-                    status={user.active ? "active" : "inactive"}
-                    label={user.active ? "Active" : "Deactivated"}
-                  />
-                  <span className="hidden w-32 text-right text-xs text-muted-foreground sm:block">
-                    {formatLastLogin(user.lastLoginAt)}
-                  </span>
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div data-testid="user-list">
+          <DataGrid
+            label="Users"
+            columns={columns}
+            data={users}
+            pageSize={PAGE_SIZE}
+            isFiltered={debounced.length > 0 || activeOnly}
+            onClearFilters={() => {
+              changeSearch("");
+              setActiveOnly(false);
+            }}
+            rowClassName={(u) => cn(selectedId === u.id && "bg-selected")}
+            emptyTitle={debounced ? "No users match that search" : "No users yet"}
+            card={{
+              primary: (u) => u.fullName ?? u.email,
+              secondary: (u) => u.email,
+              trailing: (u) => (
+                <StatusBadge
+                  status={u.active ? "active" : "inactive"}
+                  label={u.active ? "Active" : "Deactivated"}
+                />
+              ),
+            }}
+          />
+        </div>
       </QueryBoundary>
 
       {(page > 0 || hasNextPage) && (
-        <div className="flex items-center justify-between text-sm">
+        <div className="flex items-center justify-between text-small">
           <Button
             type="button"
             variant="outline"
@@ -200,7 +284,7 @@ export function UserList({
           >
             Previous
           </Button>
-          <span className="text-muted-foreground tabular-nums">Page {page + 1}</span>
+          <span className="tabular-nums text-foreground-secondary">Page {page + 1}</span>
           <Button
             type="button"
             variant="outline"

@@ -6,10 +6,16 @@ import { toast } from "sonner";
 import { EmployeeFormDialog } from "@/components/hr/employee-form-dialog";
 import { HrErrorNotice } from "@/components/hr/hr-error-notice";
 import { PermissionGuard } from "@/components/shared/permission-guard";
+import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { DataGrid, type ColumnDef } from "@/components/ui/data-grid/data-grid";
+import { FilterBar } from "@/components/ui/filter-bar";
 import { MoneyDisplay } from "@/components/ui/money-display";
-import { Select } from "@/components/ui/select";
+import { PageBody } from "@/components/ui/page-body";
+import { PageHeader } from "@/components/ui/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { useDepartments } from "@/lib/hooks/hr/use-hr-config";
 import { useDeactivateEmployee, useEmployees } from "@/lib/hooks/hr/use-employees";
 import type { Employee } from "@/lib/models/hr.model";
@@ -30,8 +36,17 @@ import type { Employee } from "@/lib/models/hr.model";
  * {@link EmployeeFormDialog}, built on the app form standard. This file is the list: search,
  * filter, and the two actions.
  *
- * <p>The Department column is new. It existed in the API and the database and was not on this
- * screen at all, which is why nobody noticed it had become three spellings of "Waiter".
+ * <p>The Department column existed in the API and the database and was not on this screen at all,
+ * which is why nobody noticed it had become three spellings of "Waiter".
+ *
+ * <h3>38-08: deactivation asks first</h3>
+ *
+ * `deactivate()` fired straight from the row button. Deactivating a person removes their ability
+ * to sign in and drops them out of every roster and rota this product draws — an
+ * `hr.employee.manage` holder was one mis-click on a dense list away from doing that to the wrong
+ * name, with only a toast afterwards. It now goes through the shared {@link ConfirmDialog}, whose
+ * confirm button restates the verb and whose body names the consequence, and the employee's own
+ * name is in the title so the dialog cannot be dismissed on autopilot.
  */
 export default function EmployeesPage() {
   const { data: employees, isLoading, isError, error, refetch } = useEmployees();
@@ -40,6 +55,7 @@ export default function EmployeesPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Employee | undefined>(undefined);
+  const [confirming, setConfirming] = useState<Employee | null>(null);
   const [search, setSearch] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
   const [showInactive, setShowInactive] = useState(false);
@@ -50,9 +66,7 @@ export default function EmployeesPage() {
       if (!showInactive && !e.active) return false;
       if (departmentFilter && e.departmentId !== departmentFilter) return false;
       if (!term) return true;
-      return (
-        e.fullName.toLowerCase().includes(term) || e.employeeNo.toLowerCase().includes(term)
-      );
+      return e.fullName.toLowerCase().includes(term) || e.employeeNo.toLowerCase().includes(term);
     });
   }, [employees, search, departmentFilter, showInactive]);
 
@@ -68,121 +82,188 @@ export default function EmployeesPage() {
 
   function deactivate(employee: Employee) {
     deactivateEmployee.mutate(employee.id, {
-      onSuccess: () => toast.success(`${employee.fullName} deactivated`),
+      onSuccess: () => {
+        setConfirming(null);
+        toast.success(`${employee.fullName} deactivated`);
+      },
       onError: () => toast.error(`Could not deactivate ${employee.fullName}`),
     });
   }
 
   const total = employees?.length ?? 0;
 
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-lg font-semibold">Employees</h1>
-        <PermissionGuard require="hr.employee.manage" fallback={null}>
-          <Button onClick={openCreate}>New employee</Button>
-        </PermissionGuard>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Input
-          className="max-w-64"
-          placeholder="Search by name or number"
-          aria-label="Search employees"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <div className="w-56">
-          <Select
-            aria-label="Filter by department"
-            options={[
-              { value: "", label: "All departments" },
-              ...(departments.data ?? [])
-                .filter((d) => d.active)
-                .map((d) => ({ value: d.id, label: d.name })),
-            ]}
-            value={departmentFilter}
-            onValueChange={setDepartmentFilter}
-            isLoading={departments.isPending}
-            error={departments.isError}
-            onRetry={() => void departments.refetch()}
+  const columns = useMemo<ColumnDef<Employee, unknown>[]>(
+    () => [
+      {
+        id: "employeeNo",
+        accessorKey: "employeeNo",
+        header: "No",
+        cell: ({ row }) => (
+          <span className="font-mono tabular-nums">{row.original.employeeNo}</span>
+        ),
+      },
+      {
+        id: "fullName",
+        accessorKey: "fullName",
+        header: "Name",
+        cell: ({ row }) => (
+          <span className="flex items-center gap-(--space-sm)">
+            <Avatar name={row.original.fullName} toneKey={row.original.id} size="sm" />
+            <span className="font-medium">{row.original.fullName}</span>
+          </span>
+        ),
+      },
+      {
+        id: "departmentName",
+        accessorKey: "departmentName",
+        header: "Department",
+        cell: ({ row }) => row.original.departmentName ?? "—",
+      },
+      {
+        id: "designationName",
+        accessorKey: "designationName",
+        header: "Job title",
+        cell: ({ row }) => row.original.designationName ?? "—",
+      },
+      {
+        id: "cnicMasked",
+        accessorKey: "cnicMasked",
+        header: "CNIC",
+        cell: ({ row }) => (
+          <span className="font-mono tabular-nums">{row.original.cnicMasked ?? "—"}</span>
+        ),
+      },
+      {
+        id: "basicSalaryPaisa",
+        accessorKey: "basicSalaryPaisa",
+        header: "Basic",
+        cell: ({ row }) => (
+          <span className="block text-right">
+            <MoneyDisplay paisa={row.original.basicSalaryPaisa} />
+          </span>
+        ),
+      },
+      {
+        id: "status",
+        accessorKey: "active",
+        header: "Status",
+        cell: ({ row }) => (
+          <StatusBadge
+            status={row.original.active ? "active" : "inactive"}
+            label={row.original.active ? "Active" : "Former"}
           />
-        </div>
-        <label className="flex items-center gap-2 text-sm">
+        ),
+      },
+      {
+        id: "actions",
+        header: "",
+        enableSorting: false,
+        cell: ({ row }) => (
+          <PermissionGuard require="hr.employee.manage" fallback={null}>
+            <div className="flex justify-end gap-1">
+              <Button variant="ghost" size="sm" onClick={() => openEdit(row.original)}>
+                Edit
+              </Button>
+              {row.original.active && (
+                <Button variant="ghost" size="sm" onClick={() => setConfirming(row.original)}>
+                  Deactivate
+                </Button>
+              )}
+            </div>
+          </PermissionGuard>
+        ),
+      },
+    ],
+    [],
+  );
+
+  return (
+    <PageBody className="space-y-(--space-lg)">
+      <PageHeader
+        title="Employees"
+        description="Everyone on the payroll for this branch."
+        meta={`${rows.length} of ${total} shown`}
+        actions={
+          <PermissionGuard require="hr.employee.manage" fallback={null}>
+            <Button onClick={openCreate}>New employee</Button>
+          </PermissionGuard>
+        }
+      />
+
+      <FilterBar
+        title="Roster"
+        search={{
+          value: search,
+          onChange: setSearch,
+          label: "Search employees by name or number",
+          placeholder: "Search by name or number",
+        }}
+        filters={[
+          {
+            id: "department",
+            label: "Department",
+            value: departmentFilter,
+            allLabel: "All departments",
+            onChange: setDepartmentFilter,
+            isLoading: departments.isPending,
+            error: departments.isError,
+            onRetry: () => void departments.refetch(),
+            options: (departments.data ?? [])
+              .filter((d) => d.active)
+              .map((d) => ({ value: d.id, label: d.name })),
+          },
+        ]}
+        extraActiveCount={showInactive ? 1 : 0}
+        onClearAll={() => {
+          setSearch("");
+          setDepartmentFilter("");
+          setShowInactive(false);
+        }}
+      >
+        <label className="flex items-center gap-2 text-small">
           <input
             type="checkbox"
             checked={showInactive}
             onChange={(e) => setShowInactive(e.target.checked)}
+            className="size-4 rounded-sm border-border-interactive"
           />
           Show former staff
         </label>
-        <span className="text-muted-foreground ml-auto text-sm">
-          {rows.length} of {total}
-        </span>
-      </div>
+      </FilterBar>
 
       {/* A failed load must never fall through to the "No employees yet." row — that would
           read as an empty roster and invite someone to re-enter the whole thing. */}
       {isError ? (
         <HrErrorNotice what="the employee roster" error={error} onRetry={() => void refetch()} />
       ) : isLoading ? (
-        <p className="text-muted-foreground text-sm">Loading…</p>
+        <div className="space-y-2">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-11" />
+          ))}
+        </div>
       ) : (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-muted-foreground border-b text-left">
-              <th className="py-2">No</th>
-              <th>Name</th>
-              <th>Department</th>
-              <th>Job title</th>
-              <th>CNIC</th>
-              <th>Basic</th>
-              <th>Status</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((e) => (
-              <tr key={e.id} className="border-b">
-                <td className="py-2">{e.employeeNo}</td>
-                <td>{e.fullName}</td>
-                <td>{e.departmentName ?? "—"}</td>
-                <td>{e.designationName ?? "—"}</td>
-                <td>{e.cnicMasked ?? "—"}</td>
-                <td>
-                  <MoneyDisplay paisa={e.basicSalaryPaisa} />
-                </td>
-                <td>{e.active ? "Active" : "Former"}</td>
-                <td className="space-x-1 text-right">
-                  <PermissionGuard require="hr.employee.manage" fallback={null}>
-                    <Button variant="ghost" size="sm" onClick={() => openEdit(e)}>
-                      Edit
-                    </Button>
-                    {e.active && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={deactivateEmployee.isPending}
-                        onClick={() => deactivate(e)}
-                      >
-                        Deactivate
-                      </Button>
-                    )}
-                  </PermissionGuard>
-                </td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={8} className="text-muted-foreground py-4 text-center">
-                  {total === 0
-                    ? "No employees yet."
-                    : "No employee matches this search or filter."}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <DataGrid
+          label="Employees"
+          columns={columns}
+          data={rows}
+          isFiltered={search.trim() !== "" || departmentFilter !== "" || showInactive}
+          onClearFilters={() => {
+            setSearch("");
+            setDepartmentFilter("");
+            setShowInactive(false);
+          }}
+          emptyTitle={total === 0 ? "No employees yet" : "No employee matches this search"}
+          emptyDescription={
+            total === 0
+              ? "Add the people who work here so they appear on rotas and payroll."
+              : undefined
+          }
+          card={{
+            primary: (e) => e.fullName,
+            secondary: (e) => `${e.employeeNo} · ${e.designationName ?? "No job title"}`,
+            trailing: (e) => <MoneyDisplay paisa={e.basicSalaryPaisa} />,
+          }}
+        />
       )}
 
       <PermissionGuard require="hr.employee.manage" fallback={null}>
@@ -194,7 +275,19 @@ export default function EmployeesPage() {
             if (!open) setEditing(undefined);
           }}
         />
+        <ConfirmDialog
+          open={confirming !== null}
+          onOpenChange={(open) => {
+            if (!open) setConfirming(null);
+          }}
+          title={confirming ? `Deactivate ${confirming.fullName}?` : "Deactivate employee?"}
+          body="They stop appearing on rotas and payroll runs from now on. Records already posted are unchanged, and the account can be reactivated."
+          confirmLabel="Deactivate"
+          pendingLabel="Deactivating…"
+          isPending={deactivateEmployee.isPending}
+          onConfirm={() => confirming && deactivate(confirming)}
+        />
       </PermissionGuard>
-    </div>
+    </PageBody>
   );
 }

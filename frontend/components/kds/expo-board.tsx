@@ -25,7 +25,6 @@ import {
 } from "@/components/kds/expo-checks";
 import {
   DEFAULT_ESCALATION_THRESHOLD_SECONDS,
-  formatAge,
   getAgingTreatment,
   type KdsAgingIcon,
 } from "@/components/kds/kds-aging";
@@ -37,6 +36,8 @@ import {
 import { T_BODY, T_H1, T_H2, T_KDS, T_LABEL, T_SMALL } from "@/components/kds/kds-type";
 import { ZoneProvider } from "@/components/providers/zone-provider";
 import { QueryErrorNotice } from "@/components/ui/query-boundary";
+import { Skeleton } from "@/components/ui/skeleton";
+import { readElapsed } from "@/lib/format/elapsed";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { KdsClockProvider, useKdsClock } from "@/lib/hooks/kds/use-kds-clock";
 import { useKdsExpoSocket } from "@/lib/hooks/kds/use-kds-expo-socket";
@@ -191,13 +192,19 @@ function ExpoStationRow({ line, canUpdate, busyItemIds, onAdvance }: ExpoStation
 
 interface ExpoCheckCardProps {
   check: ExpoCheck;
+  /** The same shared clock tick `check.ageMs` was measured against — never a second `now`. */
+  now: number;
   canUpdate: boolean;
   busyItemIds: readonly string[];
   onAdvance: (line: ExpoStationLine, item: KdsTicketItem) => void;
 }
 
-function ExpoCheckCard({ check, canUpdate, busyItemIds, onAdvance }: ExpoCheckCardProps) {
-  const aging = getAgingTreatment(check.ageMs, DEFAULT_ESCALATION_THRESHOLD_SECONDS);
+function ExpoCheckCard({ check, now, canUpdate, busyItemIds, onAdvance }: ExpoCheckCardProps) {
+  const aging = getAgingTreatment(check.ageMs, DEFAULT_ESCALATION_THRESHOLD_SECONDS, now);
+  // Bounded, via the one formatter (`lib/format/elapsed.ts`). The pass used to print the
+  // board's own `h:mm:ss` here, so a check left open over a close read `113:52:07` beside the
+  // words STILL COOKING. Past 24 h it now names the day it was fired instead.
+  const elapsed = readElapsed(check.receivedAt, now);
   // The check's ageing state is the WORST of its stations (each measured against its own
   // threshold) — `getAgingTreatment` above only supplies the icon/word/geometry vocabulary.
   const treatment = { ...aging, state: check.agingState };
@@ -245,7 +252,7 @@ function ExpoCheckCard({ check, canUpdate, busyItemIds, onAdvance }: ExpoCheckCa
           )}
         >
           <AgingIcon className="size-4" aria-hidden="true" />
-          {formatAge(check.ageMs)}
+          {elapsed.compact}
           {treatment.chipSuffix && (
             <span className={cn("uppercase tracking-wide", T_LABEL)}>{treatment.chipSuffix}</span>
           )}
@@ -302,8 +309,21 @@ function ExpoCheckCard({ check, canUpdate, busyItemIds, onAdvance }: ExpoCheckCa
   );
 }
 
+/**
+ * §24 — a contextual skeleton at the real card's dimensions, not a spinner.
+ *
+ * The blocks are `<Skeleton>`, which is ZONE-AWARE, and this tree is `operational`. The
+ * hand-rolled version wrapped each card in `animate-pulse`: a perpetual decorative animation
+ * on a wall-mounted kitchen screen, which D-38-04 forbids outright in this zone. It read as
+ * harmless in the evidence only because the probe waited for loading to finish before counting
+ * running animations — the motion was real, it was just measured after it had stopped. On a
+ * board whose tickets never load (an offline pass, a stalled query) it never stops at all.
+ *
+ * A flat `--muted` block still reads as a placeholder; the shimmer only ever added the
+ * suggestion of progress, which is worth something on a manager's dashboard and nothing to an
+ * expeditor waiting on the pass.
+ */
 function ExpoSkeleton() {
-  // §24 — a contextual skeleton at the real card's dimensions, not a spinner.
   return (
     <div
       data-testid="expo-skeleton"
@@ -313,13 +333,13 @@ function ExpoSkeleton() {
       {[0, 1, 2, 3, 4, 5].map((i) => (
         <div
           key={i}
-          className="flex animate-pulse flex-col gap-2 rounded-lg border border-white/10 border-l-4 border-l-white/20 bg-kds-card p-3"
+          className="flex flex-col gap-2 rounded-lg border border-white/10 border-l-4 border-l-white/20 bg-kds-card p-3"
         >
-          <div className="h-6 w-40 rounded-md bg-white/10" />
-          <div className="h-4 w-28 rounded-md bg-white/5" />
-          <div className="h-8 w-full rounded-md bg-white/10" />
-          <div className="h-14 w-full rounded-md bg-white/5" />
-          <div className="h-14 w-full rounded-md bg-white/5" />
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-14 w-full" />
+          <Skeleton className="h-14 w-full" />
         </div>
       ))}
     </div>
@@ -440,7 +460,11 @@ function ExpoBoardInner({ branchId }: ExpoBoardProps) {
         data-surface="kds"
         data-zone="operational"
         data-testid="expo-board"
-        className="flex min-h-screen flex-col gap-3 bg-kds-surface p-3 text-kds-text"
+        // `h-full min-h-0`, never `min-h-screen`: inside the tenant shell `<main>` is already the
+        // viewport less the top bar, so a 100vh minimum is taller than its own container and the
+        // shell grows a second scrollbar that scrolls the board away from a cook who meant to
+        // scroll a column. The route supplies the height via `<PageBody fullBleed>` (38-05 task 2).
+        className="flex h-full min-h-0 flex-col gap-3 overflow-hidden bg-kds-surface p-3 text-kds-text"
       >
         <header className="flex min-h-12 shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-lg border border-white/10 bg-kds-card px-3 py-1.5">
           <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
@@ -639,6 +663,7 @@ function ExpoBoardInner({ branchId }: ExpoBoardProps) {
                   <li key={check.orderId}>
                     <ExpoCheckCard
                       check={check}
+                      now={now}
                       canUpdate={canUpdate}
                       busyItemIds={busyItemIds}
                       onAdvance={advance}

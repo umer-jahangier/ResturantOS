@@ -28,7 +28,11 @@ export function KdsStationDetail({ branchId, stationCode, ticketId }: KdsStation
   return (
     <div
       data-surface="kds"
-      className="min-h-screen bg-kds-surface p-4 text-kds-text"
+      // `h-full min-h-0`, never `min-h-screen`: inside the tenant shell `<main>` is already the
+      // viewport less the top bar, so a 100vh minimum is taller than its own container and the
+      // shell grows a second scrollbar that scrolls the board away from a cook who meant to
+      // scroll a column. The route supplies the height via `<PageBody fullBleed>` (38-05 task 2).
+      className="min-h-full bg-kds-surface p-4 text-kds-text"
       data-testid="kds-station-detail"
     >
       <Link

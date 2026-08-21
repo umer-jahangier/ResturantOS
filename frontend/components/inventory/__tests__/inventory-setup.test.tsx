@@ -29,6 +29,22 @@ function renderPage() {
   );
 }
 
+/**
+ * The storage-locations row for `name`, from the DESKTOP table specifically.
+ *
+ * <p>`DataGrid` renders the table and a card list for narrow viewports, and jsdom applies no
+ * media queries — so both are in the document and a bare `findByText` finds the name twice. That
+ * duplication is the migration working (plan 38-07: 0 `<table>` elements at 390px), not a
+ * regression, so the query is scoped to the table rather than the assertions being weakened.
+ */
+async function locationRow(name: string): Promise<HTMLElement> {
+  const table = await screen.findByRole("table", { name: "Storage locations" });
+  const cell = await within(table).findByText(name);
+  const row = cell.closest("tr");
+  if (!row) throw new Error(`No table row for storage location "${name}"`);
+  return row as HTMLElement;
+}
+
 describe("Inventory setup — units of measure", () => {
   beforeEach(() => vi.clearAllMocks());
   afterEach(() => clearSession());
@@ -120,8 +136,7 @@ describe("Inventory setup — storage locations", () => {
   it("locationsListWithTheirLiveItemCount", async () => {
     renderPage();
 
-    const cell = await screen.findByText("Walk-in Cooler");
-    const row = cell.closest("tr");
+    const row = await locationRow("Walk-in Cooler");
     expect(row).not.toBeNull();
     // Chicken and Milk are both filed in the walk-in by the MSW fixture — the count is derived
     // from the ingredients, not stored, so it is the same number the archive gate checks.
@@ -132,8 +147,7 @@ describe("Inventory setup — storage locations", () => {
     renderPage();
     const user = userEvent.setup();
 
-    const cell = await screen.findByText("Walk-in Cooler");
-    const row = cell.closest("tr") as HTMLElement;
+    const row = await locationRow("Walk-in Cooler");
     await user.click(within(row).getByRole("button", { name: "Archive" }));
 
     const dialog = await screen.findByRole("dialog");
@@ -185,8 +199,7 @@ describe("Inventory setup — storage locations", () => {
     renderPage();
     const user = userEvent.setup();
 
-    const cell = await screen.findByText("Old Cupboard");
-    const row = cell.closest("tr") as HTMLElement;
+    const row = await locationRow("Old Cupboard");
     await user.click(within(row).getByRole("button", { name: "Archive" }));
 
     const dialog = await screen.findByRole("dialog");

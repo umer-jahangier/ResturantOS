@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Trash2, X } from "lucide-react";
+import { Ban, Plus, Search, Trash2, X } from "lucide-react";
 import { useMenuCategories, useMenuItems } from "@/lib/hooks/pos/use-menu";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { MoneyDisplay } from "@/components/ui/money-display";
@@ -16,11 +16,32 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { QueryErrorNotice } from "@/components/ui/query-boundary";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MenuItemImage } from "@/components/menu/MenuItemImage";
 import { MenuScopeSwitch } from "@/components/pos/menu-scope-switch";
 import { cartLineKey, type CartLine } from "@/components/pos/cart-reducer";
+import {
+  menuItemAvailability,
+  setHasAvailabilitySignal,
+} from "@/components/pos/menu-availability";
 import type { MenuItem } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
+
+/**
+ * The tile grid track, and the one thing the demo's POS does better than ours did.
+ *
+ * <p>We had `grid-cols-2 sm:grid-cols-3 lg:grid-cols-4` — three hard-coded column counts, so the
+ * tile width was whatever the viewport divided by 2, 3 or 4 happened to be. At 390px that is a
+ * 185px tile; between `sm` and `lg` on a 900px tablet it is 300px, a third of the screen for one
+ * dish; and at 1440px with the sidebar now gone it is a 260px tile, so a 40-item card needs
+ * scrolling that `auto-fill` would not.
+ *
+ * <p>`repeat(auto-fill, minmax(130px, 1fr))` (`DEMO-SCREENS.md` §3, adopted under D-38-15) states
+ * the thing that actually matters — **no tile is ever narrower than 130px** — and lets the browser
+ * pick the count. One rule, every width, no breakpoint to forget. The minimum comfortably clears
+ * UI-SPEC §9.2's 56px floor on both axes; the tiles are ~130×100 at their smallest.
+ */
+const TILE_GRID = "grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))]";
 
 interface MenuGridProps {
   onItemSelect: (item: MenuItem) => void;
@@ -82,13 +103,22 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
   // The items are narrowed too, not just the pills. With "All" selected the server hands back
   // every item this operator may see, so filtering the rail alone would leave a preview that
   // renamed the tabs and changed nothing underneath them.
-  const activeItems = items.filter(
-    (i) => i.active && (!scopePreview || (i.categoryId !== null && scopePreview.includes(i.categoryId))),
+  /*
+   * S7 + 38-04: the scope preview narrows this; `active` no longer DELETES from it.
+   *
+   * <p>`i.active` used to be an `&&` in this filter, so a deactivated dish vanished from the grid
+   * with nothing said. The server list is active-only anyway (`PosRepository.getMenuItems`), so on
+   * a real till this changes what is on screen not at all — but when a row does arrive inactive,
+   * the cashier now gets an unsellable tile that says why instead of a dish that is simply not
+   * there. See `menu-availability.ts` for what the system can and cannot honestly claim here.
+   */
+  const scopedItems = items.filter(
+    (i) => !scopePreview || (i.categoryId !== null && scopePreview.includes(i.categoryId)),
   );
   const trimmedQuery = debouncedSearch.trim().toLowerCase();
   const filteredItems = trimmedQuery
-    ? activeItems.filter((i) => i.name.toLowerCase().includes(trimmedQuery))
-    : activeItems;
+    ? scopedItems.filter((i) => i.name.toLowerCase().includes(trimmedQuery))
+    : scopedItems;
 
   /*
    * S7. Does anything on screen have a photograph?
@@ -108,6 +138,8 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
    * touchscreen on 44 identical grey rectangles to say "no picture" 44 times.
    */
   const showImages = filteredItems.some((i) => !!i.imageUrl);
+  /* The same whole-set decision, for the same reason — see `setHasAvailabilitySignal`. */
+  const showAvailability = setHasAvailabilitySignal(filteredItems);
 
   // Plain (no modifier/notes) menu taps always land on the `menuItemId::::` cart
   // line — map menuItemId -> quantity so the grid can highlight/badge selected
@@ -146,7 +178,7 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
             type="button"
             onClick={() => setSearchQuery("")}
             aria-label="Clear search"
-            className="absolute right-2 top-1/2 min-h-[32px] min-w-[32px] -translate-y-1/2 flex items-center justify-center rounded text-muted-foreground hover:text-foreground"
+            className="touch-target absolute right-0 top-1/2 flex -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
           >
             <X className="size-4" aria-hidden="true" />
           </button>
@@ -196,7 +228,18 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
             All
           </button>
           {categoriesLoading ? (
-            <div className="h-9 w-20 rounded-full bg-muted animate-pulse" />
+            /*
+              `Skeleton`, not a hand-rolled `animate-pulse` div (D-38-04). This grid sits on
+              `app/pos/**`, an `operational` surface, where the contract is depth cues only — no
+              decorative motion. `animate-pulse` is PERPETUAL: it runs for as long as the request
+              is in flight, which on a slow till is exactly when the cashier is looking.
+
+              The same defect was fixed one file over, in `table-floor-view.tsx`, in the same
+              change set — so this was a selectively-applied fix, not an unknown rule. The shared
+              component already encodes it: it reads the zone and renders a flat `--muted` block
+              here while still shimmering on the dashboard.
+            */
+            <Skeleton className="h-9 w-20 rounded-full" />
           ) : (
             activeCategories.map((cat) => (
               <button
@@ -220,7 +263,7 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
             data-testid="clear-all-button"
             onClick={() => setClearDialogOpen(true)}
             aria-label="Clear all items from cart"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-destructive hover:border-destructive hover:bg-destructive/10 transition-colors"
+            className="touch-target inline-flex shrink-0 items-center gap-1.5 rounded-full border px-4 text-small font-medium text-muted-foreground transition-colors hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
           >
             <Trash2 className="size-3.5" aria-hidden="true" />
             Clear All
@@ -262,11 +305,11 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
         first 20 items of any longer menu with nothing on it to say so, and the cashier's only
         clue was an item they knew existed refusing to be found. A count cannot be silently wrong.
       */}
-      {!itemsLoading && activeItems.length > 0 && (
-        <p className="px-1 text-xs text-muted-foreground" data-testid="menu-item-count">
+      {!itemsLoading && scopedItems.length > 0 && (
+        <p className="px-1 text-label text-muted-foreground" data-testid="menu-item-count">
           {trimmedQuery
-            ? `${filteredItems.length} of ${activeItems.length} items match`
-            : `${activeItems.length} items`}
+            ? `${filteredItems.length} of ${scopedItems.length} items match`
+            : `${scopedItems.length} items`}
         </p>
       )}
 
@@ -293,35 +336,39 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
             />
           </div>
         ) : itemsLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 p-1">
+          <div className={cn("gap-3 p-1", TILE_GRID)}>
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />
+              // Same defect as the category pill above, eight tiles at a time: this is the
+              // placeholder the cashier actually stares at while the menu loads.
+              <Skeleton key={i} className="h-28 rounded-xl" />
             ))}
           </div>
         ) : filteredItems.length === 0 ? (
-          <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
+          <div className="flex h-40 items-center justify-center text-body text-muted-foreground">
             {trimmedQuery ? "No items match your search" : "No items available"}
           </div>
         ) : (
-          <div
-            data-testid="menu-grid"
-            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 p-1"
-          >
+          <div data-testid="menu-grid" className={cn("gap-3 p-1", TILE_GRID)}>
             {filteredItems.map((item, idx) => {
               const selected = quantityByMenuItemId.get(item.id);
+              const availability = menuItemAvailability(item);
+              const sellable = availability === "available";
               return (
                 <div key={item.id} className="relative">
                   <button
                     type="button"
                     data-testid={idx === 0 ? "menu-item-first" : undefined}
                     onClick={() => onItemSelect(item)}
+                    disabled={!sellable}
                     aria-pressed={!!selected}
                     className={cn(
-                      "min-h-[100px] min-w-[100px] w-full overflow-hidden rounded-xl border text-left transition-colors flex flex-col active:scale-95",
+                      "flex min-h-[100px] w-full flex-col overflow-hidden rounded-xl border text-left transition-colors active:scale-95",
                       showImages ? "justify-start" : "justify-between p-3",
-                      selected
-                        ? "border-primary bg-primary/10 ring-1 ring-primary"
-                        : "border bg-card hover:bg-accent hover:border-primary",
+                      !sellable
+                        ? "cursor-not-allowed border-dashed bg-muted/40 opacity-70 active:scale-100"
+                        : selected
+                          ? "border-primary bg-primary/10 ring-1 ring-primary"
+                          : "border bg-card hover:border-primary hover:bg-accent",
                     )}
                   >
                     {/*
@@ -341,32 +388,104 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
                     )}
                     <span
                       className={cn(
-                        "flex flex-1 flex-col justify-between gap-0.5",
+                        "flex flex-1 flex-col justify-between gap-1",
                         showImages && "p-2.5",
                       )}
                     >
-                      <span className="font-medium text-sm line-clamp-2">{item.name}</span>
-                      <MoneyDisplay
-                        paisa={item.basePricePaisa}
-                        className="text-sm text-muted-foreground font-mono"
-                      />
+                      {/*
+                        `--text-pos` — 17/24 at weight 500 (UI-SPEC §9.2, §3). Not `text-sm`.
+                        The whole reason a POS type role exists is that this string is read at
+                        arm's length, in a hurry, by someone whose eyes are on the guest.
+                      */}
+                      <span className="line-clamp-2 text-pos font-medium">{item.name}</span>
+                      <span className="flex items-center justify-between gap-2">
+                        <MoneyDisplay
+                          paisa={item.basePricePaisa}
+                          className="font-mono text-body text-muted-foreground"
+                        />
+                        {/*
+                          Quick-add, made visible (§9.2). The affordance, not a second control:
+                          the TILE is the add target and it is already ~130×100, so a nested
+                          button would be both invalid HTML inside this <button> and a smaller,
+                          worse version of a target that is already there. This says "tap me to
+                          add" without shrinking the thing you tap.
+
+                          The demo puts a 22px +/- pair on its ticket rows instead; rejected under
+                          D-38-15 — half the minimum a thumb needs, and discoverable only on hover,
+                          which a terminal does not have.
+                        */}
+                        {sellable && !selected && (
+                          <span
+                            aria-hidden="true"
+                            className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
+                          >
+                            <Plus className="size-3.5" />
+                          </span>
+                        )}
+                        {/* Reserves the corner so the remove control below never lands on words. */}
+                        {selected && <span aria-hidden="true" className="size-6 shrink-0" />}
+                      </span>
+                      {/*
+                        Availability — icon SHAPE + literal words + hue, never hue alone (§4.2 /
+                        D-38-13). Rendered only when the visible set actually has something to
+                        report; see menu-availability.ts for why there is no "Low Stock" here.
+                      */}
+                      {showAvailability && (
+                        <span
+                          data-testid={`menu-item-availability-${item.id}`}
+                          className={cn(
+                            "flex items-center gap-1 text-label font-medium",
+                            sellable ? "text-success" : "text-muted-foreground",
+                          )}
+                        >
+                          {sellable ? (
+                            <>
+                              <span
+                                aria-hidden="true"
+                                className="size-1.5 rounded-full bg-success"
+                              />
+                              Available
+                            </>
+                          ) : (
+                            <>
+                              <Ban className="size-3" aria-hidden="true" />
+                              Unavailable
+                            </>
+                          )}
+                        </span>
+                      )}
                     </span>
                   </button>
                   {selected && (
                     <>
                       <span
                         data-testid={`menu-item-qty-${item.id}`}
-                        className="pointer-events-none absolute -top-2 -right-2 flex min-h-[22px] min-w-[22px] items-center justify-center rounded-full bg-primary-solid px-1 text-xs font-semibold text-primary-solid-foreground"
+                        className="pointer-events-none absolute -top-2 right-1 flex min-h-[24px] min-w-[24px] items-center justify-center rounded-full bg-primary-solid px-1 text-label font-semibold text-primary-solid-foreground"
                       >
                         {selected.quantity}
                       </span>
+                      {/*
+                        44×44 hit area, 24px visual (§9.2 "every interactive target ≥ 44 × 44px").
+                        It was a bare 22×22 circle — the same size the demo uses for its quantity
+                        buttons and the same size D-38-15 rejects.
+
+                        <p>BOTTOM-RIGHT, and that is measured rather than styled. At the top-left
+                        corner, where it used to sit, a 44px box reaches ~30px into the tile and
+                        lands squarely on the dish name — photographed at 1440px covering the first
+                        two characters of "Mutton Karahi (Half)". The bottom-right corner is the one
+                        region of the tile that carries nothing: the name is top-aligned, the price
+                        and the availability row are left-aligned, and the quick-add glyph that
+                        normally sits here is hidden the moment a tile is selected.
+                      */}
                       <button
                         type="button"
                         onClick={() => onRemove(selected.key)}
                         aria-label={`Remove ${item.name} from cart`}
-                        className="absolute -top-2 -left-2 flex min-h-[22px] min-w-[22px] items-center justify-center rounded-full border bg-background text-muted-foreground hover:text-destructive hover:border-destructive"
+                        className="touch-target absolute bottom-0 right-0 flex items-center justify-center"
                       >
-                        <X className="size-3" aria-hidden="true" />
+                        <span className="flex size-6 items-center justify-center rounded-full border bg-background text-muted-foreground hover:border-destructive hover:text-destructive">
+                          <X className="size-3" aria-hidden="true" />
+                        </span>
                       </button>
                     </>
                   )}

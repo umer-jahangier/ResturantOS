@@ -28,6 +28,7 @@ import { useMenuItems } from "@/lib/hooks/pos/use-menu";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useZone } from "@/components/providers/zone-provider";
+import { overlayEntranceClass } from "@/components/ui/overlay-motion";
 import { getOrderDisplayStatus, type MenuItem, type Order } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
 
@@ -165,6 +166,18 @@ export function OrderTableDetailDrawer({
          * `sm:max-w-md`/narrow-sidebar dialog. Built directly from the Radix Dialog
          * primitives (not the shared `DialogContent`) specifically to avoid that shared
          * component's `sm:max-w-sm` default width.
+         *
+         * The entrance is zoned exactly like the shared overlays (D-38-04). It used to be a
+         * hard-coded `zoom-in-95`/`zoom-out-95` pair — a TRANSFORM — on the panel a cashier
+         * opens to inspect a bill: the one screen the spec says spends nothing on decoration,
+         * and the one route that carries the receipt print path.
+         *
+         * <p>Unlike the shared overlays this needs no `ZoneProvider` inside the portal. Those
+         * are rendered from every zone in the product and must let an expressive caller keep
+         * its entrance; both call sites for this panel (Order Management and Table Floor View)
+         * live under `app/pos`, so `zone` is `operational` and `overlayEntranceClass` returns
+         * nothing at all. Adding a wrapper to host a rule that can never match would be
+         * spending DOM on the terminal for no effect.
          */}
         <DialogPrimitive.Content
           data-testid="order-table-detail-drawer"
@@ -172,8 +185,7 @@ export function OrderTableDetailDrawer({
             "fixed inset-4 z-50 flex flex-col gap-0 overflow-hidden rounded-xl border bg-popover p-0",
             "text-sm text-popover-foreground shadow-lg outline-none ring-1 ring-foreground/10 duration-100",
             "sm:inset-6 lg:inset-10",
-            "data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95",
-            "data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            overlayEntranceClass(zone),
           )}
         >
           <div className="flex shrink-0 items-start justify-between gap-2 space-y-1.5 border-b px-4 py-3">

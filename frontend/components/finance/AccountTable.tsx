@@ -1,19 +1,83 @@
 "use client";
 
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
+
 import { useAccounts } from "@/lib/hooks/finance/use-accounts";
 import { FinanceEmptyState } from "./FinanceEmptyState";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { QueryBoundary } from "@/components/ui/query-boundary";
+import { DataGrid, type ColumnDef } from "@/components/ui/data-grid/data-grid";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { Account } from "@/lib/models/finance.model";
 
 interface AccountTableProps {
   typeFilter?: string;
 }
 
+/**
+ * The chart of accounts, on the shared grid (38-08 task 1).
+ *
+ * <h3>The row is no longer a `<tr onClick>`</h3>
+ *
+ * It used to be a clickable `<tr>` carrying `tabIndex={0}` and an Enter handler — a
+ * `<div onclick>` in table clothing, which is precisely the pattern D-38-15 records the demo
+ * using for every interactive row and which it names as having nothing to adopt. A screen reader
+ * announced no control at all, and the row had no role and no accessible name. The code cell now
+ * carries a real button with a real name; the destination is the one the row used to push.
+ */
 function AccountTable({ typeFilter }: AccountTableProps) {
   const router = useRouter();
   const accounts = useAccounts(typeFilter ? { type: typeFilter } : undefined);
   const rows = accounts.data?.data ?? [];
+
+  const columns = useMemo<ColumnDef<Account, unknown>[]>(
+    () => [
+      {
+        id: "code",
+        accessorKey: "code",
+        header: "Code",
+        cell: ({ row }) => (
+          <button
+            type="button"
+            onClick={() => router.push(`/app/finance/accounts/${row.original.code}`)}
+            className="font-mono tabular-nums text-primary underline-offset-2 hover:underline"
+          >
+            {row.original.code}
+          </button>
+        ),
+      },
+      { id: "name", accessorKey: "name", header: "Name" },
+      {
+        id: "accountType",
+        accessorKey: "accountType",
+        header: "Type",
+        cell: ({ row }) => (
+          <span className="text-foreground-secondary">{row.original.accountType}</span>
+        ),
+      },
+      {
+        id: "status",
+        header: "Status",
+        enableSorting: false,
+        cell: ({ row }) => (
+          <StatusBadge
+            status={row.original.active ? "active" : "inactive"}
+            label={row.original.active ? "Active" : "Inactive"}
+          />
+        ),
+      },
+      {
+        id: "systemTag",
+        accessorKey: "systemTag",
+        header: "Tag",
+        cell: ({ row }) => (
+          <span className="text-foreground-secondary">{row.original.systemTag ?? "—"}</span>
+        ),
+      },
+    ],
+    [router],
+  );
 
   return (
     // GA-001: "No accounts found" used to mean either "this tenant has no chart of accounts" or
@@ -24,9 +88,9 @@ function AccountTable({ typeFilter }: AccountTableProps) {
       what="the chart of accounts"
       isEmpty={rows.length === 0}
       loading={
-        <div className="animate-pulse space-y-2">
+        <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-10 rounded bg-muted" />
+            <Skeleton key={i} className="h-10" />
           ))}
         </div>
       }
@@ -37,47 +101,24 @@ function AccountTable({ typeFilter }: AccountTableProps) {
         />
       }
     >
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b text-left text-muted-foreground">
-              <th className="py-2 pr-4 font-medium">Code</th>
-              <th className="py-2 pr-4 font-medium">Name</th>
-              <th className="py-2 pr-4 font-medium">Type</th>
-              <th className="py-2 pr-4 font-medium">Status</th>
-              <th className="py-2 pr-4 font-medium">Tag</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((account) => (
-              <tr
-                key={account.id}
-                className="cursor-pointer border-b transition-colors hover:bg-muted/50"
-                onClick={() => router.push(`/app/finance/accounts/${account.code}`)}
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    router.push(`/app/finance/accounts/${account.code}`);
-                  }
-                }}
-              >
-                <td className="py-2 pr-4 font-mono tabular-nums text-sm">{account.code}</td>
-                <td className="py-2 pr-4">{account.name}</td>
-                <td className="py-2 pr-4 text-xs text-muted-foreground">{account.accountType}</td>
-                <td className="py-2 pr-4">
-                  <StatusBadge
-                    status={account.active ? "active" : "inactive"}
-                    label={account.active ? "Active" : "Inactive"}
-                  />
-                </td>
-                <td className="py-2 pr-4 text-xs text-muted-foreground">
-                  {account.systemTag ?? "—"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataGrid
+        label="Chart of accounts"
+        columns={columns}
+        data={rows}
+        isFiltered={Boolean(typeFilter)}
+        emptyTitle="No accounts found"
+        emptyDescription="Chart of Accounts will appear here after provisioning."
+        card={{
+          primary: (a) => a.name,
+          secondary: (a) => `${a.code} · ${a.accountType}`,
+          trailing: (a) => (
+            <StatusBadge
+              status={a.active ? "active" : "inactive"}
+              label={a.active ? "Active" : "Inactive"}
+            />
+          ),
+        }}
+      />
     </QueryBoundary>
   );
 }

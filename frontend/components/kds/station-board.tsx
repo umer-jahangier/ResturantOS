@@ -580,7 +580,7 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
           data-surface="kds"
           data-zone="operational"
           data-testid="kds-station-resolving"
-          className="flex min-h-screen items-center justify-center bg-kds-surface text-kds-muted"
+          className="flex h-full min-h-full items-center justify-center bg-kds-surface text-kds-muted"
         >
           <p className={T_H1}>Loading station…</p>
         </div>
@@ -595,7 +595,7 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
           data-surface="kds"
           data-zone="operational"
           data-testid="kds-station-unknown"
-          className="flex min-h-screen flex-col items-center justify-center gap-4 bg-kds-surface p-6 text-center text-kds-text"
+          className="flex h-full min-h-full flex-col items-center justify-center gap-4 bg-kds-surface p-6 text-center text-kds-text"
         >
           {/*
             NOT the shared <EmptyState>. Its title is `text-foreground` and its icon disc is
@@ -658,7 +658,29 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
           data-surface="kds"
           data-zone="operational"
           data-testid="kds-board"
-          className="flex min-h-screen flex-col gap-3 bg-kds-surface p-3 text-kds-text"
+          /*
+           * THE BOARD OWNS ITS VIEWPORT (38-05 task 2, UI-SPEC §9.3 "Board chrome").
+           *
+           * This was `min-h-screen`, and `min-h-screen` on a page INSIDE the tenant shell is the
+           * board fighting the shell rather than owning anything. `<main>` is already
+           * `flex-1 overflow-y-auto` inside an `h-screen` column, so its height is the viewport
+           * less the top bar; asking this element for a 100vh MINIMUM made it taller than its
+           * own container by exactly the height of the top bar. Two measurable consequences,
+           * both in the audit shot: the shell grew an outer scrollbar that scrolled the board
+           * away from a cook who only wanted to scroll a column, and the board could not reach
+           * the viewport edge because it sat inside `<main>`'s 24px back-office gutter.
+           *
+           * The fix is structural and has two halves, neither of which is a patch on the other:
+           * the ROUTE now renders inside `<PageBody fullBleed>`, which is what actually
+           * suppresses the shell gutter (`main:has([data-page-body])`), and this element takes
+           * `h-full` so it is exactly its container rather than more than it. `min-h-0` is what
+           * lets the inner `flex-1 overflow-y-auto` scroll region shrink; without it a flex item
+           * refuses to go below its content height and the board grows a second scrollbar again.
+           *
+           * NO `min-h-screen` anywhere on this route now. That is the assertion worth keeping:
+           * a single 100vh reintroduced at any level restores the fight.
+           */
+          className="flex h-full min-h-0 flex-col gap-3 overflow-hidden bg-kds-surface p-3 text-kds-text"
         >
           {/*
            * ── 48px header (§7.2) ─────────────────────────────────────────────

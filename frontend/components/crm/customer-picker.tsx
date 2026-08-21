@@ -46,8 +46,8 @@ export function CustomerPicker({
     return (
       <div className="flex items-center justify-between gap-2 rounded-md border px-3 py-2">
         <span className="min-w-0">
-          <span className="block truncate text-sm font-medium">{value.name}</span>
-          <span className="block truncate text-xs tabular-nums text-muted-foreground">
+          <span className="block truncate text-small font-medium">{value.name}</span>
+          <span className="block truncate text-label tabular-nums text-muted-foreground">
             {value.phone} · {value.pointsBalance} pts
           </span>
         </span>
@@ -105,12 +105,12 @@ export function CustomerPicker({
         aria-label="Search for a customer"
       />
       {debounced.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Type a phone number or name to search.</p>
+        <p className="text-label text-muted-foreground">Type a phone number or name to search.</p>
       ) : isLoading ? (
-        <p className="text-xs text-muted-foreground">Searching…</p>
+        <p className="text-label text-muted-foreground">Searching…</p>
       ) : !results?.length ? (
         <div className="space-y-2">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-label text-muted-foreground">
             No customer matches &ldquo;{debounced}&rdquo;.
           </p>
           {canEnrol && looksLikePhone ? (
@@ -142,13 +142,13 @@ export function CustomerPicker({
                 {createCustomer.isPending ? "Enrolling…" : `Enrol ${debounced.trim()}`}
               </Button>
               {createCustomer.isError ? (
-                <p className="text-xs text-destructive">
+                <p className="text-label text-destructive">
                   Could not enrol this customer. Check the phone number is not already registered.
                 </p>
               ) : null}
             </div>
           ) : canEnrol ? (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-label text-muted-foreground">
               Type a full phone number to enrol a new customer.
             </p>
           ) : null}
@@ -159,7 +159,7 @@ export function CustomerPicker({
             <li key={c.id}>
               <button
                 type="button"
-                className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-muted/60"
+                className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-small hover:bg-muted/60"
                 onClick={() => {
                   onChange(c);
                   setOpen(false);
@@ -167,11 +167,11 @@ export function CustomerPicker({
               >
                 <span className="min-w-0">
                   <span className="block truncate font-medium">{c.name}</span>
-                  <span className="block truncate text-xs tabular-nums text-muted-foreground">
+                  <span className="block truncate text-label tabular-nums text-muted-foreground">
                     {c.phone}
                   </span>
                 </span>
-                <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                <span className="shrink-0 text-label tabular-nums text-muted-foreground">
                   {c.pointsBalance} pts
                 </span>
               </button>

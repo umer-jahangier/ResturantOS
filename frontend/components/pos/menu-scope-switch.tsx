@@ -122,7 +122,7 @@ export function MenuScopeSwitch({
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
           className={cn(
-            "min-h-8 rounded-full border px-3 py-1 text-small font-medium transition-colors",
+            "min-h-11 rounded-full border px-4 py-1 text-small font-medium transition-colors",
             previewing
               ? "border-primary bg-primary/10 text-primary"
               : "border-border text-muted-foreground hover:bg-muted/60",
@@ -137,7 +137,7 @@ export function MenuScopeSwitch({
             type="button"
             data-testid="menu-scope-switch-all"
             onClick={() => onPreviewChange(null)}
-            className="min-h-8 rounded-full px-3 py-1 text-small font-medium text-muted-foreground underline-offset-2 hover:underline"
+            className="min-h-11 rounded-full px-4 py-1 text-small font-medium text-muted-foreground underline-offset-2 hover:underline"
           >
             Back to the whole menu
           </button>
@@ -152,7 +152,13 @@ export function MenuScopeSwitch({
           <ul className="max-h-40 space-y-0.5 overflow-y-auto">
             {categories.map((cat) => (
               <li key={cat.id}>
-                <label className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-body hover:bg-muted/50">
+                {/*
+                  44px on the LABEL, which is the target — the 16px checkbox inside it is only the
+                  glyph. This row lives on `/app/pos`, where UI-SPEC §9.2 puts a hard floor under
+                  every interactive target, and a 24px row was the one this plan's own sweep found
+                  still under it.
+                */}
+                <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-2 text-body hover:bg-muted/50">
                   <input
                     type="checkbox"
                     className="size-4 rounded-md border-input"

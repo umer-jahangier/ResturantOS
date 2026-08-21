@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { usePeriods } from "@/lib/hooks/finance/use-periods";
 import { useFinanceSetupStatus } from "@/lib/hooks/finance/use-accounts";
 import { currentPakistanFiscalYear } from "@/lib/utils/pakistan-fiscal-year";
@@ -14,6 +14,8 @@ import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Button } from "@/components/ui/button";
 import { PageBody } from "@/components/ui/page-body";
 import { PageHeader } from "@/components/ui/page-header";
+import { DataGrid, type ColumnDef } from "@/components/ui/data-grid/data-grid";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { AccountingPeriod } from "@/lib/models/finance.model";
 
 // URL: /app/finance/periods
@@ -27,6 +29,57 @@ export default function PeriodsPage() {
   const { data: setupStatus } = useFinanceSetupStatus();
   const [closingPeriod, setClosingPeriod] = useState<AccountingPeriod | null>(null);
   const [provisionOpen, setProvisionOpen] = useState(false);
+
+  const columns = useMemo<ColumnDef<AccountingPeriod, unknown>[]>(
+    () => [
+      {
+        id: "periodNo",
+        accessorKey: "periodNo",
+        header: "Period",
+        cell: ({ row }) => <span className="font-medium">Period {row.original.periodNo}</span>,
+      },
+      {
+        id: "startDate",
+        accessorKey: "startDate",
+        header: "Start date",
+        cell: ({ row }) => (
+          <span className="font-mono tabular-nums">{row.original.startDate}</span>
+        ),
+      },
+      {
+        id: "endDate",
+        accessorKey: "endDate",
+        header: "End date",
+        cell: ({ row }) => <span className="font-mono tabular-nums">{row.original.endDate}</span>,
+      },
+      {
+        id: "status",
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => <PeriodStatusChip status={row.original.status} />,
+      },
+      {
+        id: "lockedBy",
+        accessorKey: "lockedBy",
+        header: "Locked by",
+        cell: ({ row }) => (
+          <span className="text-foreground-secondary">{row.original.lockedBy ?? "—"}</span>
+        ),
+      },
+      {
+        id: "actions",
+        header: "",
+        enableSorting: false,
+        cell: ({ row }) =>
+          row.original.status === "OPEN" ? (
+            <Button variant="outline" size="sm" onClick={() => setClosingPeriod(row.original)}>
+              Close Period
+            </Button>
+          ) : null,
+      },
+    ],
+    [],
+  );
 
   return (
     <PageBody className="space-y-(--space-lg)">
@@ -50,9 +103,9 @@ export default function PeriodsPage() {
         what={`periods for FY ${fiscalYear}`}
         isEmpty={!periods?.length}
         loading={
-          <div className="animate-pulse space-y-2">
+          <div className="space-y-2">
             {Array.from({ length: 12 }).map((_, i) => (
-              <div key={i} className="h-12 rounded-md bg-muted" />
+              <Skeleton key={i} className="h-12" />
             ))}
           </div>
         }
@@ -67,42 +120,18 @@ export default function PeriodsPage() {
           />
         }
       >
-        <div className="overflow-x-auto">
-          <table className="w-full text-small">
-            <thead>
-              <tr className="border-b text-left text-muted-foreground">
-                <th className="py-2 pr-4 font-medium">Period</th>
-                <th className="py-2 pr-4 font-medium">Start Date</th>
-                <th className="py-2 pr-4 font-medium">End Date</th>
-                <th className="py-2 pr-4 font-medium">Status</th>
-                <th className="py-2 pr-4 font-medium">Locked By</th>
-                <th className="py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {(periods ?? []).map((period) => (
-                <tr key={period.id} className="border-b">
-                  <td className="py-3 pr-4 font-medium">Period {period.periodNo}</td>
-                  <td className="py-3 pr-4 font-mono tabular-nums">{period.startDate}</td>
-                  <td className="py-3 pr-4 font-mono tabular-nums">{period.endDate}</td>
-                  <td className="py-3 pr-4">
-                    <PeriodStatusChip status={period.status} />
-                  </td>
-                  <td className="py-3 pr-4 text-muted-foreground">
-                    {period.lockedBy ?? "—"}
-                  </td>
-                  <td className="py-3 text-right">
-                    {period.status === "OPEN" && (
-                      <Button variant="outline" size="sm" onClick={() => setClosingPeriod(period)}>
-                        Close Period
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataGrid
+          label={`Accounting periods for FY ${fiscalYear}`}
+          columns={columns}
+          data={periods ?? []}
+          pageSize={50}
+          emptyTitle="No periods found"
+          card={{
+            primary: (p) => `Period ${p.periodNo}`,
+            secondary: (p) => `${p.startDate} – ${p.endDate}`,
+            trailing: (p) => <PeriodStatusChip status={p.status} />,
+          }}
+        />
       </QueryBoundary>
 
       {closingPeriod && (

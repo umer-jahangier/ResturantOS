@@ -11,6 +11,7 @@ import { BranchFormDialog } from "@/components/branches/branch-form-dialog";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ZoneProvider } from "@/components/providers/zone-provider";
@@ -111,32 +112,41 @@ function BranchesPage() {
      * configuration surface, richer than the restrained shell it is nested in.
      */
     <ZoneProvider zone="expressive" className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold">Branches</h1>
-          <p className="text-sm text-muted-foreground">
-            Every location this restaurant trades from. Adding one puts you on it, so you can switch
-            to it and set up its menu, staff and till.
-          </p>
-        </div>
-        <PermissionGuard require={["rbac.manage", "branch.manage"]} mode="any">
-          <Button
-            type="button"
-            data-testid="add-branch"
-            onClick={() => setFormTarget({ mode: "create" })}
-          >
-            Add branch
-          </Button>
-        </PermissionGuard>
-      </div>
+      <PageHeader
+        title="Branches"
+        description="Every location this restaurant trades from. Adding one puts you on it, so you can switch to it and set up its menu, staff and till."
+        /*
+         * The demo's `·`-separated stat subtitle, on figures this screen genuinely holds: both
+         * are lengths of an array it has already read. `deactivatedCount` is stated only when it
+         * is non-zero — "0 deactivated" is noise, and a reader who has never deactivated a branch
+         * does not need to be taught the word.
+         */
+        meta={
+          <>
+            {allBranches.length} {allBranches.length === 1 ? "branch" : "branches"}
+            {deactivatedCount > 0 ? ` · ${deactivatedCount} deactivated` : ""}
+          </>
+        }
+        actions={
+          <PermissionGuard require={["rbac.manage", "branch.manage"]} mode="any">
+            <Button
+              type="button"
+              data-testid="add-branch"
+              onClick={() => setFormTarget({ mode: "create" })}
+            >
+              Add branch
+            </Button>
+          </PermissionGuard>
+        }
+      />
 
       {deactivatedCount > 0 && (
-        <label className="flex w-fit items-center gap-2 text-sm text-muted-foreground">
+        <label className="flex w-fit items-center gap-2 text-small text-muted-foreground">
           <input
             type="checkbox"
             checked={showDeactivated}
             onChange={(e) => setShowDeactivated(e.target.checked)}
-            className="size-4 rounded border-input"
+            className="size-4 rounded-sm border-input"
           />
           Show deactivated ({deactivatedCount})
         </label>

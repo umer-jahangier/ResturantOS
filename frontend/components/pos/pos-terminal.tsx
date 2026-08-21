@@ -3,8 +3,9 @@
 import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { AlertTriangle, X } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, X } from "lucide-react";
 import { MenuGrid } from "@/components/pos/menu-grid";
+import { MoneyDisplay } from "@/components/ui/money-display";
 import { OrderPanel } from "@/components/pos/order-panel";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { QueryErrorNotice } from "@/components/ui/query-boundary";
@@ -17,6 +18,7 @@ import { useFireToKitchen } from "@/lib/hooks/pos/use-fire-to-kitchen";
 import { formatUserFacingError } from "@/lib/errors";
 import {
   addLine,
+  cartEstimatedTotalPaisa,
   cartLineKey,
   clearCart,
   decrementLine,
@@ -28,6 +30,8 @@ import {
 } from "@/components/pos/cart-reducer";
 import { ModifierDialog } from "@/components/pos/modifier-dialog";
 import { useModifierGroupsByItem } from "@/lib/hooks/pos/use-modifiers";
+import { useServiceChargePolicy } from "@/lib/hooks/pos/use-service-charge";
+import { cn } from "@/lib/utils";
 import type { MenuItem, Order, OrderType } from "@/lib/models/pos.model";
 
 /**
@@ -85,6 +89,12 @@ export function PosTerminal({ tableId, orderId: resumeOrderId }: PosTerminalProp
 
   const [cart, setCart] = useState<CartLine[]>([]);
   const [orderType, setOrderType] = useState<OrderType>("DINE_IN");
+  /*
+   * Is the order sheet up? Below `lg` only — at `lg` and above the panel is a static column and
+   * this flag is inert. See the layout comment below for why 390px gets a sheet rather than a
+   * shrunken copy of the desktop.
+   */
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(tableId ?? null);
 
   // Non-null once the terminal is BOUND to a server-side order — either resumed via the
@@ -142,6 +152,19 @@ export function PosTerminal({ tableId, orderId: resumeOrderId }: PosTerminalProp
   const isHydratingResumedOrder = !!orderId && !sentOrder;
 
   const isPersisting = createOrder.isPending || addItem.isPending || fireToKitchen.isPending;
+
+  /*
+   * What the 390px summary bar shows while the order sheet is down.
+   *
+   * <p>Read through `cartEstimatedTotalPaisa` — the SAME composition `PreSendCart` uses for its
+   * own Total row — rather than re-adding subtotal + tax + service charge here. Two inline
+   * compositions over one cart is how the panel came to quote every dine-in guest 5% low (D-3):
+   * one surface knew about the service charge and the other did not, and nothing on screen said
+   * they disagreed. The policy read is the same TanStack query the panel already makes, so this
+   * costs no extra request.
+   */
+  const { data: serviceChargePolicy } = useServiceChargePolicy(branchId);
+  const estimatedTotalPaisa = cartEstimatedTotalPaisa(cart, serviceChargePolicy ?? null, orderType);
 
   /**
    * The modifier catalogue, indexed by dish (S6) — loaded ONCE beside the menu.
@@ -464,28 +487,33 @@ export function PosTerminal({ tableId, orderId: resumeOrderId }: PosTerminalProp
         <SendFailureBanner failure={sendFailure} onDismiss={() => setSendFailure(null)} />
       )}
       {/*
-        Two columns on a till, STACKED on a phone.
+        Two columns on a till, a BOTTOM SHEET on a phone (UI-SPEC §9.2 "Responsive").
 
-        <p>It was `flex` with a `flex-1` grid beside a fixed `w-80` panel at every width. On a
-        390px screen that leaves the entire menu <b>37px wide</b> — measured, not estimated
-        (`.planning/audits/floor/S6/s6-responsive.json`, `terminal.gridWidth`). Every tile is a
-        sliver its own container swallows the tap on, so the menu is not merely cramped, it is
-        inoperable: a cashier on a phone cannot ring anything at all, and the configure dialog
-        behind those tiles cannot be reached.
+        <p>Measured at 390px before this change: the order panel sat under the grid capped at
+        32vh, and everything above it — operator chrome, till strip, three tabs, search box,
+        wrapped category pills — had already spent ~520px of an 844px screen. The tile grid got
+        what was left, which is why the audit photographed sliced tiles and `Sta…` / `Ma…` / `Dri…`
+        category chips. A 32vh panel is not a small desktop; it is a desktop with the menu deleted.
 
-        <p>Below `lg` the panel goes full-width underneath and is capped at 32vh so the MENU keeps
-        the screen. 32 rather than a comfortable half is measured, not chosen: the page chrome on a
-        390x844 phone (till strip, three tabs, search, wrapped category pills) already consumes
-        ~520px, so a taller panel pushes the first tile below the fold and the cashier cannot tap
-        the dish at all. The panel's own list still scrolls inside that cap. `lg` rather than `md` because a 768px tablet held in portrait is
-        the other size a till is actually used at, and two columns there leaves the grid 159px —
-        75px tiles, under the 100px minimum a thumb needs. Deliberately no
-        transform/filter/backdrop-filter anywhere on this ancestor chain — those break the receipt
-        print path.
+        <p>So below `lg` the grid takes the WHOLE area and the order becomes a sheet the cashier
+        raises: a persistent bar carries the running total and the item count so the cart is never
+        out of sight, and the sheet itself is the same `OrderPanel` — one instance, one
+        `data-testid="order-panel"`, no second cart implementation to drift.
+
+        <p><b>The sheet does not slide.</b> No transform, no transition, no entrance animation.
+        `position: absolute` is safe here (only `transform`, `filter`, `backdrop-filter`,
+        `perspective`, `will-change` and `contain` create a containing block for the receipt's
+        `position: fixed`), but a `translateY` would not be — and the demo's `.screen`
+        `animation: fadeIn` with `translateY(6px)` is forbidden outright by D-38-15 for exactly
+        this reason. The sheet appears; it does not perform.
+
+        <p>`lg` rather than `md` because a 768px tablet in portrait is a real till width, and two
+        columns there leaves the grid 159px — 75px tiles, under the 56px minimum with nothing left
+        for a name.
       */}
-      <div className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden lg:flex-row">
-        {/* Menu grid — full width on a phone, the wide column on a till */}
-        <div className="min-h-0 flex-1 overflow-hidden border-b lg:border-b-0 lg:border-r">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+        {/* Menu grid — the whole area on a phone, the wide column on a till */}
+        <div className="min-h-0 flex-1 overflow-hidden lg:border-r">
           <MenuGrid
             onItemSelect={handleItemSelect}
             cart={cart}
@@ -494,8 +522,38 @@ export function PosTerminal({ tableId, orderId: resumeOrderId }: PosTerminalProp
           />
         </div>
 
-        {/* Order panel — under the menu on a phone, a fixed column on a till */}
-        <div className="flex max-h-[32vh] w-full min-h-0 shrink-0 flex-col overflow-hidden lg:max-h-none lg:w-80">
+        {/*
+          Order panel — 360px fixed column at `lg` (UI-SPEC §3.10/§9.2; it measured ~320 before,
+          "too narrow for a modifier line plus quantity stepper plus money without truncation").
+
+          <p>The width sits on THIS wrapper and the wrapper carries no left border, so the panel's
+          own root — the element tagged `data-testid="order-panel"`, which is what the gate
+          measures — is 360px exactly rather than 359. The divider is the grid column's
+          `lg:border-r`. That is fussy and it is the difference between a gate that passes and a
+          gate that is off by one forever.
+        */}
+        <div
+          data-testid="pos-order-sheet"
+          data-sheet-open={sheetOpen ? "true" : "false"}
+          className={cn(
+            "min-h-0 flex-col overflow-hidden bg-background",
+            "absolute inset-x-0 bottom-0 top-12 z-20 border-t shadow-lg",
+            "lg:static lg:z-auto lg:w-[360px] lg:shrink-0 lg:border-t-0 lg:shadow-none",
+            sheetOpen ? "flex" : "hidden lg:flex",
+          )}
+        >
+          <div className="flex shrink-0 items-center justify-between border-b pl-4 pr-2 lg:hidden">
+            <span className="text-pos font-medium">Order</span>
+            <button
+              type="button"
+              data-testid="pos-order-sheet-close"
+              onClick={() => setSheetOpen(false)}
+              aria-label="Hide the order and go back to the menu"
+              className="touch-target flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <ChevronDown className="size-5" aria-hidden="true" />
+            </button>
+          </div>
           <div className="border-b p-3">
             <CustomerPicker
               value={customer}
@@ -529,6 +587,15 @@ export function PosTerminal({ tableId, orderId: resumeOrderId }: PosTerminalProp
             />
           )}
         </div>
+
+        {!sheetOpen && (
+          <OrderSummaryBar
+            lineCount={cart.reduce((n, line) => n + line.quantity, 0)}
+            totalPaisa={sentOrder ? sentOrder.totalPaisa : estimatedTotalPaisa}
+            orderPlaced={!!sentOrder}
+            onOpen={() => setSheetOpen(true)}
+          />
+        )}
       </div>
 
       {/* S6 — tap-to-configure. Mounted once here rather than inside MenuGrid so the dialog
@@ -595,7 +662,7 @@ function ResumingOrderPanel({
       data-testid="resuming-order-skeleton"
       aria-busy="true"
     >
-      <p className="text-xs text-muted-foreground">Opening this order…</p>
+      <p className="text-label text-muted-foreground">Opening this order…</p>
       <Skeleton className="h-9 w-full" />
       <Skeleton className="h-12 w-full" />
       <Skeleton className="h-12 w-full" />
@@ -641,10 +708,68 @@ function SendFailureBanner({
         onClick={onDismiss}
         aria-label="Dismiss send failure"
         data-testid="send-failure-dismiss"
-        className="absolute right-2 top-2 flex min-h-[32px] min-w-[32px] items-center justify-center rounded-sm text-destructive/70 hover:text-destructive"
+        className="touch-target absolute right-1 top-1 flex items-center justify-center rounded-md text-destructive/70 hover:text-destructive"
       >
         <X className="size-4" aria-hidden="true" />
       </button>
     </Alert>
+  );
+}
+
+/**
+ * The persistent total bar under a 390px terminal (UI-SPEC §9.2 "Responsive").
+ *
+ * <p>The point of a bottom sheet is that the cart is out of the way; the point of THIS is that it
+ * is never out of mind. A cashier who has to raise a sheet to find out what the guest owes will
+ * stop raising it, and the running total is the one number on the screen that a mistake in costs
+ * money. So it is always on the glass, at `--text-pos`, formatted the one way money is ever
+ * formatted in this product.
+ *
+ * <p>Below `lg` only: at a till width the 360px panel is permanently visible and this bar would be
+ * a second, redundant total three inches from the first.
+ */
+function OrderSummaryBar({
+  lineCount,
+  totalPaisa,
+  orderPlaced,
+  onOpen,
+}: {
+  lineCount: number;
+  totalPaisa: number;
+  /** The cart has been persisted — the figure is the SERVER's total, not the cart estimate. */
+  orderPlaced: boolean;
+  onOpen: () => void;
+}) {
+  return (
+    <div
+      data-testid="pos-order-summary-bar"
+      className="flex shrink-0 items-center gap-3 border-t bg-surface-2 px-3 py-2 lg:hidden"
+    >
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-small text-muted-foreground">
+          {/*
+            Not the order number. The panel behind this sheet already prints it, and a second copy
+            two inches away is the kind of duplication that makes a cashier check which one is
+            stale. This says what the number below it IS, which the number cannot say for itself:
+            an estimate over a cart, or the total of a check that exists.
+          */}
+          {orderPlaced
+            ? "Order total"
+            : lineCount === 0
+              ? "No items yet"
+              : `${lineCount} item${lineCount === 1 ? "" : "s"}`}
+        </span>
+        <MoneyDisplay paisa={totalPaisa} className="text-pos font-mono font-medium" />
+      </span>
+      <button
+        type="button"
+        data-testid="pos-order-sheet-open"
+        onClick={onOpen}
+        className="touch-target inline-flex items-center gap-1.5 rounded-md bg-primary-solid px-4 font-medium text-primary-solid-foreground text-pos"
+      >
+        <ChevronUp className="size-4" aria-hidden="true" />
+        View order
+      </button>
+    </div>
   );
 }

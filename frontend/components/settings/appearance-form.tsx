@@ -6,6 +6,7 @@ import { z } from "zod";
 import { MonitorSmartphone } from "lucide-react";
 
 import { createZodResolver } from "@/lib/forms/zod-resolver";
+import { checkBrandHue } from "@/lib/theme/brand-hue-guard";
 import { generatePalette, type ThemePalette } from "@/lib/theme/palette-generator";
 
 const PRESET_COLOURS = [
@@ -63,7 +64,7 @@ function PaletteSwatch({
         ))}
       </div>
       <div
-        className="flex items-center justify-center rounded-md px-4 py-3 text-sm font-medium"
+        className="flex items-center justify-center rounded-md px-4 py-3 text-small font-medium"
         style={{ background: scale[500], color: foreground }}
       >
         Sample Text — AA {foreground === "#ffffff" ? "white-on-dark" : "black-on-light"}
@@ -197,6 +198,19 @@ function AppearanceFormFields({
 
   const contrastFailing = !palette.contrastValid;
 
+  /*
+   * 38-10 task 4 — the brand-hue guard, re-derived. See `lib/theme/brand-hue-guard.ts` for why
+   * the plan's "within 35° of 262" rule is not what shipped: it names a collision that D-38-12
+   * removed, misses the one that is real, and would refuse this form's own default colour.
+   *
+   * WARNS, does not block. The contrast check above disables Save because a 4.5:1 failure is a
+   * floor somebody falls through. This is a legibility risk in one composition, so it states the
+   * problem, names the series it collides with, and offers a specific replacement — and the
+   * operator decides. A guard that silently rewrote the chosen colour would be the same class of
+   * defect as a control that looks saved and is not.
+   */
+  const hueVerdict = checkBrandHue(brandColor);
+
   const onSubmit = (data: AppearanceFormValues) => {
     const settings: AppearanceSettings = {
       brandColor: data.brandColor,
@@ -239,7 +253,7 @@ function AppearanceFormFields({
          * "warning", and §40's rule is that colour is never the ONLY channel. Measured after:
          * 17.74:1 light, 15.94:1 dark. Asserted in `state-character.test.tsx`.
          */
-        className="flex items-start gap-2 rounded-md border border-warning bg-warning/10 px-3 py-2 text-sm text-foreground"
+        className="flex items-start gap-2 rounded-md border border-warning bg-warning/10 px-3 py-2 text-small text-foreground"
       >
         <MonitorSmartphone className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
         <span>
@@ -250,7 +264,7 @@ function AppearanceFormFields({
       </div>
       {/* Preset colour swatches */}
       <fieldset className="space-y-3">
-        <legend className="text-sm font-medium text-foreground">Brand colour presets</legend>
+        <legend className="text-small font-medium text-foreground">Brand colour presets</legend>
         <div className="grid grid-cols-4 gap-3 sm:grid-cols-8">
           {PRESET_COLOURS.map(({ label, hex }) => (
             <button
@@ -280,11 +294,11 @@ function AppearanceFormFields({
 
       {/* Custom hex input — fully controlled, no useEffect needed */}
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-foreground" htmlFor="brand-hex">
+        <label className="text-small font-medium text-foreground" htmlFor="brand-hex">
           Custom hex colour
         </label>
         <div className="flex items-center gap-2">
-          <span className="select-none text-sm text-muted-foreground">#</span>
+          <span className="select-none text-small text-muted-foreground">#</span>
           <input
             id="brand-hex"
             type="text"
@@ -293,7 +307,7 @@ function AppearanceFormFields({
             onChange={handleHexInputChange}
             maxLength={6}
             placeholder="3b82f6"
-            className="w-32 rounded-md border border-input bg-background px-3 py-2 font-mono text-sm"
+            className="w-32 rounded-md border border-input bg-background px-3 py-2 font-mono text-small"
             aria-label="Custom brand colour — 6 hex digits without #"
             aria-describedby={errors.brandColor ? "hex-error" : undefined}
           />
@@ -306,7 +320,7 @@ function AppearanceFormFields({
           )}
         </div>
         {errors.brandColor && (
-          <p id="hex-error" role="alert" className="mt-0.5 text-xs text-destructive">
+          <p id="hex-error" role="alert" className="mt-0.5 text-label text-destructive">
             {errors.brandColor.message}
           </p>
         )}
@@ -319,7 +333,7 @@ function AppearanceFormFields({
       {contrastFailing && (
         <div
           role="alert"
-          className="flex items-center gap-2 rounded-md border border-warning bg-warning/15 px-4 py-3 text-sm text-warning-foreground"
+          className="flex items-center gap-2 rounded-md border border-warning bg-warning/15 px-4 py-3 text-small text-warning-foreground"
         >
           <span aria-hidden="true">⚠</span>
           This colour does not meet WCAG AA contrast (4.5:1). Save is disabled until a valid colour
@@ -327,15 +341,55 @@ function AppearanceFormFields({
         </div>
       )}
 
+      {/*
+        The hue collision notice. Three channels, none of them colour alone (D-38-13): the word
+        "close to chart series N" states it, the border and icon carry the warning shape, and the
+        suggested swatch is a concrete alternative rather than "pick something else".
+
+        `text-foreground`, not `text-warning-foreground`, for the reason recorded on the
+        not-persisted notice above: `--warning-foreground` is the stop for text on a SOLID warning
+        fill and measures 1.21:1 on a 10 % tint in dark.
+      */}
+      {!hueVerdict.ok && (
+        <div
+          role="status"
+          data-testid="appearance-hue-collision"
+          data-delta-e={hueVerdict.deltaE.toFixed(1)}
+          className="flex items-start gap-2 rounded-md border border-warning bg-warning/10 px-3 py-2 text-small text-foreground"
+        >
+          <MonitorSmartphone className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          <span>
+            <span className="font-medium">Hard to tell apart from a chart line.</span>{" "}
+            {hueVerdict.reason}{" "}
+            {hueVerdict.suggestedHex ? (
+              <>
+                The nearest colour that stays distinct is{" "}
+                <button
+                  type="button"
+                  data-testid="appearance-hue-nudge"
+                  onClick={() => applyColor(hueVerdict.suggestedHex!)}
+                  className="font-mono font-medium underline underline-offset-2"
+                >
+                  {hueVerdict.suggestedHex}
+                </button>
+                . You can keep the one you chose.
+              </>
+            ) : (
+              <>Every nearby hue has the same problem, so this one is as good as any.</>
+            )}
+          </span>
+        </div>
+      )}
+
       {/* Live palette preview */}
       <div className="space-y-1">
-        <p className="text-sm font-medium text-foreground">Palette preview</p>
+        <p className="text-small font-medium text-foreground">Palette preview</p>
         <PaletteSwatch scale={palette.primary} foreground={palette.foreground} />
       </div>
 
       {/* Logo URL input */}
       <div className="flex flex-col gap-1">
-        <label htmlFor="logo-url" className="text-sm font-medium text-foreground">
+        <label htmlFor="logo-url" className="text-small font-medium text-foreground">
           Logo URL
         </label>
         <input
@@ -343,16 +397,16 @@ function AppearanceFormFields({
           type="url"
           {...register("logoUrl")}
           placeholder="https://example.com/logo.png"
-          className="w-full max-w-md rounded-md border border-input bg-background px-3 py-2 text-sm"
+          className="w-full max-w-md rounded-md border border-input bg-background px-3 py-2 text-small"
           aria-describedby="logo-url-hint"
         />
-        <p id="logo-url-hint" className="text-xs text-muted-foreground">
+        <p id="logo-url-hint" className="text-label text-muted-foreground">
           Stored alongside the colour in this browser — but nothing in the app renders a restaurant
           logo yet, so setting it changes nothing you can see today. It is kept rather than dropped
           so it is here when a logo surface ships.
         </p>
         {errors.logoUrl && (
-          <p role="alert" className="mt-0.5 text-xs text-destructive">
+          <p role="alert" className="mt-0.5 text-label text-destructive">
             {errors.logoUrl.message}
           </p>
         )}
@@ -363,18 +417,18 @@ function AppearanceFormFields({
         <button
           type="submit"
           disabled={contrastFailing}
-          className="touch-target inline-flex items-center justify-center rounded-md bg-primary-solid px-6 py-2 text-sm font-medium text-primary-solid-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          className="touch-target inline-flex items-center justify-center rounded-md bg-primary-solid px-6 py-2 text-small font-medium text-primary-solid-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           aria-disabled={contrastFailing}
         >
           Save appearance
         </button>
         {saveSuccess && (
-          <p role="status" className="text-sm text-success">
+          <p role="status" className="text-small text-success">
             Saved in this browser
           </p>
         )}
         {saveFailed && (
-          <p role="alert" className="text-sm text-destructive">
+          <p role="alert" className="text-small text-destructive">
             This browser refused to store the setting, so nothing was saved. Private browsing and
             blocked site data both do this.
           </p>

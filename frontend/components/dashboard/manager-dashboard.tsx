@@ -10,7 +10,8 @@ import {
   RecordList,
 } from "@/components/dashboard/portlets/portlet";
 import { DASHBOARD_PRESETS, visiblePortlets } from "@/components/dashboard/presets";
-import { getAgingState, formatAge } from "@/components/kds/kds-aging";
+import { getAgingState } from "@/components/kds/kds-aging";
+import { formatElapsedLong } from "@/lib/format/elapsed";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
@@ -128,7 +129,11 @@ export function ManagerDashboard() {
     const rows = lateTickets.slice(0, 4).map((t: KdsTicket) => ({
       key: `late-${t.id}`,
       label: `${t.orderNo ?? t.id.slice(0, 8)} is late at ${t.stationCode}`,
-      detail: `${formatAge(now - t.receivedAt.getTime())} on the board — past this station's target`,
+      // PROSE, and BOUNDED — `lib/format/elapsed.ts`, whose docblock names this very line: the
+      // deleted `formatAge` was a ticket-face `mm:ss` timer, so a check left open over a close
+      // rendered `114:01:07` here, inside a sentence, in the danger row. The long form says
+      // `5d`, and past thirty days it names the date instead of counting at all.
+      detail: `${formatElapsedLong(t.receivedAt, now)} on the board — past this station's target`,
       severity: "danger" as const,
     }));
     for (const till of todaysTills.filter((t) => t.status === "OPEN")) {

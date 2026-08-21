@@ -8,6 +8,8 @@ import { FleetHealthList, formatLastReachable } from "@/components/ops/fleet-hea
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
+import { Meter } from "@/components/ui/meter";
+import { PageHeader } from "@/components/ui/page-header";
 import { ZoneProvider } from "@/components/providers/zone-provider";
 import { useFleetHealth } from "@/lib/hooks/ops/use-fleet-health";
 
@@ -47,25 +49,51 @@ function ServiceHealthPage() {
      * screens read as one area rather than as a settings page and a stray console.
      */
     <ZoneProvider zone="expressive" className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-h1 font-semibold">Service health</h1>
-          <p className="text-small text-muted-foreground">
-            Whether each part of RestaurantOS is answering right now, and when it last did. Nothing
-            here is restaurant data — it is the software itself.
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          data-testid="fleet-health-refresh"
-          onClick={() => void fleetQuery.refetch()}
-          disabled={fleetQuery.isFetching}
-        >
-          {fleetQuery.isFetching ? "Checking…" : "Check now"}
-        </Button>
-      </div>
+      <PageHeader
+        title="Service health"
+        description="Whether each part of RestaurantOS is answering right now, and when it last did. Nothing here is restaurant data — it is the software itself."
+        actions={
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            data-testid="fleet-health-refresh"
+            onClick={() => void fleetQuery.refetch()}
+            disabled={fleetQuery.isFetching}
+          >
+            {fleetQuery.isFetching ? "Checking…" : "Check now"}
+          </Button>
+        }
+      />
+
+      {/*
+        The one honest figure this screen holds, as a Meter rather than as a StatTile.
+        `Meter`'s denominator is REQUIRED (D-38-16 in the compiler) and "services answering" has
+        a real one — the routed fleet size — where a bare "8" would not say out of what. It is
+        rendered only once the fleet has actually been read: before that there is no numerator
+        and no denominator, and an empty meter reading 0/0 would be the GA-001 lie this screen
+        was built to end.
+
+        Colour is not the only channel: the status carries a WORD ("All answering" / "N down")
+        beside the tone, per D-38-13.
+      */}
+      {fleet && (
+        <Meter
+          label="Services answering"
+          value={total - failing.length}
+          of={total}
+          noun="services"
+          size="md"
+          status={
+            failing.length === 0
+              ? { tone: "success", label: "All answering" }
+              : {
+                  tone: "danger",
+                  label: `${failing.length} not answering`,
+                }
+          }
+        />
+      )}
 
       {/*
         The headline, and it is deliberately a role="status" rather than role="alert": a screen

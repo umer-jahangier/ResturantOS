@@ -202,7 +202,16 @@ describe("Tables page", () => {
     await user.click(await screen.findByRole("menuitem", { name: "Retire" }));
 
     await waitFor(() => expect(patchedPath).toBe(`/api/v1/pos/tables/${T1}/deactivate`));
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Retired T1"));
+    // 38-06: the confirmation now carries an Undo. UI-SPEC §8.2 and `confirm-dialog.tsx`'s own
+    // contract both say a REVERSIBLE action gets a toast with an action, not a modal — a dialog
+    // on a reversible action is what teaches people to dismiss the one that matters. Asserting
+    // the action exists, not just the sentence, is what stops it being dropped in a cleanup.
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        "Retired T1",
+        expect.objectContaining({ action: expect.objectContaining({ label: "Undo" }) }),
+      ),
+    );
   });
 
   it("surfaces the server's refusal to retire an occupied table", async () => {

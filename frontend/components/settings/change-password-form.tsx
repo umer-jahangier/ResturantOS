@@ -142,7 +142,7 @@ export function ChangePasswordForm() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4" role="status">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-small text-muted-foreground">
             Every signed-in session was ended, including this one. Sign in again with your new
             password.
           </p>
@@ -218,7 +218,7 @@ export function ChangePasswordForm() {
               <p
                 role="alert"
                 data-testid="change-password-error"
-                className="text-sm text-destructive"
+                className="text-small text-destructive"
               >
                 {changePasswordMessage(change.error)}
               </p>

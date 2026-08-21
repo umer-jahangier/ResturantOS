@@ -79,7 +79,7 @@ export function RoleSelect({
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         aria-describedby={describedById}
-        className="h-8 w-full rounded-lg border border-border-interactive bg-transparent px-2.5 text-sm transition-colors focus-visible:border-ring disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50 dark:bg-surface-2"
+        className="h-8 w-full rounded-lg border border-border-interactive bg-transparent px-2.5 text-small transition-colors focus-visible:border-ring disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50 dark:bg-surface-2"
       >
         {includeEmptyOption && <option value="">{emptyOptionLabel}</option>}
         {roles.map((role) => (
@@ -90,7 +90,7 @@ export function RoleSelect({
       </select>
 
       {roles.length === 0 && (
-        <p className="text-xs text-warning-foreground">
+        <p className="text-label text-warning-foreground">
           There are no roles you are allowed to assign. A role can only be granted by someone who
           already holds every permission it carries.
         </p>
@@ -99,7 +99,7 @@ export function RoleSelect({
       {withheldCount > 0 && (
         <p
           data-testid="roles-withheld"
-          className="flex items-start gap-1.5 text-xs text-muted-foreground"
+          className="flex items-start gap-1.5 text-label text-muted-foreground"
         >
           <Info className="mt-0.5 size-3 shrink-0" aria-hidden="true" />
           <span>

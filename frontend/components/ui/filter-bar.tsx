@@ -99,6 +99,18 @@ export interface FilterBarFilter {
    */
   error?: boolean;
   onRetry?: () => void;
+  /**
+   * Forwarded verbatim to the rendered {@link Select} as `data-testid`.
+   *
+   * <p>Added by 38-10, and the reason is worth stating because it is the difference between a
+   * primitive that can be adopted and one that cannot. The first real migration into this
+   * component — the audit log's four-control filter grid — carries `data-testid="audit-filter-
+   * action"` and `"audit-filter-resource"`, and those ids are load-bearing: a screen plan is not
+   * permitted to rename or drop one. Without a pass-through, adopting `FilterBar` on ANY screen
+   * that has test coverage means deleting that screen's coverage in the same commit, which is
+   * how a shared component ends up used only on the screens nobody tests.
+   */
+  testId?: string;
 }
 
 export interface FilterBarSearch {
@@ -269,6 +281,7 @@ export function FilterBar({
                 )}
                 <Select
                   id={controlId}
+                  data-testid={filter.testId}
                   value={filter.value}
                   onValueChange={filter.onChange}
                   isLoading={filter.isLoading}

@@ -5,10 +5,10 @@ import type { ColumnDef } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
 import { DataGrid } from "@/components/ui/data-grid/data-grid";
+import { FilterBar } from "@/components/ui/filter-bar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { QueryBoundary } from "@/components/ui/query-boundary";
-import { Select } from "@/components/ui/select";
 import { useAuditEvents, useAuditFacets, useBranchTimeZone } from "@/lib/hooks/audit/use-audit-log";
 import type { AuditEvent } from "@/lib/models/audit.model";
 import { cn } from "@/lib/utils";
@@ -217,6 +217,18 @@ export function AuditLog() {
 
   const openRow = rows.find((r) => r.id === openRowId) ?? null;
 
+  /**
+   * The one reset. Three controls used to hold three copies of this body — `FilterBar`'s clear,
+   * the "Clear filters" button and `DataGrid`'s filtered-empty affordance — and a fourth filter
+   * added to any one of them would have left the other two silently partial.
+   */
+  const clearAllFilters = React.useCallback(() => {
+    setAction("");
+    setResourceType("");
+    setDraftFrom("");
+    setDraftTo("");
+  }, []);
+
   const columns = React.useMemo<ColumnDef<AuditEvent, unknown>[]>(
     () => [
       {
@@ -235,7 +247,7 @@ export function AuditLog() {
           <div className="flex flex-col gap-0.5">
             <span className="font-medium">{humaniseAction(row.original.action)}</span>
             {/* The stored name, because a filter and a support request both use it, not the label. */}
-            <span className="text-xs text-muted-foreground">{row.original.action}</span>
+            <span className="text-label text-muted-foreground">{row.original.action}</span>
           </div>
         ),
       },
@@ -250,7 +262,7 @@ export function AuditLog() {
             {row.original.impersonatorId && (
               // The one attribution that must never be collapsed: the account acted AS is not the
               // human who acted. D-34 recorded every user as their own impersonator.
-              <span className="truncate text-xs text-amber-600 dark:text-amber-400">
+              <span className="truncate text-label text-warning">
                 acting as this account:{" "}
                 {row.original.impersonatorName ?? `${row.original.impersonatorId.slice(0, 8)}…`}
               </span>
@@ -266,7 +278,7 @@ export function AuditLog() {
             <span>{row.original.resourceType ?? "—"}</span>
             {row.original.resourceId && (
               <span
-                className="truncate text-xs text-muted-foreground"
+                className="truncate text-label text-muted-foreground"
                 title={row.original.resourceId}
               >
                 {row.original.resourceId}
@@ -300,7 +312,7 @@ export function AuditLog() {
               data-testid={`audit-detail-${row.original.id}`}
               aria-expanded={openRowId === row.original.id}
               onClick={() => setOpenRowId(openRowId === row.original.id ? null : row.original.id)}
-              className="text-xs font-medium text-primary underline"
+              className="text-label font-medium text-primary underline"
             >
               {openRowId === row.original.id ? "Hide" : "Details"}
             </button>
@@ -313,61 +325,84 @@ export function AuditLog() {
 
   return (
     <div className="space-y-4">
-      {/* ── Filters ─────────────────────────────────────────────────────────── */}
-      <div className="rounded-lg border p-4">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="audit-action">Event</Label>
-            <Select
-              id="audit-action"
-              data-testid="audit-filter-action"
-              options={actionOptions}
-              value={action}
-              onValueChange={setAction}
-              isLoading={facetsQuery.isPending}
-              error={facetsQuery.isError}
-              onRetry={() => void facetsQuery.refetch()}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="audit-resource">Applies to</Label>
-            <Select
-              id="audit-resource"
-              data-testid="audit-filter-resource"
-              options={resourceOptions}
-              value={resourceType}
-              onValueChange={setResourceType}
-              isLoading={facetsQuery.isPending}
-              error={facetsQuery.isError}
-              onRetry={() => void facetsQuery.refetch()}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="audit-from">From</Label>
-            <Input
-              id="audit-from"
-              type="date"
-              data-testid="audit-filter-from"
-              value={draftFrom}
-              aria-invalid={rangeIsBackwards || undefined}
-              aria-describedby={rangeIsBackwards ? "audit-range-error" : undefined}
-              onChange={(e) => setDraftFrom(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="audit-to">To</Label>
-            <Input
-              id="audit-to"
-              type="date"
-              data-testid="audit-filter-to"
-              value={draftTo}
-              aria-invalid={rangeIsBackwards || undefined}
-              aria-describedby={rangeIsBackwards ? "audit-range-error" : undefined}
-              onChange={(e) => setDraftTo(e.target.value)}
-            />
-          </div>
-        </div>
+      {/* ── Filters ─────────────────────────────────────────────────────────────
+          The shared `FilterBar` (38-10 task 5 / D-38-17): this screen used to hand-roll its own
+          `rounded-lg border p-4` strip with a four-column grid inside it — one of the twelve
+          spellings of a filter row the primitive was written to end.
 
+          Two things are gained that this screen could not have had on its own: a live count of
+          how many filters are on, and one removable chip per active filter. Both matter more on
+          an audit log than anywhere else. A narrowed log looks exactly like a short log, and an
+          auditor who cannot see that a filter is on reads "3 events" as the whole record.
+
+          The date range stays in `children` because `FilterBar` has no shape for a two-input
+          range and inventing one from a call site is how a primitive grows a special case per
+          screen. `extraActiveCount` is what keeps the count honest about them, and `onClearAll`
+          is passed for the same reason — the default reset can only see `filters`, and a "Clear
+          all" that leaves the dates on is precisely the lie the component exists to prevent. */}
+      <FilterBar
+        title="Filters"
+        filters={[
+          {
+            id: "action",
+            label: "Event",
+            testId: "audit-filter-action",
+            value: action,
+            onChange: setAction,
+            // `actionOptions` already carries its own "All events" head entry, because the same
+            // array is the source for the chip label. FilterBar prepends `allLabel` to whatever
+            // it is given, so the head entry is dropped here rather than rendered twice.
+            options: actionOptions.slice(1),
+            allLabel: "All events",
+            isLoading: facetsQuery.isPending,
+            error: facetsQuery.isError,
+            onRetry: () => void facetsQuery.refetch(),
+          },
+          {
+            id: "resource",
+            label: "Applies to",
+            testId: "audit-filter-resource",
+            value: resourceType,
+            onChange: setResourceType,
+            options: resourceOptions.slice(1),
+            allLabel: "Anything",
+            isLoading: facetsQuery.isPending,
+            error: facetsQuery.isError,
+            onRetry: () => void facetsQuery.refetch(),
+          },
+        ]}
+        extraActiveCount={(draftFrom ? 1 : 0) + (draftTo ? 1 : 0)}
+        onClearAll={clearAllFilters}
+      >
+        <div className="flex min-w-40 flex-col gap-1">
+          <Label htmlFor="audit-from">From</Label>
+          <Input
+            id="audit-from"
+            type="date"
+            data-testid="audit-filter-from"
+            value={draftFrom}
+            aria-invalid={rangeIsBackwards || undefined}
+            aria-describedby={rangeIsBackwards ? "audit-range-error" : undefined}
+            onChange={(e) => setDraftFrom(e.target.value)}
+          />
+        </div>
+        <div className="flex min-w-40 flex-col gap-1">
+          <Label htmlFor="audit-to">To</Label>
+          <Input
+            id="audit-to"
+            type="date"
+            data-testid="audit-filter-to"
+            value={draftTo}
+            aria-invalid={rangeIsBackwards || undefined}
+            aria-describedby={rangeIsBackwards ? "audit-range-error" : undefined}
+            onChange={(e) => setDraftTo(e.target.value)}
+          />
+        </div>
+      </FilterBar>
+
+      {/* The three notices that belong to the filter strip but not inside it: they describe what
+          the strip has DONE, and a control row is the wrong place for prose. */}
+      <div className="space-y-3">
         {rangeIsBackwards && (
           // Named fields, the real problem, and the consequence — not "invalid input". The filter
           // is deliberately NOT applied: the server's honest answer would be zero rows, and zero
@@ -376,7 +411,7 @@ export function AuditLog() {
             id="audit-range-error"
             role="alert"
             data-testid="audit-range-error"
-            className="mt-3 text-sm text-destructive"
+            className="text-small text-destructive"
           >
             <strong>From</strong> is {draftFrom}, which is after <strong>To</strong> ({draftTo}). No
             day can be in both, so this range has not been applied — the list below still shows the
@@ -399,7 +434,7 @@ export function AuditLog() {
           the screen would confidently name a range it had not read.
         */}
         {facetsQuery.data?.windowFrom && facetsQuery.data?.windowTo && (
-          <p className="mt-3 text-sm text-muted-foreground" data-testid="audit-window-note">
+          <p className="text-small text-muted-foreground" data-testid="audit-window-note">
             Showing{" "}
             <strong>{formatWindow(facetsQuery.data.windowFrom, facetsQuery.data.windowTo)}</strong>
             {!appliedFrom && !appliedTo && " (the last 90 days)"}. Older entries are retained and
@@ -422,8 +457,8 @@ export function AuditLog() {
           </p>
         )}
 
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm text-muted-foreground" data-testid="audit-zone-note">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-small text-muted-foreground" data-testid="audit-zone-note">
             Times are shown in{" "}
             <strong>{zone ?? "your device's time zone"}</strong>
             {zone
@@ -436,12 +471,7 @@ export function AuditLog() {
               variant="outline"
               size="sm"
               data-testid="audit-clear-filters"
-              onClick={() => {
-                setAction("");
-                setResourceType("");
-                setDraftFrom("");
-                setDraftTo("");
-              }}
+              onClick={clearAllFilters}
             >
               Clear filters
             </Button>
@@ -466,12 +496,7 @@ export function AuditLog() {
             pageSize={Math.max(rows.length, 1)}
             label="Audit log"
             isFiltered={isFiltered}
-            onClearFilters={() => {
-              setAction("");
-              setResourceType("");
-              setDraftFrom("");
-              setDraftTo("");
-            }}
+            onClearFilters={clearAllFilters}
             emptyTitle="Nothing has been recorded yet"
             emptyDescription="Sign-ins, voids, refunds, till sessions, role changes and journal postings all appear here as they happen."
             card={{
@@ -487,7 +512,7 @@ export function AuditLog() {
           {/* Count and pager. The count is stated even on a single page, for the same reason
               DataGrid states its own: it is the only place a miscount is observable. */}
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground" data-testid="audit-page-summary">
+            <p className="text-small text-muted-foreground" data-testid="audit-page-summary">
               {total === 0
                 ? "0 events"
                 : `Showing ${firstIndex.toLocaleString()}–${lastIndex.toLocaleString()} of ${total.toLocaleString()} event${
@@ -495,12 +520,12 @@ export function AuditLog() {
                   }`}
             </p>
             <div className="flex items-center gap-2">
-              <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <label className="flex items-center gap-1.5 text-small text-muted-foreground">
                 <span>Rows</span>
                 <select
                   aria-label="Rows per page"
                   data-testid="audit-page-size"
-                  className="h-8 rounded-md border border-border-interactive bg-transparent px-2 text-sm dark:bg-surface-2"
+                  className="h-8 rounded-md border border-border-interactive bg-transparent px-2 text-small dark:bg-surface-2"
                   value={size}
                   onChange={(e) => setSize(Number(e.target.value))}
                 >
@@ -521,7 +546,7 @@ export function AuditLog() {
               >
                 Previous
               </Button>
-              <span className="text-sm tabular-nums" data-testid="audit-page-number">
+              <span className="text-small tabular-nums" data-testid="audit-page-number">
                 Page {page + 1}
               </span>
               <Button
@@ -545,8 +570,8 @@ export function AuditLog() {
             <div className="mt-3 rounded-lg border p-4" data-testid="audit-detail-panel">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <h2 className="text-base font-semibold">{humaniseAction(openRow.action)}</h2>
-                  <p className="text-sm text-muted-foreground">
+                  <h2 className="text-h2 font-semibold">{humaniseAction(openRow.action)}</h2>
+                  <p className="text-small text-muted-foreground">
                     {formatInZone(openRow.occurredAt, zone)} · by {actorLabel(openRow)}
                     {openRow.actorId ? ` (${openRow.actorId})` : ""}
                   </p>
@@ -557,20 +582,20 @@ export function AuditLog() {
               </div>
 
               {openRow.detailsUnreadable ? (
-                <p role="alert" className="mt-3 text-sm text-destructive">
+                <p role="alert" className="mt-3 text-small text-destructive">
                   This event&apos;s recorded detail could not be read. The event itself is intact —
                   only its payload is unreadable, and it cannot be edited or removed.
                 </p>
               ) : Object.keys(openRow.details).length === 0 ? (
-                <p className="mt-3 text-sm text-muted-foreground">
+                <p className="mt-3 text-small text-muted-foreground">
                   No further detail was recorded for this event.
                 </p>
               ) : (
                 <dl className="mt-3 grid gap-x-6 gap-y-1 sm:grid-cols-[max-content_1fr]">
                   {Object.entries(openRow.details).map(([key, value]) => (
                     <React.Fragment key={key}>
-                      <dt className="text-sm font-medium">{key}</dt>
-                      <dd className="text-sm break-all text-muted-foreground">
+                      <dt className="text-small font-medium">{key}</dt>
+                      <dd className="text-small break-all text-muted-foreground">
                         {typeof value === "string" ? value : JSON.stringify(value)}
                       </dd>
                     </React.Fragment>

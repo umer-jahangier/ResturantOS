@@ -18,7 +18,7 @@ export function CustomerDetail({ customerId }: { customerId: string | null }) {
 
   if (!customerId) {
     return (
-      <Card className="p-6 text-sm text-muted-foreground">
+      <Card className="p-6 text-small text-muted-foreground">
         Select a customer to see their loyalty standing.
       </Card>
     );
@@ -37,12 +37,12 @@ export function CustomerDetail({ customerId }: { customerId: string | null }) {
   return (
     <Card className="space-y-5 p-6">
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold">{customer.name}</h2>
-        <p className="text-sm tabular-nums text-muted-foreground">{customer.phone}</p>
-        {customer.email ? <p className="text-sm text-muted-foreground">{customer.email}</p> : null}
+        <h2 className="text-h2 font-semibold">{customer.name}</h2>
+        <p className="text-small tabular-nums text-muted-foreground">{customer.phone}</p>
+        {customer.email ? <p className="text-small text-muted-foreground">{customer.email}</p> : null}
       </div>
 
-      <dl className="grid grid-cols-2 gap-4 border-t pt-4 text-sm">
+      <dl className="grid grid-cols-2 gap-4 border-t pt-4 text-small">
         <div>
           <dt className="text-muted-foreground">Tier</dt>
           <dd className="mt-1">
