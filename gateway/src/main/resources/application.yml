@@ -466,16 +466,6 @@ spring:
             #         name: hrCircuitBreaker
             #         fallbackUri: forward:/fallback/service-unavailable
 
-    # Eureka: register with service discovery so other services can find the gateway
-    netflix:
-      eureka:
-        client:
-          service-url:
-            defaultZone: ${EUREKA_URI:http://eureka-server:8761/eureka}
-          fetch-registry: true
-          register-with-eureka: true
-
-# Actuator: expose health (public — listed in JwtGlobalFilter.isPublicPath) + prometheus
 management:
   endpoints:
     web:
@@ -669,3 +659,29 @@ logging:
   level:
     io.restaurantos.gateway: ${LOG_LEVEL_GATEWAY:INFO}
     org.springframework.cloud.gateway: ${LOG_LEVEL_SCG:WARN}
+
+# ── Eureka ──────────────────────────────────────────────────────────────────
+# ROOT LEVEL, and that is the entire point.
+#
+# This block used to sit under spring.cloud.netflix, which resolves to
+#   spring.cloud.netflix.eureka.client.service-url.defaultZone
+# — a key Spring Cloud does not read. ${EUREKA_URI} was faithfully substituted
+# into a property nothing consumed, so the gateway silently fell back to the
+# built-in default, http://localhost:8761/eureka/.
+#
+# It was invisible for as long as this ran on one machine: in local development
+# eureka-server IS on localhost:8761, so the wrong configuration and the right
+# behaviour agreed. Kubernetes is the first place Eureka lives on another host,
+# and the gateway immediately failed every route with
+#   "Cannot execute request on any known server"
+# while every OTHER service registered fine — they bind this correctly.
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://eureka-server:8761/eureka}
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    # In Kubernetes the pod hostname is not resolvable by other pods; register
+    # the pod IP instead or callers get a name they cannot look up.
+    prefer-ip-address: true
