@@ -70,7 +70,22 @@ class AuthInternalBranchRoleIT extends BaseIntegrationTest {
     @Test
     void assignBranchRole_withValidSecret_persistsRow() {
         UUID userId = TestFixtures.CASHIER_USER_ID;
-        UUID newBranchId = UUID.fromString("b0000003-0000-4000-8000-000000000003");
+        // A branch id this class OWNS, and it cleans up after itself below.
+        //
+        // This used to be b0000003, which is not free: BranchSwitchIT hardcodes that
+        // exact UUID as "the branch the cashier is NOT assigned to" in two tests.
+        // This test grants the cashier a live CASHIER role there over HTTP, so the
+        // write COMMITS, and the module's Postgres container is `static` and shared
+        // with no truncation between classes. Whichever class ran second lost: with
+        // b0000003 assigned, BranchSwitchIT's switch was legitimately authorized and
+        // returned 200, so both of its 403 assertions failed — and looked exactly
+        // like an authorization regression rather than a fixture collision.
+        //
+        // Third instance of the disease @BeforeEach in BranchSwitchIT already
+        // documents for d0000006/d0000007. That repair missed this one because it is
+        // a collision on a BRANCH id, not a role-row id. Hand-stamped fixture ids are
+        // a namespace with no allocator.
+        UUID newBranchId = UUID.fromString("b0000093-0000-4000-8000-000000000093");
 
         Map<String, Object> body = Map.of(
             "branchId", newBranchId.toString(),
@@ -93,6 +108,34 @@ class AuthInternalBranchRoleIT extends BaseIntegrationTest {
             .getSingleResult();
         assertThat(count).isGreaterThanOrEqualTo(1);
     }
+
+    /**
+     * Removes the branch-role this class grants, so no later class inherits it.
+     *
+     * <p>Cleanup is @AfterEach rather than a trailing line in the test, because a
+     * failed assertion must not leave the row behind — that is precisely how one
+     * red test becomes three in unrelated classes. Scoped to the id this class owns
+     * so it cannot delete another class's fixture.
+     */
+    @org.junit.jupiter.api.AfterEach
+    void removeTheBranchRoleThisClassGrants() throws Exception {
+        // Plain JDBC, not the EntityManager. These tests drive the app over HTTP, so
+        // nothing here runs inside a JPA transaction and
+        // `entityManager.createNativeQuery(...).executeUpdate()` throws
+        // TransactionRequiredException — which failed all 21 tests in this class when
+        // tried. Annotating the lifecycle method @Transactional does not help: it would
+        // open a transaction around the CLEANUP while the writes it is cleaning up were
+        // committed by a different connection entirely.
+        try (java.sql.Connection c = dataSource.getConnection();
+             java.sql.PreparedStatement ps =
+                 c.prepareStatement("DELETE FROM user_branch_roles WHERE branch_id = ?")) {
+            ps.setObject(1, UUID.fromString("b0000093-0000-4000-8000-000000000093"));
+            ps.executeUpdate();
+        }
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private javax.sql.DataSource dataSource;
 
     // ── The role ceiling on the WRITE path (13-11) ────────────────────────────
     //
