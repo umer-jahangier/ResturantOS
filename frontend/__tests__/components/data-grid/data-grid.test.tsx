@@ -92,9 +92,7 @@ describe("DataGrid — structure (UI-SPEC §7.2)", () => {
     const { container } = render(<DataGrid columns={COLUMNS} data={ROWS} density={density} />);
     const bodyRows = Array.from(container.querySelectorAll("tbody tr"));
     expect(bodyRows.length).toBeGreaterThan(0);
-    const heights = new Set(
-      bodyRows.map((r) => (r.className.match(/\bh-\d+\b/) ?? ["none"])[0]),
-    );
+    const heights = new Set(bodyRows.map((r) => (r.className.match(/\bh-\d+\b/) ?? ["none"])[0]));
     expect(heights.size, "more than one row height in one table").toBe(1);
     expect([...heights][0]).toBe(cls);
   });

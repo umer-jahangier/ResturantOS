@@ -203,9 +203,9 @@ export function PrintAgentPanel({ branchId }: { branchId: string | null }) {
             <DialogHeader>
               <DialogTitle>Enrol a print agent</DialogTitle>
               <DialogDescription>
-                Give the machine a name you will recognise on this list —
-                &ldquo;Back office PC&rdquo;, &ldquo;Counter till&rdquo;. You will be shown a
-                credential once, and only once.
+                Give the machine a name you will recognise on this list — &ldquo;Back office
+                PC&rdquo;, &ldquo;Counter till&rdquo;. You will be shown a credential once, and only
+                once.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-2">
@@ -304,7 +304,6 @@ node print-agent/dist/main.js`}
           </DialogContent>
         )}
       </Dialog>
-
     </Card>
   );
 }

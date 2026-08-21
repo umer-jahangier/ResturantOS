@@ -129,8 +129,7 @@ export default function VendorInvoicesPage() {
         actions={
           invoices.length > 0 ? (
             <span className="text-small text-foreground-secondary">
-              Billed:{" "}
-              <MoneyDisplay paisa={totalPaisa} className="text-foreground" />
+              Billed: <MoneyDisplay paisa={totalPaisa} className="text-foreground" />
             </span>
           ) : null
         }

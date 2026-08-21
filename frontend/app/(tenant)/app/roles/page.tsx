@@ -56,8 +56,7 @@ export default function RolesPage() {
     permissions.includes("rbac.manage") ||
     permissions.includes("rbac.user.manage") ||
     permissions.includes("rbac.role.manage");
-  const canManage =
-    permissions.includes("rbac.manage") || permissions.includes("rbac.role.manage");
+  const canManage = permissions.includes("rbac.manage") || permissions.includes("rbac.role.manage");
 
   const rolesQuery = useAssignableRoles(canRead);
   const catalogueQuery = usePermissionCatalogue(canRead);
@@ -236,8 +235,8 @@ export default function RolesPage() {
             <>
               {deleteTarget.assignedUserCount}{" "}
               {deleteTarget.assignedUserCount === 1 ? "person holds" : "people hold"} this role.
-              Move them to another role on the Users screen first — deleting it now will be
-              refused, because they would keep signing in and find every screen missing.
+              Move them to another role on the Users screen first — deleting it now will be refused,
+              because they would keep signing in and find every screen missing.
             </>
           ) : (
             <>Nobody holds this role, so nothing changes for anyone. This cannot be undone.</>

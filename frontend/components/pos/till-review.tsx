@@ -104,7 +104,10 @@ export function TillReview() {
             disabled={isFetching}
             className="inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted disabled:opacity-60"
           >
-            <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} aria-hidden="true" />
+            <RefreshCw
+              className={cn("size-3.5", isFetching && "animate-spin")}
+              aria-hidden="true"
+            />
             Refresh
           </button>
         </div>
@@ -318,10 +321,7 @@ function OpenDrawerForCashier({ branchId }: { branchId: string }) {
               />
               {/* An empty roster is NOT an error and must not read as one (§26). */}
               {!cashiersQuery.isPending && !cashiersQuery.isError && cashiers.length === 0 && (
-                <p
-                  data-testid="open-drawer-no-cashiers"
-                  className="text-xs text-muted-foreground"
-                >
+                <p data-testid="open-drawer-no-cashiers" className="text-xs text-muted-foreground">
                   Nobody at this branch can run a cash drawer yet. Give someone a cashier role in
                   Users first, then open their drawer here.
                 </p>
@@ -385,11 +385,7 @@ function OpenDrawerForCashier({ branchId }: { branchId: string }) {
             )}
 
             {submitError && (
-              <p
-                data-testid="open-drawer-error"
-                role="alert"
-                className="text-xs text-destructive"
-              >
+              <p data-testid="open-drawer-error" role="alert" className="text-xs text-destructive">
                 {submitError}
               </p>
             )}

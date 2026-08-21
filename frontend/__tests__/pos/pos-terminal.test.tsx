@@ -489,7 +489,9 @@ describe("PosTerminal", () => {
     expect(screen.queryByTestId("cart-line-modifiers")).not.toBeInTheDocument();
     expect(createOrderCallCount).toBe(0);
 
-    await user.click(within(dialog).getByTestId("modifier-option-bbbbbbbb-0000-4000-8000-000000000001"));
+    await user.click(
+      within(dialog).getByTestId("modifier-option-bbbbbbbb-0000-4000-8000-000000000001"),
+    );
     await user.click(within(dialog).getByTestId("modifier-dialog-add"));
 
     await waitFor(() => {

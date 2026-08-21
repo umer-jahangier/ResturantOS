@@ -138,7 +138,9 @@ describe("ChargeSummary — closing a settled check (S0-06)", () => {
     currentOrder = makeOrder();
     currentPayments = fullCashPayment();
     serveAllMock.mockReset();
-    serveAllMock.mockImplementation(async () => makeOrder({ status: "CLOSED", derivedStatus: "SERVED" }));
+    serveAllMock.mockImplementation(async () =>
+      makeOrder({ status: "CLOSED", derivedStatus: "SERVED" }),
+    );
   });
 
   afterEach(() => {

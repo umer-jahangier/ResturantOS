@@ -226,9 +226,7 @@ export function PosTerminal({ tableId, orderId: resumeOrderId }: PosTerminalProp
                 menuItemId: item.id,
                 branchId,
                 quantity: 1,
-                ...(modifiers.length > 0
-                  ? { modifierIds: modifiers.map((m) => m.id) }
-                  : {}),
+                ...(modifiers.length > 0 ? { modifierIds: modifiers.map((m) => m.id) } : {}),
               },
             });
             toast.success(`${item.name} added`);
@@ -603,11 +601,7 @@ export function PosTerminal({ tableId, orderId: resumeOrderId }: PosTerminalProp
           order) is the one thing that decides where a configured line lands. */}
       <ModifierDialog
         item={configuringItem}
-        groups={
-          configuringItem
-            ? (modifierIndex.byItem?.get(configuringItem.id) ?? [])
-            : []
-        }
+        groups={configuringItem ? (modifierIndex.byItem?.get(configuringItem.id) ?? []) : []}
         isLoading={modifierIndex.isLoading}
         isError={modifierIndex.isError}
         error={modifierIndex.error}

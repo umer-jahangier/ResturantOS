@@ -153,11 +153,7 @@ function TakingsBody({
             hint="Given away. Shown here rather than netted into a smaller sales figure."
             figure={takings.discounts}
           />
-          <FigureTile
-            label="Comps"
-            hint="Fully comped items."
-            figure={takings.comps}
-          />
+          <FigureTile label="Comps" hint="Fully comped items." figure={takings.comps} />
           <FigureTile
             label="Net sales"
             hint="Gross sales less discounts. Tax and service charge are NOT in this figure — this is the revenue line."
@@ -213,10 +209,10 @@ function TakingsBody({
               owed to staff, not as revenue. It belongs here, where the question is what is in the
               drawer, and nowhere else on this screen. */}
           <p className="text-label text-muted-foreground" data-testid="tender-tip-note">
-            A tip is money taken <strong>on top of</strong> the bill, so it is a separate column
-            and is not inside Amount. It is not sales either — it is held for the staff, which is
-            why no tile above includes it. A <strong>cash</strong> tip is in the drawer and is part
-            of what a till is expected to hold; a card tip is not.
+            A tip is money taken <strong>on top of</strong> the bill, so it is a separate column and
+            is not inside Amount. It is not sales either — it is held for the staff, which is why no
+            tile above includes it. A <strong>cash</strong> tip is in the drawer and is part of what
+            a till is expected to hold; a card tip is not.
           </p>
         </div>
         <TenderSplit lines={takings.byTender} />
@@ -330,10 +326,10 @@ function UnclosedTakingsNote({ unclosed }: { unclosed: UnclosedTakings }) {
             </p>
           )}
           <p className="mt-1 text-label">
-            This money is part of the tender split above and is already in the drawer, so expect
-            the count to include it. It is NOT in gross, net sales or total billed: a bill becomes
-            a sale when it is closed, which may be tomorrow. Close those orders and the figures
-            move — the cash does not get counted twice.
+            This money is part of the tender split above and is already in the drawer, so expect the
+            count to include it. It is NOT in gross, net sales or total billed: a bill becomes a
+            sale when it is closed, which may be tomorrow. Close those orders and the figures move —
+            the cash does not get counted twice.
           </p>
         </>
       ) : (
@@ -359,10 +355,7 @@ function FigureTile({
 }) {
   return (
     <div
-      className={cn(
-        "rounded-lg border p-3",
-        emphasis && "border-primary/40 bg-primary/5",
-      )}
+      className={cn("rounded-lg border p-3", emphasis && "border-primary/40 bg-primary/5")}
       data-testid={`figure-tile-${label.toLowerCase().replace(/\s+/g, "-")}`}
     >
       <p className="text-label uppercase tracking-wide text-muted-foreground">{label}</p>
@@ -373,10 +366,7 @@ function FigureTile({
             `@layer base`, so money already aligns in the sans face and the mono was buying
             nothing but a second visual language for the same kind of value. An account code stays
             mono here and everywhere; the money does not. */}
-        <FigureValue
-          figure={figure}
-          className={emphasis ? "text-h1 font-semibold" : "text-h2"}
-        />
+        <FigureValue figure={figure} className={emphasis ? "text-h1 font-semibold" : "text-h2"} />
       </div>
       {/* The hint explains what a figure MEANS. When the figure is not known, the reason has
           already said everything there is to say, and a second sentence underneath it describing

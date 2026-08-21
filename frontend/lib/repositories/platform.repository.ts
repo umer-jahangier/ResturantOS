@@ -169,13 +169,15 @@ export const PlatformRepository = {
    * it states) or an exact instant, and refuses anything else with a named 422 rather than quietly
    * dropping the filter.
    */
-  async listImpersonations(params: {
-    adminUserId?: string;
-    from?: string;
-    to?: string;
-    page?: number;
-    size?: number;
-  } = {}): Promise<ImpersonationPage> {
+  async listImpersonations(
+    params: {
+      adminUserId?: string;
+      from?: string;
+      to?: string;
+      page?: number;
+      size?: number;
+    } = {},
+  ): Promise<ImpersonationPage> {
     const { data, meta } = await getPaginated("/api/v1/platform/impersonations", {
       ...(params.adminUserId ? { adminUserId: params.adminUserId } : {}),
       ...(params.from ? { from: params.from } : {}),

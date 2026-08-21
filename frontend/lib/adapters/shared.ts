@@ -103,7 +103,9 @@ export function formatPaisa(
   // a fractional value, which would have taken out every screen showing a unit cost.
   const value = isWhole ? exactDecimalString(BigInt(paisa)) : Number(paisa) / 100;
 
-  return formatterFor(currency, maxFractionDigits).format(value).replaceAll(NON_BREAKING_SPACE, " ");
+  return formatterFor(currency, maxFractionDigits)
+    .format(value)
+    .replaceAll(NON_BREAKING_SPACE, " ");
 }
 
 /** Convert integer paisa into a {@link Money} value object. */

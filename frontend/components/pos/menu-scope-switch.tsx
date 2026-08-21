@@ -79,12 +79,9 @@ export function MenuScopeSwitch({
     // Confined. No switcher — see the class comment. The names come from the categories the
     // server already sent, which for a scoped operator IS their scope.
     return (
-      <p
-        data-testid="menu-scope-confined-notice"
-        className="px-1 text-small text-muted-foreground"
-      >
-        You are set up for {categories.map((c) => c.name).join(", ") || "no menu sections"}. Anything
-        else is not yours to ring — ask a manager if you need a section added.
+      <p data-testid="menu-scope-confined-notice" className="px-1 text-small text-muted-foreground">
+        You are set up for {categories.map((c) => c.name).join(", ") || "no menu sections"}.
+        Anything else is not yours to ring — ask a manager if you need a section added.
       </p>
     );
   }

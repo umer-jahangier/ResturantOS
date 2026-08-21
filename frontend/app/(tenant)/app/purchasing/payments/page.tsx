@@ -82,10 +82,7 @@ export default function ApPaymentsPage() {
   // The amount actually owed on an invoice is total plus input tax — the same sum the grid's
   // Amount column prints, so the tile and the rows cannot disagree.
   const owedPaisa = payable.reduce((sum, i) => sum + i.totalPaisa + i.inputTaxPaisa, 0);
-  const oldestDays = payable.reduce(
-    (max, i) => Math.max(max, daysOutstanding(i.invoiceDate)),
-    0,
-  );
+  const oldestDays = payable.reduce((max, i) => Math.max(max, daysOutstanding(i.invoiceDate)), 0);
 
   const invoiceLink = (invoice: VendorInvoice) => (
     <Link

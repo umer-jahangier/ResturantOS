@@ -99,10 +99,7 @@ export function useModifierGroupsAdmin(menuItemId: string | null) {
  * know. Invalidating the till key from the manage screen is the only thing that makes the two
  * screens agree without a reload.
  */
-function invalidateCatalogue(
-  qc: ReturnType<typeof useQueryClient>,
-  menuItemId?: string,
-) {
+function invalidateCatalogue(qc: ReturnType<typeof useQueryClient>, menuItemId?: string) {
   qc.invalidateQueries({ queryKey: queryKeys.pos.modifierCatalogue() });
   if (menuItemId) {
     qc.invalidateQueries({ queryKey: queryKeys.pos.modifierGroupsAdmin(menuItemId) });
@@ -113,12 +110,14 @@ function invalidateCatalogue(
 
 export function useCreateModifierGroup() {
   const qc = useQueryClient();
-  return useMutation<ModifierGroup, ApiError, { menuItemId: string; input: CreateModifierGroupInput }>(
-    {
-      mutationFn: ({ menuItemId, input }) => ModifierRepository.createGroup(menuItemId, input),
-      onSuccess: (_data, vars) => invalidateCatalogue(qc, vars.menuItemId),
-    },
-  );
+  return useMutation<
+    ModifierGroup,
+    ApiError,
+    { menuItemId: string; input: CreateModifierGroupInput }
+  >({
+    mutationFn: ({ menuItemId, input }) => ModifierRepository.createGroup(menuItemId, input),
+    onSuccess: (_data, vars) => invalidateCatalogue(qc, vars.menuItemId),
+  });
 }
 
 export function useUpdateModifierGroup() {

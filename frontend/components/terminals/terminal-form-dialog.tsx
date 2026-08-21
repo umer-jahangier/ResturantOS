@@ -239,7 +239,11 @@ export function TerminalFormDialog({
           </div>
 
           {error ? (
-            <p role="alert" data-testid="terminal-form-error" className="text-small text-destructive">
+            <p
+              role="alert"
+              data-testid="terminal-form-error"
+              className="text-small text-destructive"
+            >
               {error}
             </p>
           ) : null}

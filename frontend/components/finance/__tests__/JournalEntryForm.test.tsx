@@ -122,7 +122,11 @@ function installHandlers() {
       const data = ACCOUNTS.filter(
         (a) => a.code.toLowerCase().includes(q) || a.name.toLowerCase().includes(q),
       );
-      return HttpResponse.json({ data, meta: { page: 0, size: 20, total: data.length }, warnings: [] });
+      return HttpResponse.json({
+        data,
+        meta: { page: 0, size: 20, total: data.length },
+        warnings: [],
+      });
     }),
     http.post(`${API}/api/v1/finance/journal-entries`, async ({ request }) => {
       const body = (await request.json()) as Record<string, unknown>;
@@ -157,7 +161,10 @@ beforeEach(() => {
   // pinning the wall clock to the walkthrough's day.
   vi.useFakeTimers({ shouldAdvanceTime: true, now: new Date(2026, 7, 12, 10, 0, 0) });
   push.mockClear();
-  seedSession({ branchId: BRANCH_ID, permissions: ["finance.journal.post", "finance.journal.view"] });
+  seedSession({
+    branchId: BRANCH_ID,
+    permissions: ["finance.journal.post", "finance.journal.view"],
+  });
   installHandlers();
 });
 
@@ -172,7 +179,11 @@ function renderForm() {
 }
 
 /** Drive the account combobox the way a person does: type, wait, click the row. */
-async function chooseAccount(user: ReturnType<typeof userEvent.setup>, lineIndex: number, code: string) {
+async function chooseAccount(
+  user: ReturnType<typeof userEvent.setup>,
+  lineIndex: number,
+  code: string,
+) {
   const boxes = screen.getAllByPlaceholderText("Search account code or name");
   await user.click(boxes[lineIndex]!);
   await user.type(boxes[lineIndex]!, code);

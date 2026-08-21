@@ -246,15 +246,15 @@ export default function OrderSuggestionsPage() {
             <span className="inline-flex items-center gap-1.5">
               Short by
               <FieldHelp label="Short by">
-                Par level minus what&apos;s on hand — how much the shelf is missing, in the unit
-                you store it in.
+                Par level minus what&apos;s on hand — how much the shelf is missing, in the unit you
+                store it in.
               </FieldHelp>
             </span>
             <span className="inline-flex items-center gap-1.5">
               Order
               <FieldHelp label="Order">
-                What to buy, in the supplier&apos;s own pack. Rounded up to whole packs and to
-                their minimum order, so it may come to slightly more than you&apos;re short.
+                What to buy, in the supplier&apos;s own pack. Rounded up to whole packs and to their
+                minimum order, so it may come to slightly more than you&apos;re short.
               </FieldHelp>
             </span>
           </p>

@@ -94,7 +94,8 @@ const FILTER_PATTERNS: { label: string; pattern: RegExp }[] = [
   { label: "will-change (Tailwind utility or CSS property)", pattern: /\bwill-change(-[a-z]+)?\b/ },
   {
     label: "CSS contain / Tailwind contain-* (layout, paint, strict, content)",
-    pattern: /(^|[^-\w])contain\s*:\s*(layout|paint|strict|content)|\bcontain-(layout|paint|strict|content)\b/,
+    pattern:
+      /(^|[^-\w])contain\s*:\s*(layout|paint|strict|content)|\bcontain-(layout|paint|strict|content)\b/,
   },
   {
     label: "perspective (CSS property with a length, or Tailwind utility)",

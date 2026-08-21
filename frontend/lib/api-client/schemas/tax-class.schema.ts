@@ -19,10 +19,7 @@ export const apiTaxClassSchema = z.object({
   id: z.string().uuid(),
   code: z.string(),
   name: z.string(),
-  ratePct: z
-    .string()
-    .or(z.number())
-    .transform(Number),
+  ratePct: z.string().or(z.number()).transform(Number),
   active: z.boolean(),
   /** How many categories inherit this class, and how many items override to it. */
   categoryCount: z.number().int().nonnegative().optional(),

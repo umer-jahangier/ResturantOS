@@ -48,9 +48,7 @@ function stationsRespond(body: Record<string, unknown>[]) {
 }
 
 function stationsFail(status: number) {
-  server.use(
-    http.get("*/api/v1/kitchen/kds/stations", () => new HttpResponse(null, { status })),
-  );
+  server.use(http.get("*/api/v1/kitchen/kds/stations", () => new HttpResponse(null, { status })));
 }
 
 function ticketsRespondEmpty() {
@@ -133,7 +131,6 @@ describe("StationBoard — a station code that is not in the branch's registry",
     await waitFor(() => {
       expect(screen.getByRole("alert")).toBeInTheDocument();
     });
-    expect(screen.queryByTestId("kds-station-unknown"))
-      .toBeNull();
+    expect(screen.queryByTestId("kds-station-unknown")).toBeNull();
   });
 });

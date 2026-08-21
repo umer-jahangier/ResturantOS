@@ -23,7 +23,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const appHosts = (process.env.NEXT_PUBLIC_APP_HOSTS ?? "").split(",").filter(Boolean);
   const tenantSlug =
     resolveTenantSlug({ host, searchParam: params.tenant, appHosts }) ||
-    (process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG || null);
+    process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG ||
+    null;
   const tenantBrandName = tenantSlug ? await resolveTenantBrand(tenantSlug) : null;
 
   return (

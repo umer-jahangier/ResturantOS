@@ -126,11 +126,7 @@ function readOldest(
     text: `Oldest ${elapsed.compact}`,
     Icon: state === "late" ? Flame : state === "warn" ? AlertTriangle : Timer,
     toneClass:
-      state === "late"
-        ? "text-kds-late"
-        : state === "warn"
-          ? "text-kds-warn"
-          : "text-kds-fresh",
+      state === "late" ? "text-kds-late" : state === "warn" ? "text-kds-warn" : "text-kds-fresh",
     emphasise: state !== "fresh",
     srLabel:
       state === "late"

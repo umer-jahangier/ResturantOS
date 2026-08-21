@@ -66,7 +66,10 @@ const COPY: Record<string, ServiceCopy> = {
     label: "Customers",
     consequence: "customer lookup and loyalty points are unavailable",
   },
-  "hr-service": { label: "Staff and payroll", consequence: "attendance and payroll are unavailable" },
+  "hr-service": {
+    label: "Staff and payroll",
+    consequence: "attendance and payroll are unavailable",
+  },
   "reporting-service": { label: "Reports", consequence: "reports and dashboards do not load" },
   "nlq-service": { label: "Ask (NLQ)", consequence: "natural-language questions are unavailable" },
 };

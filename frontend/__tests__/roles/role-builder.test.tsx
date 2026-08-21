@@ -64,9 +64,7 @@ const HEAD_WAITER = {
 
 function mockCatalogue(roles: unknown[] = [CASHIER], warnings: unknown[] = []) {
   server.use(
-    http.get("*/api/v1/roles", () =>
-      HttpResponse.json({ data: roles, meta: null, warnings }),
-    ),
+    http.get("*/api/v1/roles", () => HttpResponse.json({ data: roles, meta: null, warnings })),
     http.get("*/api/v1/permissions", () =>
       HttpResponse.json({ data: CATALOGUE, meta: null, warnings: [] }),
     ),
@@ -151,9 +149,7 @@ describe("Roles screen", () => {
     expect(within(view).queryByRole("heading", { name: "rbac" })).not.toBeInTheDocument();
     // A built-in role is not editable, and the dialog says so rather than offering a dead button.
     expect(screen.queryByRole("button", { name: /edit permissions/i })).not.toBeInTheDocument();
-    expect(
-      within(screen.getByRole("dialog")).getByText(/cannot be changed/i),
-    ).toBeInTheDocument();
+    expect(within(screen.getByRole("dialog")).getByText(/cannot be changed/i)).toBeInTheDocument();
   });
 
   it("composes a new role from ticked permissions and sends exactly what was ticked", async () => {
@@ -218,9 +214,7 @@ describe("Roles screen", () => {
     await user.type(name, "ead Waiter");
     await waitFor(() => expect(name).toHaveAttribute("aria-invalid", "false"));
     await user.click(screen.getByLabelText(/pos\.order\.view/i));
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /create role/i })).toBeEnabled(),
-    );
+    await waitFor(() => expect(screen.getByRole("button", { name: /create role/i })).toBeEnabled());
   });
 
   /**
@@ -265,9 +259,7 @@ describe("Roles screen", () => {
     expect(save).toBeEnabled();
     await user.click(save);
 
-    expect(
-      await screen.findByText(/you do not hold yourself/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/you do not hold yourself/i)).toBeInTheDocument();
   });
 
   it("refuses to promise a deletion the server will refuse, and says who is in the way", async () => {
@@ -302,7 +294,9 @@ describe("Roles screen", () => {
    */
   it("says the read failed rather than showing an empty catalogue", async () => {
     server.use(
-      http.get("*/api/v1/roles", () => HttpResponse.json({ error: { code: "X" } }, { status: 500 })),
+      http.get("*/api/v1/roles", () =>
+        HttpResponse.json({ error: { code: "X" } }, { status: 500 }),
+      ),
       http.get("*/api/v1/permissions", () =>
         HttpResponse.json({ data: CATALOGUE, meta: null, warnings: [] }),
       ),

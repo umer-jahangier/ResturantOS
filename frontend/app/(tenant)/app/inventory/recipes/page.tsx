@@ -77,7 +77,8 @@ export default function RecipesIndexPage() {
   const rows = useMemo(() => {
     const needle = search.trim().toLowerCase();
     return activeMenuItems.filter((mi) => {
-      if (coverageFilter && coverageByMenuItemId.get(mi.menuItemId) !== coverageFilter) return false;
+      if (coverageFilter && coverageByMenuItemId.get(mi.menuItemId) !== coverageFilter)
+        return false;
       return needle === "" || mi.name.toLowerCase().includes(needle);
     });
   }, [activeMenuItems, coverageByMenuItemId, coverageFilter, search]);

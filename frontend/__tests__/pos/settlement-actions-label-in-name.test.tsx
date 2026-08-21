@@ -137,9 +137,7 @@ describe("SettlementActions — label in name (WCAG 2.5.3)", () => {
 
   it("the Void trigger is findable by the word printed on it", async () => {
     renderActions(makeOrder(), ["pos.order.void.own"]);
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /void/i })).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByRole("button", { name: /void/i })).toBeInTheDocument());
 
     const voidBtn = screen.getByRole("button", { name: /void/i });
     expect(visibleLabelOf(voidBtn)).toBe("Void");
@@ -174,15 +172,9 @@ describe("SettlementActions — label in name (WCAG 2.5.3)", () => {
    * a FOURTH button added later cannot quietly reintroduce the same override.
    */
   it("every control in the settlement row is findable by the words printed on it", async () => {
-    renderActions(makeOrder(), [
-      "pos.order.close",
-      "pos.order.void.own",
-      "pos.order.send_to_kds",
-    ]);
+    renderActions(makeOrder(), ["pos.order.close", "pos.order.void.own", "pos.order.send_to_kds"]);
     await waitFor(() => expect(screen.getByTestId("charge-now-button")).toBeInTheDocument());
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /void/i })).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByRole("button", { name: /void/i })).toBeInTheDocument());
 
     const buttons = screen.getAllByRole("button");
     expect(buttons.length).toBeGreaterThanOrEqual(3);

@@ -145,9 +145,7 @@ export default function AttendancePage() {
         id: "deviceReportedAt",
         accessorKey: "deviceReportedAt",
         header: "Reported",
-        cell: ({ row }) => (
-          <span className="tabular-nums">{row.original.deviceReportedAt}</span>
-        ),
+        cell: ({ row }) => <span className="tabular-nums">{row.original.deviceReportedAt}</span>,
       },
       {
         id: "resolve",

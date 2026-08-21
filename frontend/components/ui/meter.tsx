@@ -272,7 +272,10 @@ function Meter({
   return (
     <div className={cn("flex w-full flex-col gap-1.5", className)} data-slot="meter">
       <div className="flex items-baseline justify-between gap-2 text-small">
-        <span id={labelId} className={cn("truncate", labelHidden ? "sr-only" : "text-foreground-secondary")}>
+        <span
+          id={labelId}
+          className={cn("truncate", labelHidden ? "sr-only" : "text-foreground-secondary")}
+        >
           {label}
         </span>
         <span className="flex shrink-0 items-baseline gap-2">

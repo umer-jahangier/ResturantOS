@@ -57,7 +57,9 @@ describe("stock alert channels (task 3)", () => {
     const both = { belowReorderPoint: true, nonPositive: true };
     expect(stockAlertLevel(both)).toBe("out");
     expect(stockRowClassName(both)).toBe("bg-destructive/10");
-    expect(stockRowClassName({ belowReorderPoint: true, nonPositive: false })).toBe("bg-warning/10");
+    expect(stockRowClassName({ belowReorderPoint: true, nonPositive: false })).toBe(
+      "bg-warning/10",
+    );
     expect(stockRowClassName({ belowReorderPoint: false, nonPositive: false })).toBeUndefined();
   });
 
@@ -88,7 +90,7 @@ describe("negative on-hand gets a stated reason (task 4)", () => {
     // glyph inside the affordance, and the destructive hue.
     expect(screen.getByText("below zero")).toBeInTheDocument();
 
-    const why = screen.getByRole("button", { name: 'Why is Chicken on hand below zero?' });
+    const why = screen.getByRole("button", { name: "Why is Chicken on hand below zero?" });
     expect(why).toBeInTheDocument();
 
     await userEvent.click(why);

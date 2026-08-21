@@ -66,7 +66,9 @@ function LedgerEntryCard({ entry }: { entry: LinkedJournalEntry }) {
         id: "accountCode",
         accessorKey: "accountCode",
         header: "Account",
-        cell: ({ row }) => <span className="font-mono tabular-nums">{row.original.accountCode}</span>,
+        cell: ({ row }) => (
+          <span className="font-mono tabular-nums">{row.original.accountCode}</span>
+        ),
       },
       {
         id: "description",

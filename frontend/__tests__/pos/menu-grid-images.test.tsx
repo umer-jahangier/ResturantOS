@@ -89,12 +89,7 @@ function renderGrid() {
   const onItemSelect = vi.fn();
   render(
     <Wrapper>
-      <MenuGrid
-        onItemSelect={onItemSelect}
-        cart={[]}
-        onRemove={vi.fn()}
-        onClearCart={vi.fn()}
-      />
+      <MenuGrid onItemSelect={onItemSelect} cart={[]} onRemove={vi.fn()} onClearCart={vi.fn()} />
     </Wrapper>,
   );
   return { onItemSelect };

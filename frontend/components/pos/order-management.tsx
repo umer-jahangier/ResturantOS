@@ -483,8 +483,7 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
       const rows = searchQuery.data?.data ?? [];
       return rows.filter(
         (row) =>
-          (viewAll || row.cashierId === userId) &&
-          matchesFacets(row, typeFilter, paymentFilter),
+          (viewAll || row.cashierId === userId) && matchesFacets(row, typeFilter, paymentFilter),
       );
     }
 
@@ -678,8 +677,7 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
       {
         id: "time",
         header: "Time",
-        accessorFn: (row: OrderSummary) =>
-          row.openedAt ? new Date(row.openedAt).getTime() : 0,
+        accessorFn: (row: OrderSummary) => (row.openedAt ? new Date(row.openedAt).getTime() : 0),
         cell: ({ row }) => (
           <span className="text-small tabular-nums text-foreground-secondary">
             {formatOpenedClock(row.original.openedAt)}
@@ -1095,7 +1093,10 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
               description={EMPTY_SCOPED_COPY[serverScopedFilter].description}
               action={
                 EMPTY_SCOPED_COPY[serverScopedFilter].goToPos
-                  ? { label: "Go to POS", onClick: () => onFullMenu?.({ orderId: null, tableId: null }) }
+                  ? {
+                      label: "Go to POS",
+                      onClick: () => onFullMenu?.({ orderId: null, tableId: null }),
+                    }
                   : undefined
               }
             />

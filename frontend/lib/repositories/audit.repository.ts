@@ -1,9 +1,6 @@
 import { get, getPaginated } from "@/lib/api-client/request";
 import type { PaginatedResult } from "@/lib/api-client/request";
-import {
-  apiAuditEventSchema,
-  apiAuditFacetsSchema,
-} from "@/lib/api-client/schemas/audit.schema";
+import { apiAuditEventSchema, apiAuditFacetsSchema } from "@/lib/api-client/schemas/audit.schema";
 import { adaptAuditEvent, adaptAuditFacets } from "@/lib/adapters/audit.adapter";
 import type { AuditEvent, AuditEventFilters, AuditFacets } from "@/lib/models/audit.model";
 import { z } from "zod";

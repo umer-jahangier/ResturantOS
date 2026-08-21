@@ -4,10 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Printer, Save, TestTube2, Trash2, Plus, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
-import {
-  useReceiptConfig,
-  useSaveReceiptConfig,
-} from "@/lib/hooks/settings/use-receipt-config";
+import { useReceiptConfig, useSaveReceiptConfig } from "@/lib/hooks/settings/use-receipt-config";
 import {
   EMPTY_RECEIPT_CONFIG,
   type PrinterEntry,
@@ -423,9 +420,9 @@ export function PrinterRegistryForm({ branchId }: { branchId: string | null }) {
         </CardTitle>
         <CardDescription>
           Which printers this branch has, and what each one is for. The receipt printer prints the
-          customer&rsquo;s bill when an order is settled; a kitchen printer prints the ticket for its
-          station when the order is fired. Both happen on the server, so they do not depend on any
-          browser tab being open.
+          customer&rsquo;s bill when an order is settled; a kitchen printer prints the ticket for
+          its station when the order is fired. Both happen on the server, so they do not depend on
+          any browser tab being open.
         </CardDescription>
       </CardHeader>
 
@@ -448,8 +445,8 @@ export function PrinterRegistryForm({ branchId }: { branchId: string | null }) {
               placeholder={DEFAULT_AGENT_BASE_URL}
             />
             <p className="text-label text-muted-foreground">
-              Used only by the Test print button on this screen. Real bills and kitchen tickets never
-              go through the browser.
+              Used only by the Test print button on this screen. Real bills and kitchen tickets
+              never go through the browser.
             </p>
           </div>
           <div className="space-y-1">
@@ -558,79 +555,86 @@ export function PrinterRegistryForm({ branchId }: { branchId: string | null }) {
               const delivery = healthByPrinter.get(printer.id);
               const described = describeDelivery(delivery);
               return (
-              <li
-                key={printer.id}
-                className="rounded-lg border p-3"
-                data-testid="printer-row"
-                data-printer-role={printer.role}
-                data-printer-id={printer.id}
-              >
-                {/*
+                <li
+                  key={printer.id}
+                  className="rounded-lg border p-3"
+                  data-testid="printer-row"
+                  data-printer-role={printer.role}
+                  data-printer-id={printer.id}
+                >
+                  {/*
                   What this printer has DONE, at the top of its own row. A configuration is a claim
                   about intent; this is the only thing on the screen that is evidence.
                 */}
-                <div className="mb-3 flex flex-wrap items-center gap-2">
-                  <span
-                    className={`rounded-full border px-2 py-0.5 text-label font-medium ${TONE_CLASS[described.tone]}`}
-                    data-testid="printer-delivery"
-                    data-delivery-state={delivery?.state ?? "UNKNOWN"}
-                  >
-                    {described.label}
-                  </span>
-                  <span className="text-label text-muted-foreground">{described.detail}</span>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  <div className="space-y-1">
-                    <Label htmlFor={`role-${printer.id}`}>What it prints</Label>
-                    <Select
-                      id={`role-${printer.id}`}
-                      options={ROLE_OPTIONS}
-                      value={printer.role}
-                      onValueChange={(v) =>
-                        patch(index, {
-                          role: v as PrinterEntry["role"],
-                          stationCode: v === "KITCHEN" ? (printer.stationCode ?? "DEFAULT") : null,
-                        })
-                      }
-                    />
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <span
+                      className={`rounded-full border px-2 py-0.5 text-label font-medium ${TONE_CLASS[described.tone]}`}
+                      data-testid="printer-delivery"
+                      data-delivery-state={delivery?.state ?? "UNKNOWN"}
+                    >
+                      {described.label}
+                    </span>
+                    <span className="text-label text-muted-foreground">{described.detail}</span>
                   </div>
 
-                  <div className="space-y-1">
-                    <Label htmlFor={`name-${printer.id}`}>Name</Label>
-                    <Input
-                      id={`name-${printer.id}`}
-                      value={printer.id}
-                      onChange={(e) => patch(index, { id: e.target.value })}
-                      maxLength={64}
-                      aria-invalid={problems.id !== undefined}
-                      aria-describedby={problems.id ? `name-${printer.id}-error` : undefined}
-                    />
-                    {problems.id && (
-                      <p id={`name-${printer.id}-error`} role="alert" className="text-label text-destructive">
-                        {problems.id}
-                      </p>
-                    )}
-                  </div>
-
-                  {printer.role === "KITCHEN" && (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     <div className="space-y-1">
-                      <Label htmlFor={`station-${printer.id}`}>Station</Label>
-                      <Input
-                        id={`station-${printer.id}`}
-                        value={printer.stationCode ?? ""}
-                        onChange={(e) => patch(index, { stationCode: e.target.value.toUpperCase() })}
-                        placeholder="DEFAULT"
-                        maxLength={64}
-                        list="kitchen-station-codes"
-                        aria-invalid={problems.stationCode !== undefined}
+                      <Label htmlFor={`role-${printer.id}`}>What it prints</Label>
+                      <Select
+                        id={`role-${printer.id}`}
+                        options={ROLE_OPTIONS}
+                        value={printer.role}
+                        onValueChange={(v) =>
+                          patch(index, {
+                            role: v as PrinterEntry["role"],
+                            stationCode:
+                              v === "KITCHEN" ? (printer.stationCode ?? "DEFAULT") : null,
+                          })
+                        }
                       />
-                      {problems.stationCode && (
-                        <p role="alert" className="text-label text-destructive">
-                          {problems.stationCode}
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor={`name-${printer.id}`}>Name</Label>
+                      <Input
+                        id={`name-${printer.id}`}
+                        value={printer.id}
+                        onChange={(e) => patch(index, { id: e.target.value })}
+                        maxLength={64}
+                        aria-invalid={problems.id !== undefined}
+                        aria-describedby={problems.id ? `name-${printer.id}-error` : undefined}
+                      />
+                      {problems.id && (
+                        <p
+                          id={`name-${printer.id}-error`}
+                          role="alert"
+                          className="text-label text-destructive"
+                        >
+                          {problems.id}
                         </p>
                       )}
-                      {/*
+                    </div>
+
+                    {printer.role === "KITCHEN" && (
+                      <div className="space-y-1">
+                        <Label htmlFor={`station-${printer.id}`}>Station</Label>
+                        <Input
+                          id={`station-${printer.id}`}
+                          value={printer.stationCode ?? ""}
+                          onChange={(e) =>
+                            patch(index, { stationCode: e.target.value.toUpperCase() })
+                          }
+                          placeholder="DEFAULT"
+                          maxLength={64}
+                          list="kitchen-station-codes"
+                          aria-invalid={problems.stationCode !== undefined}
+                        />
+                        {problems.stationCode && (
+                          <p role="alert" className="text-label text-destructive">
+                            {problems.stationCode}
+                          </p>
+                        )}
+                        {/*
                         UNASSIGNED is not a station anybody creates — it is the code the ticket
                         assembler stamps on a line whose menu item has no station route, which on a
                         menu nobody has routed is EVERY line. A branch that binds printers only to
@@ -638,63 +642,65 @@ export function PrinterRegistryForm({ branchId }: { branchId: string | null }) {
                         is measured fact on this seed data. Naming it here is the difference between
                         a kitchen that prints and one that silently does not.
                       */}
-                      <p className="text-label text-muted-foreground">
-                        The station code on the ticket. This branch has{" "}
-                        {(stations.data ?? []).length > 0
-                          ? (stations.data ?? []).map((st) => st.code).join(", ")
-                          : "no stations yet"}
-                        . Items with no station route produce tickets on{" "}
-                        <strong>UNASSIGNED</strong> — bind a printer to that too, or the kitchen
-                        gets nothing until the menu is routed.
-                      </p>
+                        <p className="text-label text-muted-foreground">
+                          The station code on the ticket. This branch has{" "}
+                          {(stations.data ?? []).length > 0
+                            ? (stations.data ?? []).map((st) => st.code).join(", ")
+                            : "no stations yet"}
+                          . Items with no station route produce tickets on{" "}
+                          <strong>UNASSIGNED</strong> — bind a printer to that too, or the kitchen
+                          gets nothing until the menu is routed.
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="space-y-1">
+                      <Label htmlFor={`transport-${printer.id}`}>How it is attached</Label>
+                      <Select
+                        id={`transport-${printer.id}`}
+                        options={TRANSPORT_OPTIONS}
+                        value={printer.transport}
+                        onValueChange={(v) =>
+                          patch(index, { transport: v as PrinterEntry["transport"] })
+                        }
+                      />
                     </div>
-                  )}
 
-                  <div className="space-y-1">
-                    <Label htmlFor={`transport-${printer.id}`}>How it is attached</Label>
-                    <Select
-                      id={`transport-${printer.id}`}
-                      options={TRANSPORT_OPTIONS}
-                      value={printer.transport}
-                      onValueChange={(v) => patch(index, { transport: v as PrinterEntry["transport"] })}
-                    />
-                  </div>
-
-                  {printer.transport === "TCP" ? (
-                    <>
-                      <div className="space-y-1">
-                        <Label htmlFor={`host-${printer.id}`}>Address</Label>
-                        <Input
-                          id={`host-${printer.id}`}
-                          value={printer.host ?? ""}
-                          onChange={(e) => patch(index, { host: e.target.value })}
-                          placeholder="192.168.1.50"
-                          aria-invalid={problems.host !== undefined}
-                        />
-                        {problems.host && (
-                          <p role="alert" className="text-label text-destructive">
-                            {problems.host}
-                          </p>
-                        )}
-                      </div>
-                      <div className="space-y-1">
-                        <Label htmlFor={`port-${printer.id}`}>Port</Label>
-                        <Input
-                          id={`port-${printer.id}`}
-                          type="number"
-                          value={printer.port ?? 9100}
-                          onChange={(e) => patch(index, { port: Number(e.target.value) })}
-                          aria-invalid={problems.port !== undefined}
-                        />
-                        {problems.port && (
-                          <p role="alert" className="text-label text-destructive">
-                            {problems.port}
-                          </p>
-                        )}
-                      </div>
-                    </>
-                  ) : (
-                    /*
+                    {printer.transport === "TCP" ? (
+                      <>
+                        <div className="space-y-1">
+                          <Label htmlFor={`host-${printer.id}`}>Address</Label>
+                          <Input
+                            id={`host-${printer.id}`}
+                            value={printer.host ?? ""}
+                            onChange={(e) => patch(index, { host: e.target.value })}
+                            placeholder="192.168.1.50"
+                            aria-invalid={problems.host !== undefined}
+                          />
+                          {problems.host && (
+                            <p role="alert" className="text-label text-destructive">
+                              {problems.host}
+                            </p>
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor={`port-${printer.id}`}>Port</Label>
+                          <Input
+                            id={`port-${printer.id}`}
+                            type="number"
+                            value={printer.port ?? 9100}
+                            onChange={(e) => patch(index, { port: Number(e.target.value) })}
+                            aria-invalid={problems.port !== undefined}
+                          />
+                          {problems.port && (
+                            <p role="alert" className="text-label text-destructive">
+                              {problems.port}
+                            </p>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      /*
                       THE LIST, not a text box (S8).
 
                       This was an `<Input placeholder="TM_T88VI">`. Configuring the USB printer on a
@@ -709,118 +715,118 @@ export function PrinterRegistryForm({ branchId }: { branchId: string | null }) {
                       a form that quietly erases a working configuration because a machine is asleep
                       is worse than the problem it was built to fix.
                     */
-                    <div className="space-y-1 sm:col-span-2">
-                      <Label htmlFor={`queue-${printer.id}`}>Printer on the machine</Label>
-                      <Select
-                        id={`queue-${printer.id}`}
-                        data-testid="system-printer-picker"
-                        value={printer.systemPrinterName ?? ""}
-                        placeholder={
-                          devices.length > 0
-                            ? "Choose a printer the agent found…"
-                            : "No printer has been reported yet"
-                        }
-                        isLoading={agents.isPending}
-                        error={agents.isError}
-                        onRetry={() => void agents.refetch()}
-                        emptyLabel="No printer has been reported yet"
-                        aria-invalid={problems.systemPrinterName !== undefined}
-                        options={systemPrinterOptions(devices, printer.systemPrinterName)}
-                        onValueChange={(v) => patch(index, { systemPrinterName: v })}
+                      <div className="space-y-1 sm:col-span-2">
+                        <Label htmlFor={`queue-${printer.id}`}>Printer on the machine</Label>
+                        <Select
+                          id={`queue-${printer.id}`}
+                          data-testid="system-printer-picker"
+                          value={printer.systemPrinterName ?? ""}
+                          placeholder={
+                            devices.length > 0
+                              ? "Choose a printer the agent found…"
+                              : "No printer has been reported yet"
+                          }
+                          isLoading={agents.isPending}
+                          error={agents.isError}
+                          onRetry={() => void agents.refetch()}
+                          emptyLabel="No printer has been reported yet"
+                          aria-invalid={problems.systemPrinterName !== undefined}
+                          options={systemPrinterOptions(devices, printer.systemPrinterName)}
+                          onValueChange={(v) => patch(index, { systemPrinterName: v })}
+                        />
+                        {problems.systemPrinterName && (
+                          <p role="alert" className="text-label text-destructive">
+                            {problems.systemPrinterName}
+                          </p>
+                        )}
+                        {deviceReason !== null && !agents.isError && (
+                          <p
+                            data-testid="no-devices-reason"
+                            className="text-label text-muted-foreground"
+                          >
+                            {deviceReason}
+                          </p>
+                        )}
+                        <p className="text-label text-muted-foreground">
+                          The queue must be RAW. A queue configured with a driver re-renders the
+                          bytes and prints garbage rather than failing.
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="space-y-1">
+                      <Label htmlFor={`width-${printer.id}`}>Paper width (mm)</Label>
+                      <Input
+                        id={`width-${printer.id}`}
+                        type="number"
+                        value={printer.widthMm}
+                        onChange={(e) => patch(index, { widthMm: Number(e.target.value) })}
+                        aria-invalid={problems.widthMm !== undefined}
                       />
-                      {problems.systemPrinterName && (
+                      {problems.widthMm && (
                         <p role="alert" className="text-label text-destructive">
-                          {problems.systemPrinterName}
+                          {problems.widthMm}
                         </p>
                       )}
-                      {deviceReason !== null && !agents.isError && (
-                        <p
-                          data-testid="no-devices-reason"
-                          className="text-label text-muted-foreground"
-                        >
-                          {deviceReason}
-                        </p>
-                      )}
-                      <p className="text-label text-muted-foreground">
-                        The queue must be RAW. A queue configured with a driver re-renders the bytes
-                        and prints garbage rather than failing.
-                      </p>
                     </div>
-                  )}
 
-                  <div className="space-y-1">
-                    <Label htmlFor={`width-${printer.id}`}>Paper width (mm)</Label>
-                    <Input
-                      id={`width-${printer.id}`}
-                      type="number"
-                      value={printer.widthMm}
-                      onChange={(e) => patch(index, { widthMm: Number(e.target.value) })}
-                      aria-invalid={problems.widthMm !== undefined}
-                    />
-                    {problems.widthMm && (
-                      <p role="alert" className="text-label text-destructive">
-                        {problems.widthMm}
-                      </p>
-                    )}
+                    <div className="space-y-1">
+                      <Label htmlFor={`columns-${printer.id}`}>Characters per line</Label>
+                      <Input
+                        id={`columns-${printer.id}`}
+                        type="number"
+                        value={printer.columns}
+                        onChange={(e) =>
+                          patch(index, { columns: Number(e.target.value), columnsMeasured: false })
+                        }
+                        aria-invalid={problems.columns !== undefined}
+                      />
+                      {problems.columns ? (
+                        <p role="alert" className="text-label text-destructive">
+                          {problems.columns}
+                        </p>
+                      ) : (
+                        <p className="text-label text-muted-foreground">
+                          {printer.columnsMeasured
+                            ? "Measured on paper."
+                            : "Not measured. Run a test print and count where the ruler stops."}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor={`cut-${printer.id}`}>Cutter</Label>
+                      <Select
+                        id={`cut-${printer.id}`}
+                        options={CUT_OPTIONS}
+                        value={printer.cut}
+                        onValueChange={(v) => patch(index, { cut: v as PrinterEntry["cut"] })}
+                      />
+                    </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <Label htmlFor={`columns-${printer.id}`}>Characters per line</Label>
-                    <Input
-                      id={`columns-${printer.id}`}
-                      type="number"
-                      value={printer.columns}
-                      onChange={(e) =>
-                        patch(index, { columns: Number(e.target.value), columnsMeasured: false })
-                      }
-                      aria-invalid={problems.columns !== undefined}
-                    />
-                    {problems.columns ? (
-                      <p role="alert" className="text-label text-destructive">
-                        {problems.columns}
-                      </p>
-                    ) : (
-                      <p className="text-label text-muted-foreground">
-                        {printer.columnsMeasured
-                          ? "Measured on paper."
-                          : "Not measured. Run a test print and count where the ruler stops."}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label htmlFor={`cut-${printer.id}`}>Cutter</Label>
-                    <Select
-                      id={`cut-${printer.id}`}
-                      options={CUT_OPTIONS}
-                      value={printer.cut}
-                      onValueChange={(v) => patch(index, { cut: v as PrinterEntry["cut"] })}
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                  <label className="flex items-center gap-2 text-label text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      checked={printer.columnsMeasured}
-                      onChange={(e) => patch(index, { columnsMeasured: e.target.checked })}
-                    />
-                    I counted the ruler on paper and this column count is right
-                  </label>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={testing === printer.id}
-                      onClick={() => void handleTestPrint(printer.id)}
-                      data-testid={`test-print-${printer.role}`}
-                    >
-                      <TestTube2 className="size-3.5" aria-hidden="true" />
-                      {testing === printer.id ? "Sending…" : "Test print"}
-                    </Button>
-                    {/*
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                    <label className="flex items-center gap-2 text-label text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        checked={printer.columnsMeasured}
+                        onChange={(e) => patch(index, { columnsMeasured: e.target.checked })}
+                      />
+                      I counted the ruler on paper and this column count is right
+                    </label>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={testing === printer.id}
+                        onClick={() => void handleTestPrint(printer.id)}
+                        data-testid={`test-print-${printer.role}`}
+                      >
+                        <TestTube2 className="size-3.5" aria-hidden="true" />
+                        {testing === printer.id ? "Sending…" : "Test print"}
+                      </Button>
+                      {/*
                       38-10 task 5. One click removed the row and everything typed into it — the
                       transport, the address, the measured column count — with no confirmation and
                       no undo. The audit named this and the tax-class delete together as the two
@@ -830,25 +836,25 @@ export function PrinterRegistryForm({ branchId }: { branchId: string | null }) {
                       printer on Save. Conflating those would either overstate the damage of a
                       mistaken click or understate what Save is about to do.
                     */}
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={() =>
-                        setRemoving({
-                          index,
-                          label: printer.stationCode
-                            ? `the ${printer.stationCode} printer`
-                            : `this ${printer.role.toLowerCase()} printer`,
-                        })
-                      }
-                    >
-                      <Trash2 className="size-3.5" aria-hidden="true" />
-                      Remove
-                    </Button>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={() =>
+                          setRemoving({
+                            index,
+                            label: printer.stationCode
+                              ? `the ${printer.stationCode} printer`
+                              : `this ${printer.role.toLowerCase()} printer`,
+                          })
+                        }
+                      >
+                        <Trash2 className="size-3.5" aria-hidden="true" />
+                        Remove
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </li>
+                </li>
               );
             })}
           </ul>

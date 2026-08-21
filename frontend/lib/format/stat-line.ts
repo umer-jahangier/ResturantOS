@@ -27,7 +27,9 @@
 
 import { formatNumber } from "@/lib/format/locale";
 export function statLine(...parts: Array<string | false | null | undefined>): string {
-  return parts.filter((part): part is string => typeof part === "string" && part !== "").join(" · ");
+  return parts
+    .filter((part): part is string => typeof part === "string" && part !== "")
+    .join(" · ");
 }
 
 /** `1 vendor` / `12 vendors` — the scale part, pluralised without a second `if` at each site. */

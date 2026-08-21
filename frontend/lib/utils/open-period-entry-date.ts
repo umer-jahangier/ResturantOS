@@ -66,20 +66,7 @@ export interface EntryDateDefault {
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
-const MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /**
  * "2026-08-12" → "12 Aug 2026". Built from the string's own parts rather than a `Date`, so it
@@ -128,7 +115,10 @@ export function resolveDefaultEntryDate(
     return { date: "", reason: "NO_OPEN_PERIODS", today, earliestOpen: null, latestOpen: null };
   }
 
-  const earliestOpen = valid.reduce((a, p) => (p.startDate < a ? p.startDate : a), valid[0]!.startDate);
+  const earliestOpen = valid.reduce(
+    (a, p) => (p.startDate < a ? p.startDate : a),
+    valid[0]!.startDate,
+  );
   const latestOpen = valid.reduce((a, p) => (p.endDate > a ? p.endDate : a), valid[0]!.endDate);
 
   if (valid.some((p) => today >= p.startDate && today <= p.endDate)) {

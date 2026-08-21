@@ -225,9 +225,7 @@ describe("TableFloorView", () => {
    * failed on `getByRole("alert")`.
    */
   it("tells the operator the read FAILED — it does not claim the branch has no tables", async () => {
-    server.use(
-      http.get("*/api/v1/pos/tables", () => new HttpResponse(null, { status: 503 })),
-    );
+    server.use(http.get("*/api/v1/pos/tables", () => new HttpResponse(null, { status: 503 })));
     seedSession({ branchId: BRANCH_ID, permissions: ["pos.order.close"] });
     const Wrapper = createQueryWrapper();
     render(
@@ -256,9 +254,7 @@ describe("TableFloorView", () => {
    * branch could have swallowed every failure into outage copy and no test would have noticed.
    */
   it("a 500 keeps the generic failure sentence — it is not an outage", async () => {
-    server.use(
-      http.get("*/api/v1/pos/tables", () => new HttpResponse(null, { status: 500 })),
-    );
+    server.use(http.get("*/api/v1/pos/tables", () => new HttpResponse(null, { status: 500 })));
     seedSession({ branchId: BRANCH_ID, permissions: ["pos.order.close"] });
     const Wrapper = createQueryWrapper();
     render(

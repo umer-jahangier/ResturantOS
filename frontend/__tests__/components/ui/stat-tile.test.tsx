@@ -129,14 +129,27 @@ describe("StatTile — delta polarity is computed, never hand-picked", () => {
     // Teal(182) sits DeltaE2000 18.68 from --success-600, the closest pair in the semantic set,
     // and this tile can render both at once. Strip the colour and the meaning must survive.
     render(
-      <StatTile label="Waste" value="3.1%" deltaPct={-32} higherIsBetter={false} accent="secondary" />,
+      <StatTile
+        label="Waste"
+        value="3.1%"
+        deltaPct={-32}
+        higherIsBetter={false}
+        accent="secondary"
+      />,
     );
 
     expect(part("delta")!.textContent).toContain("better");
   });
 
   it("renders the comparison basis in the demo's own words when given", () => {
-    render(<StatTile label="Today's revenue" value="4,218" deltaPct={12.4} comparisonLabel="vs last Mon" />);
+    render(
+      <StatTile
+        label="Today's revenue"
+        value="4,218"
+        deltaPct={12.4}
+        comparisonLabel="vs last Mon"
+      />,
+    );
 
     expect(screen.getByText("vs last Mon")).toBeInTheDocument();
   });
@@ -190,10 +203,19 @@ describe("StatTile — an uncomputable figure is an absence, not a number (D-38-
   });
 
   it("will not compile when a figure and a reason are both supplied", () => {
-    // @ts-expect-error — supplying `value` alongside `unavailableReason` is the exact shape that
-    // let a fabricated number render where data was missing. If this line ever stops erroring,
+    // Supplying `value` alongside `unavailableReason` is the exact shape that let a fabricated
+    // number render where data was missing. If the directive below ever reports itself UNUSED,
     // the union has been widened and D-38-16 is enforced by convention again, not by the compiler.
-    const bothAtOnce = <StatTile label="Net margin" value="12%" unavailableReason="cogs_paisa is NULL" />;
+    //
+    // The directive sits immediately above the JSX element rather than above the `const`, because
+    // `@ts-expect-error` suppresses the NEXT LINE only. Prettier wrapped this expression across
+    // lines during a formatting pass, which left the directive pointing at `const bothAtOnce = (`
+    // — a line with no error — and produced BOTH "Unused '@ts-expect-error' directive" and the
+    // unsuppressed original error. Keep it adjacent to the element.
+    const bothAtOnce = (
+      // @ts-expect-error — value + unavailableReason must not typecheck (D-38-16)
+      <StatTile label="Net margin" value="12%" unavailableReason="cogs_paisa is NULL" />
+    );
     expect(bothAtOnce).toBeTruthy();
   });
 

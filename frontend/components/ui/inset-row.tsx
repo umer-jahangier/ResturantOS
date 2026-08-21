@@ -200,7 +200,13 @@ export function InsetRow({
   className,
   "data-testid": testId,
 }: InsetRowProps) {
-  const tile = cn(TILE_BASE, DENSITY[density], selected && SELECTED, (href || onSelect) && INTERACTIVE, className);
+  const tile = cn(
+    TILE_BASE,
+    DENSITY[density],
+    selected && SELECTED,
+    (href || onSelect) && INTERACTIVE,
+    className,
+  );
 
   const body = (
     <>
@@ -211,7 +217,10 @@ export function InsetRow({
       ) : null}
       <span className="block min-w-0 flex-1">
         <span className="flex items-start justify-between gap-(--space-sm)">
-          <span className="block min-w-0 truncate text-body font-medium" data-slot="inset-row-primary">
+          <span
+            className="block min-w-0 truncate text-body font-medium"
+            data-slot="inset-row-primary"
+          >
             {primary}
           </span>
           {trailing ? (
@@ -254,7 +263,13 @@ export function InsetRow({
     );
   } else if (onSelect !== undefined) {
     node = (
-      <button type="button" onClick={onSelect} disabled={disabled} aria-label={actionLabel} {...shared}>
+      <button
+        type="button"
+        onClick={onSelect}
+        disabled={disabled}
+        aria-label={actionLabel}
+        {...shared}
+      >
         {body}
       </button>
     );

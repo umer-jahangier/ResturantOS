@@ -198,7 +198,10 @@ export function stockAlertLevel(row: {
 export function StockAlertChip({ level }: { level: StockAlertLevel }) {
   if (level === "out") {
     return (
-      <span className="inline-flex items-center gap-1 text-destructive" data-testid="stock-alert-out">
+      <span
+        className="inline-flex items-center gap-1 text-destructive"
+        data-testid="stock-alert-out"
+      >
         <XCircle className="size-3.5 shrink-0" aria-hidden="true" />
         <StatusBadge status="error" label="Out of stock" />
       </span>

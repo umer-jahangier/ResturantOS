@@ -295,8 +295,8 @@ function SettingsPage() {
         <CardHeader>
           <h2 className="text-h2 font-semibold">Not in this release</h2>
           <p className="text-small text-foreground-secondary">
-            Four settings groups have no service behind them, so there is no screen. They are
-            named here rather than shown as empty tabs.
+            Four settings groups have no service behind them, so there is no screen. They are named
+            here rather than shown as empty tabs.
           </p>
         </CardHeader>
         <CardContent>

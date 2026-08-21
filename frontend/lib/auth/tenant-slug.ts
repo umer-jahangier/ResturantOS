@@ -23,7 +23,11 @@ export interface ResolveTenantSlugInput {
 
 const IGNORED_LEFTMOST_LABELS = new Set(["www", "localhost"]);
 
-export function resolveTenantSlug({ host, searchParam, appHosts }: ResolveTenantSlugInput): string | null {
+export function resolveTenantSlug({
+  host,
+  searchParam,
+  appHosts,
+}: ResolveTenantSlugInput): string | null {
   const fromParam = searchParam?.trim();
   if (fromParam) {
     return fromParam;

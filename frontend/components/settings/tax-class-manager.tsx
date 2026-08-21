@@ -475,9 +475,9 @@ function TaxClassRow({ taxClass }: { taxClass: TaxClass }) {
         title={`Delete ${taxClass.name}?`}
         body={
           <>
-            The rate disappears from the list of rates a dish can be given. Nothing already
-            charged changes — past bills and past returns keep the rate they were calculated at.
-            This cannot be undone; <strong>Retire</strong> is the reversible version.
+            The rate disappears from the list of rates a dish can be given. Nothing already charged
+            changes — past bills and past returns keep the rate they were calculated at. This cannot
+            be undone; <strong>Retire</strong> is the reversible version.
           </>
         }
         confirmLabel="Delete rate"

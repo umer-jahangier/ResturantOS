@@ -92,7 +92,11 @@ describe("QueryBoundary — the two 403 shapes", () => {
     unmount();
 
     render(
-      <QueryBoundary query={failedWith(forbiddenPermission)} what="vendors" moduleLabel="Purchasing">
+      <QueryBoundary
+        query={failedWith(forbiddenPermission)}
+        what="vendors"
+        moduleLabel="Purchasing"
+      >
         <p>the list</p>
       </QueryBoundary>,
     );
@@ -111,10 +115,7 @@ describe("QueryBoundary — the two 403 shapes", () => {
     });
 
     render(
-      <QueryBoundary
-        query={{ ...failedWith(boom), refetch: () => undefined }}
-        what="vendors"
-      >
+      <QueryBoundary query={{ ...failedWith(boom), refetch: () => undefined }} what="vendors">
         <p>the list</p>
       </QueryBoundary>,
     );

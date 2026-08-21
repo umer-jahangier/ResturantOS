@@ -160,8 +160,7 @@ describe("ReceiptDocumentView", () => {
       screen.getByTestId("receipt-root").querySelectorAll(".receipt-row"),
     ).map((r) => r.querySelector(".receipt-row-label")?.textContent?.trim());
 
-    expect(rows.filter((r) => r === "Tax"))
-      .toHaveLength(1);
+    expect(rows.filter((r) => r === "Tax")).toHaveLength(1);
     // And the money is still named — a line that fell back to nothing would also pass a count.
     expect(screen.getByTestId("receipt-root")).toHaveTextContent("Rs 345.75");
   });
@@ -224,8 +223,7 @@ describe("ReceiptDocumentView", () => {
     const rows = Array.from(root.querySelectorAll(".receipt-row")).map((r) =>
       r.querySelector(".receipt-row-label")?.textContent?.trim(),
     );
-    expect(rows.filter((r) => r === "Tax"))
-      .toHaveLength(1);
+    expect(rows.filter((r) => r === "Tax")).toHaveLength(1);
   });
 
   it("prints tendered and change for a cash tender, and neither for a card", () => {

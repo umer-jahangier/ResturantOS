@@ -325,9 +325,7 @@ function PaletteBody({ onOpenChange }: { onOpenChange: (open: boolean) => void }
             <p className="text-body text-foreground-secondary">Searching…</p>
           ) : (
             <>
-              <p className="text-body text-foreground">
-                {`Nothing matches "${debouncedQuery}".`}
-              </p>
+              <p className="text-body text-foreground">{`Nothing matches "${debouncedQuery}".`}</p>
               {searchedLabels.length > 0 ? (
                 <p className="mt-1 text-small text-foreground-tertiary">
                   {`Searched ${formatList(searchedLabels)}.`}
@@ -341,10 +339,7 @@ function PaletteBody({ onOpenChange }: { onOpenChange: (open: boolean) => void }
           <Command.Group heading="Orders">
             {orderRows.map((order) => {
               const label = order.orderNo ?? `Order ${order.orderId.slice(0, 8)}`;
-              const meta = [
-                order.derivedStatus.replaceAll("_", " ").toLowerCase(),
-                order.tableName,
-              ]
+              const meta = [order.derivedStatus.replaceAll("_", " ").toLowerCase(), order.tableName]
                 .filter((part): part is string => Boolean(part))
                 .join(" · ");
               return (
@@ -376,7 +371,9 @@ function PaletteBody({ onOpenChange }: { onOpenChange: (open: boolean) => void }
                   testId={`command-palette-item-${command.id}`}
                   label={command.label}
                   meta={command.description}
-                  icon={<Icon className="size-4 shrink-0 text-foreground-tertiary" aria-hidden="true" />}
+                  icon={
+                    <Icon className="size-4 shrink-0 text-foreground-tertiary" aria-hidden="true" />
+                  }
                   onSelect={() => runCommand(command)}
                 />
               );
@@ -404,13 +401,7 @@ function PaletteBody({ onOpenChange }: { onOpenChange: (open: boolean) => void }
  * the note on `PaletteBody` above. `useVendors()` takes no `enabled` option, so a conditional
  * MOUNT is the only way to keep a cashier's palette from issuing a request that would 403.
  */
-function VendorResults({
-  query,
-  onOpen,
-}: {
-  query: string;
-  onOpen: (href: string) => void;
-}) {
+function VendorResults({ query, onOpen }: { query: string; onOpen: (href: string) => void }) {
   const { data } = useVendors();
 
   const matches = React.useMemo(() => {

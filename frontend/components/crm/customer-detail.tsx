@@ -39,7 +39,9 @@ export function CustomerDetail({ customerId }: { customerId: string | null }) {
       <div className="space-y-1">
         <h2 className="text-h2 font-semibold">{customer.name}</h2>
         <p className="text-small tabular-nums text-muted-foreground">{customer.phone}</p>
-        {customer.email ? <p className="text-small text-muted-foreground">{customer.email}</p> : null}
+        {customer.email ? (
+          <p className="text-small text-muted-foreground">{customer.email}</p>
+        ) : null}
       </div>
 
       <dl className="grid grid-cols-2 gap-4 border-t pt-4 text-small">

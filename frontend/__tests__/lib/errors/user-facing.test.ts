@@ -99,16 +99,13 @@ function apiError(code: string, message: string, status = 409) {
 }
 
 describe("a server refusal longer than a tweet still reaches the reader", () => {
-  it.each(REAL_FLEET_REFUSALS)(
-    "shows $code from $where verbatim",
-    ({ code, message }) => {
-      // The guard: if this fixture ever drops under the old cap, the case below stops proving
-      // anything and this line says so instead of passing quietly.
-      expect(message.length).toBeGreaterThan(OLD_CAP);
+  it.each(REAL_FLEET_REFUSALS)("shows $code from $where verbatim", ({ code, message }) => {
+    // The guard: if this fixture ever drops under the old cap, the case below stops proving
+    // anything and this line says so instead of passing quietly.
+    expect(message.length).toBeGreaterThan(OLD_CAP);
 
-      expect(formatUserFacingError(apiError(code, message))).toBe(message);
-    },
-  );
+    expect(formatUserFacingError(apiError(code, message))).toBe(message);
+  });
 
   /**
    * The one that was actually measured failing on a screen. Kept as its own case, separate from
@@ -151,7 +148,7 @@ describe("machine output is still kept off the screen", () => {
 
   it("swallows a JVM stack trace", () => {
     const trace =
-      "java.lang.NullPointerException: Cannot invoke \"Ingredient.getBaseUomCode()\"\n" +
+      'java.lang.NullPointerException: Cannot invoke "Ingredient.getBaseUomCode()"\n' +
       "\tat io.restaurantos.inventory.service.GrnUomResolver.toBaseUnits(GrnUomResolver.java:109)\n" +
       "\tat io.restaurantos.inventory.service.GrnService.receive(GrnService.java:88)";
     expect(formatUserFacingError(apiError("INTERNAL", trace, 500))).toBe(GENERIC);

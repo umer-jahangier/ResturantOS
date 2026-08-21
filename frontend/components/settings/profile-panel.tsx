@@ -125,7 +125,10 @@ export function ProfilePanel() {
           >
             <ul className="divide-y rounded-md border">
               {(branches.data ?? []).map((branch) => (
-                <li key={branch.id} className="flex items-center justify-between px-3 py-2 text-small">
+                <li
+                  key={branch.id}
+                  className="flex items-center justify-between px-3 py-2 text-small"
+                >
                   <span className="truncate">
                     {branch.name}
                     {branch.isHq ? " (HQ)" : ""}

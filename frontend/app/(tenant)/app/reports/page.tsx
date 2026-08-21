@@ -54,9 +54,7 @@ function ReportsBrowser() {
       >
         {Array.from(byCategory.entries()).map(([category, items]) => (
           <div key={category} className="space-y-2">
-            <h2 className="text-label uppercase tracking-wide text-muted-foreground">
-              {category}
-            </h2>
+            <h2 className="text-label uppercase tracking-wide text-muted-foreground">{category}</h2>
             <ul className="divide-y rounded-lg border border-border">
               {items.map((report) => (
                 <li key={report.code}>

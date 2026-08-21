@@ -54,8 +54,7 @@ async function loadStylesheet(id: string, basedir: string) {
   } else {
     const pkgDir = resolve(ROOT, "node_modules", id);
     const pkg = JSON.parse(readFileSync(resolve(pkgDir, "package.json"), "utf8"));
-    const entry =
-      pkg.exports?.["."]?.style ?? pkg.style ?? pkg.exports?.["."]?.default ?? pkg.main;
+    const entry = pkg.exports?.["."]?.style ?? pkg.style ?? pkg.exports?.["."]?.default ?? pkg.main;
     if (!entry) throw new Error(`no stylesheet entry for "${id}"`);
     file = resolve(pkgDir, entry);
   }

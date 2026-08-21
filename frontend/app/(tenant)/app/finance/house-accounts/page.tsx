@@ -92,9 +92,7 @@ export default function HouseAccountsPage() {
               status={row.original.status === "ACTIVE" ? "success" : "error"}
               label={row.original.status === "ACTIVE" ? "Active" : "Suspended"}
             />
-            {isOverLimit(row.original) ? (
-              <StatusBadge status="error" label="Over limit" />
-            ) : null}
+            {isOverLimit(row.original) ? <StatusBadge status="error" label="Over limit" /> : null}
           </span>
         ),
       },

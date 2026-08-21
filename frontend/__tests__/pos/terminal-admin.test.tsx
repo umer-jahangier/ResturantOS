@@ -191,9 +191,7 @@ describe("POS Terminals page", () => {
     await user.type(await screen.findByLabelText("Code"), "bar1");
     await user.type(screen.getByLabelText("Name"), "Bar till");
     await user.click(within(screen.getByTestId("menu-scope-picker")).getByLabelText("Drinks"));
-    await user.click(
-      within(screen.getByTestId("station-set-picker")).getByLabelText(/Main bar/),
-    );
+    await user.click(within(screen.getByTestId("station-set-picker")).getByLabelText(/Main bar/));
     await user.click(screen.getByRole("button", { name: "Add terminal" }));
 
     await waitFor(() => expect(body).not.toBeNull());

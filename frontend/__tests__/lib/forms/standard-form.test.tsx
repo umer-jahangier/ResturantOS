@@ -111,9 +111,7 @@ describe("the form standard", () => {
     await user.type(input, "AB");
     await user.tab();
 
-    expect(
-      await screen.findByText("Employee number must be 3–12 characters"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Employee number must be 3–12 characters")).toBeInTheDocument();
   });
 
   it("clears the error on the keystroke that makes the field valid, not at the next submit", async () => {
@@ -124,17 +122,13 @@ describe("the form standard", () => {
     await user.click(input);
     await user.type(input, "AB");
     await user.tab();
-    expect(
-      await screen.findByText("Employee number must be 3–12 characters"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Employee number must be 3–12 characters")).toBeInTheDocument();
 
     // One more character makes it valid. The message must go now — not on submit.
     await user.click(input);
     await user.type(input, "C");
 
-    expect(
-      screen.queryByText("Employee number must be 3–12 characters"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Employee number must be 3–12 characters")).not.toBeInTheDocument();
   });
 
   it("marks the control aria-invalid so the error styling is identical across control types", async () => {

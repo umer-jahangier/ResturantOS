@@ -112,7 +112,11 @@ export function UomFormDialog({ trigger, editing }: UomFormDialogProps) {
     };
     const handlers = {
       onSuccess: (saved: Uom) => {
-        toast.success(isEditing ? `Updated ${saved.code} · ${saved.name}` : `Added ${saved.code} · ${saved.name}`);
+        toast.success(
+          isEditing
+            ? `Updated ${saved.code} · ${saved.name}`
+            : `Added ${saved.code} · ${saved.name}`,
+        );
         setOpen(false);
       },
       onError: (error: { message?: string }) => {

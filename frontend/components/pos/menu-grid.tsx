@@ -20,10 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MenuItemImage } from "@/components/menu/MenuItemImage";
 import { MenuScopeSwitch } from "@/components/pos/menu-scope-switch";
 import { cartLineKey, type CartLine } from "@/components/pos/cart-reducer";
-import {
-  menuItemAvailability,
-  setHasAvailabilitySignal,
-} from "@/components/pos/menu-availability";
+import { menuItemAvailability, setHasAvailabilitySignal } from "@/components/pos/menu-availability";
 import type { MenuItem } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
 

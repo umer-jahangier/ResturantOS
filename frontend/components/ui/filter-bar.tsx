@@ -316,10 +316,7 @@ export function FilterBar({
             />
           ))}
           {searchActive && search ? (
-            <FilterChip
-              text={`Search: ${search.value}`}
-              onRemove={() => search.onChange("")}
-            />
+            <FilterChip text={`Search: ${search.value}`} onRemove={() => search.onChange("")} />
           ) : null}
 
           {canClearAll ? (

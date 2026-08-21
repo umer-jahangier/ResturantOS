@@ -122,9 +122,7 @@ describe.each(GATES)("$id — $name conformance", ({ key, pattern, id }) => {
     expect(
       drift.regressions,
       `${id}: these files grew new violations. Converge them, or state why in the plan:\n` +
-        drift.regressions
-          .map((r) => `  ${r.file}: ${r.baseline} → ${r.current}`)
-          .join("\n"),
+        drift.regressions.map((r) => `  ${r.file}: ${r.baseline} → ${r.current}`).join("\n"),
     ).toEqual([]);
   });
 

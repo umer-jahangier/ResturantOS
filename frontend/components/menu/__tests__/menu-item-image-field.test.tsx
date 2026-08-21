@@ -135,7 +135,10 @@ describe("MenuItemImageField", () => {
     renderField();
     const user = userEvent.setup();
     // 3 MB — over the 2 MiB cap that file-service enforces for real.
-    await user.upload(screen.getByTestId("menu-item-image-input"), pngFile("big.png", 3 * 1024 * 1024));
+    await user.upload(
+      screen.getByTestId("menu-item-image-input"),
+      pngFile("big.png", 3 * 1024 * 1024),
+    );
 
     expect(await screen.findByTestId("menu-item-image-error-message")).toHaveTextContent(
       /maximum is 2 MB/,
@@ -186,9 +189,7 @@ describe("MenuItemImageField", () => {
   // which is also the only place the magic-byte check itself can be exercised for real.
 
   it("removing a picture clears the value and restores the placeholder", async () => {
-    server.use(
-      http.get(`*/api/v1/files/${FILE_ID}/download`, () => HttpResponse.text("bytes")),
-    );
+    server.use(http.get(`*/api/v1/files/${FILE_ID}/download`, () => HttpResponse.text("bytes")));
     renderField(FILE_ID);
     const user = userEvent.setup();
 

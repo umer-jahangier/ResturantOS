@@ -109,7 +109,12 @@ const LOGIN_ROW = {
   metadata: null,
 };
 
-function page(rows: unknown[], totalCount: number, pageNumber = 0, nextCursor: string | null = null) {
+function page(
+  rows: unknown[],
+  totalCount: number,
+  pageNumber = 0,
+  nextCursor: string | null = null,
+) {
   return {
     data: rows,
     meta: {

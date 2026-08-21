@@ -138,7 +138,12 @@ function JournalEntryForm() {
   const hasBothSides = readings.some((r) => r.bothSides);
 
   const canSubmit =
-    isBalanced && hasValidAccounts && !hasInvalidAmount && !hasBothSides && !!branchId && !!entryDate;
+    isBalanced &&
+    hasValidAccounts &&
+    !hasInvalidAmount &&
+    !hasBothSides &&
+    !!branchId &&
+    !!entryDate;
 
   /** The one thing standing between the accountant and a saved entry, named. */
   const blockingReason = (() => {
@@ -147,7 +152,8 @@ function JournalEntryForm() {
     // date; the picker is already showing the skeleton or the failure.
     if (!periodsAnswered) return null;
     if (!entryDate) return "Pick an entry date inside an open accounting period.";
-    if (hasInvalidAmount) return "One of the amounts is not a rupee figure — see the message on that line.";
+    if (hasInvalidAmount)
+      return "One of the amounts is not a rupee figure — see the message on that line.";
     if (hasBothSides) return "A line has both a debit and a credit — see the message on that line.";
     if (!hasValidAccounts) return "Choose an account on every line.";
     if (totalDebitPaisa === 0 && totalCreditPaisa === 0) return "Enter the amounts, in rupees.";
@@ -206,7 +212,10 @@ function JournalEntryForm() {
               className="rounded-md border border-warning bg-warning/10 p-2.5 text-small text-foreground"
             >
               {dateNotice}{" "}
-              <Link href="/app/finance/periods" className="font-medium underline underline-offset-2">
+              <Link
+                href="/app/finance/periods"
+                className="font-medium underline underline-offset-2"
+              >
                 Open Periods
               </Link>
             </p>
@@ -348,12 +357,10 @@ function JournalEntryForm() {
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 text-body">
         <div className="flex flex-wrap gap-6">
           <span>
-            Total DR:{" "}
-            <MoneyDisplay paisa={totalDebitPaisa} className="font-mono" />
+            Total DR: <MoneyDisplay paisa={totalDebitPaisa} className="font-mono" />
           </span>
           <span>
-            Total CR:{" "}
-            <MoneyDisplay paisa={totalCreditPaisa} className="font-mono" />
+            Total CR: <MoneyDisplay paisa={totalCreditPaisa} className="font-mono" />
           </span>
         </div>
         <span

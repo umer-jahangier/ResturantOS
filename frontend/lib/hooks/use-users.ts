@@ -254,13 +254,8 @@ export function useUserMenuCategories(userId: string | null) {
 export function useReplaceUserMenuCategories() {
   const invalidate = useInvalidateUsers();
   return useMutation({
-    mutationFn: ({
-      userId,
-      payload,
-    }: {
-      userId: string;
-      payload: ReplaceMenuCategoriesPayload;
-    }) => UserRepository.replaceMenuCategoryAssignments(userId, payload),
+    mutationFn: ({ userId, payload }: { userId: string; payload: ReplaceMenuCategoriesPayload }) =>
+      UserRepository.replaceMenuCategoryAssignments(userId, payload),
     onSuccess: invalidate,
   });
 }

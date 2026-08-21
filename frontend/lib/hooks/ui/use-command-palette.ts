@@ -153,8 +153,9 @@ export function useCommandPalette(): UseCommandPaletteResult {
       }
     }
 
-    return STATIC_CATEGORY_ORDER.filter((category) => (byCategory.get(category)?.length ?? 0) > 0)
-      .map((category) => ({ category, commands: byCategory.get(category) ?? [] }));
+    return STATIC_CATEGORY_ORDER.filter(
+      (category) => (byCategory.get(category)?.length ?? 0) > 0,
+    ).map((category) => ({ category, commands: byCategory.get(category) ?? [] }));
   }, [hasQuery, trimmedQuery, visibleCommands, recentsRaw, isItemVisible]);
 
   /**

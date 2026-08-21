@@ -7,14 +7,7 @@ import { allClaims } from "@/lib/finance/guide/claims";
 import { allGuideTabs } from "@/lib/finance/guide/tabs";
 
 vi.mock("next/link", () => ({
-  default: ({
-    href,
-    children,
-    ...rest
-  }: {
-    href: string;
-    children: React.ReactNode;
-  }) => (
+  default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => (
     <a href={href} {...rest}>
       {children}
     </a>
@@ -161,10 +154,7 @@ describe("the guide's register — written for an owner, not an accountant", () 
   it("leads a claim with the behaviour, not with a status code", () => {
     // D-37-03: "the number belongs in the detail, not in the first line."
     for (const claim of allClaims()) {
-      expect(
-        /^\s*\d{3}\b/.test(claim.claim),
-        `${claim.id} opens with a status code`,
-      ).toBe(false);
+      expect(/^\s*\d{3}\b/.test(claim.claim), `${claim.id} opens with a status code`).toBe(false);
     }
   });
 });

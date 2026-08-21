@@ -9,10 +9,7 @@ import {
   OrderTableDetailDrawer,
   type FullMenuTarget,
 } from "@/components/pos/order-table-detail-drawer";
-import {
-  TABLE_STATUS,
-  TABLE_STATUS_ORDER,
-} from "@/components/pos/table-status-chip";
+import { TABLE_STATUS, TABLE_STATUS_ORDER } from "@/components/pos/table-status-chip";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -299,16 +296,15 @@ function FloorPlanScopeNote() {
           <span className="font-semibold">
             These three states are the ones this branch records.
           </span>{" "}
-          Reserved and Out of service are not shown because pos-service stores neither — there is
-          no reservation, and retiring a table under Tables removes it from this screen rather
-          than marking it unusable.
+          Reserved and Out of service are not shown because pos-service stores neither — there is no
+          reservation, and retiring a table under Tables removes it from this screen rather than
+          marking it unusable.
         </p>
         <p>
-          The time on an occupied tile is how long its <strong>check</strong> has been open, not
-          how long the party has been seated: seat time and server assignment are not recorded.
-          Drag-positioned floor plans are read-only in the data model — floor-plan coordinates
-          come down null and nothing writes them — so tables are grouped by section rather than
-          placed.
+          The time on an occupied tile is how long its <strong>check</strong> has been open, not how
+          long the party has been seated: seat time and server assignment are not recorded.
+          Drag-positioned floor plans are read-only in the data model — floor-plan coordinates come
+          down null and nothing writes them — so tables are grouped by section rather than placed.
         </p>
       </div>
     </aside>

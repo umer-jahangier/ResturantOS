@@ -198,8 +198,7 @@ export function MenuItemFormDialog({
       // `null`, never `undefined`. The backend reads an absent taxRateCode exactly as it reads
       // null — REMOVE — so an emptied field has to travel as an explicit null for "the manager
       // cleared this" and "the form forgot to send it" to stop being the same request (S0-03).
-      taxRateCode:
-        usesCustomRate && values.taxRateCode?.trim() ? values.taxRateCode.trim() : null,
+      taxRateCode: usesCustomRate && values.taxRateCode?.trim() ? values.taxRateCode.trim() : null,
       // Same rule, same reason: explicit null for "follow the category" and for "custom rate",
       // never an omitted key. F16 is a FOURTH tax-shaped field on this PUT, which is exactly how
       // S0-03 got in, so it travels required-and-nullable from the day it is added.

@@ -90,9 +90,7 @@ describe("an uncomputable figure is an ABSENCE, never a figure (D-38-16)", () =>
   });
 
   it("keeps the DAY-level statement, including the words that stop it being read as zero", () => {
-    render(
-      <TillVariancePanel tills={[]} dayCashVariance={DAY_CASH_VARIANCE_UNKNOWN} />,
-    );
+    render(<TillVariancePanel tills={[]} dayCashVariance={DAY_CASH_VARIANCE_UNKNOWN} />);
     const banner = screen.getByTestId("day-cash-variance-unknown");
     expect(banner).toHaveTextContent("Cash variance for the day: not known");
     // The sentence the screen's whole argument rests on. It comes from the SERVER's reason, so
@@ -126,7 +124,9 @@ describe("variances are never summed — the most important control in the plan"
   });
 
   it("keeps a still-open drawer and an uncounted one apart, and neither becomes a zero", () => {
-    render(<TillVariancePanel tills={[till("open", "OPEN", null), till("nc", "NOT_COUNTED", null)]} />);
+    render(
+      <TillVariancePanel tills={[till("open", "OPEN", null), till("nc", "NOT_COUNTED", null)]} />,
+    );
 
     expect(within(screen.getByTestId("till-row-open")).getByText("Still open")).toBeInTheDocument();
     expect(within(screen.getByTestId("till-row-nc")).getByText("Not counted")).toBeInTheDocument();
@@ -196,9 +196,7 @@ describe("one money path — nothing under these trees formats currency for itse
 
   /** Comments describe the rule; they must not be able to trip it. */
   function strip(source: string): string {
-    return source
-      .replace(/\/\*[\s\S]*?\*\//g, "")
-      .replace(/(^|[^:])\/\/.*$/gm, "$1");
+    return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
   }
 
   it("no component imports formatPaisa — MoneyDisplay is the only display path", () => {
@@ -210,7 +208,9 @@ describe("one money path — nothing under these trees formats currency for itse
     // directly owns its own money MARKUP, and that is what drifts: `DailyTakings` set money in
     // `font-mono` for a year while the rest of the product set it in tabular sans, and nothing
     // failed.
-    const offenders = sources().filter((f) => /\bformatPaisa\b/.test(strip(readFileSync(f, "utf8"))));
+    const offenders = sources().filter((f) =>
+      /\bformatPaisa\b/.test(strip(readFileSync(f, "utf8"))),
+    );
     expect(offenders.map((f) => f.slice(ROOT.length + 1))).toEqual([]);
   });
 

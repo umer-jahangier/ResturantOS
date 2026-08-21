@@ -91,9 +91,7 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
     data: recon,
     isPending: reconPending,
     refetch: refetchRecon,
-  } = useTillReconciliation(
-    activeTill && activeTill.status === "OPEN" ? activeTill.id : null,
-  );
+  } = useTillReconciliation(activeTill && activeTill.status === "OPEN" ? activeTill.id : null);
 
   const handleOpenTill = async () => {
     const paisa = Math.round(parseFloat(openingFloat || "0") * 100);
@@ -323,10 +321,7 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
         </div>
       ) : (
         /* Dedicated large in-place panel (POS-25/D-10) — see the open-till panel comment above. */
-        <div
-          data-testid="close-till-panel"
-          className="flex flex-col gap-4 bg-surface-2 p-4 sm:p-6"
-        >
+        <div data-testid="close-till-panel" className="flex flex-col gap-4 bg-surface-2 p-4 sm:p-6">
           <h2 className="font-semibold">Close Till Session</h2>
 
           {/*

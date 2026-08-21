@@ -1,7 +1,4 @@
-import type {
-  ApiPermissionEntry,
-  ApiPermissionModule,
-} from "@/lib/api-client/schemas/role.schema";
+import type { ApiPermissionEntry, ApiPermissionModule } from "@/lib/api-client/schemas/role.schema";
 import type { PermissionEntry, PermissionModule } from "@/lib/models/role.model";
 
 /**

@@ -140,7 +140,9 @@ async function renderPickerAged(ageMs: number) {
 
 /** The same `Intl` answer the module gives, derived here rather than hardcoded per runner zone. */
 function dayAndMonth(atMs: number): string {
-  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(new Date(atMs));
+  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(
+    new Date(atMs),
+  );
 }
 
 afterEach(() => {

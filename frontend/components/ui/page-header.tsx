@@ -67,7 +67,9 @@ export function PageHeader({
         {description ? (
           <p className="mt-(--space-xs) text-body text-foreground-secondary">{description}</p>
         ) : null}
-        {meta ? <div className="mt-(--space-xs) text-small text-foreground-tertiary">{meta}</div> : null}
+        {meta ? (
+          <div className="mt-(--space-xs) text-small text-foreground-tertiary">{meta}</div>
+        ) : null}
       </div>
 
       {actions || overflow ? (

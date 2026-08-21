@@ -41,8 +41,10 @@ export interface SelectOption {
   disabled?: boolean;
 }
 
-export interface SelectProps
-  extends Omit<React.ComponentProps<"select">, "children" | "value" | "onChange"> {
+export interface SelectProps extends Omit<
+  React.ComponentProps<"select">,
+  "children" | "value" | "onChange"
+> {
   options: readonly SelectOption[];
   value?: string | null;
   onValueChange?: (value: string) => void;

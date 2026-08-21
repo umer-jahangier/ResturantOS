@@ -127,7 +127,9 @@ describe("InsetRow — semantics and keyboard", () => {
   });
 
   it("takes an explicit accessible name when the visible line is not a complete one", () => {
-    render(<InsetRow primary="AP Aging" onSelect={vi.fn()} actionLabel="Generate AP Aging report" />);
+    render(
+      <InsetRow primary="AP Aging" onSelect={vi.fn()} actionLabel="Generate AP Aging report" />,
+    );
     expect(screen.getByRole("button", { name: "Generate AP Aging report" })).toBeInTheDocument();
   });
 
@@ -179,7 +181,9 @@ describe("InsetRow — composition", () => {
   it("is safe on the operational zone by default — no glass, no entrance motion, no tilt", () => {
     // D-38-04 permits depth cues ONLY on POS/KDS surfaces. A primitive that had to be
     // switched off to be safe there would be switched off wrongly at least once.
-    expect(SOURCE).not.toMatch(/glass-surface|backdrop-(?:filter|blur)|vdl-(?:enter|reveal|tilt|lift|stagger)/);
+    expect(SOURCE).not.toMatch(
+      /glass-surface|backdrop-(?:filter|blur)|vdl-(?:enter|reveal|tilt|lift|stagger)/,
+    );
   });
 });
 

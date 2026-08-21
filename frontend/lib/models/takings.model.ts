@@ -42,12 +42,7 @@ export function isKnown(
  * The five named states 37-09's `DailyTakingsService` emits. Never inferred from a null variance —
  * that inference is exactly what collapses OPEN and NOT_COUNTED into one meaningless dash.
  */
-export type TillReconciliationState =
-  | "OPEN"
-  | "MATCHED"
-  | "OVER"
-  | "SHORT"
-  | "NOT_COUNTED";
+export type TillReconciliationState = "OPEN" | "MATCHED" | "OVER" | "SHORT" | "NOT_COUNTED";
 
 export interface TenderLine {
   /** CASH, CARD, WALLET … as the server observed it. A method with no rows is ABSENT, not zero. */

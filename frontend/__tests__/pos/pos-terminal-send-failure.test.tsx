@@ -182,10 +182,7 @@ function mockPosEndpoints() {
         modifiers: [],
       });
       order.status = "OPEN";
-      order.subtotalPaisa = order.items.reduce(
-        (sum, i) => sum + (i.lineTotalPaisa as number),
-        0,
-      );
+      order.subtotalPaisa = order.items.reduce((sum, i) => sum + (i.lineTotalPaisa as number), 0);
       order.totalPaisa = order.subtotalPaisa;
       return HttpResponse.json({ data: order, meta: null, warnings: [] });
     }),

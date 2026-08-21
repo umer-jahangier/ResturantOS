@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Building2, CircleAlert, CircleCheck, CircleDashed, CircleSlash, LogOut } from "lucide-react";
+import {
+  Building2,
+  CircleAlert,
+  CircleCheck,
+  CircleDashed,
+  CircleSlash,
+  LogOut,
+} from "lucide-react";
 
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useMyBranches } from "@/lib/hooks/auth/use-my-branches";
@@ -60,8 +67,7 @@ export function OperatorStrip() {
   const branchesQuery = useMyBranches();
   const tillQuery = useActiveTill();
 
-  const branchName =
-    branchesQuery.data?.find((branch) => branch.id === branchId)?.name ?? null;
+  const branchName = branchesQuery.data?.find((branch) => branch.id === branchId)?.name ?? null;
 
   /*
    * Three states and a fourth that is NOT one of them.
@@ -152,7 +158,12 @@ const TILL_CHIP: Record<
   },
   // Not "closed". While the read is in flight the honest answer is that we do not know yet, and
   // a chip that guesses "closed" for half a second sends the cashier to press Open Till.
-  unknown: { label: "Checking till…", short: "Checking…", Icon: CircleDashed, tone: "text-muted-foreground" },
+  unknown: {
+    label: "Checking till…",
+    short: "Checking…",
+    Icon: CircleDashed,
+    tone: "text-muted-foreground",
+  },
 };
 
 function TillChip({ state }: { state: TillChipState }) {

@@ -103,8 +103,7 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
   // The code is the routing key and the only thing stored; the NAME is what an operator recognises.
   // Only the signed-in branch's stations can be listed (the endpoint refuses any other branch), so
   // a code from another branch falls back to itself rather than being hidden.
-  const stationName = (code: string) =>
-    stations.data?.find((s) => s.code === code)?.name ?? code;
+  const stationName = (code: string) => stations.data?.find((s) => s.code === code)?.name ?? code;
   // Same fallback, same reason: the id is what is stored and the name is what an owner recognises.
   // A category deleted out from under an assignment renders as its id rather than vanishing —
   // a scope entry that is invisible here is one nobody knows to clear.

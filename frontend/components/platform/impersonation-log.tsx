@@ -120,7 +120,11 @@ export function ImpersonationTable({
         </thead>
         <tbody>
           {records.map((row) => (
-            <tr key={row.id} className="border-t align-top hover:bg-muted/40" data-testid={`impersonation-row-${row.id}`}>
+            <tr
+              key={row.id}
+              className="border-t align-top hover:bg-muted/40"
+              data-testid={`impersonation-row-${row.id}`}
+            >
               <th scope="row" className="px-4 py-2.5 text-left font-normal whitespace-nowrap">
                 {formatDateTime(row.startedAt)}
               </th>
@@ -166,7 +170,9 @@ export function ImpersonationTable({
               <td className="px-4 py-2.5 whitespace-nowrap">
                 <ImpersonationStatusBadge status={row.status} />
                 <span className="mt-1 block text-xs text-muted-foreground">
-                  {row.status === "UNKNOWN" ? "No expiry recorded" : `Token expiry ${when(row.expiresAt)}`}
+                  {row.status === "UNKNOWN"
+                    ? "No expiry recorded"
+                    : `Token expiry ${when(row.expiresAt)}`}
                 </span>
               </td>
               <td className="max-w-sm px-4 py-2.5 text-muted-foreground">

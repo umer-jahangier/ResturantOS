@@ -341,7 +341,10 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
     setRows((prev) =>
       prev.map((r) =>
         r.id === id
-          ? { ...r, tenderedText: paisaToRupeeInput((parseRupeesToPaisa(r.tenderedText) ?? 0) + paisa) }
+          ? {
+              ...r,
+              tenderedText: paisaToRupeeInput((parseRupeesToPaisa(r.tenderedText) ?? 0) + paisa),
+            }
           : r,
       ),
     );
@@ -387,7 +390,10 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
       // never sent to the kitchen (sentToKdsAt == null → the pre-send Charge Now path), fire its
       // still-PENDING lines now that it's paid. An order that was already sent earlier (dine-in)
       // has sentToKdsAt set, so it is NEVER re-fired here — the two flows stay fully isolated.
-      const submittedTotal = toSubmit.reduce((acc, { reading }) => acc + (reading.amountPaisa ?? 0), 0);
+      const submittedTotal = toSubmit.reduce(
+        (acc, { reading }) => acc + (reading.amountPaisa ?? 0),
+        0,
+      );
       const willBeFullyPaid = totalPaisa > 0 && amountPaidPaisa + submittedTotal >= totalPaisa;
       const pendingUnfired = order?.items.filter((i) => i.itemStatus === "PENDING") ?? [];
       if (willBeFullyPaid && order && order.sentToKdsAt === null && pendingUnfired.length > 0) {
@@ -721,7 +727,11 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
                         : "This order has no active items to serve."}
                   </p>
                   {closeError && (
-                    <p data-testid="close-order-error" className="text-xs text-destructive" role="alert">
+                    <p
+                      data-testid="close-order-error"
+                      className="text-xs text-destructive"
+                      role="alert"
+                    >
                       {closeError}
                     </p>
                   )}
@@ -929,7 +939,9 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
                                   paisa={reading.changePaisa}
                                   className={cn(
                                     "font-mono text-lg font-semibold",
-                                    reading.changePaisa > 0 ? "text-success" : "text-muted-foreground",
+                                    reading.changePaisa > 0
+                                      ? "text-success"
+                                      : "text-muted-foreground",
                                   )}
                                 />
                               </span>
@@ -1021,9 +1033,7 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
               </div>
               {tipTotalPaisa > 0 && (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    Tip (not part of the bill)
-                  </span>
+                  <span className="text-muted-foreground">Tip (not part of the bill)</span>
                   <span data-testid="tip-total-value" data-paisa={tipTotalPaisa}>
                     <MoneyDisplay paisa={tipTotalPaisa} className="font-semibold" />
                   </span>
@@ -1033,7 +1043,10 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Change due</span>
                   <span data-testid="change-due-total" data-paisa={changeDueTotalPaisa}>
-                    <MoneyDisplay paisa={changeDueTotalPaisa} className="font-semibold text-success" />
+                    <MoneyDisplay
+                      paisa={changeDueTotalPaisa}
+                      className="font-semibold text-success"
+                    />
                   </span>
                 </div>
               )}

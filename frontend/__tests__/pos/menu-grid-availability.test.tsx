@@ -7,10 +7,7 @@ import { server } from "@/mocks/server";
 import { seedSession, clearSession } from "@/__tests__/utils/auth-fixtures";
 import { createQueryWrapper } from "@/__tests__/utils/query-wrapper";
 import { MenuGrid } from "@/components/pos/menu-grid";
-import {
-  menuItemAvailability,
-  setHasAvailabilitySignal,
-} from "@/components/pos/menu-availability";
+import { menuItemAvailability, setHasAvailabilitySignal } from "@/components/pos/menu-availability";
 
 /**
  * 38-04 task 3 — the product card's availability channel (UI-SPEC §9.2).

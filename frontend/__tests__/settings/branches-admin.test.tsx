@@ -231,7 +231,9 @@ describe("Branches screen", () => {
     await screen.findByText("Floating Terrace — Rooftop");
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Actions for Floating Terrace — Rooftop" }));
+    await user.click(
+      screen.getByRole("button", { name: "Actions for Floating Terrace — Rooftop" }),
+    );
     await user.click(await screen.findByRole("menuitem", { name: "Edit details" }));
 
     const nameInput = await screen.findByTestId("branch-name-input");
@@ -289,11 +291,15 @@ describe("Branches screen", () => {
     ).toBeInTheDocument();
     await user.keyboard("{Escape}");
 
-    await user.click(screen.getByRole("button", { name: "Actions for Floating Terrace — Rooftop" }));
+    await user.click(
+      screen.getByRole("button", { name: "Actions for Floating Terrace — Rooftop" }),
+    );
     await user.click(await screen.findByRole("menuitem", { name: "Deactivate" }));
 
     // The confirmation names the consequence, not just the object.
-    expect(await screen.findByText("Stop trading at Floating Terrace — Rooftop?")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Stop trading at Floating Terrace — Rooftop?"),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Deactivate branch" }));
 
     await waitFor(() =>

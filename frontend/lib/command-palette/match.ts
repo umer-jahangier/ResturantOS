@@ -79,7 +79,11 @@ export function termScore(fields: readonly string[], term: string): number {
  * recents and the full permitted list instead of running a search).
  */
 export function matchScore(fields: readonly string[], query: string): number {
-  const terms = query.trim().toLowerCase().split(/\s+/).filter((term) => term.length > 0);
+  const terms = query
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((term) => term.length > 0);
   if (terms.length === 0) return 0;
 
   let total = 0;

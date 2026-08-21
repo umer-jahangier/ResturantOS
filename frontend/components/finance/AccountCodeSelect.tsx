@@ -78,7 +78,9 @@ function AccountCodeSelect({ value, selectedName, onChange, required }: AccountC
                 <div className="px-2 py-2 text-label text-muted-foreground">Searching…</div>
               )}
               {!isFetching && results?.length === 0 && (
-                <div className="px-2 py-2 text-label text-muted-foreground">No matching accounts</div>
+                <div className="px-2 py-2 text-label text-muted-foreground">
+                  No matching accounts
+                </div>
               )}
               {results?.map((account) => (
                 <Command.Item

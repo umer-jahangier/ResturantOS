@@ -233,7 +233,9 @@ export function BranchSettingsForm({ branchId }: { branchId: string | null }) {
 
                 <div className="grid gap-4 rounded-md border border-dashed p-3 sm:grid-cols-2">
                   <div className="space-y-0.5">
-                    <p className="text-label text-muted-foreground">Sales tax registration (STRN)</p>
+                    <p className="text-label text-muted-foreground">
+                      Sales tax registration (STRN)
+                    </p>
                     <p className="text-small">{branch.fbrStrn ?? "Not set"}</p>
                   </div>
                   <div className="space-y-0.5">

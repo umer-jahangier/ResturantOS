@@ -71,8 +71,7 @@ const REJECTION_COPY: Record<string, { title: string; message: string }> = {
   },
   AI_NOT_CONFIGURED: {
     title: "No AI provider is set up yet",
-    message:
-      "This restaurant has no AI API key configured. An owner can add one in Settings → AI.",
+    message: "This restaurant has no AI API key configured. An owner can add one in Settings → AI.",
   },
   AI_CREDENTIAL_STORAGE_UNAVAILABLE: {
     title: "This feature is temporarily unavailable",

@@ -39,7 +39,10 @@ export const RoleRepository = {
    */
   async listPermissions(): Promise<PermissionModule[]> {
     const raw = await get<unknown[]>("/api/v1/permissions");
-    return z.array(apiPermissionModuleSchema).parse(raw ?? []).map(adaptPermissionModule);
+    return z
+      .array(apiPermissionModuleSchema)
+      .parse(raw ?? [])
+      .map(adaptPermissionModule);
   },
 
   /**

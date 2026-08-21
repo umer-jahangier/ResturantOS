@@ -79,10 +79,7 @@ import type {
 } from "@/lib/models/pos.model";
 import { apiEligibleCashierSchema } from "@/lib/api-client/schemas/till-cashier.schema";
 import { adaptEligibleCashier } from "@/lib/adapters/till-cashier.adapter";
-import type {
-  EligibleCashier,
-  OpenTillForCashierPayload,
-} from "@/lib/models/till-cashier.model";
+import type { EligibleCashier, OpenTillForCashierPayload } from "@/lib/models/till-cashier.model";
 
 // Layer-2 POS repository. Calls Layer-1 request helpers, parses via Zod,
 // adapts to domain models. Never exposes raw API types to Layer-3 or above.
@@ -338,11 +335,7 @@ export const PosRepository = {
     return adaptStation(apiStationSchema.parse(raw));
   },
 
-  async updateStation(
-    id: string,
-    branchId: string,
-    payload: UpdateStationInput,
-  ): Promise<Station> {
+  async updateStation(id: string, branchId: string, payload: UpdateStationInput): Promise<Station> {
     const body = updateStationInputSchema.parse(payload);
     const raw = await put<typeof body, unknown>(
       `/api/v1/pos/stations/${id}?branchId=${encodeURIComponent(branchId)}`,
@@ -455,10 +448,7 @@ export const PosRepository = {
    * No adapter: the wire shape IS the domain shape here — nine paisa integers, no renaming, no
    * derivation. An adapter would be a place for a second copy of the arithmetic to grow.
    */
-  async previewDiscount(
-    orderId: string,
-    payload: ApplyDiscountPayload,
-  ): Promise<DiscountPreview> {
+  async previewDiscount(orderId: string, payload: ApplyDiscountPayload): Promise<DiscountPreview> {
     const raw = await post<ApplyDiscountPayload, unknown>(
       `/api/v1/pos/orders/${orderId}/discounts/preview`,
       payload,

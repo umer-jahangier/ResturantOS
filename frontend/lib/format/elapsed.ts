@@ -207,11 +207,7 @@ const YEAR_ONLY: Intl.DateTimeFormatOptions = { year: "numeric" };
  * is about, and the comparison is made in the branch zone because 31 Dec 23:30 PKT is already
  * next year in UTC.
  */
-function absoluteShort(
-  sinceMs: number,
-  nowMs: number,
-  options: ElapsedOptions,
-): string {
+function absoluteShort(sinceMs: number, nowMs: number, options: ElapsedOptions): string {
   const at = new Date(sinceMs);
   const sameYear =
     formatInZone(at, YEAR_ONLY, options) === formatInZone(new Date(nowMs), YEAR_ONLY, options);

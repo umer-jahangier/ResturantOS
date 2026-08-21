@@ -342,8 +342,7 @@ export function DiscountPanel({ order }: DiscountPanelProps) {
             <option value="">Choose an item…</option>
             {billableItems.map((i) => (
               <option key={i.id} value={i.id}>
-                {i.itemNameSnapshot} ×{i.quantity} —{" "}
-                {formatPaisa(i.unitPriceSnapshot * i.quantity)}
+                {i.itemNameSnapshot} ×{i.quantity} — {formatPaisa(i.unitPriceSnapshot * i.quantity)}
               </option>
             ))}
           </select>
@@ -423,7 +422,10 @@ export function DiscountPanel({ order }: DiscountPanelProps) {
         </p>
       )}
       {preview && preview.amountOffPaisa > 0 && (
-        <div data-testid="discount-preview" className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+        <div
+          data-testid="discount-preview"
+          className="flex flex-col gap-0.5 text-xs text-muted-foreground"
+        >
           <p>
             Takes{" "}
             <MoneyDisplay paisa={preview.amountOffPaisa} className="font-medium text-foreground" />{" "}
@@ -447,15 +449,14 @@ export function DiscountPanel({ order }: DiscountPanelProps) {
           )}
           {preview.serviceChargePaisa !== preview.previousServiceChargePaisa && (
             <p data-testid="discount-preview-service-charge">
-              Service charge falls from{" "}
-              <MoneyDisplay paisa={preview.previousServiceChargePaisa} /> to{" "}
-              <MoneyDisplay paisa={preview.serviceChargePaisa} />.
+              Service charge falls from <MoneyDisplay paisa={preview.previousServiceChargePaisa} />{" "}
+              to <MoneyDisplay paisa={preview.serviceChargePaisa} />.
             </p>
           )}
           {wasCapped && (
             <p data-testid="discount-preview-capped">
-              That is more than is left, so only{" "}
-              <MoneyDisplay paisa={preview.amountOffPaisa} /> comes off.
+              That is more than is left, so only <MoneyDisplay paisa={preview.amountOffPaisa} />{" "}
+              comes off.
             </p>
           )}
         </div>

@@ -215,7 +215,13 @@ describe("clock skew and unusable input", () => {
   });
 
   it("returns a neutral placeholder for an unusable instant — never `0`, never a date", () => {
-    for (const bad of ["not-a-date", "", Number.NaN, Number.POSITIVE_INFINITY, new Date(Number.NaN)]) {
+    for (const bad of [
+      "not-a-date",
+      "",
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      new Date(Number.NaN),
+    ]) {
       const reading = readElapsed(bad, NOW, KARACHI);
       expect(reading.ageMs, String(bad)).toBeNull();
       expect(reading.compact, String(bad)).toBe(ELAPSED_UNKNOWN);
@@ -248,7 +254,9 @@ describe("the absolute stamp is on the BRANCH's clock", () => {
   it("adds the year only when it differs, and compares years in the branch zone too", () => {
     // 31 Dec 2025 20:00 UTC is already 1 Jan 2026 in Karachi — same year as `now` there, so no
     // year is printed. A UTC comparison would wrongly stamp `1 Jan 2026` beside a 2025 date.
-    expect(formatElapsedCompact(Date.parse("2025-12-31T20:00:00.000Z"), NOW, KARACHI)).toBe("1 Jan");
+    expect(formatElapsedCompact(Date.parse("2025-12-31T20:00:00.000Z"), NOW, KARACHI)).toBe(
+      "1 Jan",
+    );
     expect(formatElapsedCompact(Date.parse("2025-06-15T09:00:00.000Z"), NOW, KARACHI)).toBe(
       "15 Jun 2025",
     );
@@ -288,7 +296,9 @@ describe("accessibility — the spoken form is never the compact form", () => {
     expect(readElapsed(ago(30 * SECOND), NOW).srLabel).toBe("under a minute");
     expect(readElapsed(ago(3 * HOUR + 52 * MINUTE), NOW).srLabel).toBe("3 hours 52 minutes");
     expect(readElapsed(ago(5 * DAY), NOW, KARACHI).srLabel).toBe("5 days");
-    expect(readElapsed(ago(400 * DAY), NOW, KARACHI).srLabel).toMatch(/^\d{1,2} [A-Za-z]{3,} \d{4}$/);
+    expect(readElapsed(ago(400 * DAY), NOW, KARACHI).srLabel).toMatch(
+      /^\d{1,2} [A-Za-z]{3,} \d{4}$/,
+    );
   });
 
   it("past the bound the TEXT changes shape, so state is not conveyed by colour alone", () => {

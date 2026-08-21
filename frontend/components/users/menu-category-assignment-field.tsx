@@ -81,9 +81,7 @@ export function MenuCategoryAssignmentField({
   const offered = (categories.data ?? []).filter((c) => c.active);
   const offeredIds = new Set(offered.map((c) => c.id));
   const selectedNames = offered.filter((c) => value.includes(c.id)).map((c) => c.name);
-  const unlistedCount = categories.isSuccess
-    ? value.filter((id) => !offeredIds.has(id)).length
-    : 0;
+  const unlistedCount = categories.isSuccess ? value.filter((id) => !offeredIds.has(id)).length : 0;
 
   function toggle(id: string) {
     const next = value.includes(id) ? value.filter((c) => c !== id) : [...value, id];
@@ -138,7 +136,10 @@ export function MenuCategoryAssignmentField({
             the interpretation they reach unaided is the wrong one. Plain text, never an alert
             style: unrestricted is the correct and universal state, not a problem to be fixed.
           */}
-          <p data-testid="menu-category-assignment-summary" className="text-small text-muted-foreground">
+          <p
+            data-testid="menu-category-assignment-summary"
+            className="text-small text-muted-foreground"
+          >
             {value.length === 0
               ? `No sections selected — they can ring the WHOLE menu at ${branchLabel}. That is the default, and it is what every user has today.`
               : selectedNames.length === 0
@@ -176,7 +177,10 @@ export function MenuCategoryAssignmentField({
         </>
       )}
 
-      <p data-testid="menu-category-assignment-delay-notice" className="text-small text-muted-foreground">
+      <p
+        data-testid="menu-category-assignment-delay-notice"
+        className="text-small text-muted-foreground"
+      >
         If they are already signed in, the change reaches them when their session next refreshes —
         within {ACCESS_TOKEN_MINUTES} minutes, or straight away if they sign out and back in.
       </p>

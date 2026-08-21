@@ -126,8 +126,7 @@ export function MenuItemImageField({
           Picture
         </label>
         <FieldHelp label="Picture">
-          Optional. JPEG, PNG or WebP, up to 2 MB. Shown wherever the item appears with a
-          picture.
+          Optional. JPEG, PNG or WebP, up to 2 MB. Shown wherever the item appears with a picture.
         </FieldHelp>
       </div>
 
@@ -185,12 +184,14 @@ export function MenuItemImageField({
             ) : null}
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            JPEG, PNG or WebP · up to 2 MB
-          </p>
+          <p className="text-xs text-muted-foreground">JPEG, PNG or WebP · up to 2 MB</p>
 
           {error ? (
-            <p role="alert" data-testid="menu-item-image-error-message" className="text-xs text-destructive">
+            <p
+              role="alert"
+              data-testid="menu-item-image-error-message"
+              className="text-xs text-destructive"
+            >
               {error}
             </p>
           ) : null}

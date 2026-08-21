@@ -104,13 +104,7 @@ function presentation(state: string) {
  * `+` on positives and a hue on negatives. Same rule as everywhere else in this plan: a figure's
  * direction cannot be a colour, because a colour does not survive a photocopy.
  */
-function VarianceCell({
-  variance,
-  state,
-}: {
-  variance: MoneyFigure;
-  state: string;
-}) {
+function VarianceCell({ variance, state }: { variance: MoneyFigure; state: string }) {
   if (variance.state === "UNKNOWN") {
     return <UnknownFigure figure={variance} compact />;
   }
@@ -224,8 +218,7 @@ export function TillVariancePanel({
                     <td className="py-2.5 pr-3">
                       <span className="block font-medium">{cashier}</span>
                       <span className="block text-label text-muted-foreground">
-                        Opened{" "}
-                        {formatDateTime(till.openedAt, SHORT_STAMP)}
+                        Opened {formatDateTime(till.openedAt, SHORT_STAMP)}
                         {till.closedAt
                           ? ` · closed ${formatDateTime(till.closedAt, SHORT_STAMP)}`
                           : " · not closed"}
@@ -252,10 +245,7 @@ export function TillVariancePanel({
                       <FigureValue figure={till.declaredClosing} compact />
                     </td>
                     <td className="py-2.5 text-right">
-                      <VarianceCell
-                        variance={till.variance}
-                        state={till.reconciliationState}
-                      />
+                      <VarianceCell variance={till.variance} state={till.reconciliationState} />
                     </td>
                   </tr>
                 );

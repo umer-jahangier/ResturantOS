@@ -6,11 +6,7 @@ import { HrErrorNotice } from "@/components/hr/hr-error-notice";
 import { TaxConfigForm } from "@/components/hr/tax-config-form";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { Select } from "@/components/ui/select";
-import {
-  useCurrentFiscalYear,
-  useTaxConfig,
-  useTaxConfigs,
-} from "@/lib/hooks/hr/use-hr-config";
+import { useCurrentFiscalYear, useTaxConfig, useTaxConfigs } from "@/lib/hooks/hr/use-hr-config";
 
 /**
  * Tax & EOBI configuration — the screen that unblocks payroll.
@@ -100,7 +96,10 @@ export default function TaxSettingsPage() {
             </p>
           }
         >
-          <TaxConfigForm fiscalYear={fiscalYear} existing={notConfigured ? undefined : config.data} />
+          <TaxConfigForm
+            fiscalYear={fiscalYear}
+            existing={notConfigured ? undefined : config.data}
+          />
         </PermissionGuard>
       )}
     </div>

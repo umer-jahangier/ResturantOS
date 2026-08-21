@@ -34,7 +34,10 @@ function daysAgo(n: number): string {
  * ENTIRE distinction between a payment, a refund and a void into colour. The shared badge carries
  * the hue through tokens and the label through words.
  */
-const KIND_BADGE: Record<TransactionEventKind, { status: "success" | "warning" | "error"; label: string }> = {
+const KIND_BADGE: Record<
+  TransactionEventKind,
+  { status: "success" | "warning" | "error"; label: string }
+> = {
   TENDER: { status: "success", label: "Payment" },
   REFUND: { status: "warning", label: "Refund" },
   VOID: { status: "error", label: "Void" },
@@ -299,7 +302,9 @@ export function TransactionRegister() {
       {/* ── The register ────────────────────────────────────────────────────────────── */}
       {error && (
         <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3">
-          <p className="text-small font-medium text-destructive">Transactions could not be loaded</p>
+          <p className="text-small font-medium text-destructive">
+            Transactions could not be loaded
+          </p>
           <p className="text-small text-foreground-secondary">{error}</p>
         </div>
       )}
@@ -391,7 +396,10 @@ function TraceDetail({ row, onClose }: { row: TransactionRow; onClose: () => voi
             The order this event settled
           </h4>
           <div className="mt-(--space-sm)">
-            <LedgerStatRow label="Subtotal" value={<MoneyDisplay paisa={row.orderSubtotalPaisa} />} />
+            <LedgerStatRow
+              label="Subtotal"
+              value={<MoneyDisplay paisa={row.orderSubtotalPaisa} />}
+            />
             <LedgerStatRow
               label="Discount"
               value={

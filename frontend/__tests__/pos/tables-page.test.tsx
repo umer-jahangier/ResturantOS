@@ -238,9 +238,7 @@ describe("Tables page", () => {
 
     // The actionable sentence, not a generic fallback.
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith(
-        expect.stringContaining("close or move its order"),
-      ),
+      expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("close or move its order")),
     );
   });
 

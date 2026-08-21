@@ -42,9 +42,7 @@ export default function PeriodsPage() {
         id: "startDate",
         accessorKey: "startDate",
         header: "Start date",
-        cell: ({ row }) => (
-          <span className="font-mono tabular-nums">{row.original.startDate}</span>
-        ),
+        cell: ({ row }) => <span className="font-mono tabular-nums">{row.original.startDate}</span>,
       },
       {
         id: "endDate",

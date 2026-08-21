@@ -92,7 +92,9 @@ export function ShiftCalendar({
             {e.fullName}
           </div>
         ))}
-        {employees.length === 0 && <p className="text-label text-muted-foreground">No employees.</p>}
+        {employees.length === 0 && (
+          <p className="text-label text-muted-foreground">No employees.</p>
+        )}
       </aside>
 
       <div className="grow overflow-x-auto">

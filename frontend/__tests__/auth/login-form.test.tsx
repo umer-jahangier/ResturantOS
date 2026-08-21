@@ -502,7 +502,14 @@ describe("LoginForm — email-first (16a-01)", () => {
       http.post("*/api/v1/auth/login", () => {
         if (changed) {
           return HttpResponse.json(
-            { error: { code: "SERVICE_UNAVAILABLE", message: "upstream", details: [], traceId: "t" } },
+            {
+              error: {
+                code: "SERVICE_UNAVAILABLE",
+                message: "upstream",
+                details: [],
+                traceId: "t",
+              },
+            },
             { status: 503 },
           );
         }
@@ -600,7 +607,9 @@ describe("LoginForm — email-first (16a-01)", () => {
     await user.click(screen.getByRole("button", { name: /^change password$/i }));
 
     // The panel says what actually happened, and is still there to be corrected.
-    expect(await screen.findByText(/expired or the current password is wrong/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/expired or the current password is wrong/i),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("forced-password-change")).toBeInTheDocument();
 
     // No refresh was attempted. A refresh here is the first step of the false "session expired"

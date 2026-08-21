@@ -100,13 +100,12 @@ describe("D-38-04 — the KDS boards do not animate while they wait", () => {
     ).toEqual([]);
   });
 
-  it.each([
-    "expo-board.tsx",
-    "kds-clear-stale.tsx",
-    "kds-cleared-board.tsx",
-  ])("%s renders its loading state through the zone-aware <Skeleton>", (name) => {
-    const source = readFileSync(join(KDS_DIR, name), "utf8");
-    expect(source).toContain('from "@/components/ui/skeleton"');
-    expect(source).toMatch(/<Skeleton\b/);
-  });
+  it.each(["expo-board.tsx", "kds-clear-stale.tsx", "kds-cleared-board.tsx"])(
+    "%s renders its loading state through the zone-aware <Skeleton>",
+    (name) => {
+      const source = readFileSync(join(KDS_DIR, name), "utf8");
+      expect(source).toContain('from "@/components/ui/skeleton"');
+      expect(source).toMatch(/<Skeleton\b/);
+    },
+  );
 });

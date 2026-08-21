@@ -100,9 +100,7 @@ describe("Menu availability toggle", () => {
       "false",
     );
 
-    await waitFor(() =>
-      expect(toast.success).toHaveBeenCalledWith("Deactivated Chicken Karahi"),
-    );
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Deactivated Chicken Karahi"));
   }, 20000);
 
   it("revertsAndNamesTheReasonWhenTheMenuServiceRefuses", async () => {

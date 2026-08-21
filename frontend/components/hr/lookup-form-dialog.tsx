@@ -58,10 +58,7 @@ const lookupFormSchema = z.object({
     .trim()
     .min(2, "Give it a name people will recognise")
     .max(80, "A name is at most 80 characters"),
-  code: z
-    .string()
-    .trim()
-    .max(20, "A code is at most 20 characters"),
+  code: z.string().trim().max(20, "A code is at most 20 characters"),
   /** Empty means "not grouped under any department" — deliberately allowed. */
   departmentId: z.string(),
 });

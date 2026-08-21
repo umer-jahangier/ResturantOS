@@ -9,7 +9,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { server } from "@/mocks/server";
 import { clearSession, seedSession } from "@/__tests__/utils/auth-fixtures";
 import { createQueryWrapper } from "@/__tests__/utils/query-wrapper";
-import { matchScore, termScore, SCORE_PREFIX, SCORE_WORD_PREFIX } from "@/lib/command-palette/match";
+import {
+  matchScore,
+  termScore,
+  SCORE_PREFIX,
+  SCORE_WORD_PREFIX,
+} from "@/lib/command-palette/match";
 import {
   ACTION_COMMANDS,
   PAGE_COMMANDS,

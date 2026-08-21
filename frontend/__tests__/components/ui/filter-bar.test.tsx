@@ -87,7 +87,12 @@ describe("FilterBar — the strip (demo N2, UI-SPEC §7.3)", () => {
   it("renders the search field with an accessible name inside a search landmark", () => {
     render(
       <FilterBar
-        search={{ value: "", onChange: vi.fn(), label: "Search stock", placeholder: "Name or SKU…" }}
+        search={{
+          value: "",
+          onChange: vi.fn(),
+          label: "Search stock",
+          placeholder: "Name or SKU…",
+        }}
       />,
     );
     const box = screen.getByRole("searchbox", { name: "Search stock" });
@@ -109,9 +114,7 @@ describe("FilterBar — the strip (demo N2, UI-SPEC §7.3)", () => {
     // An empty dropdown says "there are none"; that is a different and more damaging statement
     // than "this did not load" (D-35-01). The label degrades to a span so it points at no id.
     const onRetry = vi.fn();
-    const { container } = render(
-      <FilterBar filters={[makeFilter({ error: true, onRetry })]} />,
-    );
+    const { container } = render(<FilterBar filters={[makeFilter({ error: true, onRetry })]} />);
     expect(container.querySelector("label")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(onRetry).toHaveBeenCalledTimes(1);
@@ -120,7 +123,12 @@ describe("FilterBar — the strip (demo N2, UI-SPEC §7.3)", () => {
 
 describe("FilterBar — the active-filter affordance (UI-SPEC §7.3, D-38-13)", () => {
   it("says nothing at all when nothing is filtering", () => {
-    render(<FilterBar filters={[makeFilter()]} search={{ value: "", onChange: vi.fn(), label: "Search" }} />);
+    render(
+      <FilterBar
+        filters={[makeFilter()]}
+        search={{ value: "", onChange: vi.fn(), label: "Search" }}
+      />,
+    );
     expect(screen.queryByTestId("filter-bar-active-count")).toBeNull();
     expect(screen.queryByTestId("filter-bar-clear")).toBeNull();
   });
@@ -205,7 +213,10 @@ describe("FilterBar — the active-filter affordance (UI-SPEC §7.3, D-38-13)", 
     const onClearAll = vi.fn();
     const onCategory = vi.fn();
     render(
-      <FilterBar filters={[makeFilter({ value: "cat-1", onChange: onCategory })]} onClearAll={onClearAll} />,
+      <FilterBar
+        filters={[makeFilter({ value: "cat-1", onChange: onCategory })]}
+        onClearAll={onClearAll}
+      />,
     );
     await userEvent.click(screen.getByTestId("filter-bar-clear"));
     expect(onClearAll).toHaveBeenCalledTimes(1);
@@ -213,7 +224,11 @@ describe("FilterBar — the active-filter affordance (UI-SPEC §7.3, D-38-13)", 
   });
 
   it("counts filters it cannot see, when the caller declares them", () => {
-    render(<FilterBar extraActiveCount={2} onClearAll={vi.fn()}>{null}</FilterBar>);
+    render(
+      <FilterBar extraActiveCount={2} onClearAll={vi.fn()}>
+        {null}
+      </FilterBar>,
+    );
     expect(screen.getByTestId("filter-bar-active-count")).toHaveTextContent("2 filters active");
   });
 
@@ -227,7 +242,11 @@ describe("FilterBar — the active-filter affordance (UI-SPEC §7.3, D-38-13)", 
 
   it("restores Clear once onClearAll can reach the hidden filters", () => {
     render(
-      <FilterBar filters={[makeFilter({ value: "cat-1" })]} extraActiveCount={1} onClearAll={vi.fn()} />,
+      <FilterBar
+        filters={[makeFilter({ value: "cat-1" })]}
+        extraActiveCount={1}
+        onClearAll={vi.fn()}
+      />,
     );
     expect(screen.getByTestId("filter-bar-clear")).toBeInTheDocument();
   });

@@ -25,7 +25,11 @@ import { FieldLabel } from "@/components/shared/field-help";
 // reason worth repeating here: it feeds cover counts and therefore per-head reporting, so a
 // fat-fingered 400 quietly distorts average-spend for the period instead of failing visibly.
 const tableFormSchema = z.object({
-  tableNumber: z.string().trim().min(1, "Give the table a name or number").max(20, "Keep it to 20 characters"),
+  tableNumber: z
+    .string()
+    .trim()
+    .min(1, "Give the table a name or number")
+    .max(20, "Keep it to 20 characters"),
   capacity: z
     .string()
     .refine((v) => /^\d+$/.test(v.trim()), "Enter a number of seats")
@@ -107,7 +111,8 @@ export function TableFormDialog({
         toast.success(`Added ${saved.tableName}`);
         onOpenChange(false);
       },
-      onError: (error) => toast.error(error.message || "Could not add the table. Please try again."),
+      onError: (error) =>
+        toast.error(error.message || "Could not add the table. Please try again."),
     });
   }
 

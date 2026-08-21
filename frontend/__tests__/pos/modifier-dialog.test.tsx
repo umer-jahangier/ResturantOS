@@ -192,9 +192,7 @@ describe("ModifierDialog", () => {
     await user.click(screen.getByTestId("modifier-dialog-add"));
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
-    expect(onConfirm.mock.calls[0]![0]).toEqual([
-      { id: HOT.id, name: "Hot", priceDeltaPaisa: 0 },
-    ]);
+    expect(onConfirm.mock.calls[0]![0]).toEqual([{ id: HOT.id, name: "Hot", priceDeltaPaisa: 0 }]);
   });
 
   it("prices a paid extra on the screen, and carries its delta out", async () => {
@@ -202,9 +200,7 @@ describe("ModifierDialog", () => {
     const { onConfirm } = renderDialog();
 
     // Rs 150.00, rendered through the shared money formatter — never `paisa / 100`.
-    expect(screen.getByTestId(`modifier-option-${CHEESE.id}`)).toHaveTextContent(
-      "Rs 150.00",
-    );
+    expect(screen.getByTestId(`modifier-option-${CHEESE.id}`)).toHaveTextContent("Rs 150.00");
 
     await user.click(screen.getByTestId(`modifier-option-${MEDIUM.id}`));
     await user.click(screen.getByTestId(`modifier-option-${CHEESE.id}`));
@@ -227,9 +223,7 @@ describe("ModifierDialog", () => {
     await user.click(screen.getByTestId(`modifier-option-${HOT.id}`));
     await user.click(screen.getByTestId("modifier-dialog-add"));
 
-    expect(onConfirm.mock.calls[0]![0]).toEqual([
-      { id: HOT.id, name: "Hot", priceDeltaPaisa: 0 },
-    ]);
+    expect(onConfirm.mock.calls[0]![0]).toEqual([{ id: HOT.id, name: "Hot", priceDeltaPaisa: 0 }]);
   });
 
   /**

@@ -40,7 +40,10 @@ import type { Payslip, PayrollRun } from "@/lib/models/hr.model";
 // symbol, pins two decimals, and brings `tabular-nums` with it.
 
 /** A run's status, in the token set, with the word — never a bare string in a muted span. */
-const RUN_STATUS: Record<string, { status: "pending" | "active" | "success" | "warning"; label: string }> = {
+const RUN_STATUS: Record<
+  string,
+  { status: "pending" | "active" | "success" | "warning"; label: string }
+> = {
   DRAFT: { status: "pending", label: "Draft" },
   CALCULATED: { status: "warning", label: "Calculated" },
   APPROVED: { status: "active", label: "Approved" },
@@ -141,17 +144,13 @@ export default function PayrollPage() {
         id: "eobi",
         header: "EOBI",
         enableSorting: false,
-        cell: ({ row }) => (
-          <Deduction paisa={row.original.deductions.eobi_employee_paisa ?? 0} />
-        ),
+        cell: ({ row }) => <Deduction paisa={row.original.deductions.eobi_employee_paisa ?? 0} />,
       },
       {
         id: "late",
         header: "Late",
         enableSorting: false,
-        cell: ({ row }) => (
-          <Deduction paisa={row.original.deductions.late_arrival_paisa ?? 0} />
-        ),
+        cell: ({ row }) => <Deduction paisa={row.original.deductions.late_arrival_paisa ?? 0} />,
       },
       {
         id: "net",

@@ -102,8 +102,18 @@ describe("avatarToneIndex — deterministic, everywhere", () => {
     // Not a uniformity proof — a hash of 12 names into 8 buckets cannot fill all 8 — but it
     // catches the failure that matters: a hash that collapses everyone onto one colour.
     const roster = [
-      "Ahmed Raza", "Sana Malik", "Bilal Khan", "Ayesha Noor", "Usman Tariq", "Hira Shah",
-      "Zain Abbas", "Fatima Iqbal", "Omar Siddiqui", "Nida Farooq", "Hassan Ali", "Mariam Yousaf",
+      "Ahmed Raza",
+      "Sana Malik",
+      "Bilal Khan",
+      "Ayesha Noor",
+      "Usman Tariq",
+      "Hira Shah",
+      "Zain Abbas",
+      "Fatima Iqbal",
+      "Omar Siddiqui",
+      "Nida Farooq",
+      "Hassan Ali",
+      "Mariam Yousaf",
     ];
     const used = new Set(roster.map(avatarToneIndex));
     expect(used.size).toBeGreaterThanOrEqual(5);
@@ -213,7 +223,10 @@ describe("Avatar — the photograph and its fallback", () => {
     fireEvent.error(screen.getByTestId("avatar-image"));
     expect(screen.queryByTestId("avatar-image")).toBeNull();
     rerender(<Avatar name="Ahmed Raza" src="https://example.test/new.jpg" label="Ahmed Raza" />);
-    expect(screen.getByTestId("avatar-image")).toHaveAttribute("src", "https://example.test/new.jpg");
+    expect(screen.getByTestId("avatar-image")).toHaveAttribute(
+      "src",
+      "https://example.test/new.jpg",
+    );
   });
 
   it("treats a null src as no photograph at all", () => {

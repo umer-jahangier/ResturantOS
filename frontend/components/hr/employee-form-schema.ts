@@ -76,7 +76,10 @@ export const employeeFormSchema = z.object({
     // A join date in the future is almost always a typed year (2027 for 2026) rather than a
     // deliberate future hire, and it silently breaks every attendance and payroll period the
     // employee should appear in. Refused with the reason stated.
-    .refine((v) => v <= new Date().toISOString().slice(0, 10), "A join date cannot be in the future"),
+    .refine(
+      (v) => v <= new Date().toISOString().slice(0, 10),
+      "A join date cannot be in the future",
+    ),
 
   /**
    * A string, not a number, because an empty numeric input yields NaN and "NaN" is not a message

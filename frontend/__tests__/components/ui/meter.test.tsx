@@ -158,9 +158,7 @@ describe("Meter — an unknown value renders as an absence, never as a figure (D
 
 describe("Meter — over-limit is shown, not clipped away", () => {
   it("fills the track and still reads honestly", () => {
-    render(
-      <Meter label="Food cost" value={32} of={30} format="percent" ofLabel="Budget" />,
-    );
+    render(<Meter label="Food cost" value={32} of={30} format="percent" ofLabel="Budget" />);
 
     expect(fill()).toHaveStyle({ width: "100%" });
     expect(bar()).toHaveAttribute("data-over", "true");
@@ -227,13 +225,7 @@ describe("Meter — colour is never the only carrier (D-38-13)", () => {
 describe("Meter — money goes through MoneyDisplay and nowhere else", () => {
   it("renders both sides of the pair as money", () => {
     render(
-      <Meter
-        label="Current"
-        value={482000n}
-        of={670000n}
-        format="money"
-        ofLabel="Total payable"
-      />,
+      <Meter label="Current" value={482000n} of={670000n} format="money" ofLabel="Total payable" />,
     );
 
     const readout = document.getElementById(bar().getAttribute("aria-describedby")!)!;

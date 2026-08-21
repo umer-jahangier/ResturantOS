@@ -167,9 +167,7 @@ export function AssignRoleDialog({
             // Re-submitting the same role at the same branch UPDATES the row rather than
             // displacing anything (BranchRoleAdminService.assign). Saying "assigned" would imply a
             // re-grant that did not happen.
-            toast.success(
-              `${roleCode} approval limit updated.${limitClause} ${TAKES_EFFECT_NOTE}`,
-            );
+            toast.success(`${roleCode} approval limit updated.${limitClause} ${TAKES_EFFECT_NOTE}`);
           } else {
             toast.success(`${roleCode} assigned.${limitClause} ${TAKES_EFFECT_NOTE}`);
           }

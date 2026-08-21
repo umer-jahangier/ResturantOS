@@ -345,14 +345,14 @@ function CartLineRow({ line, lineKey, onIncrement, onDecrement, onRemove }: Cart
   return (
     <div className="px-4 py-2">
       <div className="flex items-start gap-2">
-      <div className="flex-1 min-w-0">
-        <p className="text-body font-medium">{line.name}</p>
-        {/* S6 — the chosen modifiers, by NAME, under the dish. Without this the cashier can see
+        <div className="flex-1 min-w-0">
+          <p className="text-body font-medium">{line.name}</p>
+          {/* S6 — the chosen modifiers, by NAME, under the dish. Without this the cashier can see
             that a line costs more than the menu price and has no way to find out why, and cannot
             tell two otherwise-identical lines apart before sending them to the kitchen. */}
-        {line.modifiers.length > 0 && (
-          <p className="text-label text-muted-foreground" data-testid="cart-line-modifiers">
-            {/*
+          {line.modifiers.length > 0 && (
+            <p className="text-label text-muted-foreground" data-testid="cart-line-modifiers">
+              {/*
               The delta goes through <MoneyDisplay sign="signed">, not `formatPaisa`
               interpolated into a joined string.
 
@@ -373,24 +373,24 @@ function CartLineRow({ line, lineKey, onIncrement, onDecrement, onRemove }: Cart
               Also gained: the `signed` face's aria-label ("negative Rs 50.00"), where the
               hand-rolled version handed a screen reader a bare glyph it does not voice.
             */}
-            {line.modifiers.map((m, i) => (
-              <Fragment key={m.id}>
-                {i > 0 ? " · " : null}
-                {m.name}
-                {m.priceDeltaPaisa !== 0 ? (
-                  <>
-                    {" "}
-                    <MoneyDisplay paisa={m.priceDeltaPaisa} sign="signed" />
-                  </>
-                ) : null}
-              </Fragment>
-            ))}
-          </p>
-        )}
-        {line.notes && (
-          <p className="text-label text-muted-foreground italic">Note: {line.notes}</p>
-        )}
-      </div>
+              {line.modifiers.map((m, i) => (
+                <Fragment key={m.id}>
+                  {i > 0 ? " · " : null}
+                  {m.name}
+                  {m.priceDeltaPaisa !== 0 ? (
+                    <>
+                      {" "}
+                      <MoneyDisplay paisa={m.priceDeltaPaisa} sign="signed" />
+                    </>
+                  ) : null}
+                </Fragment>
+              ))}
+            </p>
+          )}
+          {line.notes && (
+            <p className="text-label text-muted-foreground italic">Note: {line.notes}</p>
+          )}
+        </div>
 
         {/* S6: the line total INCLUDES the modifier deltas — one definition, shared with the cart
             subtotal and with the server's own `OrderPricingCalculator.lineSubtotal`. It read
@@ -623,8 +623,8 @@ function QueuedStrip({ queued }: { queued: ReturnType<typeof useQueuedOps> }) {
             ? "Queued — the kitchen has not seen this yet."
             : "Queued — not saved to the server yet."}
         </span>{" "}
-        {queued.queued} change{queued.queued === 1 ? "" : "s"} will send the moment the
-        connection returns. Keep this order open, or find it in Order Management afterwards.
+        {queued.queued} change{queued.queued === 1 ? "" : "s"} will send the moment the connection
+        returns. Keep this order open, or find it in Order Management afterwards.
       </p>
     </div>
   );

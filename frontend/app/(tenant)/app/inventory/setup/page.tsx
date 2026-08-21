@@ -489,7 +489,11 @@ function UomRowActions({ uom }: { uom: Uom }) {
         </Button>
       </div>
       {refusal && (
-        <p role="alert" data-testid={`uom-retire-refusal-${uom.code}`} className="max-w-sm text-right text-small text-destructive">
+        <p
+          role="alert"
+          data-testid={`uom-retire-refusal-${uom.code}`}
+          className="max-w-sm text-right text-small text-destructive"
+        >
           {refusal}
         </p>
       )}
