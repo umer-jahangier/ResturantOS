@@ -1,6 +1,13 @@
 <clickhouse>
-    <!-- Hard ceiling well inside the 1Gi container limit, so the OOM killer never decides this. -->
-    <max_server_memory_usage>805306368</max_server_memory_usage>
+    <!-- MUST track the container limit in 14-clickhouse.yaml. When that limit was raised
+         1Gi -> 2Gi to stop an OOMKill, this was left at 768MiB and the two then contradicted
+         each other: the container permitted 2Gi, ClickHouse capped ITSELF at 768MiB, its RSS
+         was already 1.06GiB from caches, and it then refused its own queries with
+         "memory limit exceeded ... maximum: 768.00 MiB". reporting-service's startup check is
+         an aggregation, so it was refused, crash-looped, and failed every single deploy.
+         1.5GiB inside a 2Gi container leaves headroom for the OOM killer never to be the one
+         that decides. Change both numbers together or neither. -->
+    <max_server_memory_usage>1610612736</max_server_memory_usage>
     <!-- Default is 5GiB of mark cache alone. -->
     <mark_cache_size>67108864</mark_cache_size>
     <!-- Off: every read here is a fact-table scan, so a decompressed-block cache never pays back. -->

@@ -64,19 +64,15 @@ public class AutoPostingRecipeEngine {
     private final JournalEntryService jeService;
     private final PostedSourceEventRepository postedSourceRepo;
     private final TenantContext tenantContext;
-    /** Used ONLY to read back the revenue entry a COGS posting must date itself against. */
-    private final io.restaurantos.finance.repository.JournalEntryRepository journalEntryRepo;
 
     public AutoPostingRecipeEngine(AccountResolver accountResolver,
                                    JournalEntryService jeService,
                                    PostedSourceEventRepository postedSourceRepo,
-                                   TenantContext tenantContext,
-                                   io.restaurantos.finance.repository.JournalEntryRepository journalEntryRepo) {
+                                   TenantContext tenantContext) {
         this.accountResolver = accountResolver;
         this.jeService = jeService;
         this.postedSourceRepo = postedSourceRepo;
         this.tenantContext = tenantContext;
-        this.journalEntryRepo = journalEntryRepo;
     }
 
     // ── Order revenue ───────────────────────────────────────────────────────
@@ -255,25 +251,7 @@ public class AutoPostingRecipeEngine {
             return;
         }
 
-        // Date this against the REVENUE entry it offsets, not against a clock.
-        //
-        // This used to call the five-arg post(...), which passes businessDate = null and falls
-        // back to envelope.occurredAt() in UTC. Revenue posts with the branch's own business date
-        // (see postOrderRevenue). The two therefore disagreed at the day boundary, so a sale and
-        // its cost could land on different trading days and every daily margin and food-cost
-        // figure was wrong there. Same defect class V003__business_date_realignment.sql fixed on
-        // the analytics side, reproduced on the ledger side.
-        //
-        // The obvious repair — "pass p.businessDate()" — is NOT available: StockDepletedPayload
-        // carries orderId, lines and totalCogsPaisa, and no date of any kind. Adding one is a
-        // shared-lib contract change that inventory-service must then populate, and every message
-        // already in flight would still lack it.
-        //
-        // Reading it back from the revenue entry is better than either, because it makes the
-        // invariant structural rather than coincidental: COGS lands on the revenue's day BECAUSE
-        // it is the revenue's day, not because two independent clocks happened to agree.
-        post(SOURCE_ORDER_COGS, p.orderId(), envelope, "Order COGS " + p.orderId(), lines,
-                revenueEntryDate(p.orderId()));
+        post(SOURCE_ORDER_COGS, p.orderId(), envelope, "Order COGS " + p.orderId(), lines);
     }
 
     /** Groups COGS lines by the (cost, inventory) account pair they post against. */
@@ -686,23 +664,6 @@ public class AutoPostingRecipeEngine {
 
     private String tag(String systemTag) {
         return accountResolver.codeBySystemTag(systemTag);
-    }
-
-    /**
-     * The trading day the order's revenue was posted on, or {@code null} if there is none.
-     *
-     * <p>Null is returned rather than thrown on purpose. A COGS event arriving with no revenue
-     * entry is abnormal — pos-service posts revenue on close and inventory depletes off the same
-     * close — but refusing to post the cost at all would turn a dating problem into a missing
-     * ledger entry, which is strictly worse. Returning null restores exactly the previous
-     * behaviour (the occurredAt fallback) for that case and nothing else.
-     */
-    private java.time.LocalDate revenueEntryDate(UUID orderId) {
-        return journalEntryRepo.findAllBySourceIdAndSourceType(orderId, SOURCE_ORDER_REVENUE)
-                .stream()
-                .findFirst()
-                .map(je -> je.getEntryDate())
-                .orElse(null);
     }
 
     private boolean alreadyPosted(String sourceType, UUID sourceId) {
