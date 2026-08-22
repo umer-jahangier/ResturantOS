@@ -120,7 +120,11 @@ describe("MenuItemImageField", () => {
     expect(contentType).toMatch(/^multipart\/form-data; *boundary=.+/);
     // A local preview appears immediately, before any response — the picker should not feel
     // like it did nothing while the bytes are in flight.
-    expect(screen.getByTestId("menu-item-image-preview")).toBeInTheDocument();
+    // findBy, not getBy: the preview is state set from the object URL during the upload, and
+    // whether that state has flushed by the time this line runs is a question of microtask
+    // ordering, not of behaviour. A fast machine wins the race and CI lost it. The assertion is
+    // unchanged — the preview must appear — it just stops depending on WHICH tick it appears on.
+    expect(await screen.findByTestId("menu-item-image-preview")).toBeInTheDocument();
   });
 
   it("does not upload a file the server would reject anyway — a courtesy, not the control", async () => {
