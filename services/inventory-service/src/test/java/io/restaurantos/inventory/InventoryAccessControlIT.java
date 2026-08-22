@@ -1,5 +1,6 @@
 package io.restaurantos.inventory;
 
+import io.restaurantos.shared.testsupport.TenantContextBindingTestFilter;
 import io.restaurantos.inventory.dto.InventoryDtos.CreateIngredientRequest;
 import io.restaurantos.inventory.dto.InventoryDtos.CreateUomRequest;
 import io.restaurantos.inventory.repository.IngredientRepository;

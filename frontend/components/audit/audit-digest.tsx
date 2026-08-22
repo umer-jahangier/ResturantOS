@@ -202,7 +202,7 @@ export function AuditDigest({
       <div className="flex flex-wrap items-center justify-between gap-(--space-sm) border-b border-border px-5 py-4">
         <h2
           id={headingId}
-          className="text-label font-semibold uppercase tracking-wide text-foreground-secondary"
+          className="text-label font-semibold uppercase tracking-[0.08em] text-foreground-secondary"
         >
           {title}
         </h2>

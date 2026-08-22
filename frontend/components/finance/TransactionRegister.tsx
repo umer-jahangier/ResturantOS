@@ -244,7 +244,7 @@ export function TransactionRegister() {
           />
         </div>
         <fieldset className="flex flex-col gap-1">
-          <legend className="text-label font-semibold uppercase tracking-wide text-foreground-tertiary">
+          <legend className="text-label font-semibold uppercase tracking-[0.08em] text-foreground-tertiary">
             Show
           </legend>
           <div className="flex gap-1">
@@ -392,7 +392,7 @@ function TraceDetail({ row, onClose }: { row: TransactionRow; onClose: () => voi
 
       <div className="mt-(--space-md) grid gap-(--space-lg) lg:grid-cols-2">
         <div>
-          <h4 className="text-label font-semibold uppercase tracking-wide text-foreground-tertiary">
+          <h4 className="text-label font-semibold uppercase tracking-[0.08em] text-foreground-tertiary">
             The order this event settled
           </h4>
           <div className="mt-(--space-sm)">
@@ -422,7 +422,7 @@ function TraceDetail({ row, onClose }: { row: TransactionRow; onClose: () => voi
         </div>
 
         <div>
-          <h4 className="text-label font-semibold uppercase tracking-wide text-foreground-tertiary">
+          <h4 className="text-label font-semibold uppercase tracking-[0.08em] text-foreground-tertiary">
             What it posted to the ledger
           </h4>
           <div className="mt-(--space-sm)">

@@ -57,7 +57,7 @@ export function NlqResultPanel({ result }: { result: NlqResult }) {
         <summary className="cursor-pointer text-small font-medium text-foreground-secondary">
           Show the SQL that ran
         </summary>
-        <pre className="mt-(--space-sm) overflow-x-auto rounded-md bg-muted p-(--space-md) text-label break-words whitespace-pre-wrap">
+        <pre className="relative mt-(--space-sm) overflow-x-auto rounded-md bg-muted p-(--space-md) text-label break-words whitespace-pre-wrap">
           {result.sql}
         </pre>
       </details>

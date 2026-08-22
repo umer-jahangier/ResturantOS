@@ -63,7 +63,18 @@ export function PageHeader({
       className={cn("flex flex-wrap items-start justify-between gap-(--space-md)", className)}
     >
       <div className="min-w-0 flex-1">
-        <h1 className="text-h1 font-semibold text-balance">{title}</h1>
+        {/*
+         * The DISPLAY SERIF, and this is the one line that puts it on every screen at once.
+         *
+         * The demo sets its page titles in Fraunces; this product set them in Sora, and a
+         * 20px semibold sans title over a sans description is the typographic signature of a
+         * scaffold — nothing on the page announces that a designer chose anything. `font-heading`
+         * is a family only: no size change, no weight change, no motion, so the operational zone
+         * (POS/KDS, which reach this through `kitchen/[stationCode]`) is unaffected beyond the
+         * face. The description and meta below deliberately stay in the body sans, which is the
+         * demo's pairing — serif states, sans explains.
+         */}
+        <h1 className="font-heading text-h1 font-semibold text-balance">{title}</h1>
         {description ? (
           <p className="mt-(--space-xs) text-body text-foreground-secondary">{description}</p>
         ) : null}
@@ -73,7 +84,22 @@ export function PageHeader({
       </div>
 
       {actions || overflow ? (
-        <div className="flex shrink-0 items-center gap-(--space-sm)">
+        /*
+         * Deliberately NOT `shrink-0`, and the reason is a measurement.
+         *
+         * <p>It was `shrink-0`, and at 390px that produced the single "past the viewport with
+         * nothing containing it" escapee plan 38-14's runtime gate reports for
+         * `/app/inventory/stock` — measured against the live deployment 2026-08-22 as
+         * `div 392×32 @40,315`, i.e. a right edge at 432 inside a 390px viewport. That page hands
+         * `actions` FOUR buttons in a row that already declares `flex-wrap`, so the wrap it needs
+         * was there all along; `shrink-0` was the thing denying it the chance to take it. The
+         * flex item kept its 392px max-content width and dragged the whole header sideways.
+         *
+         * <p>Shrinkable and wrapping instead. Nothing moves at the widths where nothing
+         * overflows: the title beside this is `flex-1` on a `basis: 0`, so it concedes every
+         * pixel the actions ask for and no shrink is ever triggered on a desktop header.
+         */
+        <div className="flex min-w-0 flex-wrap items-center gap-(--space-sm)">
           {actions}
           {overflow}
         </div>

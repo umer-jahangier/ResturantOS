@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { Coins, Flame, ReceiptText, Timer, Utensils } from "lucide-react";
 
 import { DashboardShell, useNow } from "@/components/dashboard/dashboard-shell";
 import { PortletGrid, type PortletModels } from "@/components/dashboard/portlets/portlet-renderer";
@@ -15,7 +16,7 @@ import { useMenuItemsAdmin } from "@/lib/hooks/pos/use-menu-admin";
 import { useOrderSummaries, useTables } from "@/lib/hooks/pos/use-orders";
 import { useBranchTills } from "@/lib/hooks/pos/use-till";
 import type { KdsTicket } from "@/lib/models/kds.model";
-import type { ExceptionRow } from "@/components/dashboard/portlets/portlet";
+import type { ExceptionRow, MeterStackRow } from "@/components/dashboard/portlets/portlet";
 import { formatNumber } from "@/lib/format/locale";
 
 const PRESET = DASHBOARD_PRESETS.manager;
@@ -111,19 +112,32 @@ export function ManagerDashboard() {
   const countedTills = todaysTills.filter((t) => t.variancePaisa != null);
   const variancePaisa = countedTills.reduce((sum, t) => sum + (t.variancePaisa ?? 0), 0);
 
-  const stationLoad = useMemo(() => {
+  /**
+   * The demo's "LIVE OPERATIONS" panel: a meter per station, each against a REAL denominator.
+   *
+   * <p>The denominator moved, and the move is the point. It used to be `count / max` — each
+   * station measured against the busiest station — which draws a full bar on the busiest station
+   * whether it is holding twelve tickets or one, and reads as "this station is at capacity". A
+   * relative maximum is a ranking, not a load. Measured against the whole board, a full bar means
+   * "every live ticket on the pass is at this station", which is a thing that can be true and a
+   * thing a manager can act on.
+   */
+  const stationLoad = useMemo<MeterStackRow[]>(() => {
     const counts = new Map<string, number>();
     for (const t of liveTickets) {
       counts.set(t.stationCode, (counts.get(t.stationCode) ?? 0) + 1);
     }
-    const max = Math.max(1, ...counts.values());
+    const total = liveTickets.length;
     return [...counts.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([code, count]) => ({
         key: code,
         label: stations.find((s) => s.code === code)?.name ?? code,
-        value: `${count} ticket${count === 1 ? "" : "s"}`,
-        fraction: count / max,
+        value: count,
+        of: total,
+        // The noun agrees with the DENOMINATOR, which is what it sits after: `Meter` renders
+        // "1 / 5 {noun}", so pluralising off the numerator prints "1 / 5 ticket".
+        noun: total === 1 ? "ticket" : "tickets",
       }));
   }, [liveTickets, stations]);
 
@@ -148,8 +162,16 @@ export function ManagerDashboard() {
       // deleted `formatAge` was a ticket-face `mm:ss` timer, so a check left open over a close
       // rendered `114:01:07` here, inside a sentence, in the danger row. The long form says
       // `5d`, and past thirty days it names the date instead of counting at all.
-      detail: `${formatElapsedLong(t.receivedAt, now)} on the board — past this station's target`,
+      // The AGE moved to the right-hand slot, so the detail no longer repeats it. It used to
+      // read "22 min on the board — past this station's target" beside a right-pinned "22 min".
+      detail: `${t.stationCode} · past this station's target`,
       severity: "danger" as const,
+      icon: <Flame />,
+      // LONG, not compact. `formatElapsedCompact` renders a 22-minute age as "22:00", and its own
+      // docblock says why that is wrong on its own: "announced on its own, 07:42 is a clock time".
+      // In a right-pinned column with no "ago" beside it, every reader makes that mistake.
+      timeLabel: formatElapsedLong(t.receivedAt, now),
+      dateTime: t.receivedAt.toISOString(),
     }));
     for (const till of todaysTills.filter((t) => t.status === "OPEN")) {
       rows.push({
@@ -164,6 +186,10 @@ export function ManagerDashboard() {
             : "today"
         } and not yet counted`,
         severity: "danger" as const,
+        icon: <Coins />,
+        ...(till.openedAt
+          ? { timeLabel: formatElapsedLong(till.openedAt, now), dateTime: till.openedAt }
+          : {}),
       });
     }
     for (const till of todaysTills.filter((t) => t.reviewStatus === "PENDING_REVIEW")) {
@@ -181,6 +207,10 @@ export function ManagerDashboard() {
             </>
           ),
         severity: "danger" as const,
+        icon: <ReceiptText />,
+        ...(till.openedAt
+          ? { timeLabel: formatElapsedLong(till.openedAt, now), dateTime: till.openedAt }
+          : {}),
       });
     }
     return rows.slice(0, 6);
@@ -206,6 +236,8 @@ export function ManagerDashboard() {
   const models: PortletModels<ManagerPortlets> = {
     "manager-open-orders": {
       kind: "KpiTile",
+      accent: "primary",
+      icon: ReceiptText,
       value: openOrders.length.toString(),
       caption: `${orders.length} order${orders.length === 1 ? "" : "s"} in view`,
       tone: openOrders.length > 0 ? "warning" : "neutral",
@@ -213,6 +245,8 @@ export function ManagerDashboard() {
     },
     "manager-late-tickets": {
       kind: "KpiTile",
+      accent: "danger",
+      icon: Timer,
       value: lateTickets.length.toString(),
       caption: `${liveTickets.length} on the board now`,
       // `higherIsBetter={false}` used to be passed here with no delta beside it — inert, because
@@ -226,6 +260,8 @@ export function ManagerDashboard() {
       todaysTills.length === 0 || countedTills.length === 0
         ? {
             kind: "KpiTile",
+            accent: "secondary",
+            icon: Coins,
             caption: `${countedTills.length} of ${todaysTills.length} till${todaysTills.length === 1 ? "" : "s"} counted`,
             unavailableReason:
               todaysTills.length === 0
@@ -235,6 +271,8 @@ export function ManagerDashboard() {
           }
         : {
             kind: "KpiTile",
+            accent: "secondary",
+            icon: Coins,
             value: <MoneyDisplay paisa={variancePaisa} sign="signed" />,
             caption: `${countedTills.length} of ${todaysTills.length} till${todaysTills.length === 1 ? "" : "s"} counted`,
             boundary: { query: tillsQuery, what: "till sessions" },
@@ -248,12 +286,13 @@ export function ManagerDashboard() {
     },
     "manager-live-orders": {
       kind: "RecordList",
+      monoPrimary: true,
       rows: liveOrderRows,
       emptyLabel: "Nothing open — every order is settled.",
       boundary: { query: ordersQuery, what: "live orders" },
     },
     "manager-station-load": {
-      kind: "RankedList",
+      kind: "MeterStack",
       rows: stationLoad,
       emptyLabel: "Every station is clear.",
       boundary: { query: [ticketsQuery, stationsQuery], what: "station load" },
@@ -272,6 +311,9 @@ export function ManagerDashboard() {
     },
     "manager-86d": {
       kind: "RankedList",
+      accent: "warning",
+      // The trailing value is a menu CATEGORY, not a figure.
+      monoValue: false,
       rows: eightySixed,
       emptyLabel: "Every menu item is available.",
       boundary: { query: menuQuery, what: "menu availability" },

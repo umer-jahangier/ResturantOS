@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      ════════════════════════════════════════════════════════════════════════════════════════════
+      platform_admin_audit — the platform operator's own trail
+      ════════════════════════════════════════════════════════════════════════════════════════════
+
+      WHY IT HAS TO EXIST HERE AND NOT IN audit_db
+
+      Every mutation this milestone adds to the platform user/RBAC surface is an action taken by a
+      platform_users row against a tenant's data. The obvious home for that record is
+      audit_db.audit_events, and it does not fit, for three independent reasons that were
+      established from source before this table was proposed:
+
+        1. audit_events.tenant_id is NOT NULL and its actor columns are read as auth_db.users ids
+           by every consumer. A platform_users id written into user_id names somebody who does not
+           exist in that tenant — or, worse, coincidentally does. That is the D-34 defect
+           (impersonation rows recording their target as their own actor) re-created one layer up.
+        2. platform_db cannot reach audit_db AT ALL. Separate databases, zero cross-grants in all
+           14 tenant databases, and platform_db has only plpgsql installed — no postgres_fdw, no
+           dblink (measured in 040-platform-db-rls-posture.xml). There is no SQL bridge.
+        3. audit_events and every one of its partitions are FORCE ROW LEVEL SECURITY, and the
+           platform plane has no tenant GUC to populate. audit-service's /internal/audit/events
+           looks like a door and is very likely inert for exactly that reason — it has no test and
+           nothing on that path sets the GUC. Building a control on it would be building on a
+           measurement nobody has taken.
+
+      So the platform tier keeps its trail where it can actually write it and actually read it,
+      beside impersonation_log, which is the same kind of record for the same reason.
+
+      WHAT THIS TABLE IS NOT
+
+      It is not a replacement for the tenant-side event. A platform-tier deactivation still
+      publishes USER_DEACTIVATED into the tenant's own outbox, so the tenant sees what happened to
+      its account. What that event deliberately does NOT carry is a platform id in an actor column
+      (see UserLifecycleEventPublisher.platformActivationChanged). This row is the other half: who.
+      Neither is a substitute for the other, and a reader wanting the whole picture needs both.
+
+      Two actions here publish NO tenant event at all and this is their only record —
+      USER_UNLOCK and USER_SESSIONS_REVOKED. There is no USER_UNLOCKED type in
+      AuditEventCatalog.MUST_AUDIT and adding one is a shared-lib change rippling through sixteen
+      services and a build-enforced allow-list closure test, for two operations that grant nothing
+      and revoke nothing. Recorded here as a KNOWN ASYMMETRY rather than papered over: a tenant
+      reading only its own audit_events will not see a platform-cleared lockout.
+
+      RLS: NONE, deliberately — 040 is the decision record and its reasoning applies unchanged.
+      The console has no tenant claim, so the fleet-standard policy would take this table to zero
+      rows and 42501 on every insert. Isolation is by database and by role.
+
+      APPEND-ONLY, by trigger and not by grant, for the reason 040-002 measured at length: on this
+      cluster platform_user inherits platform_admin, so a REVOKE is INERT and a trigger is the only
+      layer that fires for the owner, for an inheriting member, and for Liquibase. Unlike
+      impersonation_log there is no carve-out at all here — no column of this table is ever
+      legitimately updated, because the row describes something that already happened.
+    -->
+
+    <changeSet id="050-001-create-platform-admin-audit" author="restaurantos-agent">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="platform_admin_audit"/></not>
+        </preConditions>
+
+        <createTable tableName="platform_admin_audit">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="occurred_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <!--
+              The acting platform_users.id, taken from the sub of an RS256-verified control-plane
+              token. NOT NULL and no default: an audit row that cannot say who is one somebody has
+              to interpret rather than read, and a placeholder would name a person who did not act.
+              No FK to platform_users — the trail must outlive the account, and a cascade or a
+              restrict on an accountability record is a way to lose it or a way to be unable to
+              remove a leaver.
+            -->
+            <column name="platform_user_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <!--
+              Denormalised on purpose. The id is authoritative; the address is what an abuse review
+              reads the row BY, and resolving it at read time against a table whose rows may since
+              have been rotated (910 deactivates and replaces the seeded SuperAdmin) produces a
+              trail that changes its own history. Same call audit_events makes for targetEmail.
+            -->
+            <column name="platform_user_email" type="VARCHAR(255)"/>
+            <column name="action" type="VARCHAR(60)">
+                <constraints nullable="false"/>
+            </column>
+            <!--
+              Nullable: not every platform action is tenant-scoped, and a synthetic tenant id would
+              be a lie. No FK, for the same reason as platform_user_id above.
+            -->
+            <column name="tenant_id" type="UUID"/>
+            <column name="target_user_id" type="UUID"/>
+            <!--
+              Mandatory at the application layer for every mutation. A reset used to lock a rival
+              out is indistinguishable from a legitimate one without it (T-13-13-E). Nullable in the
+              column only so that a future non-mutating record type is not forced to invent one.
+            -->
+            <column name="reason" type="VARCHAR(500)"/>
+            <column name="outcome" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <!--
+              Plain-language "what actually happened" — 'sessionsRevoked=3', 'active=false',
+              'upstream refused: ROLE_CEILING_EXCEEDED'. Never a credential: the platform reset
+              returns a temporary password to the operator and it exists nowhere else, and this
+              column must never become the place it is written down. There is no structured
+              before/after here because this service does not hold the rows it is acting on.
+            -->
+            <column name="detail" type="VARCHAR(1000)"/>
+        </createTable>
+
+        <sql>ALTER TABLE platform_admin_audit ADD CONSTRAINT chk_platform_admin_audit_outcome
+            CHECK (outcome IN ('SUCCEEDED','REFUSED'))</sql>
+
+        <!--
+          The action vocabulary, constrained in the database rather than only in the enum. A typo'd
+          or renamed constant then fails the INSERT loudly instead of writing a row that no query
+          filters on — the drift class this repository has hit repeatedly over permission codes.
+          Adding an action means a changeset, which is the intended amount of friction for widening
+          what the platform tier may do.
+        -->
+        <sql>ALTER TABLE platform_admin_audit ADD CONSTRAINT chk_platform_admin_audit_action
+            CHECK (action IN (
+                'USER_PASSWORD_RESET',
+                'USER_DEACTIVATED',
+                'USER_REACTIVATED',
+                'USER_UNLOCKED',
+                'USER_SESSIONS_REVOKED'))</sql>
+
+        <!-- Newest-first is the only order this table is ever read in. -->
+        <createIndex tableName="platform_admin_audit" indexName="idx_paa_occurred_at">
+            <column name="occurred_at" descending="true"/>
+        </createIndex>
+        <!-- "Where has operator X been?" — the question this table exists to answer. -->
+        <createIndex tableName="platform_admin_audit" indexName="idx_paa_operator">
+            <column name="platform_user_id"/>
+            <column name="occurred_at" descending="true"/>
+        </createIndex>
+        <!-- "What has the platform done to MY tenant?" -->
+        <createIndex tableName="platform_admin_audit" indexName="idx_paa_tenant">
+            <column name="tenant_id"/>
+            <column name="occurred_at" descending="true"/>
+        </createIndex>
+
+        <sql>
+            COMMENT ON TABLE platform_admin_audit IS
+            'Accountability record of platform operator (SuperAdmin) actions on tenant users. NO RLS BY DESIGN — see 040-platform-db-rls-posture.xml; the console token carries no tenant_id so the fleet tenant_isolation policy would match ZERO rows. APPEND-ONLY, enforced by trg_platform_admin_audit_immutable + trg_platform_admin_audit_no_truncate; the accompanying REVOKE is INERT because platform_user inherits platform_admin. This is the ONLY record of USER_UNLOCKED and USER_SESSIONS_REVOKED — those publish no tenant-side event. For USER_DEACTIVATED / USER_REACTIVATED / USER_PASSWORD_RESET the tenant also has its own audit_events row, which deliberately carries NO platform id in any actor column.';
+        </sql>
+
+        <rollback>
+            <dropTable tableName="platform_admin_audit"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="050-002-platform-admin-audit-append-only-grants" author="restaurantos-agent">
+        <!--
+          Layer 1, and READ 040-002 BEFORE TRUSTING IT: on this cluster platform_user inherits
+          platform_admin, so this REVOKE changes the catalogue view and nothing else. It is kept
+          because it is correct and becomes load-bearing the day ownership is fixed; it is NOT a
+          second enforcing layer today. Layer 2 is.
+
+          Guarded on the role existing: under Testcontainers the container superuser is the only
+          role present, and a REVOKE naming a role that does not exist is an ERROR that would abort
+          Liquibase and fail every IT in this service at context startup.
+        -->
+        <sql splitStatements="false">
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'platform_user') THEN
+                    REVOKE UPDATE, DELETE, TRUNCATE ON platform_admin_audit FROM platform_user;
+                END IF;
+            END $$;
+        </sql>
+        <sql>REVOKE UPDATE, DELETE, TRUNCATE ON platform_admin_audit FROM PUBLIC;</sql>
+
+        <rollback>
+            <sql splitStatements="false">
+                DO $$
+                BEGIN
+                    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'platform_user') THEN
+                        GRANT UPDATE, DELETE, TRUNCATE ON platform_admin_audit TO platform_user;
+                    END IF;
+                END $$;
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="050-003-platform-admin-audit-immutability-trigger" author="restaurantos-agent">
+        <!--
+          Layer 2 — fires for EVERY role including the table owner and the migration tool. Same
+          shape as 040-003 and audit-service's 011.
+
+          No UPDATE carve-out at all, unlike impersonation_log's ended_at. Nothing about a completed
+          action is subsequently corrected: if an operator did something else afterwards, that is
+          another row. A guard with an exception is a guard somebody eventually widens.
+
+          A row-level trigger does not see TRUNCATE — TRUNCATE bypasses row triggers entirely — so
+          the statement-level one below is what stops the whole trail being erased in one statement.
+        -->
+        <sql splitStatements="false">
+            CREATE OR REPLACE FUNCTION prevent_platform_admin_audit_rewrite() RETURNS trigger AS $$
+            BEGIN
+                RAISE EXCEPTION
+                    'PLATFORM_ADMIN_AUDIT_IMMUTABLE: platform operator audit rows cannot be updated or deleted — this is the accountability trail for SuperAdmin actions on tenant accounts';
+            END;
+            $$ LANGUAGE plpgsql;
+        </sql>
+
+        <sql splitStatements="false">
+            CREATE OR REPLACE FUNCTION prevent_platform_admin_audit_truncate() RETURNS trigger AS $$
+            BEGIN
+                RAISE EXCEPTION
+                    'PLATFORM_ADMIN_AUDIT_IMMUTABLE: platform_admin_audit cannot be truncated — a row-level trigger does not see TRUNCATE, so this statement-level one exists to stop the whole trail being erased in one statement';
+            END;
+            $$ LANGUAGE plpgsql;
+        </sql>
+
+        <!-- DROP before CREATE so a re-run against a partially-applied database is a no-op. -->
+        <sql>DROP TRIGGER IF EXISTS trg_platform_admin_audit_immutable ON platform_admin_audit;</sql>
+        <sql splitStatements="false">
+            CREATE TRIGGER trg_platform_admin_audit_immutable
+                BEFORE UPDATE OR DELETE ON platform_admin_audit
+                FOR EACH ROW EXECUTE FUNCTION prevent_platform_admin_audit_rewrite();
+        </sql>
+
+        <sql>DROP TRIGGER IF EXISTS trg_platform_admin_audit_no_truncate ON platform_admin_audit;</sql>
+        <sql splitStatements="false">
+            CREATE TRIGGER trg_platform_admin_audit_no_truncate
+                BEFORE TRUNCATE ON platform_admin_audit
+                FOR EACH STATEMENT EXECUTE FUNCTION prevent_platform_admin_audit_truncate();
+        </sql>
+
+        <rollback>
+            <sql>DROP TRIGGER IF EXISTS trg_platform_admin_audit_immutable ON platform_admin_audit;</sql>
+            <sql>DROP TRIGGER IF EXISTS trg_platform_admin_audit_no_truncate ON platform_admin_audit;</sql>
+            <sql>DROP FUNCTION IF EXISTS prevent_platform_admin_audit_rewrite();</sql>
+            <sql>DROP FUNCTION IF EXISTS prevent_platform_admin_audit_truncate();</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

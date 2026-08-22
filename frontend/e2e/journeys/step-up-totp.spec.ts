@@ -58,14 +58,34 @@ test.describe("TOTP step-up", () => {
     await page.getByLabel("Email").fill(OWNER.email);
     await page.getByLabel("Password").fill(OWNER.password);
 
+    /*
+     * THE LABEL IS "Authenticator OR RECOVERY code", and this spec asked for the wrong one.
+     *
+     * <p>`components/auth/login-form.tsx:704` renders `Authenticator or recovery code` — it has
+     * since recovery codes were added, and `origin/main` says the same. `getByLabel` matches on
+     * a SUBSTRING, and "Authenticator code" is not a substring of that, so the old locator could
+     * never match anything on any build. Two consequences, both worth naming: the wait below
+     * burned 15s and failed on a form that was behaving correctly, and the `toHaveCount(0)`
+     * above — the assertion that stops this test passing against a form that always shows the
+     * field — passed VACUOUSLY, because a locator that matches nothing also matches nothing
+     * before the refusal. It is a real control again now.
+     */
+    const TOTP_LABEL = "Authenticator or recovery code";
+
     // No authenticator field exists yet — this is the pre-refusal state, and asserting it
     // is what stops the test passing against a form that always shows the field.
-    await expect(page.getByLabel("Authenticator code")).toHaveCount(0);
+    await expect(page.getByLabel(TOTP_LABEL)).toHaveCount(0);
 
     await page.getByRole("button", { name: "Sign in" }).click();
 
-    const totpField = page.getByLabel("Authenticator code");
-    await expect(totpField).toBeVisible({ timeout: 15_000 });
+    const totpField = page.getByLabel(TOTP_LABEL);
+    await expect(
+      totpField,
+      `the server should have refused with TOTP_REQUIRED and the form should have revealed the ` +
+        `"${TOTP_LABEL}" field. If the browser is sitting in the app shell instead, no challenge ` +
+        `was issued at all and ${OWNER.email} is not step-up-enrolled on this environment — ` +
+        "re-run `python3 scripts/seed_restaurantos.py --phase personas --repair` against it.",
+    ).toBeVisible({ timeout: 15_000 });
 
     // The email and password must survive the refusal — a form that cleared them would make
     // step-up unusable in practice while still "working".
@@ -77,9 +97,24 @@ test.describe("TOTP step-up", () => {
     await page.getByRole("button", { name: "Sign in" }).click();
 
     await page.waitForURL(/\/app\/dashboard/, { timeout: 25_000 });
-    await expect(page.getByRole("heading", { level: 1, name: "Dashboard" })).toBeVisible({
-      timeout: 20_000,
-    });
+    /*
+     * The dashboard's `<h1>` is the PRESET'S QUESTION, not the word "Dashboard".
+     *
+     * <p>`components/dashboard/dashboard-shell.tsx:133` renders `{preset.question}` — live, an
+     * owner reads `Is the business healthy?` (`presets.ts:215`) and a KITCHEN_STAFF reads
+     * `What needs me in the next five minutes?`. `origin/main` does the same, so this is not a
+     * local change waiting to deploy: the literal this spec asked for has not been on the screen
+     * for as long as presets have existed, and asserting it made a successful step-up look like
+     * a failed one.
+     *
+     * <p>What is asserted instead is the shell's own stable hooks plus a NON-EMPTY heading —
+     * `data-testid="dashboard"` is what the product publishes for this, and the emptiness check
+     * keeps the assertion from going vacuous the day a preset ships with no question.
+     */
+    const dashboard = page.getByTestId("dashboard");
+    await expect(dashboard).toBeVisible({ timeout: 20_000 });
+    await expect(dashboard).toHaveAttribute("data-preset", /.+/);
+    await expect(dashboard.getByRole("heading", { level: 1 })).not.toBeEmpty();
   });
 
   test("A2 · a wrong code is refused and the user stays on /login", async ({

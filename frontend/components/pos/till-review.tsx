@@ -128,7 +128,7 @@ export function TillReview() {
           />
         }
       >
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="relative overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
               <tr>
@@ -769,7 +769,8 @@ function TillReconciliationDetail({ tillId }: { tillId: string }) {
       {recon.orders.length === 0 ? (
         <p className="text-xs text-muted-foreground">No orders in this till session.</p>
       ) : (
-        <table className="w-full text-xs">
+        // `table-stack` (globals.css) — the drill-down under a till row, read on a phone.
+        <table className="table-stack w-full text-xs">
           <thead className="text-muted-foreground">
             <tr>
               <th className="py-1 text-left">Order</th>
@@ -781,12 +782,16 @@ function TillReconciliationDetail({ tillId }: { tillId: string }) {
           <tbody>
             {recon.orders.map((o) => (
               <tr key={o.orderId} className="border-t border-border/50">
-                <td className="py-1">{o.orderNo ?? o.orderId.slice(0, 8)}</td>
-                <td className="py-1">{o.status}</td>
-                <td className="py-1 text-right">
+                <td className="py-1" data-label="Order">
+                  {o.orderNo ?? o.orderId.slice(0, 8)}
+                </td>
+                <td className="py-1" data-label="Status">
+                  {o.status}
+                </td>
+                <td className="py-1 text-right" data-label="Total">
                   <MoneyDisplay paisa={o.totalPaisa} className="text-xs" />
                 </td>
-                <td className="py-1 text-right">
+                <td className="py-1 text-right" data-label="Paid">
                   <MoneyDisplay paisa={o.paidPaisa} className="text-xs" />
                 </td>
               </tr>
@@ -823,7 +828,7 @@ function TillReviewHistory({ tillId }: { tillId: string }) {
   return (
     <div className="space-y-1">
       <p className="text-xs font-medium">Review history</p>
-      <table className="w-full text-xs" data-testid="till-review-history">
+      <table className="table-stack w-full text-xs" data-testid="till-review-history">
         <thead className="text-muted-foreground">
           <tr>
             <th className="py-1 text-left">When</th>
@@ -835,10 +840,18 @@ function TillReviewHistory({ tillId }: { tillId: string }) {
         <tbody>
           {actions.map((a) => (
             <tr key={a.id} className="border-t border-border/50">
-              <td className="py-1">{fmtTime(a.actedAt)}</td>
-              <td className="py-1 font-mono text-muted-foreground">{a.reviewerId.slice(0, 8)}</td>
-              <td className="py-1">{a.action}</td>
-              <td className="py-1">{a.note ?? "—"}</td>
+              <td className="py-1" data-label="When">
+                {fmtTime(a.actedAt)}
+              </td>
+              <td className="py-1 font-mono text-muted-foreground" data-label="Reviewer">
+                {a.reviewerId.slice(0, 8)}
+              </td>
+              <td className="py-1" data-label="Action">
+                {a.action}
+              </td>
+              <td className="py-1" data-label="Note">
+                {a.note ?? "—"}
+              </td>
             </tr>
           ))}
         </tbody>

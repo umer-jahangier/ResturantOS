@@ -64,7 +64,9 @@ export interface SelectProps extends Omit<
 // aria-invalid treatment and the border-interactive contrast fix (UI-SPEC §3.2/§5.3, 3.77:1 light
 // / 3.48:1 dark, asserted in __tests__/lib/theme/design-tokens.test.ts) are the same string.
 const selectClass =
-  "h-8 w-full min-w-0 rounded-lg border border-border-interactive bg-transparent px-2.5 py-1 text-base transition-colors placeholder:text-muted-foreground focus-visible:border-ring disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-surface-2 dark:disabled:bg-surface-3 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40";
+  // Same touch floor as `Input` — see globals.css. A native <select> opens a picker on tap, so a
+  // missed tap here is a missed tap on the only affordance the control has.
+  "touch-floor h-8 w-full min-w-0 rounded-lg border border-border-interactive bg-transparent px-2.5 py-1 text-base transition-colors placeholder:text-muted-foreground focus-visible:border-ring disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-surface-2 dark:disabled:bg-surface-3 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40";
 
 function Select({
   className,

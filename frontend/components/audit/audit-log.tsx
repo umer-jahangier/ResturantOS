@@ -2,10 +2,12 @@
 
 import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
+import { Activity, Boxes, ScrollText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { DataGrid } from "@/components/ui/data-grid/data-grid";
 import { FilterBar } from "@/components/ui/filter-bar";
+import { StatTile } from "@/components/ui/stat-tile";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { QueryBoundary } from "@/components/ui/query-boundary";
@@ -326,6 +328,59 @@ export function AuditLog() {
 
   return (
     <div className="space-y-4">
+      {/*
+       * The stat strip.
+       *
+       * `total` is the SERVER'S count for the filters in force, which is the same number the
+       * pager prints — so the strip narrows with the table rather than describing a different
+       * set. The other two come from the FACETS request, which is already on this screen to
+       * populate the two dropdowns: it reports the distinct actions and resource types recorded
+       * across the whole date window, not across the 50 rows on this page. Counting either off
+       * `rows` would have produced a figure that changed when you turned the page, on a screen
+       * whose entire purpose is that the record does not change.
+       */}
+      <div className="grid gap-(--space-md) md:grid-cols-3">
+        <StatTile
+          label="Events matching these filters"
+          value={formatNumber(total)}
+          icon={ScrollText}
+          accent="primary"
+        />
+        {facetsQuery.isSuccess ? (
+          <>
+            <StatTile
+              label="Kinds of event in this window"
+              value={formatNumber(facetsQuery.data.actions.length)}
+              icon={Activity}
+              accent="secondary"
+            />
+            <StatTile
+              label="Kinds of record touched"
+              value={formatNumber(facetsQuery.data.resourceTypes.length)}
+              icon={Boxes}
+            />
+          </>
+        ) : (
+          /*
+           * D-38-16. Without the facets there is nothing to count; the rows on this PAGE are not
+           * an answer to "what kinds of event are in this window", and reporting them as one
+           * would give an auditor a figure that changes when they page.
+           */
+          <>
+            <StatTile
+              label="Kinds of event in this window"
+              unavailableReason="The event index did not load, and the page of rows on screen is not the window."
+              icon={Activity}
+            />
+            <StatTile
+              label="Kinds of record touched"
+              unavailableReason="The event index did not load, and the page of rows on screen is not the window."
+              icon={Boxes}
+            />
+          </>
+        )}
+      </div>
+
       {/* ── Filters ─────────────────────────────────────────────────────────────
           The shared `FilterBar` (38-10 task 5 / D-38-17): this screen used to hand-roll its own
           `rounded-lg border p-4` strip with a four-column grid inside it — one of the twelve

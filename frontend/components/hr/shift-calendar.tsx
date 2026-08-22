@@ -97,7 +97,7 @@ export function ShiftCalendar({
         )}
       </aside>
 
-      <div className="grow overflow-x-auto">
+      <div className="relative grow overflow-x-auto">
         <table className="w-full border-collapse text-label">
           <thead>
             <tr>

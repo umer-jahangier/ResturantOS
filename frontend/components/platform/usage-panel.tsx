@@ -1,10 +1,12 @@
 "use client";
 
-import { Info } from "lucide-react";
+import * as React from "react";
 
-import { cn } from "@/lib/utils";
-import { formatNumber } from "@/lib/format/locale";
+import { Meter } from "@/components/ui/meter";
 import { QueryBoundary } from "@/components/ui/query-boundary";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ConsoleNote, ConsoleSection } from "@/components/platform/console-section";
+import { formatNumber } from "@/lib/format/locale";
 import { useTenantUsage } from "@/lib/hooks/use-platform-usage";
 import {
   meterLabel,
@@ -16,156 +18,140 @@ import {
 /**
  * Usage against entitlement (UI-SPEC §7.5), reporting only what is actually measured.
  *
- * <h3>Why most of this screen says "Not metered"</h3>
+ * <h3>Why most of this panel says "Not metered"</h3>
  *
  * Because that is true. Checked against the live platform before a line of this component was
  * written: `select count(*) from usage_records` returns **0**, the audit confirms **0 producers**,
- * and `redis --scan 'nlq_quota:*'` returns **0 keys**. Exactly one dimension — branches — has a
- * real count, obtained from the same user-service call the tier-downgrade check already trusts.
- *
- * The spec describes meters with used/limit bars, `--warning` at 80% and `--danger` at 100%. Those
- * are implemented and they render for the resource that has a number. For the three that do not,
- * this component states so in words and names the reason.
+ * and `redis --scan 'nlq_quota:*'` returns **0 keys**. Exactly one dimension — branches — has a real
+ * count, obtained from the same user-service call the tier-downgrade check already trusts.
  *
  * <h3>Why it does not render 0</h3>
  *
  * A 0% bar is a claim: it says we counted and found nothing. For users, storage and NLQ nobody is
  * counting, and "0 / 500 users" beside a tenant with forty staff is not an incomplete feature — it
- * is a false statement in the product's own confident voice, on a screen whose entire purpose is
- * to inform capacity and billing decisions. That is the same failure mode as GA-001, where eleven
- * screens rendered an empty state for a failed request; the remedy is the same, and it is not to
- * make the screen look calmer.
+ * is a false statement in the product's own confident voice, on a screen whose entire purpose is to
+ * inform capacity decisions. An unreadable meter is distinguished from an unmetered one for the same
+ * reason the tenant-status check refuses an undeterminable status: not knowing is not the same as
+ * knowing it is zero.
  *
- * An unreadable meter is distinguished from an unmetered one for the same reason 13-03 refuses an
- * undeterminable tenant status: not knowing is not the same as knowing it is zero.
+ * <h3>The entitlement half is real even when the usage half is not</h3>
+ *
+ * Those four ceilings have been returned by the API since Phase 3 and were read by nothing (GA-083).
+ * So an unmetered row still states its ceiling in words — "Limit 500 users" — inside the same
+ * sentence that says the consumption is not collected. Showing the entitlement alone is honest;
+ * pairing it with an invented numerator is not.
+ *
+ * <h3>Why `Meter` and not a hand-rolled bar</h3>
+ *
+ * `Meter`'s props are a discriminated union: a null reading MUST arrive with a reason and a real
+ * reading may not carry one, so the compiler refuses the shape this screen exists to avoid. Its
+ * unknown state draws a dashed empty track rather than a full-width one at 0%, which is the visual
+ * difference between "no measurement" and "measured none". A second bar written here would be a
+ * second place to get that wrong.
  */
 export function UsagePanel({ tenantId }: { tenantId: string }) {
   const usage = useTenantUsage(tenantId);
 
   return (
-    <section className="space-y-3" aria-labelledby="usage-heading">
-      <h2 id="usage-heading" className="text-lg font-semibold">
-        Usage against entitlement
-      </h2>
-
-      <QueryBoundary query={usage} what="this tenant's usage">
-        <div className="space-y-3">
+    <ConsoleSection
+      anchorId="usage"
+      eyebrow="Usage"
+      title="Usage against entitlement"
+      description="What this tenant's tier allows, and what it has actually consumed where anything is counting."
+      data-testid="tenant-usage"
+    >
+      <QueryBoundary
+        query={usage}
+        what="this tenant's usage"
+        loading={<Skeleton className="h-32" />}
+      >
+        <div className="flex flex-col gap-(--space-md)">
           {usage.data && !usage.data.anyMetered && (
-            <p
-              role="note"
-              data-testid="usage-nothing-metered"
-              className="flex items-start gap-2 rounded-md border border-border bg-muted/50 p-3 text-sm text-muted-foreground"
-            >
-              <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-              <span>
-                No usage is currently recorded for this tenant. Entitlement ceilings below are real;
-                the consumption figures are not collected yet, so none are shown.
-              </span>
-            </p>
+            <ConsoleNote data-testid="usage-nothing-metered">
+              No usage is recorded for this tenant on any dimension. The entitlement ceilings below
+              are real; the consumption figures are not collected yet, so none are shown. One honest
+              banner rather than four identical rows, because this is one platform-wide fact and not
+              four separate omissions.
+            </ConsoleNote>
           )}
 
-          <ul className="space-y-2" data-testid="usage-meters">
+          <ul className="flex flex-col gap-(--space-md)" data-testid="usage-meters">
             {usage.data?.meters.map((meter) => (
-              <li key={meter.resource}>
-                <MeterRow meter={meter} />
+              <li
+                key={meter.resource}
+                data-testid={`usage-meter-${meter.resource}`}
+                data-metered={meter.metered}
+                data-unavailable={meter.unavailable}
+              >
+                <UsageMeterRow meter={meter} />
               </li>
             ))}
           </ul>
         </div>
       </QueryBoundary>
-    </section>
+    </ConsoleSection>
   );
 }
 
-function MeterRow({ meter }: { meter: UsageMeter }) {
-  const pct = meterPercent(meter);
+/** The ceiling as words, for the sentence an unmeasured row renders instead of a bar. */
+function ceilingPhrase(meter: UsageMeter): string {
+  return meter.limit < 0 ? "Uncapped" : `Limit ${formatNumber(meter.limit)} ${meter.unit}`;
+}
+
+function UsageMeterRow({ meter }: { meter: UsageMeter }) {
+  const percent = meterPercent(meter);
   const severity = meterSeverity(meter);
-  const uncapped = meter.limit < 0;
+  const label = meterLabel(meter.resource);
+
+  // A real count with no ceiling to measure it against. The number is known and is stated; there is
+  // simply no denominator, and `Meter` requires one — inventing a ceiling to draw a bar would be
+  // the fabrication this whole panel refuses.
+  if (meter.metered && !meter.unavailable && meter.used !== null && meter.limit < 0) {
+    return (
+      <Meter
+        label={label}
+        value={null}
+        of={0}
+        unavailableReason={`Uncapped — ${formatNumber(meter.used)} ${meter.unit} recorded, with no ceiling to measure against. ${meter.source}`}
+      />
+    );
+  }
+
+  // `meterPercent` returns null for every state that has no honest reading, so this branch covers
+  // unmetered, unreadable and no-denominator alike — each with its own first word.
+  //
+  // The `used === null` test is redundant with it and is written anyway: it is what lets the branch
+  // below use `meter.used` directly instead of `meter.used ?? 0`. A `?? 0` here would compile, would
+  // be unreachable today, and would be the single character that turns "nobody counted" into "we
+  // counted none" the first time somebody widens `meterPercent`.
+  if (percent === null || meter.used === null) {
+    return (
+      <Meter
+        label={label}
+        value={null}
+        of={meter.limit > 0 ? meter.limit : 0}
+        unavailableReason={`${meter.unavailable ? "Could not be read" : "Not metered"}. ${ceilingPhrase(meter)}. ${meter.source}`}
+      />
+    );
+  }
 
   return (
-    <div
-      className="rounded-lg border p-3"
-      data-testid={`usage-meter-${meter.resource}`}
-      data-metered={meter.metered}
-      data-unavailable={meter.unavailable}
-    >
-      <div className="flex items-baseline justify-between gap-4">
-        <span className="font-medium">{meterLabel(meter.resource)}</span>
-        <span className="text-sm tabular-nums">
-          {meter.used !== null ? (
-            <>
-              <span
-                className={cn(
-                  "font-semibold",
-                  severity === "danger" && "text-destructive",
-                  severity === "warning" && "text-warning",
-                )}
-              >
-                {formatNumber(meter.used)}
-              </span>
-              <span className="text-muted-foreground">
-                {" / "}
-                {uncapped ? "uncapped" : formatNumber(meter.limit)} {meter.unit}
-              </span>
-            </>
-          ) : (
-            <span className="text-muted-foreground">
-              {/*
-                The limit is real even when the usage is not — those four ceilings have been
-                returned by the API since Phase 3 and read by nothing (GA-083). Showing the
-                entitlement alone is honest; pairing it with an invented numerator is not.
-              */}
-              Limit {uncapped ? "uncapped" : formatNumber(meter.limit)} {meter.unit}
-            </span>
-          )}
-        </span>
-      </div>
-
-      {pct !== null ? (
-        <div
-          className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted"
-          role="meter"
-          aria-valuenow={meter.used ?? undefined}
-          aria-valuemin={0}
-          aria-valuemax={meter.limit}
-          aria-label={`${meterLabel(meter.resource)} used`}
-        >
-          <div
-            className={cn(
-              "h-full rounded-full transition-[width]",
-              severity === "danger"
-                ? "bg-destructive"
-                : severity === "warning"
-                  ? "bg-warning"
-                  : "bg-primary-solid",
-            )}
-            style={{ width: `${Math.min(pct, 100)}%` }}
-          />
-        </div>
-      ) : (
-        // Deliberately NOT a 0%-width bar. An empty track reads as "nothing used"; the absence of
-        // a track reads as "no measurement", which is the true statement.
-        <p className="mt-1.5 text-xs text-muted-foreground">
-          <span className="font-medium">
-            {meter.unavailable ? "Could not be read" : "Not metered"}
-          </span>
-          {" — "}
-          {meter.source}
-        </p>
-      )}
-
-      {pct !== null && severity !== "ok" && (
-        <p
-          className={cn(
-            "mt-1.5 text-xs",
-            severity === "danger" ? "text-destructive" : "text-warning",
-          )}
-        >
-          {severity === "danger"
-            ? `Over the tier ceiling by ${formatNumber((meter.used ?? 0) - meter.limit)} ${meter.unit}.`
-            : `${Math.round(pct)}% of the tier ceiling used.`}
-        </p>
-      )}
-    </div>
+    <Meter
+      label={label}
+      value={meter.used}
+      of={meter.limit}
+      noun={meter.unit}
+      ofLabel="Tier ceiling"
+      status={
+        severity === "danger"
+          ? {
+              tone: "danger",
+              label: `Over by ${formatNumber(meter.used - meter.limit)} ${meter.unit}`,
+            }
+          : severity === "warning"
+            ? { tone: "warning", label: `${formatNumber(Math.round(percent))}% used` }
+            : { tone: "success", label: "Within tier" }
+      }
+    />
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { BookOpen, CalendarClock, Scale, Wallet } from "lucide-react";
 
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { PortletGrid, type PortletModels } from "@/components/dashboard/portlets/portlet-renderer";
@@ -83,6 +84,7 @@ export function FinanceDashboard() {
         </>
       ),
       severity: "danger" as const,
+      icon: <Scale />,
     }));
     for (const period of overdue.slice(0, 3)) {
       rows.push({
@@ -94,6 +96,10 @@ export function FinanceDashboard() {
           year: "numeric",
         })} and has not been locked`,
         severity: "warning" as const,
+        icon: <CalendarClock />,
+        // The end date IS the age here — a period is late by however long it has been closed
+        // over. `formatDateTime` already renders it in the detail line, so the right-hand slot
+        // stays empty rather than repeating it in a second format.
       });
     }
     return rows.slice(0, 6);
@@ -102,6 +108,8 @@ export function FinanceDashboard() {
   const models: PortletModels<FinancePortlets> = {
     "finance-unposted-journals": {
       kind: "KpiTile",
+      accent: "primary",
+      icon: BookOpen,
       value: formatNumber(draftCount),
       caption: "Draft entries in the last 12 months",
       tone: draftCount > 0 ? "warning" : "neutral",
@@ -109,6 +117,8 @@ export function FinanceDashboard() {
     },
     "finance-unbalanced-journals": {
       kind: "KpiTile",
+      accent: "danger",
+      icon: Scale,
       value: formatNumber(unbalanced.length),
       // Says what it counted over. `unbalanced` is derived from the rows on the page, not from
       // a server-side count, and a tile that implied otherwise would under-report silently.
@@ -118,6 +128,8 @@ export function FinanceDashboard() {
     },
     "finance-open-periods": {
       kind: "KpiTile",
+      accent: "warning",
+      icon: CalendarClock,
       value: formatNumber(periods.length),
       caption:
         overdue.length > 0
@@ -128,6 +140,8 @@ export function FinanceDashboard() {
     },
     "finance-payroll-unpaid": {
       kind: "KpiTile",
+      accent: "secondary",
+      icon: Wallet,
       value: formatNumber(unpaidRuns.length),
       caption: `Of ${formatNumber(payrollRuns.length)} run${payrollRuns.length === 1 ? "" : "s"} on record`,
       boundary: {
@@ -138,6 +152,7 @@ export function FinanceDashboard() {
     },
     "finance-unposted-list": {
       kind: "RecordList",
+      monoPrimary: true,
       rows: journalRecordRows(drafts),
       emptyLabel: "Every entry in this window is posted.",
       boundary: { query: draftsQuery, what: "journal entries" },

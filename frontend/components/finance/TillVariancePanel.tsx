@@ -190,10 +190,17 @@ export function TillVariancePanel({
           No till was opened on this day.
         </p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-small" data-testid="till-panel">
+        <div className="relative overflow-x-auto">
+          {/*
+            `table-stack` (globals.css): below `md` each till becomes a card with its four money
+            figures labelled. Six columns — four of them money — is the widest table in the finance
+            module, and the person most likely to open it on a phone is the cashier whose drawer
+            it is describing. The `relative overflow-x-auto` wrapper stays for the tablet range,
+            where the table is still a table.
+          */}
+          <table className="table-stack w-full text-small" data-testid="till-panel">
             <thead>
-              <tr className="border-b text-left text-label uppercase tracking-wide text-muted-foreground">
+              <tr className="border-b text-left text-label uppercase tracking-[0.08em] text-muted-foreground">
                 <th className="pb-2 font-medium">Till</th>
                 <th className="pb-2 font-medium">State</th>
                 <th className="pb-2 text-right font-medium">Opening float</th>
@@ -215,7 +222,7 @@ export function TillVariancePanel({
                     data-testid={`till-row-${till.tillSessionId}`}
                     data-reconciliation-state={till.reconciliationState}
                   >
-                    <td className="py-2.5 pr-3">
+                    <td className="py-2.5 pr-3" data-label="Till">
                       <span className="block font-medium">{cashier}</span>
                       <span className="block text-label text-muted-foreground">
                         Opened {formatDateTime(till.openedAt, SHORT_STAMP)}
@@ -224,7 +231,7 @@ export function TillVariancePanel({
                           : " · not closed"}
                       </span>
                     </td>
-                    <td className="py-2.5 pr-3">
+                    <td className="py-2.5 pr-3" data-label="State">
                       <span
                         className={cn(
                           "inline-block rounded-md border px-1.5 py-0.5 text-label font-medium",
@@ -235,16 +242,16 @@ export function TillVariancePanel({
                         {p.label}
                       </span>
                     </td>
-                    <td className="py-2.5 text-right">
+                    <td className="py-2.5 text-right" data-label="Opening float">
                       <MoneyDisplay paisa={till.openingFloatPaisa} />
                     </td>
-                    <td className="py-2.5 text-right">
+                    <td className="py-2.5 text-right" data-label="Expected cash">
                       <FigureValue figure={till.expectedClosing} compact />
                     </td>
-                    <td className="py-2.5 text-right">
+                    <td className="py-2.5 text-right" data-label="Counted cash">
                       <FigureValue figure={till.declaredClosing} compact />
                     </td>
-                    <td className="py-2.5 text-right">
+                    <td className="py-2.5 text-right" data-label="Variance">
                       <VarianceCell variance={till.variance} state={till.reconciliationState} />
                     </td>
                   </tr>

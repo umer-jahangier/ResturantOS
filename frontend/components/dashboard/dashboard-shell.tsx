@@ -2,9 +2,83 @@
 
 import React, { useEffect, useState } from "react";
 
-import { T_BODY, T_DISPLAY, T_SMALL } from "@/components/dashboard/dashboard-type";
+import { T_BODY, T_DISPLAY, T_LABEL, T_SMALL } from "@/components/dashboard/dashboard-type";
 import type { DashboardPreset } from "@/components/dashboard/presets";
+import { formatDateTime } from "@/lib/format/locale";
 import { cn } from "@/lib/utils";
+
+/**
+ * WHERE the restaurant and the branch come from, and why not from here.
+ *
+ * <p>The demo's dashboard opens on a dateline — "Monday, 14 April 2025 — Al-Baik Restaurant,
+ * Branch 1" — and it is doing more work than it looks: it tells a reader which of several
+ * branches these figures are FOR, which is the one question a four-tile KPI row cannot answer
+ * about itself. We have both halves (`useTenantBrand`, `useMyBranches`) and neither belongs in
+ * this file, because both are `useQuery` calls and this shell is rendered by eight dashboard
+ * components that every unit test renders directly, with their own data hooks mocked and NO
+ * `QueryClientProvider` above them. Calling a query here would throw "No QueryClient set" in
+ * every one of those tests — a shell that cannot be rendered in isolation is a shell that stops
+ * being tested.
+ *
+ * <p>So the identity is PUSHED IN from `tenant-dashboard.tsx`, which is the one component that
+ * only ever renders under the app's providers, and it defaults to nothing. Absent, the dateline
+ * is still a real dateline; present, it names the branch.
+ */
+export interface DashboardIdentity {
+  /** The tenant's trading name, e.g. "Al-Baik Restaurant". `null` until it is known. */
+  brand: string | null;
+  /** The branch these figures were computed for, e.g. "Branch 1". `null` when unknown. */
+  branchName: string | null;
+}
+
+const EMPTY_IDENTITY: DashboardIdentity = { brand: null, branchName: null };
+
+const DashboardIdentityContext = React.createContext<DashboardIdentity>(EMPTY_IDENTITY);
+
+export function DashboardIdentityProvider({
+  identity,
+  children,
+}: {
+  identity: DashboardIdentity;
+  children: React.ReactNode;
+}) {
+  const value = React.useMemo(
+    () => ({ brand: identity.brand, branchName: identity.branchName }),
+    [identity.brand, identity.branchName],
+  );
+  return (
+    <DashboardIdentityContext.Provider value={value}>{children}</DashboardIdentityContext.Provider>
+  );
+}
+
+export function useDashboardIdentity(): DashboardIdentity {
+  return React.useContext(DashboardIdentityContext);
+}
+
+/** "Monday, 14 April 2025" — the demo's own dateline shape, through the pinned formatter. */
+const DATELINE: Intl.DateTimeFormatOptions = {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+};
+
+/**
+ * Today, formatted once at mount.
+ *
+ * <p>A lazy `useState` initializer, not a read in the component body: the React Compiler rejects
+ * `Date.now()` during render as impure, and it is. Not `useNow()` either — a dateline does not
+ * need a heartbeat, and putting one here would re-render four dashboards a minute to redraw a
+ * string that changes at midnight.
+ *
+ * <p>`formatDateTime` pins `Asia/Karachi`, so the server render and the client render of the same
+ * instant produce the same characters; `suppressHydrationWarning` at the call site covers the
+ * one-in-a-million paint that straddles midnight.
+ */
+function useTodayLabel(): string {
+  const [today] = useState(() => formatDateTime(Date.now(), DATELINE));
+  return today;
+}
 
 /**
  * The container every role dashboard shares (UI-SPEC §7.3: "the dashboard is not a page;
@@ -18,6 +92,21 @@ import { cn } from "@/lib/utils";
  *
  * `density` is a real switch, not a label: §7.3 gives an owner `comfortable` and a manager
  * `compact`, because a manager scans and an owner reads.
+ *
+ * <h3>Phase 38 — the three devices this header was missing</h3>
+ *
+ * <ol>
+ *   <li><b>The display serif.</b> The question is the one line on the page a reader stops on,
+ *       and it was set in the same face as the caption under it. `font-heading` is Fraunces
+ *       (D-38-13, `globals.css:40-43`) and this is the largest of its call sites.</li>
+ *   <li><b>A dateline.</b> The demo's subtitle answers "these figures are for WHEN, and for
+ *       WHOM" — the two questions a KPI row silently assumes. See {@link DashboardIdentity}
+ *       for why the branch half arrives from above rather than from a query here.</li>
+ *   <li><b>The time frame as a PILL rather than a right-aligned sentence.</b> It used to be
+ *       grey body text floating at the far right of the header, which reads as an afterthought
+ *       and collides with the title at the width where the two meet. As a bordered chip it is
+ *       an object with a job, and it wraps under the title on a phone instead of squeezing it.</li>
+ * </ol>
  */
 export function DashboardShell({
   preset,
@@ -26,6 +115,12 @@ export function DashboardShell({
   preset: DashboardPreset;
   children: React.ReactNode;
 }) {
+  const today = useTodayLabel();
+  const { brand, branchName } = useDashboardIdentity();
+  // An em dash separates the date from the place; a middle dot separates place from branch.
+  // Both halves are optional, and a dangling separator is worse than a shorter line.
+  const place = [brand, branchName].filter(Boolean).join(" · ");
+
   return (
     <section
       className={cn("flex flex-col", preset.density === "compact" ? "gap-4" : "gap-6")}
@@ -33,9 +128,28 @@ export function DashboardShell({
       data-preset={preset.id}
       data-density={preset.density}
     >
-      <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className={cn("font-semibold", T_DISPLAY)}>{preset.question}</h1>
-        <p className={cn("text-foreground-tertiary", T_SMALL)} data-testid="dashboard-timeframe">
+      <header className="flex flex-col gap-(--space-sm) md:flex-row md:items-start md:justify-between">
+        <div className="flex min-w-0 flex-col gap-1">
+          <h1 className={cn("font-heading font-semibold tracking-tight", T_DISPLAY)}>
+            {preset.question}
+          </h1>
+          <p
+            className={cn("text-foreground-tertiary", T_SMALL)}
+            data-testid="dashboard-dateline"
+            suppressHydrationWarning
+          >
+            {place ? `${today} — ${place}` : today}
+          </p>
+        </div>
+        <p
+          className={cn(
+            "inline-flex w-fit shrink-0 items-center rounded-full border border-border",
+            "bg-surface-1 px-3 py-1 font-semibold tracking-[0.08em] uppercase",
+            "text-foreground-secondary",
+            T_LABEL,
+          )}
+          data-testid="dashboard-timeframe"
+        >
           {preset.timeFrame}
         </p>
       </header>
@@ -45,6 +159,17 @@ export function DashboardShell({
 }
 
 /**
+ * How a row divides its width.
+ *
+ * <p>`even` is n equal columns. `lead` is the demo's dashboard row — a `2fr 1fr` split, with the
+ * wide half carrying the chart or the record table and the narrow half carrying the meter stack
+ * beside it (`DEMO-COMPONENTS.md`, the dashboard grid). A 50/50 split of those two is the reason
+ * our version reads flat: an eight-row table and a four-line meter stack are not the same object
+ * and should not be the same width.
+ */
+export type RowLayout = "even" | "lead";
+
+/**
  * One row of portlets. Column counts are fixed per row rather than per breakpoint guesswork:
  * a four-tile KPI row is four tiles on a desktop and stacks on a phone, and a two-panel row
  * is two panels. Anything cleverer produces a 3-2 orphan on the one width nobody tested.
@@ -52,6 +177,7 @@ export function DashboardShell({
 export function PortletRow({
   density,
   columns,
+  layout = "even",
   children,
 }: {
   density: "comfortable" | "compact";
@@ -66,6 +192,8 @@ export function PortletRow({
    * quarter-width hole on every desktop.
    */
   columns: 1 | 2 | 3 | 4;
+  /** Only meaningful at `columns={2}`; ignored elsewhere. See {@link RowLayout}. */
+  layout?: RowLayout;
   children: React.ReactNode;
 }) {
   return (
@@ -96,7 +224,16 @@ export function PortletRow({
          * Below `md` the whole product is one column; the dashboard now says so too.
          */
         columns === 1 && "grid-cols-1",
-        columns === 2 && "grid-cols-1 lg:grid-cols-2",
+        /*
+         * `minmax(0, …)` on both tracks, not a bare `2fr 1fr`. A grid track's default minimum is
+         * `auto`, so one long unbroken string — an order number, a vendor name — inflates its
+         * column past its share and the "2fr 1fr" silently becomes "1.4fr 1.6fr" on exactly the
+         * rows that have data in them.
+         */
+        columns === 2 &&
+          (layout === "lead"
+            ? "grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
+            : "grid-cols-1 lg:grid-cols-2"),
         columns === 3 && "grid-cols-1 md:grid-cols-2 xl:grid-cols-3",
         columns === 4 && "grid-cols-1 md:grid-cols-2 xl:grid-cols-4",
       )}

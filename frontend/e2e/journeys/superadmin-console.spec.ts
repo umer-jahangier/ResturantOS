@@ -241,11 +241,19 @@ test.describe("SuperAdmin platform console", () => {
     await expect(meters).toBeVisible({ timeout: 20_000 });
 
     // The one dimension with a real count — the same user-service call the tier-downgrade check
-    // trusts. It shows a number and a bar.
+    // trusts. It shows a number and a filled bar.
+    //
+    // The bar is `components/ui/meter.tsx` now rather than one this panel drew for itself, so these
+    // assertions moved with it. The shared primitive publishes `role="progressbar"` and stamps
+    // `data-slot` on its track and its fill; the FILL is rendered ONLY when there is a real reading,
+    // which makes it the honest thing to assert the metered/unmetered split on. The unknown track is
+    // still drawn — dashed and empty — and that is deliberate: an absent bar reads as a layout gap,
+    // where a dashed one reads as a measurement that was not taken.
     const branches = page.getByTestId("usage-meter-branches");
     await expect(branches).toHaveAttribute("data-metered", "true");
     await expect(branches).toHaveAttribute("data-unavailable", "false");
-    await expect(branches.getByRole("meter")).toBeVisible();
+    await expect(branches.getByRole("progressbar")).toBeVisible();
+    await expect(branches.locator('[data-slot="meter-fill"]')).toBeVisible();
 
     // The three nobody records. `usage_records` has 0 rows and 0 producers; the NLQ counter has 0
     // keys. Each says so IN WORDS and names the reason.
@@ -258,7 +266,12 @@ test.describe("SuperAdmin platform console", () => {
       // numerator. "0 / 500 users" for a tenant with real staff is not an incomplete feature —
       // it is a false statement on a screen that informs capacity and billing decisions.
       await expect(meter).not.toContainText(/\b0\s*\/\s*\d/);
-      await expect(meter.getByRole("meter")).toBeHidden();
+      // No fill, and the track says why rather than sitting at 0%.
+      await expect(meter.locator('[data-slot="meter-fill"]')).toHaveCount(0);
+      await expect(meter.locator('[data-slot="meter-track"]')).toHaveAttribute(
+        "data-unknown",
+        "true",
+      );
     }
 
     // The entitlement half IS real and IS shown — those four ceilings had been returned by the API

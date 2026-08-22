@@ -30,7 +30,7 @@ export function GuideTab() {
   return (
     <div className="space-y-8">
       <nav aria-label="Sections" className="rounded-lg border p-4">
-        <p className="mb-2 text-label font-semibold uppercase tracking-wide text-muted-foreground">
+        <p className="mb-2 text-label font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           Jump to
         </p>
         <ul className="flex flex-wrap gap-x-4 gap-y-1 text-small">

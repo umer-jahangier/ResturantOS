@@ -94,6 +94,46 @@ public class UserLifecycleEventPublisher {
                 active, sessionsRevoked, Instant.now()));
     }
 
+    /**
+     * Deactivation or reactivation performed by a PLATFORM operator, not by anybody in the tenant
+     * (superadmin plan).
+     *
+     * <p>Same event type, same payload shape, same tenant trail — a tenant whose user was
+     * deactivated must see that in its own audit log regardless of who did it. What differs is the
+     * ACTOR, and it differs in the one way that matters: <b>no id is recorded in either the envelope
+     * or the payload.</b>
+     *
+     * <p>That is deliberate and it is the rule {@code AdminPasswordResetService} already states. At
+     * the platform tier the acting id is a {@code platform_users} row — a different id space
+     * entirely — and {@code EventEnvelope.actorId} and {@code UserActivationChangedPayload
+     * .actingUserId} are both read as {@code auth_db.users} ids by everything downstream. Writing a
+     * platform id into either would make every consumer draw a false conclusion: an audit reader
+     * would resolve it against the tenant's own user table, find nothing or (worse) find a
+     * coincidental match, and name somebody who did not do it. A null actor is honest — "nobody in
+     * this tenant did this" is exactly true — and it is the same disposition 13-14 applied after
+     * the audit found every impersonation row recording its target as its own actor (D-34).
+     *
+     * <p><b>WHO did it is recorded, in the platform's own trail.</b>
+     * {@code platform_db.platform_admin_audit} carries the acting {@code platform_users.id}, the
+     * target, the tenant, a mandatory reason and the outcome, written in the same transaction as
+     * the platform-side request. It is queryable by the SuperAdmin console. This event and that row
+     * are the two halves of one record, and neither is a substitute for the other.
+     *
+     * <p>{@code impersonatedBy} is preserved if something upstream set it, for the reason
+     * {@link #ensureContext} records: an action taken while wearing a tenant user's identity has to
+     * keep naming the real human.
+     */
+    public void platformActivationChanged(UUID tenantId, UUID targetUserId, String targetEmail,
+                                          boolean active, int sessionsRevoked) {
+        tenantContext.set(tenantId, null, null, tenantContext.getImpersonatedBy().orElse(null));
+        eventPublisher.publish(EXCHANGE,
+            active ? USER_REACTIVATED_KEY : USER_DEACTIVATED_KEY,
+            active ? USER_REACTIVATED : USER_DEACTIVATED,
+            null,
+            new UserActivationChangedPayload(targetUserId, targetEmail, null,
+                active, sessionsRevoked, Instant.now()));
+    }
+
     public void roleGranted(UUID tenantId, UUID actingUserId, UUID targetUserId, UUID branchId,
                             String roleCode, String displacedRoleCode, Long approvalLimitPaisa,
                             boolean primary) {

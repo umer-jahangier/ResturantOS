@@ -66,7 +66,7 @@ function VisualPanel({ title, children }: { title: string; children: React.React
       data-testid="report-visual"
       className="rounded-xl border border-border bg-card p-(--space-md) text-card-foreground shadow-depth-1"
     >
-      <h2 className="mb-(--space-md) text-label font-semibold tracking-wide text-foreground-secondary uppercase">
+      <h2 className="mb-(--space-md) text-label font-semibold tracking-[0.08em] text-foreground-secondary uppercase">
         {title}
       </h2>
       {children}

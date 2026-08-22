@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { CircleCheck, CircleDot, Receipt, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import { useExpenses, useApproveExpense, useRejectExpense } from "@/lib/hooks/finance/use-finance";
@@ -15,6 +16,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Button } from "@/components/ui/button";
 import { MoneyDisplay } from "@/components/ui/money-display";
+import { StatTile } from "@/components/ui/stat-tile";
+import { countLine, statLine } from "@/lib/format/stat-line";
+import { formatNumber } from "@/lib/format/locale";
 import {
   Dialog,
   DialogContent,
@@ -166,6 +170,16 @@ export default function ExpensesPage() {
   const expensesQuery = useExpenses(statusFilter ? [statusFilter] : undefined);
   const expenses = expensesQuery.data ?? [];
 
+  /*
+   * Off `expenses` — the array the grid renders — so the strip narrows with the status filter
+   * exactly as the table does. `totalPaisa` is the sum of the LISTED expenses and the label says
+   * so: with the default PENDING_APPROVAL filter on, a tile reading "Total value" without that
+   * qualifier would look like the branch's expense bill for the period, which it is not.
+   */
+  const listedPaisa = expenses.reduce((sum, e) => sum + e.amountPaisa, 0);
+  const pendingCount = expenses.filter((e) => e.status === "PENDING_APPROVAL").length;
+  const approvedCount = expenses.filter((e) => e.status === "APPROVED").length;
+
   const columns = useMemo<ColumnDef<Expense, unknown>[]>(
     () => [
       {
@@ -230,8 +244,35 @@ export default function ExpensesPage() {
       <PageHeader
         title="Expenses"
         description="Create, approve and reject expenses. Approvals respect your OPA approval limit."
+        /* Reconciles with the grid beneath: the count IS the rows, filter and all. */
+        meta={
+          expensesQuery.isSuccess
+            ? statLine(
+                countLine(expenses.length, "expense"),
+                statusFilter === "" ? "every status" : "one status filter active",
+                `${formatNumber(pendingCount)} awaiting approval`,
+              )
+            : undefined
+        }
         actions={<ExpenseFormDialog trigger={<Button>New expense</Button>} />}
       />
+
+      <div className="grid gap-(--space-md) md:grid-cols-2 xl:grid-cols-4">
+        <StatTile
+          label="Expenses listed"
+          value={formatNumber(expenses.length)}
+          icon={Receipt}
+          accent="primary"
+        />
+        <StatTile
+          label="Value of those listed"
+          value={<MoneyDisplay paisa={listedPaisa} />}
+          icon={Wallet}
+          accent="secondary"
+        />
+        <StatTile label="Awaiting approval" value={formatNumber(pendingCount)} icon={CircleDot} />
+        <StatTile label="Approved" value={formatNumber(approvedCount)} icon={CircleCheck} />
+      </div>
 
       <FilterBar
         title="Expenses"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { MoreHorizontal } from "lucide-react";
+import { CircleSlash, FolderOpen, LayoutGrid, MoreHorizontal, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -24,6 +24,8 @@ import { Button } from "@/components/ui/button";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { PageBody } from "@/components/ui/page-body";
 import { PageHeader } from "@/components/ui/page-header";
+import { StatTile } from "@/components/ui/stat-tile";
+import { formatNumber } from "@/lib/format/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryBoundary } from "@/components/ui/query-boundary";
@@ -114,6 +116,16 @@ export default function MenuItemsPage() {
 
   const isFiltered = search.trim() !== "" || showInactive;
 
+  /*
+   * Same arrays the cards below are built from, so the strip cannot drift from the grid:
+   * `shownItemCount` and `unavailableCount` are the subtitle's own figures reused, and
+   * `emptyCategories` counts the categories that will render a heading with nothing sellable
+   * under it — the one gap on this screen that has no card of its own to appear on.
+   */
+  const emptyCategories = visibleCategories.filter(
+    (c) => itemsFor(c.id).filter((i) => pendingAvailability[i.id] ?? i.active).length === 0,
+  ).length;
+
   function handleToggleCategory(category: MenuCategory) {
     const mutation = category.active ? deactivateCategory : activateCategory;
     mutation.mutate(category.id, {
@@ -185,6 +197,31 @@ export default function MenuItemsPage() {
           </PermissionGuard>
         }
       />
+
+      <div className="grid gap-(--space-md) md:grid-cols-2 xl:grid-cols-4">
+        <StatTile
+          label="Items shown"
+          value={formatNumber(shownItemCount)}
+          icon={UtensilsCrossed}
+          accent="primary"
+        />
+        <StatTile
+          label="Categories on the menu"
+          value={formatNumber(visibleCategories.length)}
+          icon={LayoutGrid}
+          accent="secondary"
+        />
+        <StatTile
+          label="Unavailable right now"
+          value={formatNumber(unavailableCount)}
+          icon={CircleSlash}
+        />
+        <StatTile
+          label="Categories with nothing sellable"
+          value={formatNumber(emptyCategories)}
+          icon={FolderOpen}
+        />
+      </div>
 
       <FilterBar
         title="Menu"

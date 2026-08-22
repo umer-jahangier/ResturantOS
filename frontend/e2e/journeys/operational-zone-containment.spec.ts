@@ -224,20 +224,48 @@ test.describe("operational zone carries no compositing filter", () => {
     /*
      * ── the portal route, which is the one source analysis cannot see ──────────────────
      *
-     * The command palette is used rather than the POS order-detail drawer, and the reason
-     * is recorded because it weakens the test slightly: the drawer needs a seeded table AND
-     * an open till session, and neither exists for any POS persona in the current seed —
-     * the Floor View renders no table cards and "Open Till" is an inline panel, not a
-     * dialog. The palette is reachable unconditionally on the POS route and is a genuine
-     * Radix portal to `document.body`, so it exercises the mechanism this test exists for.
+     * <h3>This was the command palette, and the command palette is not on this route</h3>
      *
-     * It resolves `restrained`, not `operational`, and that is CORRECT: it is opened from
-     * the shell chrome, which declares restrained. What matters for containment is that it
-     * is stamped at all (proving the stamp survives the portal) and that it is not
-     * expressive (so 34-02's glass rule cannot match it above a POS terminal).
+     * <p>The comment that stood here said "the palette is reachable unconditionally on the POS
+     * route". It was true when it was written and the operator shell then made it false:
+     * `app/(tenant)/layout.tsx:112-146` returns a DIFFERENT tree for `isOperatorRoute` with no
+     * `<TopBar>` in it at all, and `TopBar` is the only thing that mounts `CommandPalette`
+     * (`top-bar.tsx:540`). UI-SPEC §4.1 says the removal is deliberate. So `Meta+k` did nothing,
+     * no overlay ever attached, and the failure read "the portalled overlay must carry data-slot"
+     * — an accusation against a `data-slot` that is present and correct
+     * (`components/ui/dialog.tsx:52`). Enumerated live on dev 2026-08-22: the WAITER's entire
+     * `/app/pos` offers Skip to content, Exit, and the three view buttons. Nothing else.
+     *
+     * <h3>What replaces it is a better subject, not merely an available one</h3>
+     *
+     * <p>The order-detail drawer, opened from Order Management. It is a genuine Radix portal to
+     * `document.body` built straight from the primitives, and it stamps `data-slot` and
+     * `data-zone` by hand for exactly the reason this test exists
+     * (`order-table-detail-drawer.tsx:159-163`). Two ways it is stronger than the palette:
+     * it resolves `operational` rather than `restrained`, so the stamp being asserted is the one
+     * the POS layout declares; and it is a POS surface rather than shell chrome, so a compositing
+     * property on it would land over the terminal rather than beside it.
+     *
+     * <p>The old comment also justified avoiding it on seed grounds — "needs a seeded table AND an
+     * open till session, and neither exists for any POS persona". Measured on dev 2026-08-22:
+     * Order Management lists five orders for this WAITER and the row's Open control needs neither
+     * a table nor a till. Viewing an order is not privileged; only acting on one is.
      */
-    await page.keyboard.press("Meta+k");
-    await page.waitForTimeout(2000);
+    await page.getByRole("button", { name: "Order Management", exact: true }).click();
+
+    const openOrder = page.locator('[data-testid^="open-order-"]').first();
+    await expect(
+      openOrder,
+      "ANCHOR NOT FOUND: Order Management lists no order for this waiter, so there is no drawer " +
+        "to portal and the overlay assertions below would be asserting about an empty screen. " +
+        "This is a SEED problem, not a containment one — check the branch has orders.",
+    ).toBeVisible({ timeout: 30_000 });
+    await openOrder.click();
+
+    await expect(
+      page.getByTestId("order-table-detail-drawer"),
+      "the drawer never opened, so nothing was portalled and the stamp cannot be read",
+    ).toBeVisible({ timeout: 20_000 });
 
     const overlay = page.locator('[data-slot="dialog-overlay"]').first();
     await expect(

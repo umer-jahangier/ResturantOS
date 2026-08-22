@@ -1,0 +1,531 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      ════════════════════════════════════════════════════════════════════════════════════════════
+      THE COMMERCIAL LAYER AROUND AN ENTITLEMENT THAT ALREADY EXISTED
+      ════════════════════════════════════════════════════════════════════════════════════════════
+
+      A tier is what a tenant CAN DO. It has been enforceable since Phase 3 (TierLimits,
+      TierFeatureDefaults, tenant_features) and changeable since 13-14. What has never existed is
+      any record of the AGREEMENT that granted it: which plan, at what price, on what billing
+      period, from when, until when, and who moved it. `tenants.tier` is a single column that a
+      SuperAdmin overwrites; the previous value is gone the moment it changes.
+
+      These three tables add exactly that and nothing more.
+
+      ── WHAT THIS IS EXPLICITLY *NOT* ────────────────────────────────────────────────────────────
+
+      IT IS NOT BILLING. There is no invoice table here, no payment table, no processor reference,
+      no dunning state and no `amount_due`. A repo-wide survey (.planning/superadmin/CAPABILITY-MAP.md
+      §1.3) established that this product contains no payment integration of any kind — the only
+      invoice/payment tables in the fleet are tenant-level restaurant finance (a restaurant paying
+      its food suppliers), and `tenants.billing_ref` is free text pointing at a system that does not
+      exist in this codebase.
+
+      `subscription_plans.price_paisa` is therefore a PRICE — the amount the plan is sold at — and
+      never REVENUE. Nothing in this product observes a payment, so summing it across active
+      subscriptions yields contracted value, not money received, and no endpoint in this service
+      does that sum. See SubscriptionService's class javadoc for why no MRR/ARR figure is exposed.
+
+      Money is BIGINT paisa, matching sales_order_facts.total_paisa Int64 and every other monetary
+      column in the fleet. Never NUMERIC, never a float.
+
+      ── NO RLS, DELIBERATELY, AND FOR THE REASON 040 MEASURED ────────────────────────────────────
+
+      Two of these tables carry tenant_id. platform_db has no row-level security on ANY table and
+      must not acquire it: the control-plane token carries no tenant_id claim, TenantAwareDataSource
+      writes app.current_tenant_id = '' on every checkout, and the fleet-standard predicate maps
+      that to NULL and fails closed — measured at 0 rows read and 42501 on write in
+      040-platform-db-rls-posture.xml. Read that file before adding a policy here. tenant_id below
+      is a plain FK, exactly as it is in tenant_features and usage_records.
+
+      ── NO BACKFILL, DELIBERATELY ────────────────────────────────────────────────────────────────
+
+      No changeset here writes a tenant_subscriptions row for an existing tenant. Every tenant in
+      platform_db has a tier; NONE of them has ever had a subscription, and inventing one would
+      assert a price, a billing period and a start date that no human ever agreed to. A tenant with
+      no subscription reads back as exactly that — `subscription: null` with its tier stated — which
+      is a true answer. Assigning a plan is a deliberate operator action through
+      POST /api/v1/platform/tenants/{id}/subscription.
+
+      Additive and reversible throughout: every changeSet has a rollback, every table is new, and no
+      existing column is altered or dropped.
+    -->
+
+    <!--
+      050-001 — PLANS.
+
+      A plan is a first-class sellable entity: a code, a price, a billing period, and the ceilings it
+      grants. It names a `tier`, and the tier is what supplies its FEATURE set — TierFeatureDefaults
+      is the one matrix and a second copy of it on this table would be wrong from the first time a
+      code moves tier. The plan's LIMITS are stored, because the whole point of a first-class plan is
+      that a bespoke ENTERPRISE deal can carry ceilings its tier's defaults do not.
+
+      max_terminals and max_orders_per_month are NULLABLE and mean "not part of this plan's
+      contract". They are stored because a plan legitimately states them; they are nullable because
+      NOTHING IN THE PLATFORM PLANE CAN COUNT EITHER ONE. pos_terminals lives in pos_db behind FORCE
+      RLS and pos-service exposes no terminal count on any internal channel; monthly order volume
+      lives in clickhouse_analytics.sales_order_facts and platform-admin-service has no ClickHouse
+      driver. SubscriptionLimitService reports both as NOT_MEASURABLE and never as satisfied — a
+      limit nobody checks must at least say so out loud rather than render as a green tick.
+    -->
+    <changeSet id="050-001-subscription-plans" author="platform-admin">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="subscription_plans"/></not>
+        </preConditions>
+        <createTable tableName="subscription_plans">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="code" type="VARCHAR(60)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="name" type="VARCHAR(120)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="VARCHAR(500)"/>
+            <column name="tier" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- BIGINT paisa. Never NUMERIC, never a float. -->
+            <column name="price_paisa" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="currency" type="VARCHAR(3)" defaultValue="PKR">
+                <constraints nullable="false"/>
+            </column>
+            <column name="billing_period" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="trial_days" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="max_branches" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="max_users" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="storage_gb" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nlq_quota" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Declarable, not measurable. See the header on this changeSet. -->
+            <column name="max_terminals" type="INT"/>
+            <column name="max_orders_per_month" type="INT"/>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Same vocabulary as chk_tenants_tier on tenants: a plan cannot name a tier the
+             entitlement engine has never heard of, because assigning it would leave the tenant on
+             a tier TierFeatureDefaults cannot resolve. -->
+        <sql>ALTER TABLE subscription_plans ADD CONSTRAINT chk_subscription_plans_tier
+            CHECK (tier IN ('STARTER','GROWTH','ENTERPRISE','CUSTOM'))</sql>
+        <sql>ALTER TABLE subscription_plans ADD CONSTRAINT chk_subscription_plans_period
+            CHECK (billing_period IN ('MONTHLY','QUARTERLY','ANNUAL'))</sql>
+        <!-- Zero is legal (an internal or comped plan). Negative is not: a negative price is not a
+             discount, it is a data-entry accident that would flow into any future aggregate. -->
+        <sql>ALTER TABLE subscription_plans ADD CONSTRAINT chk_subscription_plans_price
+            CHECK (price_paisa >= 0)</sql>
+        <sql>ALTER TABLE subscription_plans ADD CONSTRAINT chk_subscription_plans_trial_days
+            CHECK (trial_days >= 0)</sql>
+        <sql>ALTER TABLE subscription_plans ADD CONSTRAINT chk_subscription_plans_limits
+            CHECK (max_branches >= 0 AND max_users >= 0 AND storage_gb >= 0 AND nlq_quota >= 0
+                   AND (max_terminals IS NULL OR max_terminals >= 0)
+                   AND (max_orders_per_month IS NULL OR max_orders_per_month >= 0))</sql>
+
+        <rollback>
+            <dropTable tableName="subscription_plans"/>
+        </rollback>
+    </changeSet>
+
+    <!--
+      050-002 — THE SUBSCRIPTION.
+
+      One live subscription per tenant, enforced by a partial unique index rather than by
+      application code, because two live subscriptions is the state that makes every downstream
+      question ("which plan is this tenant on?") ambiguous and unrecoverable.
+
+      Nullability carries meaning here and is not laziness:
+
+        * current_period_end_at NULL  = no renewal scheduled. TenantEntity.renews_at already
+          documents this exact state and the same rule applies: it is a real answer, not a missing
+          one, and a screen must not render it as a date.
+        * trial_start_at / trial_end_at NULL = this subscription never had a trial.
+        * pending_plan_id / pending_change_at travel together — a scheduled change with no date, or
+          a date with no plan, is a half-written instruction the scheduler would either ignore or
+          guess at. The CHECK makes it unrepresentable.
+        * cancel_at is the EFFECTIVE date an operator chose; cancelled_at is when the cancellation
+          was actually applied. They differ for every cancellation scheduled in advance, and
+          collapsing them loses the distinction between "we agreed to stop on the 30th" and "it
+          stopped".
+
+      There is no `amount_due`, no `next_invoice_at` and no payment state. See the file header.
+    -->
+    <changeSet id="050-002-tenant-subscriptions" author="platform-admin">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="tenant_subscriptions"/></not>
+        </preConditions>
+        <createTable tableName="tenant_subscriptions">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="plan_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="trial_start_at" type="TIMESTAMPTZ"/>
+            <column name="trial_end_at" type="TIMESTAMPTZ"/>
+            <column name="current_period_start_at" type="TIMESTAMPTZ">
+                <constraints nullable="false"/>
+            </column>
+            <column name="current_period_end_at" type="TIMESTAMPTZ"/>
+            <column name="pending_plan_id" type="UUID"/>
+            <column name="pending_change_at" type="TIMESTAMPTZ"/>
+            <column name="pending_change_reason" type="VARCHAR(500)"/>
+            <column name="cancel_at" type="TIMESTAMPTZ"/>
+            <column name="cancel_reason" type="VARCHAR(500)"/>
+            <column name="cancelled_at" type="TIMESTAMPTZ"/>
+            <column name="started_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ended_at" type="TIMESTAMPTZ"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+            baseTableName="tenant_subscriptions" baseColumnNames="tenant_id"
+            referencedTableName="tenants" referencedColumnNames="id"
+            constraintName="fk_tenant_subscriptions_tenant"
+            onDelete="CASCADE"/>
+        <!-- No cascade on the plan: a plan with live subscriptions must be ARCHIVED
+             (is_active=false), never deleted. Deleting it would orphan every subscription that
+             names it, and the price it was sold at would vanish with it. RESTRICT makes that a
+             database error instead of a silent data loss. -->
+        <addForeignKeyConstraint
+            baseTableName="tenant_subscriptions" baseColumnNames="plan_id"
+            referencedTableName="subscription_plans" referencedColumnNames="id"
+            constraintName="fk_tenant_subscriptions_plan"/>
+        <addForeignKeyConstraint
+            baseTableName="tenant_subscriptions" baseColumnNames="pending_plan_id"
+            referencedTableName="subscription_plans" referencedColumnNames="id"
+            constraintName="fk_tenant_subscriptions_pending_plan"/>
+
+        <sql>ALTER TABLE tenant_subscriptions ADD CONSTRAINT chk_tenant_subscriptions_status
+            CHECK (status IN ('TRIALING','ACTIVE','TRIAL_ENDED','CANCELLED','ENDED'))</sql>
+        <sql>ALTER TABLE tenant_subscriptions ADD CONSTRAINT chk_tenant_subscriptions_pending_pair
+            CHECK ((pending_plan_id IS NULL) = (pending_change_at IS NULL))</sql>
+        <sql>ALTER TABLE tenant_subscriptions ADD CONSTRAINT chk_tenant_subscriptions_trial_pair
+            CHECK ((trial_start_at IS NULL) = (trial_end_at IS NULL))</sql>
+
+        <!-- ONE live subscription per tenant. ENDED is the only terminal state, so a tenant can
+             accumulate history without ever being ambiguous about what it is on today. -->
+        <sql>CREATE UNIQUE INDEX ux_tenant_subscriptions_live
+            ON tenant_subscriptions (tenant_id) WHERE status &lt;&gt; 'ENDED'</sql>
+
+        <createIndex tableName="tenant_subscriptions" indexName="idx_tenant_subscriptions_status">
+            <column name="status"/>
+        </createIndex>
+        <!-- The three worklists an operator actually runs: trials ending, renewals due, scheduled
+             changes falling due. Each is a range scan the scheduler runs every sweep. -->
+        <createIndex tableName="tenant_subscriptions" indexName="idx_tenant_subscriptions_trial_end">
+            <column name="trial_end_at"/>
+        </createIndex>
+        <createIndex tableName="tenant_subscriptions" indexName="idx_tenant_subscriptions_period_end">
+            <column name="current_period_end_at"/>
+        </createIndex>
+        <createIndex tableName="tenant_subscriptions" indexName="idx_tenant_subscriptions_pending_at">
+            <column name="pending_change_at"/>
+        </createIndex>
+        <createIndex tableName="tenant_subscriptions" indexName="idx_tenant_subscriptions_cancel_at">
+            <column name="cancel_at"/>
+        </createIndex>
+
+        <rollback>
+            <sql>DROP INDEX IF EXISTS ux_tenant_subscriptions_live</sql>
+            <dropTable tableName="tenant_subscriptions"/>
+        </rollback>
+    </changeSet>
+
+    <!--
+      050-003 — THE HISTORY, WHICH IS THE POINT.
+
+      `tenants.tier` is a column a SuperAdmin overwrites. Before this table there was no record
+      anywhere in this product that a tenant had ever been on a different tier: not an event
+      (TenantSubscriptionService.changeTier publishes nothing — see CAPABILITY-MAP §7.4), not a
+      timestamp, not an audit row keyed to platform_db. A downgrade dispute had no evidence on
+      either side.
+
+      Every transition writes exactly one row here, INCLUDING a bare tier change made through the
+      pre-existing POST /tenants/{id}/tier endpoint, which is why subscription_id is NULLABLE: a
+      tenant can have its tier changed without ever having had a subscription, and that change is
+      still worth recording.
+
+      actor_platform_user_id is NULL only when actor_kind = 'SYSTEM' — the scheduler applying an
+      instruction an operator left earlier. It is never NULL for an operator action: the acting id
+      comes from the `sub` of the verified control-plane token, never from a body field, for the
+      same reason ImpersonationService takes it there (a repudiation control whose subject can name
+      itself is not a control).
+    -->
+    <changeSet id="050-003-subscription-history" author="platform-admin">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="subscription_history"/></not>
+        </preConditions>
+        <createTable tableName="subscription_history">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <!-- Nullable: a tier change on a tenant that has no subscription is still history. -->
+            <column name="subscription_id" type="UUID"/>
+            <column name="tenant_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="change_type" type="VARCHAR(40)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Codes and tier names, not ids: a plan can be archived and renamed, and the history
+                 must still say what it said at the time. Storing only plan_id would make an
+                 archived plan's rows unreadable without a join to a row nobody keeps. -->
+            <column name="from_plan_code" type="VARCHAR(60)"/>
+            <column name="to_plan_code" type="VARCHAR(60)"/>
+            <column name="from_status" type="VARCHAR(30)"/>
+            <column name="to_status" type="VARCHAR(30)"/>
+            <column name="from_tier" type="VARCHAR(30)"/>
+            <column name="to_tier" type="VARCHAR(30)"/>
+            <!-- Prices are captured at the moment of the change for the same reason: the plan's
+                 price can be edited afterwards, and a history row that re-resolves it would
+                 retroactively rewrite what a tenant was moved onto. -->
+            <column name="from_price_paisa" type="BIGINT"/>
+            <column name="to_price_paisa" type="BIGINT"/>
+            <column name="effective_at" type="TIMESTAMPTZ">
+                <constraints nullable="false"/>
+            </column>
+            <column name="recorded_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="actor_kind" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="actor_platform_user_id" type="UUID"/>
+            <column name="reason" type="VARCHAR(500)"/>
+            <column name="forced_over_limits" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="detail" type="JSONB"/>
+        </createTable>
+
+        <addForeignKeyConstraint
+            baseTableName="subscription_history" baseColumnNames="tenant_id"
+            referencedTableName="tenants" referencedColumnNames="id"
+            constraintName="fk_subscription_history_tenant"/>
+        <addForeignKeyConstraint
+            baseTableName="subscription_history" baseColumnNames="subscription_id"
+            referencedTableName="tenant_subscriptions" referencedColumnNames="id"
+            constraintName="fk_subscription_history_subscription"/>
+
+        <sql>ALTER TABLE subscription_history ADD CONSTRAINT chk_subscription_history_actor
+            CHECK (actor_kind IN ('OPERATOR','SYSTEM')
+                   AND (actor_kind = 'SYSTEM' OR actor_platform_user_id IS NOT NULL))</sql>
+
+        <createIndex tableName="subscription_history" indexName="idx_subscription_history_tenant">
+            <column name="tenant_id"/>
+            <column name="recorded_at" descending="true"/>
+        </createIndex>
+        <createIndex tableName="subscription_history" indexName="idx_subscription_history_subscription">
+            <column name="subscription_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="subscription_history"/>
+        </rollback>
+    </changeSet>
+
+    <!--
+      050-004 — subscription_history IS APPEND-ONLY, ENFORCED BY A TRIGGER.
+
+      Same reasoning and the same shape as 040-003 for impersonation_log, audit-service's 011 for
+      audit_events, and finance's trg_je_immutable for POSTED journal entries. Read 040's header for
+      the measurement: a GRANT-based control here is INERT, because deploy/init/02b grants
+      platform_admin TO platform_user, so the runtime role inherits ownership and a REVOKE changes
+      the ACL and nothing else. A trigger fires for the owner, for an inheriting member and for
+      Liquibase, which is the only layer that actually holds.
+
+      The table this protects is the evidence in a "you downgraded us without telling us" dispute.
+      If the accountable party can edit it, it is not evidence.
+
+      TRUNCATE needs its own statement-level trigger: a row-level trigger does not see TRUNCATE at
+      all, so without this the table would be immutable row by row and erasable in one statement.
+    -->
+    <changeSet id="050-004-subscription-history-append-only" author="platform-admin">
+        <sql splitStatements="false">
+            CREATE OR REPLACE FUNCTION prevent_subscription_history_rewrite() RETURNS trigger AS $$
+            BEGIN
+                RAISE EXCEPTION
+                    'SUBSCRIPTION_HISTORY_IMMUTABLE: subscription history is append-only — a plan or tier change cannot be rewritten or erased after the fact. Correct a mistake by recording the correcting change, not by editing the record of the original.';
+            END;
+            $$ LANGUAGE plpgsql;
+        </sql>
+        <sql splitStatements="false">
+            CREATE OR REPLACE FUNCTION prevent_subscription_history_truncate() RETURNS trigger AS $$
+            BEGIN
+                RAISE EXCEPTION
+                    'SUBSCRIPTION_HISTORY_IMMUTABLE: subscription_history cannot be truncated — a row-level trigger does not see TRUNCATE, so this statement-level one exists to stop the whole trail being erased in one statement';
+            END;
+            $$ LANGUAGE plpgsql;
+        </sql>
+
+        <sql>DROP TRIGGER IF EXISTS trg_subscription_history_immutable ON subscription_history;</sql>
+        <sql splitStatements="false">
+            CREATE TRIGGER trg_subscription_history_immutable
+                BEFORE UPDATE OR DELETE ON subscription_history
+                FOR EACH ROW EXECUTE FUNCTION prevent_subscription_history_rewrite();
+        </sql>
+        <sql>DROP TRIGGER IF EXISTS trg_subscription_history_no_truncate ON subscription_history;</sql>
+        <sql splitStatements="false">
+            CREATE TRIGGER trg_subscription_history_no_truncate
+                BEFORE TRUNCATE ON subscription_history
+                FOR EACH STATEMENT EXECUTE FUNCTION prevent_subscription_history_truncate();
+        </sql>
+
+        <rollback>
+            <sql>DROP TRIGGER IF EXISTS trg_subscription_history_immutable ON subscription_history;</sql>
+            <sql>DROP TRIGGER IF EXISTS trg_subscription_history_no_truncate ON subscription_history;</sql>
+            <sql>DROP FUNCTION IF EXISTS prevent_subscription_history_rewrite();</sql>
+            <sql>DROP FUNCTION IF EXISTS prevent_subscription_history_truncate();</sql>
+        </rollback>
+    </changeSet>
+
+    <!--
+      050-005 — the decision, written where a DBA will actually find it (\d+ in psql).
+    -->
+    <changeSet id="050-005-subscription-table-comments" author="platform-admin">
+        <sql>
+            COMMENT ON TABLE subscription_plans IS
+            'Sellable plans: price, billing period and the ceilings a plan grants. NO RLS BY DESIGN - platform_db is a cross-tenant SuperAdmin control plane whose token carries no tenant_id; see 040-platform-db-rls-posture.xml. price_paisa is BIGINT PAISA and is a PRICE, never observed revenue: this product has NO billing integration, no invoice and no payment record anywhere, so no aggregate of this column is money received. Feature entitlement comes from the plan tier via TierFeatureDefaults, NOT from this table - one matrix, no second copy. max_terminals and max_orders_per_month are declarable but NOT MEASURABLE by the platform plane (pos_terminals is behind RLS in pos_db with no internal count endpoint; monthly order volume is in ClickHouse, which this service has no driver for).';
+        </sql>
+        <sql>
+            COMMENT ON TABLE tenant_subscriptions IS
+            'One live subscription per tenant (ux_tenant_subscriptions_live). NO RLS BY DESIGN - tenant_id is a plain FK, not a row-security boundary; see 040-platform-db-rls-posture.xml. current_period_end_at NULL means NO RENEWAL SCHEDULED, which is a real state and not a missing value - do not render it as a date. NOT a billing record: no amount due, no invoice, no payment state, because this product observes no payments.';
+        </sql>
+        <sql>
+            COMMENT ON TABLE subscription_history IS
+            'APPEND-ONLY record of every plan, tier and subscription-status transition, enforced by trg_subscription_history_immutable + trg_subscription_history_no_truncate. Before this table, tenants.tier was a column an operator overwrote with no record of the previous value anywhere in the product. subscription_id is NULL for a tier change made on a tenant that has no subscription. Plan CODES and PRICES are captured verbatim at the time of the change so an archived or re-priced plan cannot retroactively rewrite what a tenant was moved onto.';
+        </sql>
+        <rollback>
+            <sql>COMMENT ON TABLE subscription_plans IS NULL;</sql>
+            <sql>COMMENT ON TABLE tenant_subscriptions IS NULL;</sql>
+            <sql>COMMENT ON TABLE subscription_history IS NULL;</sql>
+        </rollback>
+    </changeSet>
+
+    <!--
+      050-006 — the four tier-aligned plans.
+
+      NOT dev seed data, and deliberately not in the `seed` context: without at least one plan the
+      whole subscription surface is unusable in every environment, and these four are not invented
+      numbers — their LIMITS are TierLimits.forTier() verbatim, the table that has governed every
+      tenant in this product since Phase 3.
+
+      THE PRICES ARE THE ONE INVENTED FIGURE IN THIS FILE AND ARE MARKED AS SUCH. No price for this
+      product exists anywhere in the repository (CAPABILITY-MAP §1.3: no price table, no currency
+      field, no processor). They are placeholders an operator is expected to correct through
+      PATCH /api/v1/platform/plans/{code} before quoting anyone, and PlanTierConsistencyTest asserts
+      only the LIMITS against TierLimits - never the prices, because there is nothing true to assert
+      them against.
+
+      CUSTOM is priced at 0 on purpose: a bespoke plan's price is whatever was negotiated, and a
+      non-zero placeholder there would be a number an operator might believe.
+    -->
+    <changeSet id="050-006-seed-tier-aligned-plans" author="platform-admin">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM subscription_plans</sqlCheck>
+        </preConditions>
+        <insert tableName="subscription_plans">
+            <column name="code" value="starter-monthly"/>
+            <column name="name" value="Starter (Monthly)"/>
+            <column name="description" value="Single branch. PLACEHOLDER PRICE - set the real one before quoting."/>
+            <column name="tier" value="STARTER"/>
+            <column name="price_paisa" valueNumeric="0"/>
+            <column name="currency" value="PKR"/>
+            <column name="billing_period" value="MONTHLY"/>
+            <column name="trial_days" valueNumeric="14"/>
+            <column name="max_branches" valueNumeric="1"/>
+            <column name="max_users" valueNumeric="10"/>
+            <column name="storage_gb" valueNumeric="5"/>
+            <column name="nlq_quota" valueNumeric="1000"/>
+        </insert>
+        <insert tableName="subscription_plans">
+            <column name="code" value="growth-monthly"/>
+            <column name="name" value="Growth (Monthly)"/>
+            <column name="description" value="Multi-branch and advanced reporting. PLACEHOLDER PRICE - set the real one before quoting."/>
+            <column name="tier" value="GROWTH"/>
+            <column name="price_paisa" valueNumeric="0"/>
+            <column name="currency" value="PKR"/>
+            <column name="billing_period" value="MONTHLY"/>
+            <column name="trial_days" valueNumeric="14"/>
+            <column name="max_branches" valueNumeric="5"/>
+            <column name="max_users" valueNumeric="50"/>
+            <column name="storage_gb" valueNumeric="20"/>
+            <column name="nlq_quota" valueNumeric="5000"/>
+        </insert>
+        <insert tableName="subscription_plans">
+            <column name="code" value="enterprise-monthly"/>
+            <column name="name" value="Enterprise (Monthly)"/>
+            <column name="description" value="White-label domain and consolidated reporting. PLACEHOLDER PRICE - set the real one before quoting."/>
+            <column name="tier" value="ENTERPRISE"/>
+            <column name="price_paisa" valueNumeric="0"/>
+            <column name="currency" value="PKR"/>
+            <column name="billing_period" value="MONTHLY"/>
+            <column name="trial_days" valueNumeric="0"/>
+            <column name="max_branches" valueNumeric="50"/>
+            <column name="max_users" valueNumeric="500"/>
+            <column name="storage_gb" valueNumeric="100"/>
+            <column name="nlq_quota" valueNumeric="50000"/>
+        </insert>
+        <insert tableName="subscription_plans">
+            <column name="code" value="custom"/>
+            <column name="name" value="Custom (negotiated)"/>
+            <column name="description" value="Bespoke agreement. Price is whatever was negotiated - 0 here means UNSET, not free."/>
+            <column name="tier" value="CUSTOM"/>
+            <column name="price_paisa" valueNumeric="0"/>
+            <column name="currency" value="PKR"/>
+            <column name="billing_period" value="ANNUAL"/>
+            <column name="trial_days" valueNumeric="0"/>
+            <column name="max_branches" valueNumeric="999"/>
+            <column name="max_users" valueNumeric="9999"/>
+            <column name="storage_gb" valueNumeric="999"/>
+            <column name="nlq_quota" valueNumeric="999999"/>
+        </insert>
+        <rollback>
+            <delete tableName="subscription_plans">
+                <where>code IN ('starter-monthly','growth-monthly','enterprise-monthly','custom')</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

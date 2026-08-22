@@ -1,5 +1,6 @@
 import { expect, test } from "../fixtures/auth.fixture";
 import { persona } from "../fixtures/personas";
+import { DEFECTS, tolerate } from "../fixtures/known-defects";
 
 /**
  * THE COMMAND PALETTE — 38-11, UI-SPEC §10.
@@ -63,14 +64,58 @@ test.describe("command palette", () => {
     await expect(page.getByTestId("command-palette-item-page.dashboard")).toHaveCount(0);
   });
 
-  test("a seeded order is findable by its number and opens its bill", async ({ as }) => {
-    const page = await as(persona(TENANT, "manager"));
-    await page.goto("/app/pos");
+  test("a seeded order is findable by its number and opens its bill", async ({ as, obs }) => {
+    test.setTimeout(90_000);
+    // E2E-D4: the POS live-orders socket is refused and reconnects in a loop, one console error
+    // per attempt. Pinned in known-defects.spec.ts and tolerated in these same words by every
+    // other spec that opens /app/pos. What this test is about is the palette finding an order.
+    tolerate(obs, DEFECTS.POS_ORDERS_WEBSOCKET_REJECTED_AT_GATEWAY);
 
+    const page = await as(persona(TENANT, "manager"));
+    // `domcontentloaded`: /app/pos registers a service worker and holds a live socket, and
+    // `prepareForPos`'s docblock records a 90-second hang from waiting on `load` here.
+    await page.goto("/app/pos", { waitUntil: "domcontentloaded" });
+
+    /*
+     * `button`, NOT `tab`.
+     *
+     * <p>The POS view switcher is three plain `<button>`s: `app/(tenant)/app/pos/page.tsx:129-142`
+     * renders them in a `<div>` with no `role="tablist"`, no `role="tab"` and no `aria-selected`
+     * — the word "tabs" appears only in the comment above them. So `getByRole("tab", …)` could
+     * never resolve, and this test spent its entire 30s timeout waiting for an element that has
+     * never existed on the route. `operational-zone-containment.spec.ts:216` reaches the same
+     * strip with `getByRole("button", { name: "POS Terminal", exact: true })` and passes.
+     *
+     * <p>Whether that strip OUGHT to carry ARIA tab semantics is a real question, and it is not
+     * this test's to settle: a segmented group of buttons is a legitimate pattern, the visible
+     * labels are correct either way, and rewriting the product's roles to satisfy a locator
+     * would be the tail wagging the dog. Flagged for the accessibility review; the locator now
+     * matches what ships.
+     */
     // Read a real order number off Order Management rather than hard-coding one: order numbers
     // carry the seed date, so a literal here would rot the day after it was written.
-    await page.getByRole("tab", { name: "Order Management" }).click();
+    await page.getByRole("button", { name: "Order Management", exact: true }).click();
     const firstOrderNo = await page.locator("text=/ORD-\\d{8}-\\d{4}/").first().innerText();
+
+    /*
+     * BACK TO THE BACK-OFFICE SHELL BEFORE PRESSING ⌘K. There is no palette on /app/pos.
+     *
+     * <p>`app/(tenant)/layout.tsx:112-146` returns a different tree for an operator route with no
+     * `<TopBar>` in it, and `TopBar` is the only thing that mounts `CommandPalette`
+     * (`top-bar.tsx:540`) — UI-SPEC §4.1 calls the removal deliberate. So the chord landed on a
+     * route with no listener and `command-palette-input` never attached; the test then spent its
+     * whole timeout waiting for it. Nothing about the palette was being measured.
+     *
+     * <p>The order number still has to come from the POS screen, because a literal would carry
+     * the seed date and rot the next day — so the read stays there and only the SEARCH moves to
+     * a route that has a palette. That is the real journey anyway: a manager who was handed an
+     * order number looks it up from wherever they happen to be in the back office.
+     */
+    await page.goto("/app/dashboard");
+    await expect(
+      page.getByRole("button", { name: "Open command palette" }),
+      "the palette trigger is missing from the back-office shell, so ⌘K has nothing to open",
+    ).toBeVisible({ timeout: 30_000 });
 
     await page.keyboard.press("ControlOrMeta+k");
     await page.getByTestId("command-palette-input").fill(firstOrderNo);

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
+import { KeyRound, Layers, ShieldCheck, ShieldPlus } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAssignableRoles } from "@/lib/hooks/use-users";
@@ -10,6 +10,9 @@ import { usePermissionCatalogue, useDeleteRole } from "@/lib/hooks/use-roles";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import type { AssignableRole } from "@/lib/models/user.model";
 import { PageHeader } from "@/components/ui/page-header";
+import { StatTile } from "@/components/ui/stat-tile";
+import { countLine, statLine } from "@/lib/format/stat-line";
+import { formatNumber } from "@/lib/format/locale";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -73,6 +76,14 @@ export default function RolesPage() {
   const modules = useMemo(() => catalogueQuery.data ?? [], [catalogueQuery.data]);
   const withheld = rolesQuery.data?.withheldMessage ?? null;
   const customCount = roles.filter((role) => !role.system).length;
+  /*
+   * Every figure in the strip is computed off `roles` / `modules` — the same two arrays the cards
+   * beneath render — so the subtitle, the tiles and the grid cannot disagree. `grantedCodes` is a
+   * SET, not a sum of `role.permissions.length`: the same permission held by four roles is one
+   * capability the restaurant has granted, and summing would report it four times.
+   */
+  const catalogueSize = modules.reduce((sum, m) => sum + m.permissions.length, 0);
+  const grantedCodes = new Set(roles.flatMap((role) => role.permissions));
 
   function confirmDelete() {
     const role = deleteTarget;
@@ -110,11 +121,14 @@ export default function RolesPage() {
       <PageHeader
         title="Roles"
         description="What each role in this restaurant is allowed to do. Open one to read every permission it grants; build your own when the eight built-in roles do not match how you actually work."
-        meta={
-          <>
-            {roles.length} {roles.length === 1 ? "role" : "roles"} · {customCount} of them yours
-          </>
-        }
+        meta={statLine(
+          countLine(roles.length, "role"),
+          `${formatNumber(roles.length - customCount)} built in`,
+          `${formatNumber(customCount)} yours`,
+          catalogueQuery.isSuccess
+            ? `${formatNumber(grantedCodes.size)} of ${formatNumber(catalogueSize)} permissions granted by at least one role`
+            : undefined,
+        )}
         actions={
           /*
            * Two controls, and the accent stays on one of them. UI-SPEC §4.1 reserves the solid
@@ -135,6 +149,44 @@ export default function RolesPage() {
           </div>
         }
       />
+
+      {/*
+       * The demo's KPI strip. Four tiles, and the fourth is the one that answers the question an
+       * administrator actually arrives with — "what can nobody here do?" — which no card in the
+       * list beneath states.
+       */}
+      <div className="grid gap-(--space-md) md:grid-cols-2 xl:grid-cols-4">
+        <StatTile
+          label="Roles in this restaurant"
+          value={formatNumber(roles.length)}
+          icon={ShieldCheck}
+          accent="primary"
+        />
+        <StatTile label="Built in" value={formatNumber(roles.length - customCount)} icon={Layers} />
+        <StatTile
+          label="Roles you built"
+          value={formatNumber(customCount)}
+          icon={ShieldPlus}
+          accent="secondary"
+        />
+        {catalogueQuery.isSuccess ? (
+          <StatTile
+            label="Permissions granted"
+            value={`${formatNumber(grantedCodes.size)} of ${formatNumber(catalogueSize)}`}
+            icon={KeyRound}
+          />
+        ) : (
+          /*
+           * D-38-16. Without the catalogue there is no denominator, and "142 permissions granted"
+           * with nothing to measure it against is a number pretending to be a proportion.
+           */
+          <StatTile
+            label="Permissions granted"
+            unavailableReason="The permission catalogue did not load, so there is nothing to measure the grants against."
+            icon={KeyRound}
+          />
+        )}
+      </div>
 
       {withheld && (
         <p

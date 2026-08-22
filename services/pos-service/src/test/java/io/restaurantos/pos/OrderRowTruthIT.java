@@ -205,9 +205,25 @@ class OrderRowTruthIT extends PosTestBase {
      * The name is decoration; the id is the fact. An unreachable directory must cost the name and
      * nothing else — and must NOT cost the id, because a blank Server/Cashier cell reads as
      * "nobody took this check", which is worse than the hex fragment being replaced.
+     *
+     * <p><b>The check is rung by a cashier nobody has asked the directory about, and that is
+     * load-bearing.</b> {@code StaffNameDirectory} caches a resolved name for five minutes keyed
+     * on tenant AND user, and since {@code 27225227} every till DTO names its owner —
+     * {@code TillServiceImpl.toDto} calls {@code resolve} — so {@code setUp}'s
+     * {@code openTillForCashier} puts {@code cashierId}'s name in that cache before any test body
+     * runs. Declaring an outage against an already-cached name proves nothing: the row comes back
+     * with the cached "Shift Cashier 984155", which is what this test failed on. Switching to a
+     * cashier the directory has never been asked about is what makes the outage reach the code
+     * under test, and it is also the only shape of this failure a manager would ever see — a
+     * warm cache is a name the outage genuinely does not cost.
      */
     @Test
     void directoryOutage_costsTheNameAndNotTheRow() throws Exception {
+        cashierId = UUID.randomUUID();
+        tenantContext.set(tenantId, branchId, cashierId, null);
+        setSecurityContext(List.of("pos.order.view", "pos.order.view.all", "pos.order.create",
+                "pos.order.update"));
+
         OrderDto order = openOrder(OrderType.DINE_IN, null);
         when(authUserDirectoryClient.getUser(any(), any()))
                 .thenThrow(new IllegalStateException("auth-service unreachable"));

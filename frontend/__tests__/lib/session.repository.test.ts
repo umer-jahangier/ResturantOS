@@ -42,6 +42,44 @@ describe("SessionRepository (Zod parse-before-adapt contract)", () => {
     await expect(SessionRepository.logout()).resolves.toBeUndefined();
   });
 
+  /**
+   * The platform-token path through adaptTokenSession's `claims.tenantId || null`.
+   *
+   * Only the tenant side of that fallback was ever exercised, so the branch the long comment in
+   * auth.adapter.ts exists to justify — a SuperAdmin must not rehydrate into a session labelled
+   * with `tenantId: ""` — was the untested half. decodeJwt renders a MISSING string claim as "",
+   * and "" is falsy, so this pins the normalisation rather than the absence.
+   */
+  it("refresh() gives a platform token a null tenant and branch, not empty strings", async () => {
+    const b64url = (o: object) =>
+      Buffer.from(JSON.stringify(o))
+        .toString("base64")
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+    // No tenant_id and no branch_id, which is exactly what signPlatformToken omits.
+    const platformToken = `header.${b64url({
+      sub: "11111111-1111-4111-8111-111111111111",
+      token_type: "platform",
+    })}.signature`;
+
+    server.use(
+      http.post("*/api/v1/auth/refresh", () =>
+        HttpResponse.json({
+          data: { accessToken: platformToken, expiresInSeconds: 900 },
+          meta: null,
+          warnings: [],
+        }),
+      ),
+    );
+
+    const session = await SessionRepository.refresh();
+
+    expect(session.tenantId).toBeNull();
+    expect(session.branchId).toBeNull();
+    expect(session.tokenType).toBe("platform");
+  });
+
   it("login() throws when the API response drifts (missing accessToken)", async () => {
     server.use(
       http.post("*/api/v1/auth/login", () =>
@@ -103,6 +141,30 @@ describe("SessionRepository — two-factor management", () => {
     await expect(SessionRepository.totpRegenerateRecoveryCodes("123456")).resolves.toEqual({
       recoveryCodes: CODES,
     });
+  });
+
+  /**
+   * The enrolled-already side of `currentCode ? { code: currentCode } : {}`. Re-pointing a live
+   * factor without proof is what let a redeemed recovery code be laundered into a takeover, so
+   * "the code actually reaches the wire" is the half worth pinning; the first-time path below
+   * covers the empty body.
+   */
+  it("totpSetup(code) sends the current code when a factor is already enrolled", async () => {
+    let body: unknown = "handler-not-reached";
+    server.use(
+      http.post("*/api/v1/auth/2fa/setup", async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({
+          data: { otpauthUri: "otpauth://totp/RestaurantOS:a@b.test?secret=ABC" },
+          meta: null,
+          warnings: [],
+        });
+      }),
+    );
+
+    await SessionRepository.totpSetup("123456");
+
+    expect(body).toEqual({ code: "123456" });
   });
 
   it("totpSetup() returns the provisioning URI the QR is drawn from", async () => {

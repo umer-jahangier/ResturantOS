@@ -163,7 +163,9 @@ export function StockReceiptDialog({
           >
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium">Receipt lines</h3>
+                <h3 className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary">
+                  Receipt lines
+                </h3>
                 <Button
                   type="button"
                   variant="outline"

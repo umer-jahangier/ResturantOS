@@ -6,7 +6,16 @@ import { DataGrid, type ColumnDef } from "@/components/ui/data-grid/data-grid";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { LedgerTotalRow } from "@/components/finance/LedgerTotalRow";
+import { Meter } from "@/components/ui/meter";
 import type { ApAgingBucket } from "@/lib/models/finance.model";
+
+/**
+ * The demo's small-caps eyebrow (`.card-title`, `DEMO-COMPONENTS.md:453`): 11px, 600,
+ * letter-spacing .08em, uppercase. It names the SECTION, and it is most of the difference between
+ * "a heading" and "a designed screen" — our sentence-case `<h2>`s read as document text.
+ */
+const SECTION_HEADING =
+  "text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary";
 
 /**
  * The bucket grid both aging reports render (38-08 task 1).
@@ -85,28 +94,72 @@ export function AgingGrid({
     [],
   );
 
+  const overduePaisa = buckets.reduce((sum, b) => (isOverdue(b) ? sum + b.amountPaisa : sum), 0);
+
   return (
-    <div className="space-y-(--space-md)">
-      <DataGrid
-        label={label}
-        columns={columns}
-        data={buckets}
-        rowClassName={(bucket) => (isOverdue(bucket) ? "bg-destructive/10" : undefined)}
-        emptyTitle="No buckets returned"
-        emptyDescription="The service answered with no aging buckets at all, which is different from every bucket being zero."
-        card={{
-          primary: (b) => b.label,
-          secondary: (b) =>
-            b.maxDays >= 999_999 ? `${b.minDays}+ days` : `${b.minDays}–${b.maxDays} days`,
-          trailing: (b) => <MoneyDisplay paisa={b.amountPaisa} />,
-        }}
-      />
-      <LedgerTotalRow
-        label={totalLabel}
-        note={totalNote}
-        value={<MoneyDisplay paisa={totalPaisa} />}
-        data-testid="aging-total"
-      />
+    /*
+     * The demo's universal back-office body: a primary table at 2fr beside a secondary panel at
+     * 1fr (DEMO-SCREENS, "the universal two-column body pattern"). The panel is METERS, which is
+     * the device the demo uses for AP aging specifically — a bucket's amount means very little
+     * on its own and a great deal as a share of what is owed in total.
+     *
+     * `minmax(0,1fr)` on the BASE track: a grid item defaults to `min-width: auto`, so without it
+     * the table refuses to shrink and the page scrolls sideways at 390.
+     */
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-(--space-lg) xl:grid-cols-[2fr_1fr]">
+      <section aria-label={label} className="space-y-(--space-md)">
+        <h2 className={SECTION_HEADING}>{totalLabel}</h2>
+        <DataGrid
+          label={label}
+          columns={columns}
+          data={buckets}
+          rowClassName={(bucket) => (isOverdue(bucket) ? "bg-destructive/10" : undefined)}
+          emptyTitle="No buckets returned"
+          emptyDescription="The service answered with no aging buckets at all, which is different from every bucket being zero."
+          card={{
+            primary: (b) => b.label,
+            secondary: (b) =>
+              b.maxDays >= 999_999 ? `${b.minDays}+ days` : `${b.minDays}–${b.maxDays} days`,
+            trailing: (b) => <MoneyDisplay paisa={b.amountPaisa} />,
+          }}
+        />
+        <LedgerTotalRow
+          label={totalLabel}
+          note={totalNote}
+          value={<MoneyDisplay paisa={totalPaisa} />}
+          data-testid="aging-total"
+        />
+      </section>
+
+      <aside
+        aria-label={`${totalLabel} — share of total`}
+        data-testid="aging-share-panel"
+        className="h-fit space-y-(--space-md) rounded-xl border border-border bg-card p-5 text-card-foreground"
+      >
+        <h2 className={SECTION_HEADING}>Share of total</h2>
+        <div className="space-y-(--space-md)">
+          {buckets.map((bucket) => (
+            <Meter
+              key={bucket.label}
+              label={bucket.label}
+              value={bucket.amountPaisa}
+              of={totalPaisa}
+              format="money"
+              status={isOverdue(bucket) ? { tone: "danger", label: "Overdue" } : undefined}
+            />
+          ))}
+        </div>
+        {/*
+         * Stated, not implied. `overduePaisa` is a sum of figures the service returned, so it is
+         * computable and gets a number; nothing here is a ratio this screen invented.
+         */}
+        <LedgerTotalRow
+          label="Overdue"
+          note="The buckets above whose window has already passed."
+          value={<MoneyDisplay paisa={overduePaisa} />}
+          data-testid="aging-overdue-total"
+        />
+      </aside>
     </div>
   );
 }

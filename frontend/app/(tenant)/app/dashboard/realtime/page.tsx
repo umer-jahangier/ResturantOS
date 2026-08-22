@@ -24,17 +24,51 @@ import { cn } from "@/lib/utils";
  * "Reconnecting…"), by the ICON SHAPE (a broadcast mark vs a retry arrow) and only then by the
  * colour. Drop the colour entirely and the line still reads correctly, which is the test.
  */
+/**
+ * The socket's state, as the demo's LIVE pill.
+ *
+ * <h3>Why a pill and not a line of coloured text</h3>
+ *
+ * This was `<Icon /> Live` in green — the same information, rendered as body copy, which is the
+ * "cheap" read in miniature: the most important claim on the page (are these figures CURRENT?)
+ * looked like a caption. `components/shared/top-bar.tsx` already ships the demo's pill for
+ * browser connectivity; this is the same object bound to a different truth — the dashboard
+ * WebSocket — so the two agree by construction rather than by resemblance.
+ *
+ * <p>Three channels, never hue alone (D-38-13 §4.2): the WORD changes, the border and fill change,
+ * and the `title` says what the state means for the numbers below it. The 2s breath on the dot is
+ * `animate-pulse`, whose keyframe moves opacity only — the demo's moves `transform: scale()`,
+ * which would make this dot a containing block for fixed-position descendants. Reduced motion
+ * removes it through the global net in `globals.css`.
+ */
 function ConnectionIndicator({ isConnected }: { isConnected: boolean }) {
   const Icon = isConnected ? Radio : RefreshCw;
   return (
     <p
+      role="status"
       data-testid="realtime-connection"
+      data-connected={isConnected}
+      title={
+        isConnected
+          ? "Connected. Tiles update as soon as an order or till closes."
+          : "Reconnecting. The figures below are the last values received, not current ones."
+      }
       className={cn(
-        "inline-flex items-center gap-(--space-xs) text-small font-medium",
-        isConnected ? "text-success" : "text-warning",
+        "inline-flex items-center gap-(--space-xs) rounded-full border px-2.5 py-0.5",
+        "text-label font-semibold tracking-[0.08em] uppercase",
+        isConnected
+          ? "border-success/30 bg-success/10 text-success"
+          : "border-warning/30 bg-warning/10 text-warning-700 dark:text-warning-400",
       )}
     >
-      <Icon className="size-4 shrink-0" aria-hidden="true" />
+      <Icon className="size-3.5 shrink-0" aria-hidden="true" />
+      {isConnected ? (
+        <span
+          aria-hidden="true"
+          className="size-1.5 animate-pulse rounded-full bg-success"
+          data-testid="realtime-pulse"
+        />
+      ) : null}
       {isConnected ? "Live" : "Reconnecting…"}
     </p>
   );

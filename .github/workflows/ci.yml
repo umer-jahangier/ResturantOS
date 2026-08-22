@@ -194,6 +194,15 @@ jobs:
 
       # Vitest coverage thresholds are enforced by frontend/vitest.config.ts, which
       # mirrors the "frontend" gate (60) in coverage-gates.json — the source of truth.
+      # __tests__/responsive/responsive-viewport.test.tsx measures real layout by driving a real
+      # Chromium: its beforeAll calls ViewportHarness.open, which calls chromium.launch(). Without
+      # a browser that hook throws, vitest reports the file's 394 tests as "skipped" and fails the
+      # suite — which reads like a test problem and is not one. The e2e job installs browsers for
+      # itself; this job never did, and never needed to until the Java steps stopped failing
+      # ahead of it and the frontend step ran for the first time.
+      - name: Install Chromium for the responsive viewport audit
+        run: pnpm --dir frontend exec playwright install --with-deps chromium
+
       - name: Frontend tests + coverage (Vitest, gate >= frontend)
         run: |
           FRONTEND_GATE=$(python3 -c "import json;print(json.load(open('.github/workflows/coverage-gates.json'))['frontend'])")

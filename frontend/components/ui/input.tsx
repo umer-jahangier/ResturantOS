@@ -23,7 +23,10 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
         //
         // `outline-none` and the focus ring are gone: focus is an outline in globals.css
         // (§3.9) so it survives the scroll containers this input sits inside.
-        "h-8 w-full min-w-0 rounded-lg border border-border-interactive bg-transparent px-2.5 py-1 text-base transition-colors file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-surface-2 dark:disabled:bg-surface-3 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
+        // `touch-floor` — 44px below `lg`, the declared height at and above it. A 32px text
+        // field is not merely small on a phone: the tap that misses it lands on whatever is
+        // behind, and on a form that is usually another field.
+        "touch-floor h-8 w-full min-w-0 rounded-lg border border-border-interactive bg-transparent px-2.5 py-1 text-base transition-colors file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-surface-2 dark:disabled:bg-surface-3 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
         className,
       )}
       {...props}

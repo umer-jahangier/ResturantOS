@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Building2, CircleAlert, CreditCard, Scale } from "lucide-react";
 
 import { useCustomerAccounts } from "@/lib/hooks/finance/use-finance";
 import { CustomerAccountFormDialog } from "@/components/finance/CustomerAccountFormDialog";
@@ -15,6 +16,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Button } from "@/components/ui/button";
 import { MoneyDisplay } from "@/components/ui/money-display";
+import { StatTile } from "@/components/ui/stat-tile";
+import { countLine, statLine } from "@/lib/format/stat-line";
+import { formatNumber } from "@/lib/format/locale";
 import type { CustomerAccount } from "@/lib/models/finance.model";
 
 /**
@@ -36,6 +40,17 @@ export default function HouseAccountsPage() {
   // the tenant's AR ledger — an invitation to re-create accounts that already exist.
   const accountsQuery = useCustomerAccounts(page);
   const accounts = accountsQuery.data?.data ?? [];
+
+  /*
+   * Off `accounts` — the page of rows the grid renders. `overLimit` is the figure a credit
+   * controller opens this screen for and no column states: a balance past its own account's
+   * limit. Both sides of that comparison are on the row, so it is a reading, not an estimate.
+   */
+  const outstandingPaisa = accounts.reduce((sum, a) => sum + a.balancePaisa, 0);
+  const creditLimitPaisa = accounts.reduce((sum, a) => sum + a.creditLimitPaisa, 0);
+  const overLimit = accounts.filter(
+    (a) => a.creditLimitPaisa > 0 && a.balancePaisa > a.creditLimitPaisa,
+  ).length;
 
   const columns = useMemo<ColumnDef<CustomerAccount, unknown>[]>(
     () => [
@@ -130,8 +145,40 @@ export default function HouseAccountsPage() {
       <PageHeader
         title="House Accounts"
         description="Corporate clients and regulars billed on account — catering invoices, phone orders, month-end billing, settled later."
+        meta={
+          accountsQuery.isSuccess
+            ? statLine(
+                countLine(accounts.length, "account"),
+                `${formatNumber(accounts.filter((a) => a.status === "ACTIVE").length)} active`,
+                overLimit > 0 ? `${formatNumber(overLimit)} over their credit limit` : undefined,
+              )
+            : undefined
+        }
         actions={<CustomerAccountFormDialog trigger={<Button>New house account</Button>} />}
       />
+
+      {accounts.length > 0 && (
+        <div className="grid gap-(--space-md) md:grid-cols-2 xl:grid-cols-4">
+          <StatTile
+            label="House accounts"
+            value={formatNumber(accounts.length)}
+            icon={Building2}
+            accent="primary"
+          />
+          <StatTile
+            label="Outstanding on account"
+            value={<MoneyDisplay paisa={outstandingPaisa} />}
+            icon={Scale}
+            accent="secondary"
+          />
+          <StatTile
+            label="Credit extended"
+            value={<MoneyDisplay paisa={creditLimitPaisa} />}
+            icon={CreditCard}
+          />
+          <StatTile label="Over their limit" value={formatNumber(overLimit)} icon={CircleAlert} />
+        </div>
+      )}
 
       <QueryBoundary
         query={accountsQuery}

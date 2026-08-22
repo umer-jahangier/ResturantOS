@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { PackageSearch, PackageX, Truck, Warehouse } from "lucide-react";
 
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { PortletGrid, type PortletModels } from "@/components/dashboard/portlets/portlet-renderer";
@@ -147,6 +148,7 @@ export function InventoryDashboard() {
         item.baseUomCode
       } reorder point`,
       severity: "danger" as const,
+      icon: <PackageX />,
     }));
     // Never counted is a different problem from "counted and low": the on-hand figure for such
     // an ingredient is an opening balance nobody has ever verified, so every number above that
@@ -158,6 +160,7 @@ export function InventoryDashboard() {
         label: `${neverCounted.length} ingredient${neverCounted.length === 1 ? " has" : "s have"} never been counted`,
         detail: "On-hand for these is the opening balance, unverified by a physical count",
         severity: "warning" as const,
+        icon: <PackageSearch />,
       });
     }
     return rows.slice(0, 6);
@@ -166,6 +169,8 @@ export function InventoryDashboard() {
   const models: PortletModels<InventoryPortlets> = {
     "inventory-below-reorder": {
       kind: "KpiTile",
+      accent: "warning",
+      icon: PackageSearch,
       value: formatNumber(belowReorder.length),
       caption: `Of ${formatNumber(stock.length)} ingredient${stock.length === 1 ? "" : "s"} stocked`,
       tone: belowReorder.length > 0 ? "warning" : "neutral",
@@ -173,6 +178,8 @@ export function InventoryDashboard() {
     },
     "inventory-out-of-stock": {
       kind: "KpiTile",
+      accent: "danger",
+      icon: PackageX,
       value: formatNumber(outOfStock.length),
       caption: "Nothing on hand at all",
       tone: outOfStock.length > 0 ? "danger" : "neutral",
@@ -182,18 +189,24 @@ export function InventoryDashboard() {
       totalStockValuePaisa === null
         ? {
             kind: "KpiTile",
+            accent: "primary",
+            icon: Warehouse,
             caption: "Valued at weighted average cost",
             unavailableReason: "Stock valuation has not been returned for this branch.",
             boundary: { query: stockQuery, what: "stock levels" },
           }
         : {
             kind: "KpiTile",
+            accent: "primary",
+            icon: Warehouse,
             value: <MoneyDisplay paisa={totalStockValuePaisa} />,
             caption: "Valued at weighted average cost",
             boundary: { query: stockQuery, what: "stock levels" },
           },
     "inventory-incoming": {
       kind: "KpiTile",
+      accent: "info",
+      icon: Truck,
       value: formatNumber(purchaseOrders.length),
       caption: "Ordered and not yet fully received",
       boundary: {
@@ -204,6 +217,7 @@ export function InventoryDashboard() {
     },
     "inventory-shortfalls": {
       kind: "RankedList",
+      accent: "warning",
       rows: shortfalls,
       emptyLabel: "Nothing is below its reorder point.",
       boundary: { query: stockQuery, what: "stock levels" },

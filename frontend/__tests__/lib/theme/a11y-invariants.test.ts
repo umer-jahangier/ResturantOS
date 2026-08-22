@@ -574,3 +574,155 @@ describe("G12f — required marking (UI-SPEC §11: 0 marked in both audited dial
     expect((table!.match(/<FormItem required\b/g) ?? []).length).toBe(2);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// G12g — a <label> that WRAPS its control must establish a layout
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The bug the product owner photographed, stated exactly.
+ *
+ * <p>`components/pos/till-session-bar.tsx:367` read:
+ *
+ * ```tsx
+ * <label className="text-body">
+ *   Declared Cash Count (PKR)
+ *   <input className="mt-1 min-h-11 w-full …" />
+ * </label>
+ * ```
+ *
+ * <p>A `<label>` is `display: inline`. An inline box does not establish a block formatting
+ * context, so the `w-full` input inside it is laid out as an inline-level box on the SAME line
+ * box as the text node beside it — and `mt-1` on an inline-level replaced element does not push
+ * the line box apart. The result is the words "Declared Cash Count (PKR)" rendering ON TOP of the
+ * input at any width where the two do not both fit: the collision in the owner's screenshot.
+ *
+ * <p>It is not a spacing bug and no amount of margin fixes it. The label has to become a
+ * block/flex/grid container, or the control has to stop being its child. Both are one class or
+ * one refactor, which is precisely why it recurs — nothing notices.
+ *
+ * <h3>Negative control — RUN, OBSERVED RED, RESTORED</h3>
+ *
+ * See the assertion message; the injection and its observed output are recorded in the plan.
+ */
+const WRAPPING_CONTROL =
+  /<(?:input|textarea|select|Input|Textarea|Select|Combobox|NativeSelect|MoneyInput)\b/;
+
+/**
+ * Tokens that give the `<label>` a formatting context of its own, so a `w-full` child is laid
+ * out as a block-level box instead of sharing the text's line box. Variant prefixes
+ * (`md:flex`, `data-[x]:grid`) are stripped before the lookup.
+ */
+const LAYOUT_TOKENS = new Set([
+  "flex",
+  "inline-flex",
+  "grid",
+  "inline-grid",
+  "block",
+  "inline-block",
+  "flow-root",
+  "contents",
+  "table",
+  "table-cell",
+]);
+
+function classNameText(openTag: string): string {
+  const at = openTag.indexOf("className");
+  if (at < 0) return "";
+  const rest = openTag.slice(at + "className".length).replace(/^\s*=\s*/, "");
+  if (rest.startsWith('"') || rest.startsWith("'")) {
+    const quote = rest.slice(0, 1);
+    const end = rest.indexOf(quote, 1);
+    return end < 0 ? rest : rest.slice(1, end);
+  }
+  if (!rest.startsWith("{")) return "";
+  let depth = 0;
+  for (let i = 0; i < rest.length; i += 1) {
+    if (rest[i] === "{") depth += 1;
+    else if (rest[i] === "}") {
+      depth -= 1;
+      if (depth === 0) return rest.slice(1, i);
+    }
+  }
+  return rest;
+}
+
+function establishesLayout(openTag: string): boolean {
+  return classNameText(openTag)
+    .split(/[\s"'`,{}()[\]]+/)
+    .some((raw) => {
+      const token = raw.slice(raw.lastIndexOf(":") + 1);
+      return LAYOUT_TOKENS.has(token);
+    });
+}
+
+/** Every `<label>…</label>` pair in a source file, as its opening tag and its inner text. */
+function labelBlocks(source: string): Array<{ open: string; inner: string; line: number }> {
+  const out: Array<{ open: string; inner: string; line: number }> = [];
+  const marker = "<label";
+  for (let at = source.indexOf(marker); at >= 0; at = source.indexOf(marker, at + 1)) {
+    const after = source[at + marker.length];
+    if (after && /[\w.$-]/.test(after)) continue;
+    let depth = 0;
+    let quote: string | null = null;
+    let openEnd = -1;
+    for (let i = at + marker.length; i < source.length; i += 1) {
+      const ch = source[i];
+      if (quote) {
+        if (ch === quote && source[i - 1] !== "\\") quote = null;
+        continue;
+      }
+      if (ch === '"' || ch === "'" || ch === "`") quote = ch;
+      else if (ch === "{") depth += 1;
+      else if (ch === "}") depth -= 1;
+      else if (ch === ">" && depth === 0) {
+        openEnd = i;
+        break;
+      }
+    }
+    if (openEnd < 0 || source[openEnd - 1] === "/") continue;
+    // `<label>` may not nest, so the next closing tag is this element's.
+    const close = source.indexOf("</label>", openEnd);
+    if (close < 0) continue;
+    out.push({
+      open: source.slice(at, openEnd + 1),
+      inner: source.slice(openEnd + 1, close),
+      line: source.slice(0, at).split("\n").length,
+    });
+  }
+  return out;
+}
+
+describe("G12g — a wrapping <label> establishes a layout (the till-session-bar collision)", () => {
+  it("no <label> contains a control while rendering as an inline box", () => {
+    const offenders: string[] = [];
+    each((file, source) => {
+      for (const block of labelBlocks(source)) {
+        if (!WRAPPING_CONTROL.test(block.inner)) continue;
+        if (establishesLayout(block.open)) continue;
+        offenders.push(`${file}:${block.line}`);
+      }
+    });
+    expect(
+      offenders,
+      "a <label> that WRAPS its control is display:inline, so the control shares the label " +
+        "text's line box and the two overlap — the 'Declared Cash Count (PKR)' collision. Give " +
+        "the label `flex flex-col` / `grid` / `block`, or split it into a <Label htmlFor> beside " +
+        "the control (components/ui/label.tsx, components/ui/form.tsx).",
+    ).toEqual([]);
+  });
+
+  it("the check can see a control inside a label at all (self-test)", () => {
+    // A gate that silently matches nothing passes forever. This proves the scanner finds the
+    // shape it is looking for, using a fixture rather than a file that is about to be fixed.
+    const fixture = `<label className="text-body">Declared\n  <input className="w-full" />\n</label>`;
+    const blocks = labelBlocks(fixture);
+    expect(blocks).toHaveLength(1);
+    expect(WRAPPING_CONTROL.test(blocks[0]!.inner)).toBe(true);
+    expect(establishesLayout(blocks[0]!.open)).toBe(false);
+    expect(establishesLayout(`<label className="flex flex-col gap-1.5">`)).toBe(true);
+    expect(establishesLayout(`<label className={cn("grid gap-2", x && "y")}>`)).toBe(true);
+    // `flex-col` alone does NOT establish a flex container — the bug survives it.
+    expect(establishesLayout(`<label className="flex-col gap-2">`)).toBe(false);
+  });
+});

@@ -1,3 +1,7 @@
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, it, expect, beforeAll } from "vitest";
 
 import { buildCss, builtVar } from "@/__tests__/lib/theme/built-css";
@@ -24,9 +28,42 @@ import { buildCss, builtVar } from "@/__tests__/lib/theme/built-css";
  * SIDEBAR's 256px while reporting it as the cart.
  */
 
+const FRONTEND = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+
+/**
+ * The classes `PageBody` emits on its `fullBleed` branch, READ OUT OF THE COMPONENT rather than
+ * retyped here.
+ *
+ * <h3>Why this is not just another entry in `CANDIDATES`</h3>
+ *
+ * It was, briefly, and the negative control caught it: `buildCss` only emits utilities for the
+ * candidates it is handed, so a hard-coded candidate proves the class *can* compile — never that
+ * the class *the component ships* does. Putting a space inside the `clamp()` in `page-body.tsx`
+ * (`px-[clamp(var(--space-sm), 2.5%, …)]`, which Tailwind does NOT accept) left the suite green,
+ * because the correct spelling was still sitting in this array. The gutter would have been dead
+ * in the browser with a passing test over it — precisely the failure mode §7.2.2 names, dressed
+ * up as its own gate.
+ *
+ * <p>Reading the source closes the loop: the candidate IS whatever the component says, so a typo
+ * compiles to nothing and the assertion below goes red.
+ */
+const FULL_BLEED_CLASSES: string[] = (() => {
+  const src = readFileSync(resolve(FRONTEND, "components/ui/page-body.tsx"), "utf8");
+  // The one string literal on the fullBleed arm — it is the only one that opens with `h-full`.
+  const literal = /"(h-full[^"]*)"/.exec(src)?.[1];
+  if (!literal) {
+    throw new Error(
+      "could not find PageBody's fullBleed class literal — if the branch was rewritten, " +
+        "point this extractor at the new shape rather than deleting it",
+    );
+  }
+  return literal.split(/\s+/).filter(Boolean);
+})();
+
 const CANDIDATES = [
   "grid-cols-[repeat(auto-fill,minmax(130px,1fr))]",
   "lg:w-[360px]",
+  ...FULL_BLEED_CLASSES,
   "min-h-[100px]",
   "h-14",
   "touch-target",
@@ -55,6 +92,81 @@ describe("POS terminal geometry survives the build", () => {
     const rule = /\.lg\\:w-\\\[360px\\\][^{]*\{[^}]*\}/.exec(css)?.[0] ?? "";
     expect(rule).toContain("width: 360px");
     expect(css).toMatch(/@media \(width >= 64rem\)/);
+  });
+
+  it("gives the full-bleed surface a percentage side gutter that actually compiles", () => {
+    /*
+     * ADDED after review: "on opening POS it is literally expanding to full screen with 0
+     * padding at left and right, which should be at least 2-5% on both sides."
+     *
+     * `PageBody fullBleed` emitted `h-full` and nothing else, so the terminal ran into the
+     * bezel. The gutter it now carries is a PERCENTAGE — the request scales with the viewport,
+     * and a step off the spacing ladder does not — bounded at both ends so it can never vanish
+     * or run away.
+     *
+     * This assertion belongs in THIS file specifically. It is an arbitrary Tailwind value, and
+     * this suite's whole premise (UI-SPEC §7.2.2) is that such a value compiles to NOTHING when
+     * the syntax is a character off, while still reading correctly in the source and passing
+     * every grep and every JSDOM test. A silently-dead gutter class would reproduce the exact
+     * defect that was reported, with a green suite over it.
+     *
+     * <p>The class under test comes from `FULL_BLEED_CLASSES` — read out of `page-body.tsx` —
+     * so this measures the component's spelling and not a copy of it kept in step by hand.
+     */
+    expect(
+      FULL_BLEED_CLASSES.some((c) => c.startsWith("px-[")),
+      "PageBody's fullBleed branch no longer emits an inline gutter at all",
+    ).toBe(true);
+    const rule = /\.px-\\\[clamp[^{]*\{[^}]*\}/.exec(css)?.[0] ?? "";
+    expect(rule, "the full-bleed gutter compiled to nothing").not.toBe("");
+    expect(rule.replace(/\s+/g, " ")).toContain(
+      "padding-inline: clamp(var(--space-sm), 2.5%, var(--space-3xl))",
+    );
+    // The bounds have to be real numbers, not just live var() names: a clamp whose floor and
+    // ceiling resolve to nothing degrades to no padding at all, which is where this started.
+    expect(builtVar(css, "--space-sm")).toBe("8px");
+    expect(builtVar(css, "--space-3xl")).toBe("64px");
+  });
+
+  it("does not let that gutter grow back into the fixed back-office inset", () => {
+    /*
+     * The gutter wave 4 removed was a FIXED 255px operator inset, and the failure mode of
+     * "add some padding back" is that it returns as a constant nobody re-measures. 2.5% with a
+     * 64px ceiling is 36px at 1440 and 48px at 1920 — the 2–5% asked for — and cannot reach 255
+     * at any width. The ceiling is what makes that structural rather than a promise, so the
+     * ceiling is what is asserted.
+     */
+    const ceiling = Number.parseInt(builtVar(css, "--space-3xl") ?? "", 10);
+    expect(ceiling).toBeLessThan(255);
+    // And the cart is not paying for it: 360px is a fixed track on a `shrink-0` column, so the
+    // container's padding comes out of the menu grid, not out of the panel the gate measures.
+    expect(/\.lg\\:w-\\\[360px\\\][^{]*\{[^}]*\}/.exec(css)?.[0] ?? "").toContain("width: 360px");
+  });
+
+  it("lets the KDS board decline the gutter, unlayered so it beats the utility", () => {
+    /*
+     * `data-surface="kds"` sits INSIDE `PageBody`, on the element painting `bg-kds-surface`.
+     * Padding the PageBody insets the board's GROUND, not its content, and what shows down both
+     * edges is app chrome — "a dark board floating in light chrome", the photograph that made
+     * `fullBleed` exist. The override must also be UNLAYERED: it is beating a Tailwind utility,
+     * and a later cascade layer wins regardless of specificity (the lesson `main:has(...)`
+     * already learned in this stylesheet).
+     */
+    const rule =
+      /\[data-page-body="full-bleed"\]:has\(\[data-surface="kds"\]\)[^{]*\{[^}]*\}/.exec(
+        css,
+      )?.[0] ?? "";
+    expect(rule, "the KDS gutter opt-out is missing from the built stylesheet").not.toBe("");
+    expect(rule).toContain("padding-inline: 0");
+    /*
+     * …and it must be UNLAYERED, which is the half that is easy to get wrong and impossible to
+     * see in the source. Brace depth is the measurement: a top-level rule sits at depth 0, and
+     * anything Tailwind wrapped in `@layer utilities { … }` sits at 1 or deeper. Moved inside a
+     * layer this rule would read identically here and silently lose to PageBody's gutter in the
+     * browser — the failure `main:has([data-page-body])` already had once, when it was written
+     * in `@layer base` and did nothing at all.
+     */
+    expect(braceDepthAt(css, css.indexOf(rule)), "the opt-out is inside a cascade layer").toBe(0);
   });
 
   it("states the tile MINIMUM and lets the browser choose the column count", () => {
@@ -117,3 +229,29 @@ describe("POS terminal geometry survives the build", () => {
     }
   });
 });
+
+/**
+ * Brace nesting depth of `index` within a compiled stylesheet — 0 means "not inside any
+ * `@layer`, `@media` or `@supports` block".
+ *
+ * <p>Written as a scanner rather than as `(prefix.match(/{/g) ?? []).length - …` because a
+ * stylesheet legitimately contains braces inside quoted strings (`content: "{"`), and a counter
+ * that miscounts one of those reports a rule as layered when it is not — a false failure on the
+ * one assertion whose whole job is to be trusted.
+ */
+function braceDepthAt(css: string, index: number): number {
+  let depth = 0;
+  let quote: string | null = null;
+  for (let i = 0; i < index; i += 1) {
+    const ch = css[i];
+    if (quote) {
+      if (ch === "\\") i += 1;
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") quote = ch;
+    else if (ch === "{") depth += 1;
+    else if (ch === "}") depth -= 1;
+  }
+  return depth;
+}

@@ -64,7 +64,11 @@ export default function VendorInvoicesPage() {
       cell: ({ row }) => (
         <Link
           href={`/app/purchasing/invoices/${row.original.id}`}
-          className="font-medium text-primary underline-offset-2 hover:underline"
+          // An invoice number is a REFERENCE, and the demo monospaces every reference
+          // (`.td-mono`, its most-used table class). It was the only identifier column in
+          // purchasing rendering in the body sans, beside a `PO` column two cells away that was
+          // already mono — so two references on one row read as two different kinds of thing.
+          className="font-mono font-medium text-primary underline-offset-2 hover:underline"
         >
           {row.original.invoiceNo}
         </Link>

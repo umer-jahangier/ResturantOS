@@ -250,7 +250,9 @@ export function StockTransferDialog({
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium">Lines</h3>
+                  <h3 className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary">
+                    Lines
+                  </h3>
                   <Button
                     type="button"
                     variant="outline"
@@ -330,7 +332,9 @@ export function StockTransferDialog({
               received per line. Variance is received minus shipped.
             </p>
             <div className="overflow-hidden rounded-md border">
-              <table className="w-full text-sm">
+              {/* `table-stack` (globals.css) — a receiving clerk checks a transfer in on a
+                  phone, and four columns at 390px leaves the Received input about 60px wide. */}
+              <table className="table-stack w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr className="text-left text-muted-foreground">
                     <th className="p-2 font-medium">Ingredient</th>
@@ -353,9 +357,13 @@ export function StockTransferDialog({
                           varianceRowClassName(variance, received),
                         )}
                       >
-                        <td className="p-2">{ingredientName(line.ingredientId)}</td>
-                        <td className="p-2 text-muted-foreground">{line.qtyShipped}</td>
-                        <td className="p-2">
+                        <td className="p-2" data-label="Ingredient">
+                          {ingredientName(line.ingredientId)}
+                        </td>
+                        <td className="p-2 text-muted-foreground" data-label="Shipped">
+                          {line.qtyShipped}
+                        </td>
+                        <td className="p-2" data-label="Received">
                           <Input
                             inputMode="decimal"
                             aria-label={`Received quantity for ${ingredientName(line.ingredientId)}`}
@@ -369,7 +377,7 @@ export function StockTransferDialog({
                             className="h-8 w-24"
                           />
                         </td>
-                        <td className="p-2 tabular-nums">
+                        <td className="p-2 tabular-nums" data-label="Variance">
                           {variance > 0 ? `+${variance}` : variance}
                         </td>
                       </tr>

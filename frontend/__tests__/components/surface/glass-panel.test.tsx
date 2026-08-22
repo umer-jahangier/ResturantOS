@@ -70,16 +70,34 @@ describe("GlassPanel", () => {
   });
 });
 
-describe("Card — the default rendering MUST NOT change", () => {
+describe("Card — depth and lift stay opt-in", () => {
   /**
-   * The assertion that matters most in this file. Card is consumed across the product, so a
-   * silent restyle of every card is a screen rebuild, which this phase is explicitly not doing.
-   * Depth is opt-in.
+   * <h3>What this list is for, restated after wave 38 changed two of its entries</h3>
+   *
+   * <p>Phase 34 wrote this as "the default rendering MUST NOT change", and the tokens below were
+   * a byte-for-byte freeze. That framing has to be corrected rather than quietly edited around,
+   * because the freeze was never the point: the point is that <b>`depth` and `interactive` are
+   * opt-in</b>, so a POS screen importing `Card` cannot inherit a shadow or a hover lift it did
+   * not ask for. The last two assertions in the test below are the ones doing that work, and
+   * they are untouched.
+   *
+   * <p>Wave 38 deliberately changed two structural tokens, on the primitive, once:
+   * <ul>
+   *   <li>`[--card-spacing:--spacing(4)]` → `--spacing(5)` — 16px to the demo's 20px
+   *       (`DEMO-COMPONENTS.md:373`). Not asserted here; `--card-spacing` is referenced through
+   *       the `gap-`/`py-` tokens below, which is what this list can honestly check.</li>
+   *   <li>`text-sm` → `text-small` — same rank, on-contract role, and it removes two of the four
+   *       G1 violations this file carried.</li>
+   * </ul>
+   *
+   * <p>A design-system primitive whose look is frozen by a test is a primitive that can never be
+   * corrected, which is how the product arrived at a look its owner rejected. What must not
+   * change without a decision is the ZONE contract, and that is asserted directly.
    */
   const DEFAULT_CLASSES =
-    "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground ring-1 ring-foreground/10";
+    "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-small text-card-foreground ring-1 ring-foreground/10";
 
-  it("a Card with no depth prop renders exactly the classes it did before phase 34", () => {
+  it("a Card with no depth prop carries the structural classes and no enrichment", () => {
     render(<Card data-testid="c">x</Card>);
     const cls = screen.getByTestId("c").className;
     for (const token of DEFAULT_CLASSES.split(" ")) {

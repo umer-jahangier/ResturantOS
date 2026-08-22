@@ -336,6 +336,37 @@
   --text-kds--line-height: 28px;
 }
 
+/* ── the EYEBROW tracking pair (38-shell) ────────────────────────────────────
+   Two letter-spacing values, published as tokens because the device they belong
+   to is the single most repeated thing in the demo and the most repeated thing
+   in this redo.
+
+   `Docs/NEXUS_ERP_Demo.html` writes the same small-caps eyebrow at three scales:
+     :103  .nav-group-label   letter-spacing: 0.12em   (OVERVIEW / OPERATIONS / …)
+     :96   .logo-text         letter-spacing: 0.08em   (NEXUS)
+     :206  .card-title        letter-spacing: 0.08em   (RECENT TRANSACTIONS)
+     :217  .data-table th     letter-spacing: 0.08em
+   Fourteen call sites in one file; in this product it will be every card header,
+   every table header and every nav group label — dozens of screens, written by
+   several people.
+
+   Tailwind's stock ladder has neither value (`tracking-wider` 0.05em,
+   `tracking-widest` 0.1em), so without a token every one of those call sites
+   spells an arbitrary `tracking-[0.12em]`, and the fourth one spells 0.1em by
+   accident. That is exactly the drift `conformance-scan.ts` exists to catch and
+   cannot see, because letter-spacing is not one of its four patterns.
+
+   SAFE TO BRIDGE, checked against the rule the space-scale disaster wrote
+   (globals.css §"BRIDGING A TOKEN INTO A TAILWIND NAMESPACE IS A PRODUCT-WIDE
+   CHANGE"): `--tracking-*` is read by exactly ONE utility family in Tailwind v4,
+   `tracking-*` → letter-spacing. It is not shared with the width family the way
+   `--spacing-*` is, and both names are NEW, so no existing utility changes
+   meaning. Cost: two declarations, ~70 B stripped. */
+@theme {
+  --tracking-eyebrow: 0.12em;
+  --tracking-brandmark: 0.08em;
+}
+
 :root {
   /* Make native controls (select, scrollbars, date/number spinners) follow the theme
      so they don't render light in dark mode. */
@@ -918,15 +949,56 @@
   --depth-inset: inset 0 2px 4px oklch(0 0 0 / 0.5);
 }
 
-/* KDS is permanently dark regardless of theme — it is not a themed surface (§3.7).
-   A line cook's wall screen does not follow the office manager's colour preference. */
+/* ═══ KDS — permanently dark, and now OUR dark ════════════════════════════════
+   TWO SEPARATE THINGS ARE TRUE HERE, and they kept being confused with each other.
+
+   1. THE BOARD STAYS DARK IN BOTH THEMES. That is deliberate and it is not changing
+      (§3.7). A line cook's wall screen does not follow the office manager's colour
+      preference: it is mounted at two metres in a room with steam and overhead
+      fluorescents, it is the one screen in the building nobody chose to look at, and
+      flipping it to a white ground because someone in the office picked light mode is a
+      legibility regression for the person who cannot walk away from it. The board is a
+      fixed instrument, like a hob dial — not a themed surface.
+
+   2. THE DARK IT WAS USING WAS THE WRONG DARK. Every neutral below was authored against
+      `var(--brand-h)`, which was correct while the whole system regenerated from one hue.
+      D-38-12 split the axes — brand went to gold (69), the neutrals went to a cool
+      blue-black (`--neutral-h` 260) — and these tokens were left behind on the accent
+      hue. Measured, that is exactly what "the KDS does not sync with the rest of the
+      app" was:
+
+        BEFORE   KDS ground  oklch(0.15  0.006 69)   #0d0b09   WARM brown-black
+                 app ground  oklch(0.132 0.014 260)  #05080d   COOL blue-black
+                 KDS card    oklch(0.212 0.008 69)   #1b1815   warm
+                 app card    oklch(0.226 0.033 260)  #131c2b   cool blue
+
+      Two dark screens one navigation apart, and the eye reads that difference as two
+      products rather than as one product's two screens.
+
+   THE FIX IS A HUE MOVE, NOT A CONTRAST MOVE. The neutrals now regenerate from
+   `--neutral-h` on the app's own dark ramp curve, and the LIGHTNESS LADDER IS UNCHANGED
+   from the values §3.8 measured — so five of the six recorded KDS pairings re-measure to
+   the number they already had at hue 69, and the sixth moves by 0.03 (16.06 → 16.09).
+   Three of the five stops are now literally app tokens: `--kds-surface` is `--neutral-1000`
+   (the dark theme's page ground), `--kds-text` is `--neutral-100`, `--kds-muted` is
+   `--neutral-400`. The card sits on the ramp between `--neutral-950` and `--neutral-900`
+   at its own lightness. Board-to-ticket separation improves slightly as a side effect
+   (1.11:1 → 1.14:1), which a wall screen wants.
+
+   THE AGEING HUES ARE NOT NEUTRALS AND DO NOT MOVE. `--kds-fresh` / `--kds-warn` /
+   `--kds-late` / `--kds-late-fill` are green/amber/red because the hue IS the meaning —
+   how late this ticket is (§3.7, channel 4). Re-pointing them at any axis would make
+   ticket age a branding decision. They stay literal, and they are why the board still
+   reads as a kitchen instrument rather than as one more dashboard. */
 [data-surface="kds"] {
   color-scheme: dark;
-  --kds-surface: oklch(0.15 0.006 var(--brand-h));
-  --kds-card: oklch(0.212 0.008 var(--brand-h));
-  --kds-card-focus: oklch(0.262 0.008 var(--brand-h));
-  --kds-text: oklch(0.968 0.004 var(--brand-h));
-  --kds-muted: oklch(0.74 0.01 var(--brand-h));
+  /* ── neutrals: the app's dark ramp, at the board's own lightness ladder ── */
+  --kds-surface: oklch(0.132 0.014 var(--neutral-h)); /* = --neutral-1000, the app's ground */
+  --kds-card: oklch(0.212 0.031 var(--neutral-h)); /* between --neutral-950 and --neutral-900 */
+  --kds-card-focus: oklch(0.262 0.037 var(--neutral-h));
+  --kds-text: oklch(0.968 0.004 var(--neutral-h)); /* = --neutral-100 */
+  --kds-muted: oklch(0.74 0.013 var(--neutral-h)); /* = --neutral-400 */
+  /* ── ageing: literal hues, because the hue IS the meaning (§3.7) ───────── */
   --kds-fresh: oklch(0.8 0.15 149.6);
   --kds-warn: oklch(0.865 0.15 86);
   --kds-late: oklch(0.64 0.2 27.3);
@@ -948,6 +1020,155 @@
    stylesheet to mean what it says. */
 main:has([data-page-body]) {
   padding: 0;
+}
+
+/* The KDS declines the full-bleed gutter — and it is the ONE surface that should.
+   Unlayered for the same cascade reason as the rule above: the gutter it is overriding is a
+   Tailwind utility — PageBody's inline-gutter class, see page-body.tsx — and utilities sit in a
+   later layer, so a layered rule here would lose no matter how specific it was.
+
+   WHY THE BOARD IS THE EXCEPTION. `data-surface="kds"` sits INSIDE `PageBody`, on the element
+   that paints `bg-kds-surface`. Padding the PageBody therefore does not inset the board's
+   content — it insets the board's GROUND, and what shows down both edges is `<main>`'s app
+   background. A dark board in a light frame is the exact photograph the audit filed against
+   this screen, and it is the reason `fullBleed` was added in the first place. A till is a
+   window onto an app; a wall-mounted board at two metres is the instrument itself, and an
+   instrument has a bezel, not a margin.
+
+   The board is not flush against its own tickets: `station-board.tsx` pads 12px INSIDE the
+   dark ground, which is where a wall screen's breathing room belongs — inside the instrument,
+   spent on ticket area rather than on chrome nobody is standing close enough to see.
+
+   `:has()` is again the only mechanism: the decision is made by a DESCENDANT and applied to an
+   ANCESTOR. All five KDS routes carry the attribute on every arm, guard fallbacks included. */
+[data-page-body="full-bleed"]:has([data-surface="kds"]) {
+  padding-inline: 0;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   `.table-stack` — a hand-rolled <table> that becomes a card list on a phone
+   ─────────────────────────────────────────────────────────────────────────────
+   The product hand-rolls 25 tables. `DataGrid` (UI-SPEC §7) is the answer for the
+   list SCREENS and already carries a card fallback, but most of the 25 are not
+   list screens: they are four-column summaries inside a panel — a tender split, a
+   PAYE slab table, a three-way match, a vendor spend comparison. Rewriting each one
+   as a second JSX branch means shipping the same figures twice per file and keeping
+   the two in step by hand forever, and the copy that drifts is always the phone one,
+   because nobody looks at it.
+
+   So the adaptation is a stylesheet, applied by ONE class:
+
+     <table className="table-stack …">
+       …
+       <td data-label="Tender">CASH</td>
+
+   Below `md` the table stops being a table: rows become bordered cards, cells become
+   label/value lines, and the header row is removed because each cell now carries its
+   own header in `::before`. At `md` and above nothing applies and the table is the
+   table it always was. `viewport-integrity.mjs` judges this on COMPUTED DISPLAY
+   rather than on the tag, so a stacked table reads as adapted and a desktop table
+   dropped onto a phone still reads as the defect it is.
+
+   `data-label` is REQUIRED on every `<td>`: without it a stacked cell is a value with
+   nothing saying what it is, which is worse than the horizontal scrollbar it replaced.
+   `responsive-contract.test.ts` asserts that pairing, because a class that silently
+   half-works is the thing this file is full of warnings about.
+
+   Unlayered, for the same cascade reason as the two rules above: it is overriding
+   Tailwind utilities (`w-full`, `text-small`, borders) that sit in a later layer.
+   ═════════════════════════════════════════════════════════════════════════════ */
+@media (width < 48rem) {
+  table.table-stack,
+  table.table-stack tbody,
+  table.table-stack tfoot {
+    display: block;
+    width: 100%;
+  }
+
+  /* Removed, not hidden: the labels move into each cell, so a screen reader that still
+     met the header row would hear every column name twice per record. */
+  table.table-stack thead {
+    display: none;
+  }
+
+  table.table-stack tr {
+    display: block;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-sm) var(--space-md);
+    margin-block-end: var(--space-sm);
+  }
+
+  table.table-stack tr:last-child {
+    margin-block-end: 0;
+  }
+
+  /* `th[scope="row"]` is a CELL that happens to name its record — `impersonation-log.tsx` uses one
+     for the timestamp. It has to stack with the rest of the row or it stays a table-cell inside a
+     block row and lays out on its own line with no label. */
+  table.table-stack td,
+  table.table-stack th[scope="row"] {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-md);
+    /* The desktop cell padding is horizontal rhythm for a grid that no longer exists. */
+    padding-inline: 0;
+    padding-block: 2px;
+    text-align: start;
+    border: 0;
+  }
+
+  table.table-stack td::before,
+  table.table-stack th[scope="row"]::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    color: var(--foreground-tertiary);
+    font-size: var(--text-label);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    /* The value is what the reader came for; the label is context. Stated here once so
+       no call site has to remember it. */
+    white-space: nowrap;
+  }
+
+  /* A value that is itself a control gets the touch floor.
+     ─────────────────────────────────────────────────────────────────────────────
+     Measured: the tenant link in `impersonation-log.tsx` came out 107×20 in a stacked
+     card. WCAG 2.5.8 exempts a target "in a sentence", and a link in a table cell IS
+     in a sentence — but the moment the cell becomes `display: flex` its children are
+     blockified, the link stops being a word in a line of prose and becomes the value
+     line of a record, and the exception stops applying. That is not a technicality:
+     on the phone it is a lone 20px-tall thing to hit, with nothing above or below it
+     to constrain its height.
+
+     Direct children only. A link inside a paragraph inside a cell is still prose, and
+     giving that 44px would push the paragraph apart for no gain. */
+  table.table-stack td > :is(a, button),
+  table.table-stack th[scope="row"] > :is(a, button) {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  /* `data-stack="full"` is the DECLARED exception: a cell that is not a value — a row of
+     actions, an empty state, a note that spans the record. It takes the whole width instead of
+     a blank gutter where a label would be.
+
+     Written as an opt-in attribute rather than as `td:not([data-label])` on purpose. The
+     negative form would silently absolve every cell that simply FORGOT its label, which is the
+     one mistake this pattern can make and the one nothing else would notice — the desktop
+     layout still has its header row, so a missing `data-label` looks correct everywhere except
+     on the phone. `responsive-contract.test.ts` requires one of the three: a label, a colSpan,
+     or this. */
+  table.table-stack td[data-stack="full"]::before {
+    content: none;
+  }
+
+  table.table-stack td[data-stack="full"] {
+    display: block;
+  }
 }
 
 @layer base {
@@ -1021,6 +1242,42 @@ main:has([data-page-body]) {
   .touch-target {
     min-height: 44px;
     min-width: 44px;
+  }
+
+  /* THE TOUCH FLOOR (SC 2.5.5), released where the pointer stops being a finger.
+     ─────────────────────────────────────────────────────────────────────────────
+     `touch-target` above is unconditional, which is right for the six shell controls
+     that carry it and wrong for a design system: every button, input and select in
+     this product is 32px tall, and a phone review measured that as "very cheap, gives
+     very basic 3rd class VIBE" before it measured anything else. Forcing 44px at all
+     widths instead would throw away the demo's density — its own `.btn` is 8px/16px
+     padding at 13px, i.e. ~35px — on the desktop screens the demo was drawn for.
+
+     So the floor is a floor BELOW `lg`, and nothing at or above it. 390 and 768 are a
+     phone and a tablet; both are fingers, and both are the widths the responsive gate
+     asserts against (`__tests__/responsive/responsive-viewport.test.tsx`). 1024+ is
+     where this product's own gate stops asserting 44px, so this is where the rule
+     stops applying — one number, in one place, rather than a per-component judgement.
+
+     `min-height`/`min-width` rather than `height`: the control keeps whatever height
+     its size variant asks for and simply cannot go under the floor, so a caller that
+     already passes 44px is unaffected and nothing has to be re-measured. Released with
+     `0` rather than `revert` because `revert` would restore the UA default, not the
+     absence of a rule.
+
+     Why not a Tailwind variant pair (`min-h-11 lg:min-h-0`) at each call site: it is
+     the same declaration in eleven places, and the eleventh is the one that gets
+     forgotten. This is one class, and `a11y-invariants.test.ts` can point at it. */
+  .touch-floor {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  @media (width >= 64rem) {
+    .touch-floor {
+      min-height: 0;
+      min-width: 0;
+    }
   }
 }
 

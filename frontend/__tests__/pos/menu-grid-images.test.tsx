@@ -68,6 +68,15 @@ const PNG_BYTES = Uint8Array.from(
 
 function mockMenu(items: unknown[], imageStatus = 200) {
   server.use(
+    // MenuGrid renders MenuScopeSwitch (menu-grid.tsx:191), which asks for the ADMIN catalogue.
+    // MSW does not treat "*/menu/categories" as covering "/menu/categories/admin", so without
+    // this the request is unhandled and onUnhandledRequest:"error" fails the test — but only on a
+    // machine slow enough for the scope switch to fetch before the test ends, which is why CI saw
+    // it and no local run did. The sibling menu suites all stub it (menu-items-page,
+    // menu-item-tax-roundtrip, menu-availability-toggle).
+    http.get("*/api/v1/pos/menu/categories/admin", () =>
+      HttpResponse.json({ data: [], meta: null, warnings: [] }),
+    ),
     http.get("*/api/v1/pos/menu/categories", () =>
       HttpResponse.json({ data: rawCategories, meta: null, warnings: [] }),
     ),
@@ -177,6 +186,15 @@ describe("MenuGrid — menu item pictures on the till", () => {
     const sameShot = { ...withoutPicture, name: "Karahi Half", imageUrl: PHOTO_URL };
     let hits = 0;
     server.use(
+      // MenuGrid renders MenuScopeSwitch (menu-grid.tsx:191), which asks for the ADMIN catalogue.
+      // MSW does not treat "*/menu/categories" as covering "/menu/categories/admin", so without
+      // this the request is unhandled and onUnhandledRequest:"error" fails the test — but only on a
+      // machine slow enough for the scope switch to fetch before the test ends, which is why CI saw
+      // it and no local run did. The sibling menu suites all stub it (menu-items-page,
+      // menu-item-tax-roundtrip, menu-availability-toggle).
+      http.get("*/api/v1/pos/menu/categories/admin", () =>
+        HttpResponse.json({ data: [], meta: null, warnings: [] }),
+      ),
       http.get("*/api/v1/pos/menu/categories", () =>
         HttpResponse.json({ data: rawCategories, meta: null, warnings: [] }),
       ),

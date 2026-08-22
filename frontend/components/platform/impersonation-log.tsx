@@ -91,8 +91,10 @@ export function ImpersonationTable({
   onSelectAdmin?: (adminUserId: string) => void;
 }) {
   return (
-    <div className="overflow-x-auto rounded-lg border">
-      <table className="w-full text-sm" data-testid="impersonation-table">
+    <div className="relative overflow-x-auto rounded-lg border">
+      {/* `table-stack` (globals.css): six columns, one of them a raw UUID, measured at 911px on
+          a 390px screen. Below `md` each session becomes a labelled card. */}
+      <table className="table-stack w-full text-sm" data-testid="impersonation-table">
         <caption className="sr-only">SuperAdmin impersonation sessions</caption>
         <thead className="bg-muted/50 text-left">
           <tr>
@@ -125,11 +127,15 @@ export function ImpersonationTable({
               className="border-t align-top hover:bg-muted/40"
               data-testid={`impersonation-row-${row.id}`}
             >
-              <th scope="row" className="px-4 py-2.5 text-left font-normal whitespace-nowrap">
+              <th
+                scope="row"
+                className="px-4 py-2.5 text-left font-normal whitespace-nowrap"
+                data-label="Started"
+              >
                 {formatDateTime(row.startedAt)}
               </th>
               {showTenant && (
-                <td className="px-4 py-2.5">
+                <td className="px-4 py-2.5" data-label="Tenant">
                   {row.tenantSlug ? (
                     <Link
                       href={`/platform/tenants/${row.tenantId}`}
@@ -147,7 +153,7 @@ export function ImpersonationTable({
                   )}
                 </td>
               )}
-              <td className="px-4 py-2.5">
+              <td className="px-4 py-2.5" data-label="Administrator">
                 {onSelectAdmin ? (
                   <button
                     type="button"
@@ -166,8 +172,10 @@ export function ImpersonationTable({
                   ))
                 )}
               </td>
-              <td className="px-4 py-2.5 font-mono text-xs">{row.targetUserId}</td>
-              <td className="px-4 py-2.5 whitespace-nowrap">
+              <td className="px-4 py-2.5 font-mono text-xs" data-label="Signed in as">
+                {row.targetUserId}
+              </td>
+              <td className="px-4 py-2.5 whitespace-nowrap" data-label="Session">
                 <ImpersonationStatusBadge status={row.status} />
                 <span className="mt-1 block text-xs text-muted-foreground">
                   {row.status === "UNKNOWN"
@@ -175,7 +183,7 @@ export function ImpersonationTable({
                     : `Token expiry ${when(row.expiresAt)}`}
                 </span>
               </td>
-              <td className="max-w-sm px-4 py-2.5 text-muted-foreground">
+              <td className="max-w-sm px-4 py-2.5 text-muted-foreground" data-label="Reason">
                 {row.reason ?? <span className="italic">No reason recorded</span>}
               </td>
             </tr>
