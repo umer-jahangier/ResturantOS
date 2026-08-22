@@ -64,6 +64,8 @@ class VendorItemCatalogIT extends PurchasingTestBase {
 
     private MockMvc mockMvc;
     private UUID tenantId;
+    private UUID branchId;
+    private UUID userId;
     private UUID vendorId;
 
     @BeforeEach
@@ -72,7 +74,12 @@ class VendorItemCatalogIT extends PurchasingTestBase {
                 .apply(SecurityMockMvcConfigurers.springSecurity())
                 .build();
         tenantId = UUID.randomUUID();
-        tenantContext.set(tenantId, UUID.randomUUID(), UUID.randomUUID(), null);
+        branchId = UUID.randomUUID();
+        userId = UUID.randomUUID();
+        // Seeds the tenant for the direct-repository fixtures below (seedVendor, and the
+        // repository assertions in catalogIsScopedToTheCallersTenant). It does NOT survive an
+        // HTTP request — see asUser(...) for why every request re-establishes it.
+        tenantContext.set(tenantId, branchId, userId, null);
         when(featureFlagService.isEnabled(any(), any())).thenReturn(true);
         vendorId = seedVendor(tenantId);
     }
@@ -85,15 +92,37 @@ class VendorItemCatalogIT extends PurchasingTestBase {
         return vendorRepository.save(vendor).getId();
     }
 
-    private static RequestPostProcessor asUser(String... authorities) {
+    /**
+     * An authenticated principal AND the tenant binding that principal implies — both, because in
+     * production both come from the same place and neither survives on its own here.
+     *
+     * <p>{@code JwtAuthenticationFilter} is what populates {@code TenantContext} on a live request,
+     * from the Bearer token, and it clears the ThreadLocal in a {@code finally} on the way out of
+     * EVERY request — including the no-Bearer-token path a MockMvc request takes (that clear is
+     * deliberate: skipping it once leaked one tenant's data to the next request on the same worker
+     * thread). {@code SecurityMockMvcRequestPostProcessors.authentication(...)} populates the
+     * SecurityContext only, so a tenant seeded once in {@code @BeforeEach} is gone the moment the
+     * first request completes: request #1 in a test method succeeded and request #2 onwards hit
+     * {@code FeatureFlagAspect}'s {@code requireTenantId()} and 500'd. Every test here that made a
+     * second successful call was red for exactly that reason.
+     *
+     * <p>Post-processors run on the test thread before the filter chain, so re-establishing the
+     * context here mirrors what the real filter does per request rather than relying on leftover
+     * ThreadLocal state. The claims carry the SAME tenant and branch as the context, as a real
+     * token would — they were unrelated random UUIDs before.
+     */
+    private RequestPostProcessor asUser(String... authorities) {
         List<GrantedAuthority> granted = List.of(authorities).stream()
                 .<GrantedAuthority>map(SimpleGrantedAuthority::new)
                 .toList();
-        var authentication = new UsernamePasswordAuthenticationToken(
-                new JwtClaims(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
-                        List.of(), List.of(authorities), Map.of(), null),
-                null, granted);
-        return SecurityMockMvcRequestPostProcessors.authentication(authentication);
+        var claims = new JwtClaims(userId, tenantId, branchId,
+                List.of(), List.of(authorities), Map.of(), null);
+        RequestPostProcessor authenticated = SecurityMockMvcRequestPostProcessors.authentication(
+                new UsernamePasswordAuthenticationToken(claims, null, granted));
+        return request -> {
+            tenantContext.set(claims.tenantId(), claims.branchId(), claims.subject(), null);
+            return authenticated.postProcessRequest(request);
+        };
     }
 
     private Map<String, Object> baseItemBody(String vendorSku) {
