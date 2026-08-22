@@ -386,7 +386,13 @@ class SubscriptionLifecycleIT extends BasePlatformIT {
             new AssignPlanRequest("growth-monthly", null, false, false, "start"), SUPER_ADMIN_ID);
 
         var subscription = subscriptionRepository.findLive(tenantId).orElseThrow();
-        Instant elapsed = Instant.now().minus(2, ChronoUnit.DAYS);
+        // Truncated to MICROS because that is the precision Postgres `timestamptz` actually
+        // stores. `Instant.now()` carries nanoseconds on Linux, so a nano-precise value written
+        // and read back comes home rounded — 05:07:41.571292967Z out, 05:07:41.571293Z in — and
+        // the assertion below fails on a difference the database is incapable of representing.
+        // It passed on this developer's machine and failed in CI because the two clocks differ in
+        // granularity, not because the sweep did anything.
+        Instant elapsed = Instant.now().minus(2, ChronoUnit.DAYS).truncatedTo(ChronoUnit.MICROS);
         subscription.setCurrentPeriodEndAt(elapsed);
         subscriptionRepository.save(subscription);
 
