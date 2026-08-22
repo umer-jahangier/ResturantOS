@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/shared/sidebar";
 import { TopBar } from "@/components/shared/top-bar";
 import { MobileBottomNav } from "@/components/shared/mobile-bottom-nav";
+import { MAIN_CONTENT_ID, SkipLink } from "@/components/shared/skip-link";
+import { PageSkeleton } from "@/components/skeletons/page-skeleton";
 import { SidebarSkeleton } from "@/components/skeletons/sidebar-skeleton";
 import { OperatorStrip, isOperatorRoute } from "@/components/pos/operator-strip";
 import { ZoneProvider } from "@/components/providers/zone-provider";
@@ -68,15 +70,16 @@ function TenantMain({
   children: React.ReactNode;
 }) {
   if (!isBootstrapping) return <>{children}</>;
-  return (
-    <div className="flex h-full items-center justify-center">
-      <div
-        role="status"
-        aria-label="Loading session…"
-        className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"
-      />
-    </div>
-  );
+  /*
+   * A page-shaped skeleton, not the rotating ring this used to be (UI-SPEC §25, plan 38-12 task 4).
+   *
+   * This is the one loading state every signed-in user meets on every route, and the ring was a
+   * perpetual animation living in the SHELL — which wraps the POS terminal and the KDS board as
+   * readily as it wraps a settings form, so it put decorative motion on the operational zone that
+   * no call site had chosen (D-38-04). `PageSkeleton` is built from the zone-aware `Skeleton`, so
+   * it shimmers behind a back-office route and sits still behind a till.
+   */
+  return <PageSkeleton />;
 }
 
 export default function TenantLayout({ children }: TenantLayoutProps) {
@@ -110,6 +113,18 @@ export default function TenantLayout({ children }: TenantLayoutProps) {
     return (
       <ZoneProvider zone="restrained">
         <TenantThemeInjector />
+        {/*
+          The skip link is here TOO, and the reason is worth stating: the operator shell already
+          removes the sidebar and the TopBar from the DOM, so the 22-stop walk this link exists to
+          skip does not happen on `/app/pos/**`. What remains before `<main>` is OperatorStrip's
+          Exit link — one stop, inside the ≤ 2 contract already.
+
+          It stays because the alternative is a skip link that is present on 59 routes and absent
+          on 6, which is the shape of defect a keyboard user cannot form a habit around: the
+          affordance has to be unconditional to be usable. It costs one DOM node on a route where
+          it is never the difference.
+        */}
+        <SkipLink />
         <div className="flex h-screen flex-col overflow-hidden">
           <OperatorStrip />
           {/*
@@ -118,7 +133,12 @@ export default function TenantLayout({ children }: TenantLayoutProps) {
             The gutter itself stays for the charge and receipt pages, and `PageBody fullBleed` on
             the terminal removes it there via `main:has([data-page-body])` in globals.css.
           */}
-          <main key={branchId} className="min-h-0 flex-1 overflow-y-auto p-4 lg:p-6">
+          <main
+            id={MAIN_CONTENT_ID}
+            tabIndex={-1}
+            key={branchId}
+            className="min-h-0 flex-1 overflow-y-auto p-4 focus-visible:outline-offset-[-2px] lg:p-6"
+          >
             <TenantMain isBootstrapping={isBootstrapping}>{children}</TenantMain>
           </main>
         </div>
@@ -143,6 +163,18 @@ export default function TenantLayout({ children }: TenantLayoutProps) {
      */
     <ZoneProvider zone="restrained">
       <TenantThemeInjector />
+      {/*
+        FIRST in the document, above the sidebar (UI-SPEC §11, plan 38-15 task 1).
+        `audit-38-a11y.mjs` measured **22** Tab presses before focus entered `<main>` on
+        `/app/purchasing/purchase-orders`, and **0** `a[href^="#"]` anywhere in the product. Stops
+        1–21 were the branch switcher and the sidebar's nav links, re-walked on every page load of
+        all 65 routes.
+
+        Its position in this file is the whole mechanism. Rendered after `<Sidebar />` it would
+        still be a skip link, still be announced, still screenshot correctly — and still cost 21
+        stops, because it would be stop 22. It goes above everything the shell renders.
+      */}
+      <SkipLink />
       <div className="flex h-screen overflow-hidden">
         {/* Sidebar with Suspense skeleton fallback (DS-02 integration) */}
         <Suspense fallback={<SidebarSkeleton />}>
@@ -167,7 +199,24 @@ export default function TenantLayout({ children }: TenantLayoutProps) {
            * While bootstrapping (reload before refresh completes), show a spinner
            * rather than an empty-state caused by branchId being "".
            */}
-          <main key={branchId} className="flex-1 overflow-y-auto p-4 lg:p-6 pb-20 md:pb-6">
+          {/*
+           * `id` + `tabIndex={-1}` are what make the skip link a *skip* rather than a scroll.
+           * A fragment target that cannot hold focus leaves the caret exactly where it was, so
+           * the next Tab resumes at sidebar link 2 and the whole affordance is decorative — the
+           * failure this pattern is famous for, and the one that looks correct in a screenshot.
+           *
+           * `focus-visible:outline-offset-[-2px]` draws the confirmation outline INSIDE the
+           * element. The global rule in globals.css uses `+2px`, which on this box would be
+           * painted 2px outside a region whose parent is `overflow-hidden` — clipped, i.e. a
+           * keyboard user who just skipped would get no feedback that anything happened. Same
+           * reasoning as `kds-ticket-card.tsx`'s inset outline, for the same clipping reason.
+           */}
+          <main
+            id={MAIN_CONTENT_ID}
+            tabIndex={-1}
+            key={branchId}
+            className="flex-1 overflow-y-auto p-4 pb-20 focus-visible:outline-offset-[-2px] md:pb-6 lg:p-6"
+          >
             {
               /*
                * No page-transition wrapper (D-34-02, UI-SPEC §3.12).

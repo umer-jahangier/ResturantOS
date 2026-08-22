@@ -271,6 +271,20 @@ export function KdsItemColumn({
                      *     gate that samples mid-bump excludes it by SELECTOR rather than by
                      *     hoping to sample at rest. At rest there is no such element and the
                      *     count is 0, unconditionally.
+                     *
+                     *     TRUE AS OF 38-13, and it was not true when it was written. The
+                     *     attribute was here; no gate anywhere referenced it. `grep -rn
+                     *     data-collapsing __tests__ e2e` returned nothing — a fence that
+                     *     existed only in this paragraph. It is real now:
+                     *     `reduced-motion.spec.ts` filters on it and
+                     *     `kds-operational-stillness.test.ts` fences the class list.
+                     *
+                     *     38-13 also found the gate could never have gone red for this in the
+                     *     first place: it read `getComputedStyle(el).animationName`, and a
+                     *     TRANSITION has no animation-name — only `@keyframes` do. So it saw
+                     *     no transition anywhere on this board, sanctioned or not. That is a
+                     *     bigger hole than the one this exception was suspected of being, and
+                     *     it is why the gate now reads `getAnimations()`.
                      *   - `transition-all` became `transition-opacity`. `all` was an open door:
                      *     it transitions every animatable property, so the day someone adds a
                      *     `transform` or a `filter` to a collapsing card the exception silently

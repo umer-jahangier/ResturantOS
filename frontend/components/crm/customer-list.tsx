@@ -142,12 +142,15 @@ export function CustomerList({
         }
         empty={
           <EmptyState
-            title="No customers found"
+            title={debounced ? "No customers match that search" : "No customers found"}
             description={
               debounced
                 ? `Nothing matches "${debounced}". Try a different phone or name.`
                 : "Add your first customer to start tracking loyalty."
             }
+            /* The way OUT of the filter, not a create CTA: someone searching for a regular does
+               not want to add a second record for them. */
+            {...(debounced ? { action: { label: "Clear all", onClick: () => setTerm("") } } : {})}
           />
         }
       >

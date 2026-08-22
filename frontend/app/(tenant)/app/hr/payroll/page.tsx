@@ -304,7 +304,7 @@ export default function PayrollPage() {
                       </p>
                     )}
                     {labourQuery.data && (
-                      <div className="grid gap-(--space-md) sm:grid-cols-2">
+                      <div className="grid gap-(--space-md) md:grid-cols-2">
                         <StatTile
                           label="Labour cost"
                           density="compact"

@@ -591,7 +591,7 @@ export function AuditLog() {
                   No further detail was recorded for this event.
                 </p>
               ) : (
-                <dl className="mt-3 grid gap-x-6 gap-y-1 sm:grid-cols-[max-content_1fr]">
+                <dl className="mt-3 grid gap-x-6 gap-y-1 md:grid-cols-[max-content_1fr]">
                   {Object.entries(openRow.details).map(([key, value]) => (
                     <React.Fragment key={key}>
                       <dt className="text-small font-medium">{key}</dt>

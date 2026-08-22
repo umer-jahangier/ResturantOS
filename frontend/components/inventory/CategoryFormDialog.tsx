@@ -240,7 +240,7 @@ export function CategoryFormDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="md:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit category" : "Add category"}</DialogTitle>
           <DialogDescription>
@@ -254,14 +254,14 @@ export function CategoryFormDialog({
           <form
             id="category-form"
             onSubmit={form.handleSubmit(onSubmit)}
-            className="grid max-h-[60vh] gap-4 overflow-y-auto sm:grid-cols-2"
+            className="grid max-h-[60dvh] gap-4 overflow-y-auto md:grid-cols-2"
             noValidate
           >
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
-                <FormItem className="sm:col-span-2">
+                <FormItem className="md:col-span-2">
                   <FormLabel>Name</FormLabel>
                   <FormControl>
                     <Input placeholder="Poultry" {...field} />
@@ -434,7 +434,7 @@ export function CategoryFormDialog({
               control={form.control}
               name="excludeFromPoSuggestions"
               render={({ field }) => (
-                <FormItem className="sm:col-span-2">
+                <FormItem className="md:col-span-2">
                   <FieldLabel help="Turn off to keep this category off automatic ordering suggestions — for stock you order on a standing contract.">
                     Purchase-order suggestions
                   </FieldLabel>

@@ -46,7 +46,7 @@ interface FbrTaxSummaryCardProps {
 export function FbrTaxSummaryCard({ summary, isLoading }: FbrTaxSummaryCardProps) {
   if (isLoading) {
     return (
-      <div className="grid gap-(--space-md) sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-(--space-md) md:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 5 }).map((_, i) => (
           <Skeleton key={i} className="h-32 w-full" />
         ))}
@@ -65,7 +65,7 @@ export function FbrTaxSummaryCard({ summary, isLoading }: FbrTaxSummaryCardProps
     <div className="space-y-(--space-md)">
       <ReportDataNotes notes={summary.dataNotes} />
 
-      <div className="grid gap-(--space-md) sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-(--space-md) md:grid-cols-2 lg:grid-cols-3">
         <StatTile
           label={isRefundable ? "Refundable input-tax credit" : "Net payable"}
           value={<MoneyDisplay paisa={netPayableAbs} />}

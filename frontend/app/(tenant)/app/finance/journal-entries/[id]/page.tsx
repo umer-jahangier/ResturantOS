@@ -135,7 +135,7 @@ export default function JeDetailPage({ params }: JeDetailPageProps) {
 
           GA-38-G3: the status used to be `text-emerald-700` / `text-amber-700` — raw palette
           literals, and hue as the only channel. The shared badge carries the word too. */}
-      <div className="grid gap-(--space-md) sm:grid-cols-3">
+      <div className="grid gap-(--space-md) md:grid-cols-3">
         <StatTile
           label="Status"
           value={

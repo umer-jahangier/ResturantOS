@@ -44,7 +44,14 @@ function RealtimeDashboard() {
   const { branchId } = useCurrentUser();
   // The REST snapshot (12-06) paints instantly on mount — a realtime dashboard that is blank
   // until the next order closes looks broken.
-  const { data: snapshotTiles, isLoading } = useDashboardTiles(branchId);
+  //
+  // `isError` is destructured here and PASSED DOWN, which is the whole of this screen's fix. The
+  // grid rendered "No tiles yet — nothing has been computed for today" whenever `tiles` was
+  // undefined, and a failed snapshot request produces exactly that: a manager whose reporting
+  // service was down read a confident claim that their restaurant had taken no orders. GA-001,
+  // bug shape 2 — the failure was never destructured, so it became an empty result one line later.
+  const tilesQuery = useDashboardTiles(branchId);
+  const { data: snapshotTiles, isLoading } = tilesQuery;
   // The WebSocket then keeps it live, merging into the SAME query-cache key as the snapshot.
   const { isConnected, tiles: liveTiles } = useDashboardSocket({ branchId });
 
@@ -57,7 +64,21 @@ function RealtimeDashboard() {
         description="Updates automatically when an order or till closes."
         actions={<ConnectionIndicator isConnected={isConnected} />}
       />
-      <DashboardTileGrid tiles={tiles} isLoading={isLoading} />
+      {/*
+        UI-SPEC §8.1.1 — the boundary wraps the smallest genuinely-unavailable region. The header
+        and its connection indicator stay on screen when the snapshot fails, because they are
+        still true: the socket may well be live while the REST snapshot is not.
+      */}
+      <DashboardTileGrid
+        tiles={tiles}
+        isLoading={isLoading}
+        // A live socket that has already delivered tiles outranks a failed snapshot: the numbers
+        // on screen are current, and replacing them with a failure notice would be its own lie.
+        isError={tilesQuery.isError && liveTiles === undefined}
+        error={tilesQuery.error}
+        onRetry={() => void tilesQuery.refetch()}
+        isRetrying={tilesQuery.isFetching}
+      />
     </>
   );
 }

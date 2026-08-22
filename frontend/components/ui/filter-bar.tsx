@@ -232,7 +232,7 @@ export function FilterBar({
 
           <div className="flex flex-1 flex-wrap items-center justify-end gap-(--space-sm)">
             {search ? (
-              <div role="search" className="relative w-full sm:w-56">
+              <div role="search" className="relative w-full md:w-56">
                 <label htmlFor={`${barId}-search`} className="sr-only">
                   {search.label}
                 </label>

@@ -834,8 +834,32 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
               data-testid="kds-board-scroll"
               className={cn(
                 "min-h-0 flex-1 overflow-y-auto",
-                // 2 columns at 1024, 3 at 1440, 4 at 1920 (§7.2). Never horizontal scroll.
-                "grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4",
+                /*
+                 * §7.2 asks for 2 columns at 1024, 3 at 1440 and 4 at 1920, and the line that
+                 * used to be here — `grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4`
+                 * — did not do that. Tailwind's stock ladder is 640 / 1280 / 1536, so what a
+                 * kitchen actually got was 2 columns from **640**, 3 from **1280** and 4 from
+                 * **1536**. Three of the four thresholds were wrong and the comment above them
+                 * had said the right numbers for two phases. This is the plainest example of
+                 * why 38-14 exists: a stated breakpoint strategy that the classes do not
+                 * implement is worse than none, because it is read and believed.
+                 *
+                 * `auto-fill minmax()` states the intent directly and needs no breakpoint at
+                 * all — the ONE thing D-38-15 licenses us to adopt from the demo, and the same
+                 * idiom `menu-grid.tsx:41` already uses for the POS tiles. With a 12px gap a
+                 * 460px minimum track yields exactly the specified counts:
+                 *
+                 *   2 × 460 + 12  =  932  ≤ 1024   ·  3 would need 1404, so 1024 holds 2
+                 *   3 × 460 + 24  = 1404  ≤ 1440   ·  4 would need 1876, so 1440 holds 3
+                 *   4 × 460 + 36  = 1876  ≤ 1920   ·  5 would need 2348, so 1920 holds 4
+                 *
+                 * `min(460px,100%)` is not decoration. A bare `minmax(460px,1fr)` sizes its
+                 * single track at 460px inside a 390px board and pushes the whole column past
+                 * the right edge — an `auto-fill` grid overflowing on a phone is the classic
+                 * failure of this idiom, and the KDS is an `operational` surface where a
+                 * horizontal scrollbar is not an inconvenience but a lost ticket.
+                 */
+                "grid grid-cols-[repeat(auto-fill,minmax(min(460px,100%),1fr))] gap-3",
               )}
             >
               {visibleColumns.map((column) => (

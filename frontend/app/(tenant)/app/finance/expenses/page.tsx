@@ -148,6 +148,16 @@ function ExpenseActions({ expense }: { expense: Expense }) {
   return null;
 }
 
+/**
+ * The filtered-empty heading, per status. Written as a phrase rather than derived from the enum
+ * so the sentence reads as English — "Nothing awaiting approval", not "No PENDING_APPROVAL".
+ */
+const STATUS_EMPTY_PHRASE: Record<ExpenseStatus, string> = {
+  PENDING_APPROVAL: "awaiting approval",
+  APPROVED: "approved",
+  REJECTED: "rejected",
+};
+
 // URL: /app/finance/expenses — an approver's inbox (default filter: PENDING_APPROVAL).
 export default function ExpensesPage() {
   const [statusFilter, setStatusFilter] = useState<"" | ExpenseStatus>("PENDING_APPROVAL");
@@ -249,10 +259,25 @@ export default function ExpensesPage() {
           </div>
         }
         empty={
-          <FinanceEmptyState
-            title="No expenses"
-            description='Use "New expense" to submit the first expense for approval.'
-          />
+          /*
+           * This screen OPENS filtered — the default `statusFilter` is PENDING_APPROVAL, because
+           * it is an approver's inbox. So the unfiltered sentence was the one almost every reader
+           * saw: an approver with an empty queue was told the business had never filed an expense
+           * and invited to submit its first, on a screen whose whole purpose is approving other
+           * people's. Filtered-empty is the common case here, not the edge (UI-SPEC §8.3).
+           */
+          statusFilter ? (
+            <FinanceEmptyState
+              title={`Nothing ${STATUS_EMPTY_PHRASE[statusFilter]}`}
+              description="Other expenses may exist under a different status — clear the filter to see them all."
+              action={{ label: "Clear all", onClick: () => setStatusFilter("") }}
+            />
+          ) : (
+            <FinanceEmptyState
+              title="No expenses"
+              description='Use "New expense" to submit the first expense for approval.'
+            />
+          )
         }
       >
         <DataGrid

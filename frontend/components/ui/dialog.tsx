@@ -104,8 +104,35 @@ function DialogContent({
           // Read by DialogTitle, which reserves room for the close button only when there IS one.
           // See the note there.
           data-has-close={showCloseButton ? "true" : "false"}
+          // 38-14 task 3, stamped so the responsive gate can read the surface back off the DOM
+          // rather than infer it from a class list `cn()`/tailwind-merge may have merged away.
+          data-surface="dialog"
           className={cn(
-            "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm",
+            // ── Below `md`: a bottom sheet. ──────────────────────────────────────────────────
+            //
+            // Brief §29/§57, UI-SPEC §9.2. A 384px centred card on a 390px phone is a desktop
+            // modal that has been SHRUNK: 16px of dead margin a side, the content squeezed into
+            // what is left, and the confirm button landing wherever the box happens to end
+            // rather than under the thumb. Full width, anchored to the bottom edge, its own
+            // scroll — that is the adaptation.
+            //
+            // `92dvh`, not `92vh`: on iOS Safari `vh` resolves to the LARGEST viewport height,
+            // so a sheet sized in `vh` runs under the URL bar — and the part that goes under it
+            // is the footer, i.e. the confirm button.
+            //
+            // No transform below `md`. The translate that centres the modal is scoped to `md:`
+            // and up. A dialog is portalled to `document.body` and is therefore never an
+            // ancestor of `.receipt-root`, so this is not a print-path fix; it is the same rule
+            // stated positively — no compositing property at a width that does not need one.
+            "fixed inset-x-0 bottom-0 z-50 grid max-h-[92dvh] w-full gap-4 overflow-y-auto rounded-t-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 outline-none duration-100",
+            // ── `md` and above: the centred modal, unchanged in appearance. ──────────────────
+            //
+            // `md:max-w-sm` is the default that 37 call sites override. Every one of those read
+            // `sm:max-w-*` until 38-14 — the width of a dialog was decided at 640px, which the
+            // audit does not measure, so between 640 and 767 the product rendered a THIRD
+            // layout that was neither the phone one nor the desktop one and that nobody had
+            // ever looked at.
+            "md:inset-x-auto md:top-1/2 md:bottom-auto md:left-1/2 md:max-h-[calc(100dvh-4rem)] md:w-full md:max-w-sm md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-b-xl",
             overlayEntranceClass(zone),
             className,
           )}
@@ -144,7 +171,12 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
+        // `md:`, not `sm:` (38-14): the row/column flip is a LAYOUT MODE change and those happen
+        // only at widths the audit measures. Below `md` the actions stack full-width in a bottom
+        // sheet, which is where a thumb can reach them; at `md` they become the familiar
+        // right-aligned row. `rounded-b-xl` matches the surface, which is square-bottomed as a
+        // sheet and rounded as a modal — see `DialogContent`.
+        "-mx-4 -mb-4 flex flex-col-reverse gap-2 border-t bg-muted/50 p-4 md:flex-row md:justify-end md:rounded-b-xl",
         className,
       )}
       {...props}

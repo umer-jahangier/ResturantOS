@@ -106,7 +106,7 @@ export function ExpenseFormDialog({ trigger }: ExpenseFormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="md:max-w-lg">
         <DialogHeader>
           <DialogTitle>New expense</DialogTitle>
           <DialogDescription>

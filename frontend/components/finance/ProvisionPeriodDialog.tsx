@@ -72,7 +72,7 @@ function ProvisionPeriodDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="md:max-w-lg">
         <DialogHeader>
           <DialogTitle>Provision Accounting Periods</DialogTitle>
           <DialogDescription>
@@ -82,7 +82,7 @@ function ProvisionPeriodDialog({
 
         <FiscalYearNav fiscalYear={fiscalYear} onChange={handleFiscalYearChange} />
 
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
           {preview.map((period) => {
             const alreadyOpen = existingPeriodNos.has(period.periodNo);
             return (

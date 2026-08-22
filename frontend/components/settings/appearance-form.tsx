@@ -265,7 +265,7 @@ function AppearanceFormFields({
       {/* Preset colour swatches */}
       <fieldset className="space-y-3">
         <legend className="text-small font-medium text-foreground">Brand colour presets</legend>
-        <div className="grid grid-cols-4 gap-3 sm:grid-cols-8">
+        <div className="grid grid-cols-4 gap-3 md:grid-cols-8">
           {PRESET_COLOURS.map(({ label, hex }) => (
             <button
               key={hex}

@@ -181,7 +181,7 @@ export function CreateUserDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : close())}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="md:max-w-lg">
         <DialogHeader>
           <DialogTitle>{result ? "Account created" : "Add a user"}</DialogTitle>
           <DialogDescription>
@@ -237,7 +237,7 @@ export function CreateUserDialog({
                 )}
               />
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2">
                 <FormField
                   control={form.control}
                   name="branchId"
@@ -472,7 +472,7 @@ export function EditUserDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="md:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit {user.email}</DialogTitle>
           <DialogDescription>

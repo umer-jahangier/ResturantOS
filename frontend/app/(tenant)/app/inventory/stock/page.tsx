@@ -102,10 +102,17 @@ export default function StockPage() {
         </div>
       ),
     },
+    // 38-14: the four columns without `hideBelow` are the ones a stock screen exists to answer —
+    // what it is, how much is left, what it is worth, is it in trouble. The other four are
+    // reference detail, and at 1024px they were the difference between a table that reads and a
+    // table that scrolls sideways (42 elements past the viewport, measured). None of them is
+    // LOST: `md`+ restores category, `xl` restores the rest, and the phone card below carries
+    // name, category, on-hand and value with no column budget at all.
     {
       accessorKey: "categoryName",
       header: "Category",
       cell: ({ row }) => row.original.categoryName ?? "—",
+      meta: { hideBelow: "lg" },
     },
     {
       accessorKey: "qtyOnHand",
@@ -122,6 +129,7 @@ export default function StockPage() {
     {
       accessorKey: "reorderPoint",
       header: "Reorder point",
+      meta: { hideBelow: "xl" },
     },
     {
       accessorKey: "avgCostPaisa",
@@ -129,6 +137,7 @@ export default function StockPage() {
       // A rate per stock unit, not an amount: an ingredient held in grams costs a fraction of a
       // paisa each, and two decimal places would round every one of them to Rs 0.00.
       cell: ({ row }) => <MoneyDisplay paisa={row.original.avgCostPaisa} maxFractionDigits={4} />,
+      meta: { hideBelow: "xl" },
     },
     {
       accessorKey: "stockValuePaisa",
@@ -149,6 +158,7 @@ export default function StockPage() {
         row.original.lastCountedAt
           ? new Date(row.original.lastCountedAt).toLocaleDateString()
           : "Never",
+      meta: { hideBelow: "xl" },
     },
     {
       id: "risk",
@@ -195,7 +205,7 @@ export default function StockPage() {
 
       {/* The demo's 4-up KPI row (§4 Inventory), on this product's own numbers. Each tile counts
           the same `rows` the grid renders, so the row cannot contradict the table under it. */}
-      <div className="grid gap-(--space-md) sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-(--space-md) md:grid-cols-2 xl:grid-cols-4">
         <StatTile
           label={isFiltered ? "Ingredients shown" : "Ingredients tracked"}
           value={formatNumber(rows.length)}

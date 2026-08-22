@@ -112,7 +112,7 @@ export function ArChargeDialog({ account, trigger }: ArChargeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="md:max-w-md">
         <DialogHeader>
           <DialogTitle>Charge {account.name}</DialogTitle>
           <DialogDescription>

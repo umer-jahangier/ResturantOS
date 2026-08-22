@@ -163,14 +163,21 @@ describe("D-34-06 · the four-hundred-kilobyte shortcut is foreclosed by name", 
 });
 
 describe("D-34-05 · the framer-motion consumer set has not grown", () => {
-  /** The three files 34-03 left orphaned. Nothing may join them, and nothing may import them. */
-  const KNOWN_CONSUMERS = [
-    "components/shared/page-transition.tsx",
-    "components/shared/page-transition-motion.tsx",
-    "lib/motion/variants.ts",
-  ].sort();
+  /**
+   * EMPTY as of 38-13, and that is the assertion.
+   *
+   * 34-03 unwired the page-transition island and left three files importing framer-motion,
+   * orphaned. 38-13 §4 deleted them. The consumer set is now zero, so this no longer says
+   * "the set has not grown" — it says the set is empty, which is a claim that cannot be
+   * satisfied by a file nobody happens to import today.
+   *
+   * The PACKAGE stays. Removing it is a build-surface change that has to move the `24` runtime
+   * dependency baseline above in the same commit, deliberately, so that dropping a dependency
+   * is measured rather than absorbed.
+   */
+  const KNOWN_CONSUMERS: string[] = [];
 
-  it("exactly the three files 34-03 recorded still import it", () => {
+  it("nothing imports it — the island 34-03 orphaned is gone", () => {
     const files = [
       ...sourceFilesUnder("app"),
       ...sourceFilesUnder("components"),
@@ -183,10 +190,10 @@ describe("D-34-05 · the framer-motion consumer set has not grown", () => {
 
     expect(
       consumers,
-      "the framer-motion consumer set changed. 34-03 left exactly three files importing it, " +
-        "all orphaned — nothing in the route tree reaches them, so it does not ship. Removing " +
-        "the dependency belongs with 34-08's bundle measurement; ADDING a consumer would undo " +
-        "that and is what this asserts against.",
+      "a framer-motion consumer appeared. 34-03 left three orphaned files importing it and " +
+        "38-13 deleted them, so the correct number is zero. Removing the PACKAGE belongs with " +
+        "34-08's bundle measurement and must move the dependency-count baseline above; ADDING " +
+        "a consumer is what this asserts against.",
     ).toEqual(KNOWN_CONSUMERS);
   });
 });

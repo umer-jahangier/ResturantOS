@@ -75,7 +75,12 @@ export default function VendorInvoicesPage() {
       header: "Vendor",
       cell: ({ row }) =>
         vendorNameById.get(row.original.vendorId) ??
-        (vendorsQuery.isLoading ? "…" : "Unknown vendor"),
+        // A failed vendor read is not a missing vendor (GA-001). Three answers, not two.
+        (vendorsQuery.isLoading
+          ? "…"
+          : vendorsQuery.isError
+            ? "Vendor unavailable"
+            : "Unknown vendor"),
     },
     {
       id: "purchaseOrder",

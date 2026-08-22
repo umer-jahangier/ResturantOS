@@ -148,7 +148,7 @@ function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         data-slot="command-palette"
         data-zone={zone}
         data-testid="command-palette"
-        className="w-full gap-0 overflow-hidden p-0 sm:max-w-2xl"
+        className="w-full gap-0 overflow-hidden p-0 md:max-w-2xl"
         aria-label="Command palette"
         showCloseButton={false}
       >
@@ -302,15 +302,31 @@ function PaletteBody({ onOpenChange }: { onOpenChange: (open: boolean) => void }
     >
       <div className="flex items-center gap-2 border-b border-border px-3">
         <Search className="size-4 shrink-0 text-foreground-tertiary" aria-hidden="true" />
+        {/*
+          `outline-none` is GONE from this input, and this is the one line of the reference demo
+          that plan 38-15 names as the thing not to copy: `Docs/NEXUS_ERP_Demo.html` sets
+          `outline: none` on its inputs and supplies NO replacement, so a keyboard user in that
+          file has no indicator on any text field. This input had the same shape. In Tailwind v4
+          `outline-none` lands in the `utilities` layer and `:focus-visible` in `base`, and later
+          layers win — so the global 2px outline in globals.css was being switched off here, from
+          a class that reads like a reset.
+
+          The replacement is an offset, not a ring: `-2px` draws the outline INSIDE the box.
+          A positive offset would be painted 2px outside an input whose ancestors are
+          `overflow-hidden` (the palette surface, and `Command` in both comboboxes), i.e. clipped
+          to nothing — which is how "we kept the outline" becomes indistinguishable from
+          `outline: none` on screen. Same fix, same reason, in `combobox.tsx` and
+          `catalog-item-combobox.tsx`.
+        */}
         <Command.Input
           autoFocus
           value={query}
           onValueChange={setQuery}
           data-testid="command-palette-input"
           placeholder="Search pages, settings, orders…"
-          className="h-12 w-full bg-transparent text-body outline-none placeholder:text-foreground-tertiary"
+          className="h-12 w-full bg-transparent text-body focus-visible:outline-offset-[-2px] placeholder:text-foreground-tertiary"
         />
-        <kbd className="hidden shrink-0 rounded-sm border border-border px-1.5 py-0.5 font-mono text-label text-foreground-tertiary sm:inline">
+        <kbd className="hidden shrink-0 rounded-sm border border-border px-1.5 py-0.5 font-mono text-label text-foreground-tertiary md:inline">
           esc
         </kbd>
       </div>

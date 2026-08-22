@@ -121,7 +121,14 @@ export default function OrderSuggestionsPage() {
       .filter((line) => Number(line.qty) > 0);
 
     if (lines.length === 0) {
-      toast.error("Select at least one line to order.");
+      /*
+       * `.warning`, not `.error` (UI-SPEC §28, plan 38-12 task 6). Nothing failed here — no
+       * request was made. `.error` is the product reporting a fault, and using it for a
+       * precondition the reader is about to satisfy in two seconds spends the one severity that
+       * should mean "something is broken". A person who sees red for their own half-finished
+       * form learns to read red as noise, and the next red one is the outage.
+       */
+      toast.warning("Select at least one line to order.");
       return;
     }
 

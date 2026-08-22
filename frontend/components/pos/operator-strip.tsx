@@ -99,7 +99,18 @@ export function OperatorStrip() {
       >
         <Building2 className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         <span className="truncate">
-          {branchName ?? (branchesQuery.isLoading ? "Loading branch…" : "No branch")}
+          {/*
+            Three answers, matching the till chip two lines below — which already reads `isError`
+            before `data` for exactly this reason. A failed branch read left this saying "No
+            branch", telling a cashier they are scoped to nothing while the service was merely
+            unreachable. Those are opposite instructions for the person holding the queue.
+          */}
+          {branchName ??
+            (branchesQuery.isLoading
+              ? "Loading branch…"
+              : branchesQuery.isError
+                ? "Branch unavailable"
+                : "No branch")}
         </span>
       </span>
 
@@ -119,7 +130,7 @@ export function OperatorStrip() {
         >
           {userId ? userId.slice(0, 1).toUpperCase() : "U"}
         </span>
-        <span className="hidden sm:inline">{roles[0] ?? "Operator"}</span>
+        <span className="hidden md:inline">{roles[0] ?? "Operator"}</span>
       </span>
 
       {/*
@@ -136,7 +147,7 @@ export function OperatorStrip() {
         className="touch-target inline-flex items-center gap-1.5 rounded-md border px-3 text-small font-medium hover:bg-accent"
       >
         <LogOut className="size-4" aria-hidden="true" />
-        <span className="hidden sm:inline">Exit</span>
+        <span className="hidden md:inline">Exit</span>
       </Link>
     </header>
   );

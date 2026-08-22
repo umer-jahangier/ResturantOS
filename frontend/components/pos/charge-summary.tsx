@@ -251,8 +251,12 @@ function getCloseErrorMessage(
  */
 export function ChargeSummary({ orderId }: ChargeSummaryProps) {
   const router = useRouter();
-  const { data: order, isLoading: orderLoading } = useOrder(orderId);
-  const { data: payments = [], isLoading: paymentsLoading } = useOrderPayments(orderId);
+  const { data: order, isLoading: orderLoading, isError: orderFailed } = useOrder(orderId);
+  const {
+    data: payments = [],
+    isLoading: paymentsLoading,
+    isError: paymentsFailed,
+  } = useOrderPayments(orderId);
   const { data: tables = [] } = useTables();
   const recordPayment = useRecordPayment(orderId);
   const sendToKds = useSendToKds(orderId);
@@ -424,6 +428,24 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
     return (
       <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
         Loading order…
+      </div>
+    );
+  }
+
+  /*
+   * Before `!order`, because `!order` renders "Order not found." — on the CHARGE screen, to a
+   * cashier holding the bill in their hand (GA-001). The check exists; the request did not
+   * answer. Told the first sentence, the operator re-rings the whole order.
+   */
+  if (orderFailed) {
+    return (
+      <div
+        role="alert"
+        data-testid="charge-order-unavailable"
+        className="m-4 flex h-64 items-center justify-center rounded-md border border-destructive/30 bg-destructive/15 p-4 text-center text-small font-medium text-destructive"
+      >
+        Couldn&apos;t read this check. It has NOT been cancelled — do not re-ring it. Try again in a
+        moment.
       </div>
     );
   }
@@ -618,6 +640,21 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
           <h2 className="text-sm font-semibold">Payment History</h2>
           {paymentsLoading ? (
             <p className="py-4 text-center text-sm text-muted-foreground">Loading payments…</p>
+          ) : paymentsFailed ? (
+            /*
+             * Checked BEFORE the empty branch, and this is the highest-stakes instance of that
+             * ordering in the product (GA-001). `data: payments = []` turned a failed read into
+             * an empty history one line later, and this panel then said "No payments yet" on a
+             * bill that had already been settled. The next thing a cashier does with that
+             * sentence is take the money again.
+             */
+            <p
+              role="alert"
+              data-testid="payments-unavailable"
+              className="rounded-md border border-destructive/30 bg-destructive/15 py-4 text-center text-small font-medium text-destructive"
+            >
+              Payment history unavailable — do not take payment until this loads.
+            </p>
           ) : payments.length === 0 ? (
             <p
               data-testid="no-payments-empty-state"

@@ -259,7 +259,7 @@ function NewTaxClassRow({ onDone }: { onDone: () => void }) {
       className="border-border-interactive space-y-3 rounded-lg border border-dashed p-3"
       data-testid="new-tax-class-row"
     >
-      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,7rem)]">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,7rem)]">
         <Field
           id="new-tax-code"
           label="Tax code"
@@ -382,7 +382,7 @@ function TaxClassRow({ taxClass }: { taxClass: TaxClass }) {
       data-testid="tax-class-row"
       data-tax-code={taxClass.code}
     >
-      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,7rem)]">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,7rem)]">
         <Field
           id={`tax-code-${taxClass.id}`}
           label="Tax code"

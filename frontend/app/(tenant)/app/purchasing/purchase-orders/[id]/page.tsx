@@ -15,7 +15,10 @@ import {
   useSubmitPurchaseOrder,
   useWithdrawPurchaseOrder,
 } from "@/lib/hooks/purchasing/use-purchasing";
+import { EmptyState } from "@/components/ui/empty-state";
 import { MoneyDisplay } from "@/components/ui/money-display";
+import { QueryErrorNotice } from "@/components/ui/query-boundary";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateTime } from "@/lib/format/locale";
 import { Button } from "@/components/ui/button";
 import {
@@ -93,7 +96,8 @@ function RejectDialog({
 
 export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { data: po, isLoading } = usePurchaseOrder(id);
+  const poQuery = usePurchaseOrder(id);
+  const { data: po, isLoading } = poQuery;
   const submitPo = useSubmitPurchaseOrder(id);
   const withdrawPo = useWithdrawPurchaseOrder(id);
   const approvePo = useApprovePurchaseOrder(id);
@@ -102,7 +106,53 @@ export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ 
   const closePo = useClosePurchaseOrder(id);
   const [closeReason, setCloseReason] = useState("");
 
-  if (isLoading || !po) return <p>Loading PO…</p>;
+  /*
+   * Three outcomes, told apart (UI-SPEC §8). `if (isLoading || !po) return <p>Loading PO…</p>`
+   * folded a failure into a wait that never ends: a buyer whose purchasing service was down read
+   * "Loading PO…" indefinitely, with no cause and no retry. A purchase order that is genuinely
+   * not there is a different problem with a different next action, and got the same sentence.
+   */
+  if (poQuery.isError) {
+    return (
+      <div className="space-y-4">
+        <Link href="/app/purchasing/purchase-orders" className="text-small text-primary">
+          ← Purchase orders
+        </Link>
+        <QueryErrorNotice
+          what="this purchase order"
+          moduleLabel="Purchasing"
+          error={poQuery.error}
+          onRetry={() => void poQuery.refetch()}
+          isRetrying={poQuery.isFetching}
+        />
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4" role="status" aria-label="Loading purchase order">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-7 w-72 max-w-full" />
+        <Skeleton className="h-4 w-80 max-w-full" />
+        <Skeleton className="h-56 w-full" />
+      </div>
+    );
+  }
+
+  if (!po) {
+    return (
+      <div className="space-y-4">
+        <Link href="/app/purchasing/purchase-orders" className="text-small text-primary">
+          ← Purchase orders
+        </Link>
+        <EmptyState
+          title="That purchase order is not here"
+          description="It may have been removed, or the link may be pointing at another branch."
+        />
+      </div>
+    );
+  }
 
   const canClose = po.status === "FULLY_RECEIVED" || po.status === "PARTIALLY_RECEIVED";
   const isShortClose = po.status === "PARTIALLY_RECEIVED";

@@ -295,7 +295,7 @@ export function DiscountPanel({ order }: DiscountPanelProps) {
   return (
     <div
       data-testid="discount-panel"
-      className="flex flex-col gap-3 rounded-xl border bg-background p-3 sm:p-4"
+      className="flex flex-col gap-3 rounded-xl border bg-background p-3 md:p-4"
     >
       {appliedList}
 

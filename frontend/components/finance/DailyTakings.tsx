@@ -142,7 +142,7 @@ function TakingsBody({
         <h2 id="takings-summary-heading" className="text-small font-semibold text-muted-foreground">
           The day&apos;s money
         </h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           <FigureTile
             label="Gross sales"
             hint="Full menu price of everything sold, before any discount."

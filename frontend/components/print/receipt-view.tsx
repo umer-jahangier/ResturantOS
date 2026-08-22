@@ -172,6 +172,22 @@ export function ReceiptView({ orderId }: { orderId: string }) {
   return (
     <div className="flex flex-col gap-4 p-4">
       {/*
+        The route's one <h1>, sr-only, and inside `receipt-no-print` (UI-SPEC §11, plan 38-15
+        task 2).
+
+        <p>`/app/pos/orders/[orderId]/receipt` rendered NO heading of any level: the page
+        delegates entirely to this component, and this component's own census is
+        `<h1> 0, <h2> 0`. That is a fifth zero-`<h1>` route on top of the four the audit named,
+        and it was missed for the ordinary reason — the audit probed pages, and this heading is
+        owed by a component two files away.
+
+        <p>Visually hidden rather than rendered, because the surface below IS the bill and a page
+        title above it would be the app talking over the document. `receipt-no-print` and the
+        stylesheet's `body * { visibility: hidden }` both keep it off the paper; belt and braces
+        on the one element a customer would most notice on a receipt.
+      */}
+      <h1 className="receipt-no-print sr-only">Receipt</h1>
+      {/*
         `receipt-no-print` removes this strip from the paper. Everything outside `.receipt-root` is
         hidden by the print stylesheet anyway; this is belt and braces on the one element a reader
         would most notice on a bill.

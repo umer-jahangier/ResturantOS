@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { EmptyState } from "@/components/ui/empty-state";
 import { MoneyDisplay } from "@/components/ui/money-display";
+import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatTile } from "@/components/ui/stat-tile";
 import { ELAPSED_ABSOLUTE_BOUND_MS, readElapsed } from "@/lib/format/elapsed";
@@ -85,9 +86,38 @@ function oldestComputedAt(tiles: readonly DashboardTile[]): string | null {
 interface DashboardTileGridProps {
   tiles: DashboardTile[] | undefined;
   isLoading: boolean;
+  /**
+   * Whether the query that produced `tiles` FAILED.
+   *
+   * <h3>GA-001, one screen further on</h3>
+   *
+   * This component used to take `tiles` and `isLoading` and nothing else, and it drew the
+   * conclusion the API could not support: `if (!tiles || tiles.length === 0)` rendered *"No tiles
+   * yet — nothing has been computed for today"*. A failed request also produces `undefined` tiles
+   * with `isLoading` false, so a manager whose reporting service was down was told, in the
+   * product's own confident voice, that their restaurant had taken no orders. That is the
+   * fourteen-b defect exactly, on the realtime dashboard, and it survived because the failure
+   * never reached this file — the page destructured `isLoading` and dropped `isError` one line
+   * later (bug shape 2 from `query-boundary.tsx`'s own header).
+   *
+   * <p>So the failure is a REQUIRED part of this component's input. A caller cannot forget it the
+   * way they could forget to destructure it, and "is it empty?" is not asked until the query has
+   * resolved without error.
+   */
+  isError: boolean;
+  error?: unknown;
+  onRetry?: () => void;
+  isRetrying?: boolean;
 }
 
-export function DashboardTileGrid({ tiles, isLoading }: DashboardTileGridProps) {
+export function DashboardTileGrid({
+  tiles,
+  isLoading,
+  isError,
+  error,
+  onRetry,
+  isRetrying,
+}: DashboardTileGridProps) {
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     const first = setTimeout(() => setNow(Date.now()), 0);
@@ -98,9 +128,23 @@ export function DashboardTileGrid({ tiles, isLoading }: DashboardTileGridProps) 
     };
   }, []);
 
+  // Error FIRST, before loading and before empty, for the reason `QueryBoundary` gives at length:
+  // a query that has failed has no trustworthy `tiles`, so "is it empty?" is not a question that
+  // can be honestly asked yet.
+  if (isError) {
+    return (
+      <QueryErrorNotice
+        what="today's figures"
+        error={error}
+        onRetry={onRetry}
+        isRetrying={isRetrying}
+      />
+    );
+  }
+
   if (isLoading && !tiles) {
     return (
-      <div className="grid gap-(--space-md) sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-(--space-md) md:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} className="h-32 w-full" />
         ))}
@@ -121,7 +165,7 @@ export function DashboardTileGrid({ tiles, isLoading }: DashboardTileGridProps) 
 
   return (
     <div className="space-y-(--space-md)">
-      <div className="grid gap-(--space-md) sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-(--space-md) md:grid-cols-2 lg:grid-cols-3">
         {tiles.map((tile, index) =>
           tile.valuePaisa === null && tile.valueNumber === null ? (
             <StatTile

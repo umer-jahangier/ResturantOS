@@ -240,9 +240,23 @@ export function UserList({
                 ? `Nothing matches "${debounced}". Clear the search to see everyone.`
                 : "Add the people who work here so they can sign in."
             }
-            {...(canCreate && !debounced
-              ? { action: { label: "Add user", onClick: () => setCreateOpen(true) } }
-              : {})}
+            /* Filtered-empty offers the way OUT of the filter; truly-empty offers the create
+               CTA, and only to someone who may create (UI-SPEC §8.3). Never both, never the
+               wrong one: inviting a manager to "Add user" because their search found nobody is
+               how a duplicate account gets made. */
+            {...(debounced || activeOnly
+              ? {
+                  action: {
+                    label: "Clear all",
+                    onClick: () => {
+                      changeSearch("");
+                      setActiveOnly(false);
+                    },
+                  },
+                }
+              : canCreate
+                ? { action: { label: "Add user", onClick: () => setCreateOpen(true) } }
+                : {})}
           />
         }
       >

@@ -80,7 +80,7 @@ export function AdminResetDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : close())}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="md:max-w-lg">
         <DialogHeader>
           <DialogTitle>
             {result ? "Password reset" : `Reset password for ${user.email}`}

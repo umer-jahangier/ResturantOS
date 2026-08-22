@@ -43,14 +43,16 @@ export function UomSelect({
   disabled,
   "aria-label": ariaLabel,
 }: UomSelectProps) {
-  const { data: uoms, isLoading } = useUoms();
+  const { data: uoms, isLoading, isError } = useUoms();
 
   const available: Uom[] = measureType
     ? (uoms ?? []).filter((u) => u.measureType === measureType)
     : (uoms ?? []);
 
   const isKnown = available.some((u) => u.code === value);
-  const hasLegacyValue = value !== "" && !isKnown && !isLoading;
+  // A failed registry is not a registry with nothing in it, so a value cannot be judged "legacy"
+  // against a list that never arrived — see the placeholder below.
+  const hasLegacyValue = value !== "" && !isKnown && !isLoading && !isError;
 
   return (
     <select
@@ -58,11 +60,27 @@ export function UomSelect({
       aria-label={ariaLabel}
       className={selectClass}
       value={value}
-      disabled={disabled}
+      disabled={disabled || isError}
+      aria-invalid={isError || undefined}
       onChange={(e) => onChange(e.target.value)}
       onBlur={onBlur}
     >
-      <option value="">{isLoading ? "Loading units…" : placeholder}</option>
+      {/*
+       * Three placeholders, not two (UI-SPEC §8).
+       *
+       * When `useUoms` FAILED this rendered "Select a unit…" over an empty option list — a
+       * control that looks operable, offers nothing, and tells a person their tenant has no units
+       * configured. That is GA-001 inside a `<select>`, and on this particular control it is
+       * worse than a cosmetic lie: the docblock above explains that a goods receipt is converted
+       * by looking the code up in this exact registry, so a row saved while the list was
+       * unreachable is a quantity and a moving-average cost that are silently wrong.
+       *
+       * The select is DISABLED on failure rather than left inert-looking, so the form cannot be
+       * completed against a registry the product could not read.
+       */}
+      <option value="">
+        {isLoading ? "Loading units…" : isError ? "Unit list unavailable" : placeholder}
+      </option>
       {hasLegacyValue ? <option value={value}>{value} — not a unit in your list</option> : null}
       {available.map((u) => (
         <option key={u.id} value={u.code}>

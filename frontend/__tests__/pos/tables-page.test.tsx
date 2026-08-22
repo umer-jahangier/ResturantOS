@@ -78,6 +78,22 @@ function renderPage(permissions: string[] = ["pos.tables.admin"]) {
   );
 }
 
+/**
+ * The DESKTOP branch of a `DataGrid`.
+ *
+ * <p>38-14 gave the tables grid a `card` fallback, and `DataGrid` deliberately renders BOTH
+ * branches into the DOM at every width, letting CSS pick one (`hidden md:block` against
+ * `md:hidden`) — because choosing in JS from a media query renders one branch on the server and
+ * possibly the other on the client, which is a hydration mismatch on every list screen in the
+ * product. jsdom applies no CSS, so in a unit test both branches are always present and every
+ * `getByText("T1")` finds two.
+ *
+ * <p>The same trade cost three stock tests in 38-02; it is recorded in `data-grid.tsx`. Scoping
+ * to one branch keeps each assertion saying exactly what it said before, rather than relaxing it
+ * to `getAllBy*` and silently accepting whichever node the query reached first.
+ */
+const desktop = (scope: HTMLElement) => within(within(scope).getByRole("table"));
+
 describe("Tables page", () => {
   afterEach(() => {
     clearSession();
@@ -88,27 +104,35 @@ describe("Tables page", () => {
     renderPage();
 
     const rooftop = await screen.findByRole("group", { name: "Rooftop section" });
-    expect(within(rooftop).getByText("T1")).toBeInTheDocument();
-    expect(within(rooftop).getByText("T2")).toBeInTheDocument();
-    // 4 + 2 seats across two tables — the section header states both.
+    expect(desktop(rooftop).getByText("T1")).toBeInTheDocument();
+    expect(desktop(rooftop).getByText("T2")).toBeInTheDocument();
+    // 4 + 2 seats across two tables — the section header states both. This one lives on the
+    // section header, OUTSIDE the grid, so it is not scoped.
     expect(within(rooftop).getByText(/2 tables · 6 seats/)).toBeInTheDocument();
 
     // Runtime status is shown per row and is a DIFFERENT axis from retired/active.
-    expect(within(rooftop).getByText("Available")).toBeInTheDocument();
-    expect(within(rooftop).getByText("Occupied")).toBeInTheDocument();
+    expect(desktop(rooftop).getByText("Available")).toBeInTheDocument();
+    expect(desktop(rooftop).getByText("Occupied")).toBeInTheDocument();
+
+    // …and the phone branch carries the same two tables, so a narrow viewport is not a
+    // shorter list. This is the assertion that would have failed if `card` were dropped.
+    const cards = within(rooftop).getByTestId("data-grid-cards");
+    expect(within(cards).getByText("T1")).toBeInTheDocument();
+    expect(within(cards).getByText("T2")).toBeInTheDocument();
   });
 
   it("hides retired tables until the toggle is checked", async () => {
     renderPage();
-    await screen.findByText("T1");
+    await screen.findAllByText("T1");
 
-    expect(screen.queryByText("Old Corner")).not.toBeInTheDocument();
+    expect(screen.queryAllByText("Old Corner")).toHaveLength(0);
 
     const user = userEvent.setup();
     await user.click(screen.getByLabelText("Show retired"));
 
-    expect(await screen.findByText("Old Corner")).toBeInTheDocument();
-    expect(screen.getByText("Retired")).toBeInTheDocument();
+    // One per branch — the table row and the card. Both, or the toggle only half works.
+    expect(await screen.findAllByText("Old Corner")).toHaveLength(2);
+    expect(screen.getAllByText("Retired")).toHaveLength(2);
   });
 
   it("creates a table with a name, seats and a section", async () => {
@@ -135,7 +159,7 @@ describe("Tables page", () => {
     );
 
     renderPage();
-    await screen.findByText("T1");
+    await screen.findAllByText("T1");
     const user = userEvent.setup();
 
     await user.click(screen.getByRole("button", { name: "Add table" }));
@@ -167,7 +191,7 @@ describe("Tables page", () => {
     );
 
     renderPage();
-    await screen.findByText("T1");
+    await screen.findAllByText("T1");
     const user = userEvent.setup();
 
     await user.click(screen.getByRole("button", { name: "Add table" }));
@@ -195,10 +219,12 @@ describe("Tables page", () => {
     );
 
     renderPage();
-    await screen.findByText("T1");
+    await screen.findAllByText("T1");
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole("button", { name: "Actions for T1" }));
+    // `[0]` is the desktop row's menu; the card renders the same trigger with the same
+    // accessible name, and the two share one handler.
+    await user.click(screen.getAllByRole("button", { name: "Actions for T1" })[0]!);
     await user.click(await screen.findByRole("menuitem", { name: "Retire" }));
 
     await waitFor(() => expect(patchedPath).toBe(`/api/v1/pos/tables/${T1}/deactivate`));
@@ -230,10 +256,10 @@ describe("Tables page", () => {
     );
 
     renderPage();
-    await screen.findByText("T2");
+    await screen.findAllByText("T2");
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole("button", { name: "Actions for T2" }));
+    await user.click(screen.getAllByRole("button", { name: "Actions for T2" })[0]!);
     await user.click(await screen.findByRole("menuitem", { name: "Retire" }));
 
     // The actionable sentence, not a generic fallback.
@@ -264,10 +290,12 @@ describe("Tables page", () => {
 
   it("offers no management actions to a user without pos.tables.admin", async () => {
     renderPage(["pos.order.view", "pos.tables.manage"]);
-    await screen.findByText("T1");
+    await screen.findAllByText("T1");
 
     // A waiter can SEE the floor but cannot re-lay it.
     expect(screen.queryByRole("button", { name: "Add table" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Actions for T1" })).not.toBeInTheDocument();
+    // Neither branch offers it — `queryAllBy` rather than `queryBy`, so a menu that survived on
+    // the card while disappearing from the table row would still fail this.
+    expect(screen.queryAllByRole("button", { name: "Actions for T1" })).toHaveLength(0);
   });
 });

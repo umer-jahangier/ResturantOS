@@ -41,9 +41,19 @@ function EmptyState({
       >
         <Icon className="size-9 text-foreground-tertiary" aria-hidden="true" />
       </div>
+      {/*
+       * Type ROLES, not the raw scale (D-38-02, UI-SPEC §3). This read `text-lg`/`text-sm` — two
+       * of the twelve sizes the audit found shipping against a contract of eight roles, and the
+       * two recorded against this file in `conformance-baseline.json`.
+       *
+       * <p>`text-h2` is the heading role and `text-small` the secondary one, which is what these
+       * two lines already WERE in intent: a title and a supporting sentence. The empty state is a
+       * poor place to be off-contract, because it is the surface a person meets on a screen they
+       * have never successfully used — the first typography they judge the product by.
+       */}
       <div className="flex flex-col gap-1">
-        <p className="text-lg font-semibold text-foreground">{title}</p>
-        {description && <p className="text-sm text-muted-foreground">{description}</p>}
+        <p className="text-h2 font-semibold text-foreground">{title}</p>
+        {description && <p className="text-small text-muted-foreground">{description}</p>}
       </div>
       {action && (
         <Button variant="outline" onClick={action.onClick}>

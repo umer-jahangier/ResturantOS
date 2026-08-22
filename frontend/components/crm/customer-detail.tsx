@@ -3,6 +3,7 @@
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MoneyDisplay } from "@/components/ui/money-display";
+import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCustomer } from "@/lib/hooks/crm/use-customers";
 
@@ -14,7 +15,8 @@ import { useCustomer } from "@/lib/hooks/crm/use-customers";
  * consumer read a field the producer did not publish and returned early every time.
  */
 export function CustomerDetail({ customerId }: { customerId: string | null }) {
-  const { data: customer, isLoading } = useCustomer(customerId);
+  const customerQuery = useCustomer(customerId);
+  const { data: customer, isLoading } = customerQuery;
 
   if (!customerId) {
     return (
@@ -24,12 +26,42 @@ export function CustomerDetail({ customerId }: { customerId: string | null }) {
     );
   }
 
-  if (isLoading || !customer) {
+  /*
+   * A failure is not a longer wait (UI-SPEC §8).
+   *
+   * `if (isLoading || !customer)` left this card skeletonised FOREVER when the CRM service was
+   * down — the least honest of all the loading states, because a skeleton is an active promise
+   * that content is coming. A cashier looking up a regular's points balance at the counter had no
+   * way to learn the request had failed, and no retry to press.
+   */
+  if (customerQuery.isError) {
+    return (
+      <Card className="p-6">
+        <QueryErrorNotice
+          what="this customer's loyalty standing"
+          moduleLabel="Customers"
+          error={customerQuery.error}
+          onRetry={() => void customerQuery.refetch()}
+          isRetrying={customerQuery.isFetching}
+        />
+      </Card>
+    );
+  }
+
+  if (isLoading) {
     return (
       <Card className="space-y-3 p-6">
         <Skeleton className="h-6 w-40" />
         <Skeleton className="h-4 w-28" />
         <Skeleton className="h-20 w-full" />
+      </Card>
+    );
+  }
+
+  if (!customer) {
+    return (
+      <Card className="p-6 text-small text-muted-foreground">
+        That customer is no longer on file.
       </Card>
     );
   }

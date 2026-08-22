@@ -80,7 +80,11 @@ export function StockReceiptDialog({
   const open = isControlled ? openProp : internalOpen;
 
   const { branchId } = useCurrentUser();
-  const { data: ingredients } = useIngredients();
+  const {
+    data: ingredients,
+    isError: ingredientsFailed,
+    refetch: refetchIngredients,
+  } = useIngredients();
   const receiveStock = useReceiveStock();
 
   const form = useForm<ReceiptFormValues>({
@@ -144,7 +148,7 @@ export function StockReceiptDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="md:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Record a stock receipt</DialogTitle>
           <DialogDescription>Add every ingredient received in this delivery.</DialogDescription>
@@ -154,7 +158,7 @@ export function StockReceiptDialog({
           <form
             id="stock-receipt-form"
             onSubmit={form.handleSubmit(onSubmit)}
-            className="grid max-h-[65vh] gap-4 overflow-y-auto"
+            className="grid max-h-[65dvh] gap-4 overflow-y-auto"
             noValidate
           >
             <div className="space-y-3">
@@ -191,6 +195,9 @@ export function StockReceiptDialog({
                             placeholder="Select an ingredient…"
                             emptyHeading="No ingredients match"
                             emptyBody="Try a different search."
+                            isError={ingredientsFailed}
+                            errorLabel="your ingredients"
+                            onRetry={() => void refetchIngredients()}
                           />
                         </FormControl>
                         <FormMessage />

@@ -142,7 +142,7 @@ export function TerminalFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="md:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit terminal" : "Add POS terminal"}</DialogTitle>
           <DialogDescription>
@@ -184,7 +184,7 @@ export function TerminalFormDialog({
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-1.5">
               <label htmlFor="terminal-service-model" className="text-small font-medium">
                 Service model

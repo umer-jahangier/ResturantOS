@@ -352,6 +352,65 @@ export default function TablesPage() {
                 density="comfortable"
                 pageSize={25}
                 label={`${section} tables`}
+                /*
+                 * 38-14: this grid had no `card`, so `DataGrid` kept the desktop table at every
+                 * width — brief §57's "do not force desktop tables onto mobile", on the screen a
+                 * manager is most likely to open standing in the room, on a phone, next to the
+                 * table they are editing.
+                 *
+                 * The card carries the same three facts the table leads with (name, seats,
+                 * runtime status) and the same actions menu. `data-testid="table-row"` lives on
+                 * the table's identifying cell and is deliberately NOT duplicated here: both
+                 * branches are in the DOM at all times and a testid present twice is a testid
+                 * that resolves to whichever one the query happens to reach first.
+                 */
+                card={{
+                  primary: (t) => t.tableName,
+                  secondary: (t) => (
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      <span className="tabular-nums">
+                        {t.capacity} {t.capacity === 1 ? "seat" : "seats"}
+                      </span>
+                      {showRetired ? (
+                        <>
+                          <span aria-hidden="true">·</span>
+                          {t.active ? (
+                            <StatusBadge status="active" label="In service" />
+                          ) : (
+                            <StatusBadge status="archived" label="Retired" />
+                          )}
+                        </>
+                      ) : null}
+                    </span>
+                  ),
+                  trailing: (t) => <TableStatusChip status={t.status} />,
+                  actions: (t) => (
+                    <PermissionGuard require="pos.tables.admin">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`Actions for ${t.tableName}`}
+                          >
+                            <MoreHorizontal />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onSelect={() => setFormTarget({ mode: "edit", table: t })}
+                          >
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleToggleActive(t)}>
+                            {t.active ? "Retire" : "Restore"}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </PermissionGuard>
+                  ),
+                }}
               />
             </div>
           ))}

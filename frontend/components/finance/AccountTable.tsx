@@ -95,10 +95,24 @@ function AccountTable({ typeFilter }: AccountTableProps) {
         </div>
       }
       empty={
-        <FinanceEmptyState
-          title="No accounts found"
-          description="Chart of Accounts will appear here after provisioning."
-        />
+        /*
+         * Filtered-empty is a different sentence (UI-SPEC §8.3). `useAccounts` applies
+         * `typeFilter` SERVER-SIDE, so narrowing to a type nobody uses returned zero rows and the
+         * boundary announced "Chart of Accounts will appear here after provisioning" — telling an
+         * accountant their books were never set up because they had picked "Equity". The
+         * provisioning sentence is only true when nothing is filtered.
+         */
+        typeFilter ? (
+          <FinanceEmptyState
+            title={`No ${typeFilter.toLowerCase()} accounts`}
+            description="The chart of accounts is here — nothing in it is of this type. Clear the filter to see every account."
+          />
+        ) : (
+          <FinanceEmptyState
+            title="No accounts found"
+            description="Chart of Accounts will appear here after provisioning."
+          />
+        )
       }
     >
       <DataGrid

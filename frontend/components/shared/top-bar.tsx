@@ -104,7 +104,7 @@ function Breadcrumb() {
   if (segments.length === 0) return null;
 
   return (
-    <nav aria-label="Breadcrumb" className="hidden sm:flex items-center gap-1 text-sm">
+    <nav aria-label="Breadcrumb" className="hidden md:flex items-center gap-1 text-sm">
       {segments.map((segment, index) => {
         const isLast = index === segments.length - 1;
         const parent = allSegments[start + index - 1];
@@ -153,7 +153,11 @@ export function TopBar({ onMobileMenuToggle }: TopBarProps) {
       (!cmd.roles || cmd.roles.some((role) => roles.includes(role))) &&
       (!cmd.permissions || cmd.permissions.some((code) => permissions.includes(code))),
   );
-  const { data: myBranches = [], isLoading: branchesLoading } = useMyBranches();
+  const {
+    data: myBranches = [],
+    isLoading: branchesLoading,
+    isError: branchesError,
+  } = useMyBranches();
   const logout = useLogout();
 
   // User initial for avatar circle — fallback to "U"
@@ -198,10 +202,24 @@ export function TopBar({ onMobileMenuToggle }: TopBarProps) {
         </div>
 
         {/* Active branch indicator — always visible so users know their ABAC scope */}
+        {/*
+         * Three states, because the chip's own comment says it is "always visible so users know
+         * their ABAC scope" — and a failed `useMyBranches` made it silently disappear, which is
+         * the one outcome that comment forbids. A person who cannot see which branch they are
+         * scoped to will read the figures on the screen as the whole business's.
+         */}
         {branchesLoading ? (
-          <Skeleton className="hidden h-6 w-28 sm:inline-flex" aria-label="Loading branch" />
+          <Skeleton className="hidden h-6 w-28 md:inline-flex" aria-label="Loading branch" />
+        ) : branchesError ? (
+          <span
+            data-testid="top-bar-branch-unavailable"
+            title="The branch list could not be loaded, so the active branch cannot be named."
+            className="hidden items-center rounded-full border border-warning/30 bg-warning/10 px-2.5 py-0.5 text-label font-medium text-warning md:inline-flex"
+          >
+            Branch unavailable
+          </span>
         ) : branchName ? (
-          <span className="hidden sm:inline-flex items-center rounded-full border bg-muted/60 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+          <span className="hidden md:inline-flex items-center rounded-full border bg-muted/60 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
             {branchName}
           </span>
         ) : null}
@@ -212,7 +230,7 @@ export function TopBar({ onMobileMenuToggle }: TopBarProps) {
           <button
             type="button"
             onClick={() => setCmdOpen(true)}
-            className="hidden sm:flex touch-target items-center gap-2 rounded-md border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="hidden md:flex touch-target items-center gap-2 rounded-md border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label="Open command palette"
           >
             <Search className="size-3.5" />
@@ -226,7 +244,7 @@ export function TopBar({ onMobileMenuToggle }: TopBarProps) {
           <button
             type="button"
             onClick={() => setCmdOpen(true)}
-            className="sm:hidden touch-target inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            className="md:hidden touch-target inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             aria-label="Search"
           >
             <Search className="size-4" />

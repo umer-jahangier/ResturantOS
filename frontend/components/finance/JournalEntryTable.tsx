@@ -167,6 +167,7 @@ function JournalEntryTable({ filters }: JournalEntryTableProps) {
             <FinanceEmptyState
               title={`No entry matches “${debounced.trim()}”`}
               description="The search covers every entry for this branch, not just the ones listed — so this really is no match. Check the order number, or try part of it."
+              action={{ label: "Clear all", onClick: () => changeTerm("") }}
             />
           ) : (
             <FinanceEmptyState

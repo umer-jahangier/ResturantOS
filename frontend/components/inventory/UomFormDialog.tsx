@@ -137,7 +137,7 @@ export function UomFormDialog({ trigger, editing }: UomFormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="md:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEditing ? `Edit ${editing.code}` : "Add unit"}</DialogTitle>
           <DialogDescription>
@@ -154,7 +154,7 @@ export function UomFormDialog({ trigger, editing }: UomFormDialogProps) {
             className="grid gap-4"
             noValidate
           >
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="code"
@@ -252,7 +252,7 @@ export function UomFormDialog({ trigger, editing }: UomFormDialogProps) {
                 control={form.control}
                 name="toBaseFactor"
                 render={({ field }) => (
-                  <FormItem className="sm:col-span-2">
+                  <FormItem className="md:col-span-2">
                     <FieldLabel help="How many of the base unit fit in one of these. A case of 24 tins is 24.">
                       How many, per unit
                     </FieldLabel>

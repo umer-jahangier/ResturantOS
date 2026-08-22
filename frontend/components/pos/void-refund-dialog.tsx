@@ -74,7 +74,11 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
    * rows, so a fully-reversed order nets to zero and reads correctly as "nothing held" without
    * this component knowing anything about refund records.
    */
-  const { data: payments = [], isLoading: paymentsLoading } = useOrderPayments(order.id);
+  const {
+    data: payments = [],
+    isLoading: paymentsLoading,
+    isError: paymentsFailed,
+  } = useOrderPayments(order.id);
   const amountPaidPaisa = payments.reduce((acc, p) => acc + p.amountPaisa, 0);
   const hasMoneyOnIt = amountPaidPaisa > 0;
 
@@ -106,7 +110,20 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
     (i) => i.itemStatus === "READY" || i.itemStatus === "SERVED",
   );
 
-  const canVoidOwn = voidableStatus && !hasMoneyOnIt && !anyLinePlated && !paymentsLoading;
+  /*
+   * `!paymentsFailed`, and it is the same clause as `!paymentsLoading` for the same reason.
+   *
+   * <p>`data: payments = []` made a FAILED read indistinguishable from a check with nothing on
+   * it: `amountPaidPaisa` summed to 0, `hasMoneyOnIt` went false, and Void unlocked on a check
+   * that had already been paid. That is the ORIGINAL defect this component's docblock describes
+   * — "three clicks then deleted the order from every screen while its payment row survived" —
+   * reachable again through an outage instead of through a status bug.
+   *
+   * <p>`paymentsLoading` was already excluded, which is the same judgement: this gate may only
+   * be opened by a positive answer, never by the absence of one.
+   */
+  const canVoidOwn =
+    voidableStatus && !hasMoneyOnIt && !anyLinePlated && !paymentsLoading && !paymentsFailed;
   // Refund wherever money was actually taken and the order has not already been settled away.
   // Deliberately NOT `status === "CLOSED"`: that is the gate that made this unreachable.
   const canRefund = hasMoneyOnIt && order.status !== "VOIDED" && order.status !== "REFUNDED";
@@ -215,7 +232,7 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
     return (
       <div
         data-testid="void-refund-panel"
-        className="flex w-full flex-col gap-4 rounded-xl border bg-background p-4 sm:p-6"
+        className="flex w-full flex-col gap-4 rounded-xl border bg-background p-4 md:p-6"
       >
         {/* Order summary — full analytic info regardless of mode */}
         <div className="flex flex-wrap items-start justify-between gap-2 border-b pb-3">

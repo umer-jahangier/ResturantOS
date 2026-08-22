@@ -34,7 +34,11 @@ export function CustomerPicker({
   const [term, setTerm] = useState("");
   const [newName, setNewName] = useState("");
   const debounced = useDebouncedValue(term, 250);
-  const { data: results, isLoading } = useCustomerSearch(debounced, open && debounced.length > 0);
+  const {
+    data: results,
+    isLoading,
+    isError: searchFailed,
+  } = useCustomerSearch(debounced, open && debounced.length > 0);
   const { permissions } = useCurrentUser();
   const canEnrol = permissions.includes("crm.customer.manage");
   const createCustomer = useCreateCustomer();
@@ -108,6 +112,22 @@ export function CustomerPicker({
         <p className="text-label text-muted-foreground">Type a phone number or name to search.</p>
       ) : isLoading ? (
         <p className="text-label text-muted-foreground">Searching…</p>
+      ) : searchFailed ? (
+        /*
+         * Before the empty branch, because the empty branch below OFFERS TO ENROL (GA-001).
+         * A failed search rendered "No customer matches 0300…" next to a name field and a
+         * Create button, so the cashier's next action was to enrol a second record for a
+         * regular who already exists — a duplicate loyalty account, created by an outage,
+         * that someone has to merge by hand later.
+         */
+        <p
+          role="alert"
+          data-testid="customer-search-unavailable"
+          className="rounded-md border border-destructive/30 bg-destructive/15 p-2 text-label font-medium text-destructive"
+        >
+          Customer lookup is unavailable — this is not an answer about &ldquo;{debounced}&rdquo;.
+          Take the order without loyalty for now.
+        </p>
       ) : !results?.length ? (
         <div className="space-y-2">
           <p className="text-label text-muted-foreground">

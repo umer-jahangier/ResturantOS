@@ -33,7 +33,7 @@ export function GuideSection({ tab }: { tab: FinanceGuideTab }) {
         <p className="text-small text-muted-foreground">{tab.oneLiner}</p>
       </div>
 
-      <dl className="grid gap-4 sm:grid-cols-2">
+      <dl className="grid gap-4 md:grid-cols-2">
         <Answer term="What it is" definition={tab.whatItIs} />
         <Answer term="When you use it" definition={tab.whenYouUseIt} />
         <Answer term="What a typical entry looks like" definition={tab.typicalEntry} />

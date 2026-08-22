@@ -3,6 +3,7 @@
 import { ImageOff, ImageIcon } from "lucide-react";
 
 import { useAuthenticatedImage } from "@/lib/hooks/files/use-file-upload";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 interface MenuItemImageProps {
@@ -56,11 +57,14 @@ export function MenuItemImage({
 }: MenuItemImageProps) {
   const { objectUrl, isLoading, isError } = useAuthenticatedImage(imageUrl);
 
-  const frame = cn(
-    "flex shrink-0 items-center justify-center overflow-hidden bg-muted",
-    variant === "thumb" && "rounded-md border",
+  // Split so the loading branch can hand the SHAPE to `Skeleton` without also handing it the
+  // flat `bg-muted` fill, which would paint over the shimmer gradient on a back-office surface.
+  const frameShape = cn(
+    "flex shrink-0 items-center justify-center overflow-hidden",
+    variant === "thumb" ? "rounded-md border" : "rounded-none",
     className,
   );
+  const frame = cn(frameShape, "bg-muted");
   const glyph = variant === "cover" ? "size-7" : "size-4";
 
   if (!imageUrl) {
@@ -72,7 +76,18 @@ export function MenuItemImage({
   }
 
   if (isLoading) {
-    return <div className={cn(frame, "animate-pulse")} aria-hidden="true" />;
+    /*
+     * The zone-aware `Skeleton`, not a hand-rolled `animate-pulse` div (D-38-04).
+     *
+     * This component renders on the TILL: `menu-grid` draws one per tile, so a menu of sixty
+     * items was sixty perpetual animations running at once on an operational surface for as long
+     * as the pictures took to arrive — the exact repaint cost the operational zone exists to keep
+     * off a cheap Android tablet. `Skeleton` reads the zone from context, so the same placeholder
+     * shimmers on the Menu Items admin list and sits still on the terminal.
+     *
+     * It keeps the frame's shape, so a picture arriving late still cannot resize anything.
+     */
+    return <Skeleton className={frameShape} />;
   }
 
   if (isError || !objectUrl) {

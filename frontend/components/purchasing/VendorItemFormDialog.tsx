@@ -116,7 +116,11 @@ export function VendorItemFormDialog({
   const open = isControlled ? openProp : internalOpen;
   const isEdit = vendorItem !== undefined;
 
-  const { data: ingredients } = useIngredients();
+  const {
+    data: ingredients,
+    isError: ingredientsFailed,
+    refetch: refetchIngredients,
+  } = useIngredients();
   const createVendorItem = useCreateVendorItem(vendorId);
   const updateVendorItem = useUpdateVendorItem(vendorId);
   const mutation = isEdit ? updateVendorItem : createVendorItem;
@@ -216,7 +220,7 @@ export function VendorItemFormDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="md:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit catalog item" : "Add catalog item"}</DialogTitle>
           <DialogDescription>
@@ -230,14 +234,14 @@ export function VendorItemFormDialog({
           <form
             id="vendor-item-form"
             onSubmit={form.handleSubmit(onSubmit)}
-            className="grid max-h-[60vh] gap-4 overflow-y-auto sm:grid-cols-2"
+            className="grid max-h-[60dvh] gap-4 overflow-y-auto md:grid-cols-2"
             noValidate
           >
             <FormField
               control={form.control}
               name="ingredientId"
               render={({ field }) => (
-                <FormItem className="sm:col-span-2">
+                <FormItem className="md:col-span-2">
                   <FormLabel>Linked ingredient</FormLabel>
                   <FormControl>
                     <CatalogItemCombobox
@@ -247,6 +251,12 @@ export function VendorItemFormDialog({
                       disabled={isEdit}
                       disabledPlaceholder="Linked ingredient can't be changed here."
                       placeholder="Select an ingredient…"
+                      // A failed ingredient list is a failure, not an empty catalog: linking a
+                      // vendor's item to the wrong ingredient is a costing error that survives
+                      // every later receipt.
+                      isError={ingredientsFailed}
+                      errorLabel="your ingredients"
+                      onRetry={() => void refetchIngredients()}
                     />
                   </FormControl>
                   {isEdit ? (

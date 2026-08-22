@@ -11,6 +11,7 @@ import { MoneyDisplay } from "@/components/ui/money-display";
 import { DataGrid, type ColumnDef } from "@/components/ui/data-grid/data-grid";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import { FinanceEmptyState } from "./FinanceEmptyState";
 import type { GlBalance } from "@/lib/models/finance.model";
 
@@ -27,7 +28,14 @@ import type { GlBalance } from "@/lib/models/finance.model";
 function GeneralLedger() {
   const router = useRouter();
   const fiscalYear = currentPakistanFiscalYear();
-  const { data: periods, isLoading: periodsLoading } = usePeriods(fiscalYear);
+  const {
+    data: periods,
+    isLoading: periodsLoading,
+    isError: periodsFailed,
+    error: periodsError,
+    isFetching: periodsFetching,
+    refetch: refetchPeriods,
+  } = usePeriods(fiscalYear);
   const { data: setupStatus } = useFinanceSetupStatus();
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>("");
 
@@ -38,7 +46,14 @@ function GeneralLedger() {
   const activePeriodId =
     selectedPeriodId || periods?.find((p) => p.status === "OPEN")?.id || periods?.[0]?.id || "";
 
-  const { data: balances, isLoading, isError } = useGlBalances(activePeriodId);
+  const {
+    data: balances,
+    isLoading,
+    isError,
+    error,
+    isFetching,
+    refetch,
+  } = useGlBalances(activePeriodId);
 
   const columns = useMemo<ColumnDef<GlBalance, unknown>[]>(
     () => [
@@ -99,6 +114,27 @@ function GeneralLedger() {
     [router, activePeriodId],
   );
 
+  /*
+   * Before the empty branch, and this one mattered twice over (GA-001).
+   *
+   * <p>A failed `usePeriods` left `periods` undefined, `!periods?.length` true, and the screen
+   * rendered *"No accounting periods — System Admin need to run the script to load COA and
+   * periods."* That is not merely wrong, it is an INSTRUCTION: it sends an accountant to ask an
+   * administrator to re-provision a chart of accounts that already exists, during an outage, on
+   * a tenant whose books are fine.
+   */
+  if (periodsFailed) {
+    return (
+      <QueryErrorNotice
+        what="the accounting periods"
+        moduleLabel="Finance"
+        error={periodsError}
+        isRetrying={periodsFetching}
+        onRetry={() => void refetchPeriods()}
+      />
+    );
+  }
+
   if (!periodsLoading && !periods?.length) {
     return (
       <FinanceEmptyState
@@ -143,10 +179,29 @@ function GeneralLedger() {
         </div>
       )}
 
+      {/*
+       * The LAST surviving GA-001 leak in the product, found by scanning for an empty-state
+       * component rendered on an `isError` condition (plan 38-12, task 1).
+       *
+       * <p>It rendered `FinanceEmptyState` — no `role="alert"`, no destructive ramp, the same
+       * neutral disc a genuinely-empty ledger draws — and its description read *"Select a period
+       * to view branch-scoped balances."* That is worse than silence: it names the reader's own
+       * input as the thing to change, so an accountant whose finance-service was down would work
+       * the period picker while the figures stayed missing, and would eventually conclude the
+       * branch had posted nothing. On a ledger, "nothing posted" is a statement someone closes a
+       * month against.
+       *
+       * <p>`QueryErrorNotice` is the shared surface: it tells a 403 from a 503 from a parse
+       * failure, announces itself, carries the retry, and is measured against the empty state's
+       * chroma by `state-character.test.tsx`. Nothing here is bespoke.
+       */}
       {isError && (
-        <FinanceEmptyState
-          title="Could not load GL balances"
-          description="Select a period to view branch-scoped balances."
+        <QueryErrorNotice
+          what="the general ledger"
+          moduleLabel="Finance"
+          error={error}
+          isRetrying={isFetching}
+          onRetry={() => void refetch()}
         />
       )}
 

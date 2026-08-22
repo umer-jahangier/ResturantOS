@@ -269,7 +269,7 @@ function SettingsPage() {
           <CardContent>
             <ul
               aria-labelledby={`settings-group-${group.id}`}
-              className="grid gap-(--space-sm) sm:grid-cols-2"
+              className="grid gap-(--space-sm) md:grid-cols-2"
             >
               {group.entries.map((entry) => (
                 <InsetRow
@@ -300,7 +300,7 @@ function SettingsPage() {
           </p>
         </CardHeader>
         <CardContent>
-          <dl className="grid gap-(--space-md) sm:grid-cols-2" data-testid="settings-absent-groups">
+          <dl className="grid gap-(--space-md) md:grid-cols-2" data-testid="settings-absent-groups">
             <div>
               <dt className="text-body font-medium">Restaurant profile</dt>
               <dd className="mt-1 text-small text-foreground-tertiary">

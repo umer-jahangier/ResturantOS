@@ -169,7 +169,10 @@ export function TableFloorView({ onTableSelect, onFullMenu }: TableFloorViewProp
           // still shimmering on the dashboard. Twelve pulsing tiles were the only thing on this
           // route that could have failed that gate during a slow load, and nothing measured it
           // because the gate samples the settled page.
-          <div className="grid grid-cols-3 gap-(--space-sm) p-(--space-md) sm:grid-cols-4 md:grid-cols-6">
+          // 38-14: the ladder is 3 · 4 · 6 on the declared steps (390 · 768 · 1024). It read
+          // `grid-cols-3 sm:grid-cols-4 md:grid-cols-6` — so the 4-up step lived at 640, a width
+          // nothing measures, and a 768px tablet went straight to six ~118px tiles.
+          <div className="grid grid-cols-3 gap-(--space-sm) p-(--space-md) md:grid-cols-4 lg:grid-cols-6">
             {Array.from({ length: 12 }).map((_, i) => (
               <Skeleton key={i} className="h-20 rounded-xl" />
             ))}
@@ -243,7 +246,8 @@ export function TableFloorView({ onTableSelect, onFullMenu }: TableFloorViewProp
                   {sectionTables.length} {sectionTables.length === 1 ? "table" : "tables"}
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-(--space-sm) sm:grid-cols-4 md:grid-cols-6">
+              {/* 3 · 4 · 6 at 390 · 768 · 1024 — same ladder as the loading skeleton above. */}
+              <div className="grid grid-cols-3 gap-(--space-sm) md:grid-cols-4 lg:grid-cols-6">
                 {sectionTables.map((table) => (
                   <TableTile key={table.id} table={table} now={now} onTap={handleTap} />
                 ))}

@@ -38,9 +38,17 @@ const COVERAGE_OPTIONS = [
  * in the catalogue — pagination made the per-row query affordable.
  */
 function RecipeVersionCount({ menuItemId }: { menuItemId: string }) {
-  const { data: versions, isLoading } = useRecipeVersions(menuItemId);
+  const { data: versions, isLoading, isError } = useRecipeVersions(menuItemId);
   if (isLoading) return <span className="text-muted-foreground">…</span>;
   // Zero versions and "we could not read them" are different facts and read differently.
+  // `isError` is read explicitly rather than inferred from `!versions`: the two happened to
+  // coincide, and a property that holds by coincidence is one nobody is checking.
+  if (isError)
+    return (
+      <span title="Couldn't read this item's recipe versions." className="text-destructive">
+        —
+      </span>
+    );
   if (!versions) return <span className="text-muted-foreground">—</span>;
   return <span className="tabular-nums">{versions.length}</span>;
 }

@@ -342,8 +342,8 @@
   color-scheme: light;
 
   /* ── the three regeneration points (D-38-12, superseding D-UI-01's single) ─ */
-  --brand-h: 69;    /* gold  — was 195 (cyan) until the demo calibration */
-  --accent-h: 182;  /* teal  — literal: a second brand hue cannot follow the first */
+  --brand-h: 69; /* gold  — was 195 (cyan) until the demo calibration */
+  --accent-h: 182; /* teal  — literal: a second brand hue cannot follow the first */
   --neutral-h: 260; /* cool blue-black ground; deliberately NOT --brand-h */
 
   /* ── primary ramp, hue 69 — gold (§3.1, D-38-11) ───────────────────────── */
@@ -359,16 +359,16 @@
      the second time by someone who has learned to read those numbers as noise.
 
      Measured: --primary-400 = #eda54b against the demo's #E8A045. */
-  --primary-50: oklch(0.976 0.0167 var(--brand-h));   /* clamped */
-  --primary-100: oklch(0.951 0.0345 var(--brand-h));  /* clamped */
-  --primary-200: oklch(0.906 0.0681 var(--brand-h));  /* clamped */
+  --primary-50: oklch(0.976 0.0167 var(--brand-h)); /* clamped */
+  --primary-100: oklch(0.951 0.0345 var(--brand-h)); /* clamped */
+  --primary-200: oklch(0.906 0.0681 var(--brand-h)); /* clamped */
   --primary-300: oklch(0.848 0.1067 var(--brand-h));
-  --primary-400: oklch(0.775 0.1353 var(--brand-h));  /* the demo's gold */
-  --primary-500: oklch(0.7 0.1496 var(--brand-h));    /* clamped */
-  --primary-600: oklch(0.606 0.1295 var(--brand-h));  /* clamped */
-  --primary-700: oklch(0.512 0.1094 var(--brand-h));  /* clamped */
-  --primary-800: oklch(0.428 0.0914 var(--brand-h));  /* clamped */
-  --primary-900: oklch(0.352 0.0752 var(--brand-h));  /* clamped */
+  --primary-400: oklch(0.775 0.1353 var(--brand-h)); /* the demo's gold */
+  --primary-500: oklch(0.7 0.1496 var(--brand-h)); /* clamped */
+  --primary-600: oklch(0.606 0.1295 var(--brand-h)); /* clamped */
+  --primary-700: oklch(0.512 0.1094 var(--brand-h)); /* clamped */
+  --primary-800: oklch(0.428 0.0914 var(--brand-h)); /* clamped */
+  --primary-900: oklch(0.352 0.0752 var(--brand-h)); /* clamped */
   --primary-950: oklch(0.262 0.0546 var(--brand-h));
 
   /* ── secondary ramp, hue 182 — teal (D-38-12) ──────────────────────────── */
@@ -387,13 +387,13 @@
   --secondary-100: oklch(0.951 0.0382 var(--accent-h));
   --secondary-200: oklch(0.906 0.0701 var(--accent-h));
   --secondary-300: oklch(0.848 0.1045 var(--accent-h));
-  --secondary-400: oklch(0.775 0.1325 var(--accent-h));  /* the demo's teal */
-  --secondary-500: oklch(0.7 0.1229 var(--accent-h));    /* clamped */
-  --secondary-600: oklch(0.606 0.1064 var(--accent-h));  /* clamped */
-  --secondary-700: oklch(0.512 0.0899 var(--accent-h));  /* clamped */
-  --secondary-800: oklch(0.428 0.0751 var(--accent-h));  /* clamped */
-  --secondary-900: oklch(0.352 0.0618 var(--accent-h));  /* clamped */
-  --secondary-950: oklch(0.262 0.046 var(--accent-h));   /* clamped */
+  --secondary-400: oklch(0.775 0.1325 var(--accent-h)); /* the demo's teal */
+  --secondary-500: oklch(0.7 0.1229 var(--accent-h)); /* clamped */
+  --secondary-600: oklch(0.606 0.1064 var(--accent-h)); /* clamped */
+  --secondary-700: oklch(0.512 0.0899 var(--accent-h)); /* clamped */
+  --secondary-800: oklch(0.428 0.0751 var(--accent-h)); /* clamped */
+  --secondary-900: oklch(0.352 0.0618 var(--accent-h)); /* clamped */
+  --secondary-950: oklch(0.262 0.046 var(--accent-h)); /* clamped */
 
   /* ── neutral ramp, hue 260 at rising chroma (§3.2 as amended by D-38-12) ── */
   /* This ramp used to be `var(--brand-h)` at C <= 0.010. It is now its own axis,
@@ -671,6 +671,54 @@
   --depth-lift-y: -3px;
   --depth-lift-shadow: 0 6px 12px oklch(0 0 0 / 0.08), 0 20px 44px oklch(0 0 0 / 0.14);
   --depth-inset: inset 0 2px 4px oklch(0 0 0 / 0.1);
+
+  /* ═══ 38-13 · THE GOLD GLOW IS REJECTED. There is no --glow-* token. ══════
+     Read this before adding one, because the demo appears to sanction it and
+     the appearance does not survive being checked.
+
+     WHAT THE DEMO ACTUALLY DOES (Docs/NEXUS_ERP_Demo.html, counted in
+     .planning/…/demo-calibration/DEMO-TOKENS.md):
+
+       line  51  --glow-primary: 0 0 32px rgba(232,160,69,0.2)   ← 0 references
+       line 274  .btn-primary:hover  box-shadow: 0 0 20px rgba(232,160,69,0.3)
+       line 417  .pay-btn.cash:hover box-shadow: 0 0 16px rgba(232,160,69,0.3)
+
+     Three different glows. The one that is NAMED is the one nobody used —
+     DEMO-TOKENS.md lists `--glow-primary` among the five dead tokens of 39 —
+     and the two that paint are hand-inlined and disagree with each other on
+     both radius and alpha. That is not a depth system to adopt; it is drift,
+     and adopting it would import the drift along with the look.
+
+     THREE REASONS IT STAYS OUT, in ascending order of how much they cost:
+
+     1. It is a FOURTH depth treatment, and D-38-01 says this plan adds none.
+        The three levels above are two-layer (ambient + key) at chroma ZERO,
+        deliberately, so depth never tints the surface under it. `0 0 20px
+        rgba(232,160,69,.3)` is single-layer and chromatic — the "blur under a
+        box" the block comment above distinguishes a designed shadow from.
+
+     2. It is hover-only on a surface with no hover. `.pay-btn.cash` is the
+        CHARGE button. A POS terminal is a touchscreen: `:hover` never resolves
+        under a finger, so the entire affordance is delivered to nobody on the
+        one control where a mis-tap costs a guest money. Where touch engines DO
+        synthesise a sticky `:hover`, they latch it AFTER the tap — so the glow
+        would mark a payment already taken rather than one available to take,
+        which is worse than absent.
+
+     3. D-38-04 puts POS and KDS in the `operational` zone: depth cues only, no
+        decorative motion. A glow is decoration.
+
+     WHAT WE ADOPT INSTEAD is the demo's OTHER hover signal, the systematic one:
+     BORDER COLOUR. `.kpi-card:hover` 223, `.btn-ghost:hover` 276,
+     `.pay-btn.card:hover` 419 and `.input` 316 all move the border and nothing
+     else. It costs no new token, it carries no chroma into the shadow, it
+     survives reduced motion untouched, and — the reason it is the right answer
+     rather than merely the safe one — `:focus-visible` can state the identical
+     thing, so the hover affordance has a keyboard equivalent for free. A glow
+     has none.
+
+     `motion-vocabulary.test.ts` asserts no shadow token carries chroma, so the
+     rejected option cannot be reintroduced quietly as a fourth `--depth-*`. */
 
   /* ── motion (§3.12). Nothing exceeds 240ms; a data update never animates. ── */
   --motion-instant: 0ms;
@@ -1156,6 +1204,32 @@ main:has([data-page-body]) {
   transform-style: preserve-3d;
 }
 
+/*
+ * 38-13 · TILT IS DELIBERATELY UNCONSUMED. Zero call sites, and that is the decision.
+ *
+ * 38-13 was asked to adopt `usePointerTilt` on "KPI and product cards where a pointer exists".
+ * It did not, and the reason is the same evidence the rest of this plan turned on: the demo we
+ * are calibrating against has NO tilt. No `perspective`, no `rotateX`/`rotateY`, no
+ * `cubic-bezier` anywhere in the file. Its entire hover vocabulary is `translateY(-1px)` plus a
+ * border-colour change, at one duration. The premise of this phase is that the demo's motion
+ * language is SMALLER than ours; adopting the one family that would make ours larger still,
+ * because a task list said to, gets the phase backwards.
+ *
+ * There is a second reason, and it is the operational one. This rule declares `perspective()`
+ * and `preserve-3d` — two of the six things that create a containing block for a
+ * `position: fixed` descendant. It is safe today ONLY because it is scoped to
+ * `[data-zone="expressive"]` and nothing imports it. The realistic way it stops being safe is
+ * not someone putting tilt on the POS; it is someone putting tilt on a shared card that the POS
+ * imports, which is exactly how the three filters in 34-01 got there, and
+ * `receipt-print.css` then prints app chrome onto a customer's bill.
+ *
+ * The hook and this rule STAY. `use-pointer-tilt.test.ts` proves the primitive is correct and
+ * cheap (one rect per gesture, ≤2 setProperty per frame) and it refuses to engage on a coarse
+ * pointer or under reduced motion. Proven and unused is a fine state for a primitive; what is
+ * not fine is unused with no record of why, because the next reader assumes it was forgotten
+ * and adopts it to tidy up.
+ */
+
 [data-zone="restrained"] .vdl-lift {
   transition-duration: var(--motion-fast);
 }
@@ -1266,6 +1340,33 @@ main:has([data-page-body]) {
   }
 
   /*
+   * The theme reveal (D-38-14), removed here as DEFENCE IN DEPTH — not as the
+   * mechanism. The mechanism is in `@teispace/next-themes`, and it is correct:
+   * `chunk-RQE5PXXM.js` builds the transition plan in `de(e,t)` and returns
+   * `null` outright when `matchMedia("(prefers-reduced-motion: reduce)")`
+   * matches, so `startViewTransition` is never called. REMOVED, not shortened —
+   * a 1 ms circular wipe is still a circular wipe. Verified by reading the
+   * compiled fork, not the README.
+   *
+   * So why restate it here? Because the global 0.01ms net below CANNOT reach
+   * this. `*, ::before, ::after` matches ELEMENTS; `::view-transition-*` is a
+   * tree-abiding pseudo-element tree parented to the snapshot containing block,
+   * and no `*` selector in this file matches it. That leaves the JS check as
+   * the single point of failure for the one animation in this product that
+   * covers the entire viewport — the worst possible candidate for a
+   * single-point-of-failure. If the fork is swapped, upgraded, or the
+   * `transition` prop is ever handed a raw `css` string (a documented escape
+   * hatch on `TransitionOptions` that bypasses the built-in type CSS), this
+   * block is what still stops the wipe.
+   */
+  ::view-transition-group(*),
+  ::view-transition-image-pair(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+
+  /*
    * The global safety net, unchanged from phase 20. It stays BELOW the explicit
    * rules above and covers what they cannot name: third-party animation, legacy
    * classes, and anything added later that forgets this block exists.
@@ -1282,5 +1383,53 @@ main:has([data-page-body]) {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   38-13 · THE PRINT PATH vs THE THEME REVEAL (D-38-14)
+   ─────────────────────────────────────────────────────────────────────────────
+   `receipt-print.css` pins `.receipt-root` to `position: fixed` and its own
+   comment names the hazard exactly: "a `transform`, `filter` or `will-change` on
+   any ancestor makes that ancestor the containing block for FIXED descendants
+   too, which would undo this."
+
+   A running view transition is that hazard in a form the zone-containment gate
+   cannot see, because it is not in anybody's source file. While the transition
+   runs, `::view-transition` is rendered in the SNAPSHOT CONTAINING BLOCK — its
+   own stacking context, its own containment — and `::view-transition-group(*)`
+   is animated with a transform. The real rendering of the root is replaced by
+   snapshots for the duration. Nothing in `zone-containment.test.ts` fires: there
+   is no `transform:` to grep for, because the UA wrote it.
+
+   The window is narrow and it is not theoretical. `receipt-view.tsx:161`
+   auto-fires `window.print()` from a `requestAnimationFrame` on mount — no
+   operator input, no way to wait for a wipe nobody told it about — and the
+   reprint button on 222 is user-timed, so a cashier who toggles the theme and
+   reprints inside 420 ms lands squarely in it. The cost of losing that race is a
+   customer's bill with the application sidebar printed onto it, which is the
+   precise defect `receipt-print.css` was written to fix once already.
+
+   Two rules, both cheap:
+     · `view-transition-name: none` on the root means a transition STARTING
+       during print captures nothing.
+     · `animation: none` on the pseudo tree means one already IN FLIGHT snaps to
+       its end state instead of printing a half-composited snapshot.
+
+   Kept in `globals.css` rather than in `receipt-print.css` on purpose: this is
+   not about receipts. Every print path in the product — receipts, KOT tickets,
+   any report a manager sends to paper — inherits it here, and a print path added
+   next year inherits it without having to know this paragraph exists.
+   ═════════════════════════════════════════════════════════════════════════════ */
+@media print {
+  :root {
+    view-transition-name: none !important;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-image-pair(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }

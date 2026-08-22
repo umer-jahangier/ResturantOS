@@ -143,7 +143,7 @@ export function VendorFormDialog({ vendor, trigger }: VendorFormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="md:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit vendor" : "Add vendor"}</DialogTitle>
           <DialogDescription>
@@ -155,14 +155,19 @@ export function VendorFormDialog({ vendor, trigger }: VendorFormDialogProps) {
           <form
             id="vendor-form"
             onSubmit={form.handleSubmit(onSubmit)}
-            className="grid max-h-[60vh] gap-4 overflow-y-auto sm:grid-cols-2"
+            className="grid max-h-[60dvh] gap-4 overflow-y-auto md:grid-cols-2"
             noValidate
           >
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
-                <FormItem className="sm:col-span-2">
+                /*
+                 * The two `required` marks on this form are `vendorFormSchema`'s only two
+                 * `.min(1)` fields — eleven inputs, two of them mandatory, and before this the
+                 * screen said so nowhere. §22 / UI-SPEC §11.
+                 */
+                <FormItem required className="md:col-span-2">
                   <FormLabel>Name</FormLabel>
                   <FormControl>
                     <Input placeholder="Fresh Foods Ltd" {...field} />
@@ -183,7 +188,7 @@ export function VendorFormDialog({ vendor, trigger }: VendorFormDialogProps) {
                 const isCustom =
                   field.value !== "" && !PAYMENT_TERMS.some((t) => t.value === field.value);
                 return (
-                  <FormItem>
+                  <FormItem required>
                     <FormLabel>Payment terms</FormLabel>
                     <FormControl>
                       <select
@@ -251,7 +256,7 @@ export function VendorFormDialog({ vendor, trigger }: VendorFormDialogProps) {
               control={form.control}
               name="email"
               render={({ field }) => (
-                <FormItem className="sm:col-span-2">
+                <FormItem className="md:col-span-2">
                   <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input type="email" placeholder="orders@vendor.pk" {...field} />
@@ -265,7 +270,7 @@ export function VendorFormDialog({ vendor, trigger }: VendorFormDialogProps) {
               control={form.control}
               name="address"
               render={({ field }) => (
-                <FormItem className="sm:col-span-2">
+                <FormItem className="md:col-span-2">
                   <FormLabel>Address</FormLabel>
                   <FormControl>
                     <Input placeholder="12 Mall Road, Lahore" {...field} />
@@ -307,7 +312,7 @@ export function VendorFormDialog({ vendor, trigger }: VendorFormDialogProps) {
               control={form.control}
               name="bankAccountNo"
               render={({ field }) => (
-                <FormItem className="sm:col-span-2">
+                <FormItem className="md:col-span-2">
                   <FormLabel>Bank account number</FormLabel>
                   <FormControl>
                     <Input
@@ -335,7 +340,7 @@ export function VendorFormDialog({ vendor, trigger }: VendorFormDialogProps) {
               control={form.control}
               name="notes"
               render={({ field }) => (
-                <FormItem className="sm:col-span-2">
+                <FormItem className="md:col-span-2">
                   <FormLabel>Notes</FormLabel>
                   <FormControl>
                     <Input placeholder="Delivers Mon/Thu only" {...field} />

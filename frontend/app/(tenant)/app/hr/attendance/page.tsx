@@ -255,7 +255,7 @@ export default function AttendancePage() {
               — a minute count is NOT invented when the summary has not been asked for or could
               not be read. No employee selected means no tiles, not two zeroes. */}
           {summaryQuery.data && (
-            <div className="grid gap-(--space-sm) sm:grid-cols-2">
+            <div className="grid gap-(--space-sm) md:grid-cols-2">
               <StatTile
                 label="Late"
                 density="compact"
@@ -266,7 +266,7 @@ export default function AttendancePage() {
                 density="compact"
                 value={`${summaryQuery.data.earlyMinutes} min`}
               />
-              <p className="text-label text-muted-foreground sm:col-span-2">
+              <p className="text-label text-muted-foreground md:col-span-2">
                 For {summaryQuery.data.date}.
               </p>
             </div>

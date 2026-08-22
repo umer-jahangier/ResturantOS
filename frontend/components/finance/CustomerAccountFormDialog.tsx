@@ -148,7 +148,7 @@ export function CustomerAccountFormDialog({ trigger }: CustomerAccountFormDialog
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="md:max-w-lg">
         <DialogHeader>
           <DialogTitle>New house account</DialogTitle>
           <DialogDescription>

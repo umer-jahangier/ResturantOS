@@ -151,7 +151,7 @@ export default function RolesPage() {
         moduleLabel="Roles"
         isEmpty={roles.length === 0}
         loading={
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             <Skeleton className="h-40" />
             <Skeleton className="h-40" />
             <Skeleton className="h-40" />

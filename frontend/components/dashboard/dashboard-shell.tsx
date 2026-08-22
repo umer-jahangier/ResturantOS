@@ -85,10 +85,20 @@ export function PortletRow({
          */
         "vdl-stagger",
         density === "compact" ? "gap-3" : "gap-4",
+        /*
+         * 38-14 task 2: the portlet grid reflows 4 → 2 → 1, and the two thresholds are `md`
+         * (768) and `xl` (1280) — widths the audit measures, not `sm` (640), which it does not.
+         *
+         * <p>The `sm` step was doing real damage rather than nothing. Between 640 and 767 the
+         * shell is already in its MOBILE state — the sidebar is `hidden md:flex` and
+         * `MobileBottomNav` is `md:hidden` — so a four-up dashboard was folding to two columns
+         * inside a viewport that still had no sidebar to pay for them, giving a portlet ~310px.
+         * Below `md` the whole product is one column; the dashboard now says so too.
+         */
         columns === 1 && "grid-cols-1",
         columns === 2 && "grid-cols-1 lg:grid-cols-2",
-        columns === 3 && "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3",
-        columns === 4 && "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4",
+        columns === 3 && "grid-cols-1 md:grid-cols-2 xl:grid-cols-3",
+        columns === 4 && "grid-cols-1 md:grid-cols-2 xl:grid-cols-4",
       )}
     >
       {React.Children.map(children, (child, i) =>

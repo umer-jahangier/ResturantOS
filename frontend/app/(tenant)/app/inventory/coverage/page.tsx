@@ -116,7 +116,7 @@ export default function CoveragePage() {
         )}
       />
 
-      <div className="grid gap-(--space-md) sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-(--space-md) md:grid-cols-2 xl:grid-cols-4">
         <StatTile
           label="Active menu items"
           value={formatNumber(allItems.length)}

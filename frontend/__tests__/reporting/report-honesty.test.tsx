@@ -201,6 +201,7 @@ describe("DashboardTileGrid — a tile that is not applicable says so", () => {
   it("renders an absence with a reason, not a bare dash and not a zero", () => {
     render(
       <DashboardTileGrid
+        isError={false}
         isLoading={false}
         tiles={[
           tile({
@@ -222,6 +223,7 @@ describe("DashboardTileGrid — a tile that is not applicable says so", () => {
   it("renders money through MoneyDisplay and a count through the pinned formatter", () => {
     render(
       <DashboardTileGrid
+        isError={false}
         isLoading={false}
         tiles={[
           tile({}),
@@ -244,6 +246,7 @@ describe("DashboardTileGrid — a tile that is not applicable says so", () => {
     const now = Date.now();
     render(
       <DashboardTileGrid
+        isError={false}
         isLoading={false}
         tiles={[
           tile({
@@ -268,7 +271,7 @@ describe("DashboardTileGrid — a tile that is not applicable says so", () => {
   });
 
   it("says the board is empty rather than leaving a blank where tiles would be", () => {
-    render(<DashboardTileGrid isLoading={false} tiles={[]} />);
+    render(<DashboardTileGrid isLoading={false} isError={false} tiles={[]} />);
     expect(screen.getByText("No tiles yet")).toBeInTheDocument();
   });
 });

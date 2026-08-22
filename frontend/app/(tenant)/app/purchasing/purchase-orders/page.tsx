@@ -107,8 +107,16 @@ export default function PurchaseOrdersPage() {
           vendorNameById.get(row.original.vendorId) ??
           // Not a UUID stub and not a blank: the order is real, the supplier's name simply is
           // not on this screen yet (the vendor list is still loading, or the vendor was removed).
-          (vendorsQuery.isLoading ? "…" : "Unknown vendor"),
+          // A THIRD answer, because a failed lookup is not a missing vendor (GA-001).
+          (vendorsQuery.isLoading
+            ? "…"
+            : vendorsQuery.isError
+              ? "Vendor unavailable"
+              : "Unknown vendor"),
       },
+      // 38-14: reference, vendor, total and status are what a buyer scans a PO list for. The two
+      // dates are reference detail and they are the widest cells in the row ("Not submitted" on
+      // every draft), so they stand down below 1280 rather than pushing the total off the edge.
       {
         accessorKey: "submittedAt",
         header: "Submitted",
@@ -116,8 +124,13 @@ export default function PurchaseOrdersPage() {
           row.original.submittedAt
             ? new Date(row.original.submittedAt).toLocaleDateString()
             : "Not submitted",
+        meta: { hideBelow: "xl" },
       },
-      { accessorKey: "expectedDeliveryDate", header: "Expected date" },
+      {
+        accessorKey: "expectedDeliveryDate",
+        header: "Expected date",
+        meta: { hideBelow: "xl" },
+      },
       {
         accessorKey: "totalPaisa",
         header: "Total",
@@ -144,7 +157,7 @@ export default function PurchaseOrdersPage() {
       if (id === "vendor") return row.vendorId;
       return row[id as keyof PurchaseOrder];
     });
-  }, [purchaseOrders, vendorNameById, vendorsQuery.isLoading]);
+  }, [purchaseOrders, vendorNameById, vendorsQuery.isLoading, vendorsQuery.isError]);
 
   return (
     <PageBody className="space-y-(--space-lg)">
@@ -163,7 +176,7 @@ export default function PurchaseOrdersPage() {
         actions={<PurchaseOrderFormDialog trigger={<Button>New Purchase Order</Button>} />}
       />
 
-      <div className="grid gap-(--space-md) sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-(--space-md) md:grid-cols-2 xl:grid-cols-4">
         <StatTile
           label={statusFilter ? "Orders shown" : "Purchase orders"}
           value={formatNumber(purchaseOrders.length)}

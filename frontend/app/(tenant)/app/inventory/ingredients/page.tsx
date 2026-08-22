@@ -83,6 +83,24 @@ export default function IngredientsPage() {
       allergenFilter.length === 0 || allergenFilter.some((code) => i.allergenCodes.includes(code)),
   );
 
+  /**
+   * Whether ANY filter is currently narrowing the list — hoisted so the boundary and the grid
+   * cannot disagree about it. They did: the grid distinguished filtered-empty and the boundary
+   * short-circuited to the truly-empty state before the grid ever rendered.
+   */
+  const isNarrowed =
+    Boolean(categoryFilter) ||
+    debouncedSearch.trim() !== "" ||
+    allergenFilter.length > 0 ||
+    statusFilter !== "ACTIVE";
+
+  function clearFilters() {
+    setCategoryFilter("");
+    setSearch("");
+    setAllergenFilter([]);
+    setStatusFilter("ACTIVE");
+  }
+
   function openCreate() {
     setFormTarget({ mode: "create" });
   }
@@ -301,10 +319,20 @@ export default function IngredientsPage() {
       {/* GA-001: `isError` was never destructured, so an inventory-service failure rendered the
           "no ingredients yet" empty state — complete with an "Add ingredient" call to action
           inviting the user to re-key a store cupboard that already exists. */}
+      {/*
+        `isEmpty` is asked of the UNFILTERED set (UI-SPEC §8.3).
+
+        `rows` is `serverRows` with the client-side allergen/status narrowing applied, so
+        `isEmpty={rows.length === 0}` handed a FILTERED-empty result to the boundary's `empty`
+        branch — and that branch is the truly-empty one, complete with an "Add ingredient" call to
+        action. A chef who searched for "saffron" and had none was told the store cupboard was
+        bare and invited to re-key it. The boundary now yields to `DataGrid`, which owns the
+        filtered-empty state and offers `[Clear all]` instead of a create CTA.
+      */}
       <QueryBoundary
         query={ingredientsQuery}
         what="ingredients"
-        isEmpty={rows.length === 0}
+        isEmpty={rows.length === 0 && !isNarrowed}
         loading={<DataGrid columns={columns} data={[]} isLoading />}
         empty={
           <PermissionGuard
@@ -324,18 +352,8 @@ export default function IngredientsPage() {
           columns={columns}
           data={rows}
           density="comfortable"
-          isFiltered={
-            Boolean(categoryFilter) ||
-            debouncedSearch.trim() !== "" ||
-            allergenFilter.length > 0 ||
-            statusFilter !== "ACTIVE"
-          }
-          onClearFilters={() => {
-            setCategoryFilter("");
-            setSearch("");
-            setAllergenFilter([]);
-            setStatusFilter("ACTIVE");
-          }}
+          isFiltered={isNarrowed}
+          onClearFilters={clearFilters}
           card={{
             primary: (r) => r.name,
             secondary: (r) => `${r.categoryName ?? "Uncategorised"} · ${r.baseUomCode}`,

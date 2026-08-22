@@ -62,7 +62,7 @@ export function TenantSubscriptionCard({ tenant }: { tenant: PlatformTenant }) {
       </div>
 
       {editing ? (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="billing-ref">Billing reference</Label>
             <Input
@@ -82,7 +82,7 @@ export function TenantSubscriptionCard({ tenant }: { tenant: PlatformTenant }) {
               onChange={(e) => setRenewsAt(e.target.value)}
             />
           </div>
-          <div className="sm:col-span-2">
+          <div className="md:col-span-2">
             <Button
               disabled={update.isPending}
               data-testid="subscription-save"
@@ -111,7 +111,7 @@ export function TenantSubscriptionCard({ tenant }: { tenant: PlatformTenant }) {
           </div>
         </div>
       ) : (
-        <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
+        <dl className="grid gap-x-6 gap-y-2 text-sm md:grid-cols-3">
           <Field label="Billing reference" value={tenant.billingRef ?? "Not set"} />
           <Field label="Trial ends" value={formatDate(tenant.trialEndsAt)} />
           <Field label="Renews" value={formatDate(tenant.renewsAt)} />

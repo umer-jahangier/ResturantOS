@@ -182,7 +182,7 @@ export function AssignRoleDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : close())}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="md:max-w-md">
         <DialogHeader>
           <DialogTitle>Assign a role to {user.email}</DialogTitle>
           <DialogDescription>

@@ -93,8 +93,36 @@ export function PortletShell({
           >
             {title}
           </h3>
+          {/*
+           * The drill affordance. THREE channels, because hover is only one of them and it is
+           * the one this product's operators are least likely to have (UI-SPEC §34; 38-13 §2:
+           * "never make hover the only way to understand functionality").
+           *
+           *   1. POINTER — `group-hover:opacity-100`, the original and the weakest. A POS or
+           *      KDS terminal is a touchscreen and resolves `:hover` for nobody.
+           *   2. KEYBOARD — `group-focus-visible:opacity-100`, ADDED HERE. The card is a
+           *      <Link>, so it was always in the tab order and always drew the focus outline;
+           *      the arrow simply never joined in, which made the tile look different under a
+           *      mouse than under a keyboard for no reason anyone chose.
+           *   3. ASSISTIVE TECH — the wrapping <Link> carries `aria-label={drillLabel}`, so
+           *      the destination is announced whatever the opacity is. That is why this stays
+           *      `aria-hidden`: the arrow is a second rendering of a fact already spoken, and
+           *      un-hiding it would announce every tile twice.
+           *
+           * `opacity-25` at rest rather than `opacity-0` is what covers TOUCH, which none of
+           * the three above reach: a finger has no hover and no focus until it has already
+           * committed to a tap. The mark has to be legible before the tap or it is not an
+           * affordance, it is a reward. 25% keeps it clearly subordinate to the title while
+           * leaving it present, so the tile reads as drillable on a tablet.
+           *
+           * Transition is opacity only — paint, not compositing — and `--motion-hover` is the
+           * existing token (D-38-01 adds no new duration).
+           */}
           <ArrowUpRight
-            className="size-3.5 shrink-0 text-foreground-tertiary opacity-0 transition-opacity group-hover:opacity-100"
+            className={cn(
+              "size-3.5 shrink-0 text-foreground-tertiary opacity-25 transition-opacity",
+              "group-hover:opacity-100 group-focus-visible:opacity-100",
+            )}
             aria-hidden="true"
           />
         </div>

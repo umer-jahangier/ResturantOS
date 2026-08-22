@@ -819,6 +819,13 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
   );
 
   const showEmptyState = !isLoading && filtered.length === 0;
+  /**
+   * Whether a CLIENT-side facet is what emptied the list — the case the empty states below could
+   * not previously name. Read against the source the facets were applied to, not against
+   * `filtered`, so this is only true when there were rows to narrow away.
+   */
+  const facetsNarrowing =
+    (typeFilter !== "" || paymentFilter !== "" || !viewAll) && !isSearching && !serverScopedFilter;
 
   return (
     <div className="flex h-full flex-col gap-(--space-sm) p-(--space-md)">
@@ -1100,6 +1107,30 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
                   : undefined
               }
             />
+          ) : facetsNarrowing ? (
+            /*
+             * The facet filters — order type, payment status, "everyone's orders" — narrow the
+             * list CLIENT-side, after the status chip has chosen the source. Emptying it that way
+             * fell through to "No active orders" below, which is a claim about the RESTAURANT
+             * made by three controls the cashier set themselves: a manager who filtered to
+             * Delivery + Unpaid during a dine-in-only lunch was told the floor was clear.
+             *
+             * `[Clear all]` rather than "Go to POS" (UI-SPEC §8.3): the next useful action is
+             * widening the view, not opening a new check. Offering the create CTA here is how a
+             * duplicate order gets rung up for a table that already has one.
+             */
+            <EmptyState
+              title="No orders match these filters"
+              description="There are open orders — none of them match the type, payment or ownership you have selected."
+              action={{
+                label: "Clear all",
+                onClick: () => {
+                  setTypeFilter("");
+                  setPaymentFilter("");
+                  setViewAll(true);
+                },
+              }}
+            />
           ) : (
             <EmptyState
               title="No active orders"
@@ -1133,6 +1164,10 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
             density="comfortable"
             pageSize={25}
             label="Orders"
+            /* No `isFiltered`/`onClearFilters`: `showEmptyState` above short-circuits on
+               `filtered.length === 0`, so this grid's own empty branch is unreachable. The
+               filtered-empty states live up there, where they can name WHICH filter emptied the
+               list. */
             emptyTitle={
               isSearching
                 ? "No orders match that search"

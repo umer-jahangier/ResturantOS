@@ -22,6 +22,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
@@ -60,7 +61,14 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
 }
 
 export function VendorDetailPageContent({ vendorId }: { vendorId: string }) {
-  const { data: vendors, isLoading: isLoadingVendor } = useVendors();
+  const {
+    data: vendors,
+    isLoading: isLoadingVendor,
+    isError: isVendorError,
+    error: vendorError,
+    isFetching: isVendorFetching,
+    refetch: refetchVendors,
+  } = useVendors();
   const vendor = (vendors ?? []).find((v) => v.id === vendorId);
 
   const [section, setSection] = useState<string>("catalog");
@@ -261,6 +269,25 @@ export function VendorDetailPageContent({ vendorId }: { vendorId: string }) {
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-24" />
       </div>
+    );
+  }
+
+  /*
+   * A failed vendor read used to fall straight through to the header below, which renders
+   * `vendor?.name ?? "Vendor"` and `vendor?.paymentTerms ?? "—"` — a detail page for a supplier,
+   * with the supplier's name replaced by the word "Vendor" and every term an em dash. It looks
+   * like a vendor record with nothing filled in, and a buyer reading it would conclude the
+   * payment terms had never been set and raise the PO on default terms (GA-001).
+   */
+  if (isVendorError) {
+    return (
+      <QueryErrorNotice
+        what="this vendor"
+        moduleLabel="Purchasing"
+        error={vendorError}
+        isRetrying={isVendorFetching}
+        onRetry={() => void refetchVendors()}
+      />
     );
   }
 

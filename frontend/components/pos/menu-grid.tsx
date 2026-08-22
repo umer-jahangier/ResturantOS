@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 /**
  * The tile grid track, and the one thing the demo's POS does better than ours did.
  *
- * <p>We had `grid-cols-2 sm:grid-cols-3 lg:grid-cols-4` — three hard-coded column counts, so the
+ * <p>We had `grid-cols-2 md:grid-cols-3 lg:grid-cols-4` — three hard-coded column counts, so the
  * tile width was whatever the viewport divided by 2, 3 or 4 happened to be. At 390px that is a
  * 185px tile; between `sm` and `lg` on a 900px tablet it is 300px, a third of the screen for one
  * dish; and at 1440px with the sidebar now gone it is a 260px tile, so a 40-item card needs

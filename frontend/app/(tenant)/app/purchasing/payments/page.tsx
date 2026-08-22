@@ -60,8 +60,15 @@ export default function ApPaymentsPage() {
     () => new Map((vendorsQuery.data ?? []).map((v) => [v.id, v.name] as const)),
     [vendorsQuery.data],
   );
+  /*
+   * `isError`, not just `isLoading` (GA-001). A failed vendor read left every row reading
+   * "Unknown vendor" — the product asserting, in its own confident voice, that a supplier it
+   * merely could not look up does not exist. On an AP screen that is the sentence someone
+   * escalates about, and it is indistinguishable from a vendor genuinely deleted.
+   */
   const vendorName = (invoice: VendorInvoice) =>
-    vendorNameById.get(invoice.vendorId) ?? (vendorsQuery.isLoading ? "…" : "Unknown vendor");
+    vendorNameById.get(invoice.vendorId) ??
+    (vendorsQuery.isLoading ? "…" : vendorsQuery.isError ? "Vendor unavailable" : "Unknown vendor");
 
   const [search, setSearch] = useState("");
 
@@ -172,7 +179,7 @@ export default function ApPaymentsPage() {
         )}
       />
 
-      <div className="grid gap-(--space-md) sm:grid-cols-3">
+      <div className="grid gap-(--space-md) md:grid-cols-3">
         <StatTile
           label="Invoices to pay"
           value={formatNumber(payable.length)}

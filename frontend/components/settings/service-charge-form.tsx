@@ -259,7 +259,7 @@ export function ServiceChargeForm({ branchId }: { branchId: string | null }) {
                   )}
                 />
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="ratePct"

@@ -211,7 +211,7 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
            */
           <div
             data-testid="open-till-panel"
-            className="flex flex-col gap-4 bg-surface-2 p-4 sm:p-6"
+            className="flex flex-col gap-4 bg-surface-2 p-4 md:p-6"
           >
             <h2 className="font-semibold">Open Till Session</h2>
             <p className="text-label text-muted-foreground">
@@ -321,7 +321,7 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
         </div>
       ) : (
         /* Dedicated large in-place panel (POS-25/D-10) — see the open-till panel comment above. */
-        <div data-testid="close-till-panel" className="flex flex-col gap-4 bg-surface-2 p-4 sm:p-6">
+        <div data-testid="close-till-panel" className="flex flex-col gap-4 bg-surface-2 p-4 md:p-6">
           <h2 className="font-semibold">Close Till Session</h2>
 
           {/*

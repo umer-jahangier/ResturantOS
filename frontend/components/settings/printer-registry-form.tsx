@@ -427,7 +427,7 @@ export function PrinterRegistryForm({ branchId }: { branchId: string | null }) {
       </CardHeader>
 
       <CardContent className="space-y-5">
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1">
             <Label htmlFor="agent-base-url">Print agent address on this machine</Label>
             <Input
@@ -577,7 +577,7 @@ export function PrinterRegistryForm({ branchId }: { branchId: string | null }) {
                     <span className="text-label text-muted-foreground">{described.detail}</span>
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                     <div className="space-y-1">
                       <Label htmlFor={`role-${printer.id}`}>What it prints</Label>
                       <Select
@@ -715,7 +715,7 @@ export function PrinterRegistryForm({ branchId }: { branchId: string | null }) {
                       a form that quietly erases a working configuration because a machine is asleep
                       is worse than the problem it was built to fix.
                     */
-                      <div className="space-y-1 sm:col-span-2">
+                      <div className="space-y-1 md:col-span-2">
                         <Label htmlFor={`queue-${printer.id}`}>Printer on the machine</Label>
                         <Select
                           id={`queue-${printer.id}`}

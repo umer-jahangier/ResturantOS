@@ -35,6 +35,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/shared/field-help";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryErrorNotice } from "@/components/ui/query-boundary";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm focus-visible:border-ring";
@@ -101,8 +103,13 @@ export function StockTransferDialog({
 
   const { branchId } = useCurrentUser();
   const { data: branches } = useMyBranches();
-  const { data: ingredients } = useIngredients();
-  const { data: pendingTransfers, isLoading: pendingLoading } = usePendingTransfers();
+  const {
+    data: ingredients,
+    isError: ingredientsFailed,
+    refetch: refetchIngredients,
+  } = useIngredients();
+  const pendingQuery = usePendingTransfers();
+  const { data: pendingTransfers, isLoading: pendingLoading } = pendingQuery;
   const shipTransfer = useShipTransfer();
   const receiveTransfer = useReceiveTransfer();
 
@@ -192,7 +199,7 @@ export function StockTransferDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="md:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Stock transfer</DialogTitle>
           <DialogDescription>
@@ -215,7 +222,7 @@ export function StockTransferDialog({
             <form
               id="transfer-ship-form"
               onSubmit={form.handleSubmit(onSubmitShip)}
-              className="grid max-h-[55vh] gap-4 overflow-y-auto"
+              className="grid max-h-[55dvh] gap-4 overflow-y-auto"
               noValidate
             >
               <FormField
@@ -275,6 +282,9 @@ export function StockTransferDialog({
                               placeholder="Select an ingredient…"
                               emptyHeading="No ingredients match"
                               emptyBody="Try a different search."
+                              isError={ingredientsFailed}
+                              errorLabel="your ingredients"
+                              onRetry={() => void refetchIngredients()}
                             />
                           </FormControl>
                           <FormMessage />
@@ -314,7 +324,7 @@ export function StockTransferDialog({
             </form>
           </Form>
         ) : receivingTransfer ? (
-          <div className="grid max-h-[55vh] gap-3 overflow-y-auto">
+          <div className="grid max-h-[55dvh] gap-3 overflow-y-auto">
             <p className="text-sm text-muted-foreground">
               Transfer {receivingTransfer.transferId.slice(0, 8)} — confirm the quantity actually
               received per line. Variance is received minus shipped.
@@ -369,15 +379,35 @@ export function StockTransferDialog({
               </table>
             </div>
           </div>
+        ) : /*
+         * Error BEFORE empty (UI-SPEC §8). "No transfers awaiting receipt" was rendered on a
+         * failed request as readily as on a successful empty one, and of all the GA-001
+         * recurrences this is the one with stock attached: a branch manager told nothing is
+         * waiting closes the dialog, and the crates that were shipped to them stay unreceived
+         * and uncounted until someone notices the variance.
+         */
+        pendingQuery.isError ? (
+          <QueryErrorNotice
+            className="my-4"
+            what="transfers awaiting receipt"
+            moduleLabel="Inventory"
+            error={pendingQuery.error}
+            onRetry={() => void pendingQuery.refetch()}
+            isRetrying={pendingQuery.isFetching}
+          />
         ) : pendingLoading ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">Loading…</p>
+          <div className="space-y-2 py-4" role="status" aria-label="Loading transfers">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-14 w-full" />
+            ))}
+          </div>
         ) : (pendingTransfers ?? []).length === 0 ? (
           <EmptyState
             title="No transfers awaiting receipt"
             description="Transfers shipped to this branch will show up here."
           />
         ) : (
-          <div className="grid max-h-[55vh] gap-2 overflow-y-auto">
+          <div className="grid max-h-[55dvh] gap-2 overflow-y-auto">
             {(pendingTransfers ?? []).map((t) => (
               <div
                 key={t.transferId}

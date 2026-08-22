@@ -194,7 +194,7 @@ export function KdsClearStale({ branchId, stationCode, stationLabel }: KdsClearS
         data-surface="kds"
         data-zone="operational"
         data-testid="kds-clear-stale-dialog"
-        className="max-h-[85vh] gap-3 overflow-y-auto border border-white/15 bg-kds-card text-kds-text ring-0 sm:max-w-lg"
+        className="max-h-[85dvh] gap-3 overflow-y-auto border border-white/15 bg-kds-card text-kds-text ring-0 md:max-w-lg"
       >
         {clear.isSuccess ? (
           <SuccessView
@@ -300,7 +300,7 @@ export function KdsClearStale({ branchId, stationCode, stationLabel }: KdsClearS
               </p>
             )}
 
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <div className="flex flex-col-reverse gap-2 md:flex-row md:justify-end">
               <DialogClose asChild>
                 <button
                   type="button"
@@ -445,7 +445,7 @@ function SuccessView({
         They were taken off the board, not deleted — every one is still on record with its order
         number and the time it was fired.
       </p>
-      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <div className="flex flex-col-reverse gap-2 md:flex-row md:justify-end">
         {stationCode && (
           <Link
             href={`/app/kitchen/${stationCode}/cleared`}
