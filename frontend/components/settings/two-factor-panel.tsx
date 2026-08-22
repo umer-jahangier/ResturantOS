@@ -9,6 +9,7 @@ import { TotpQrCode } from "@/components/auth/totp-qr-code";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -50,6 +51,13 @@ export function TwoFactorPanel() {
   const [mode, setMode] = useState<"idle" | "enrolling" | "regenerating" | "disabling">("idle");
   const [error, setError] = useState<string | null>(null);
 
+  // `status.isSuccess`, NOT `!status.isPending`. On a failed request isPending is false and
+  // `status.data` is undefined, so `?? false` reports "two-factor is OFF" for an account that may
+  // well have it ON — and the panel then offers to set it up. That is the worst direction to be
+  // wrong in on a security control: it tells a protected user they are unprotected, and invites
+  // re-enrolment of a factor that is already live. A settings screen may say "I could not find
+  // out"; it may never turn "I could not find out" into "it is off".
+  const known = status.isSuccess;
   const enabled = status.data?.enabled ?? false;
   const remaining = status.data?.recoveryCodesRemaining ?? 0;
   const busy = setup.isPending || verify.isPending || regenerate.isPending || disable.isPending;
@@ -111,8 +119,19 @@ export function TwoFactorPanel() {
 
         {status.isPending ? <p className="text-body text-muted-foreground">Checking…</p> : null}
 
+        {status.isError ? (
+          <QueryErrorNotice
+            what="your two-factor status"
+            error={status.error}
+            onRetry={() => status.refetch()}
+            isRetrying={status.isFetching}
+            moduleLabel="Two-factor authentication"
+            stillWorks="Your existing sign-in and authenticator app are unaffected — this panel just cannot read the current setting."
+          />
+        ) : null}
+
         {/* ---------------------------------------------------------------- enrolled */}
-        {!status.isPending && enabled && mode === "idle" ? (
+        {known && enabled && mode === "idle" ? (
           <>
             {remaining === 0 ? (
               <Alert variant="destructive">
@@ -154,7 +173,7 @@ export function TwoFactorPanel() {
         ) : null}
 
         {/* --------------------------------------------------- not enrolled: start it */}
-        {!status.isPending && !enabled && mode === "idle" ? (
+        {known && !enabled && mode === "idle" ? (
           <Button
             type="button"
             disabled={busy}

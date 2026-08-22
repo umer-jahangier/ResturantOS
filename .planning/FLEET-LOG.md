@@ -203,6 +203,35 @@ Each of these produced a confident, wrong answer:
   "was it refused?" rather than "how?". A 500 satisfies `st >= 400`. Assert the exact status:
   refusing correctly and crashing are both "not 2xx", and only one of them is a working guard.
 
+- **A `.catch()` that returns a value converts a crash into a wrong answer.** (Phase 38.) Two agents
+  were killed mid-flight by HTTP 529 — infrastructure, not the author's doing. The defect was the
+  wrapper: each agent was wrapped in `.catch(e => "FAILED: …")`, so a dead agent returned an
+  ordinary string and the pipeline ran **four more phases** believing phase 1 had succeeded. Nothing
+  surfaced it until a human asked why the agents looked idle. A rescue clause that keeps a pipeline
+  moving needs a matching assertion that fails loudly at the end; without one it is not resilience,
+  it is a quiet way of losing work and then building on top of the loss.
+- **A gate proving itself is indistinguishable from a regression if you read it at the wrong
+  moment.** (Phase 38.) A 4-failure run was nearly filed as a regression; it was the suite's own
+  NEGATIVE CONTROL running concurrently with a full-suite run — same four rows, same 17.34:1 ratio.
+  Negative controls deliberately produce exactly the output a real failure produces. Before
+  believing a red run, establish whether a control was in flight.
+- **A ratchet raised during a repair and never re-lowered is a ratchet in name only.** (Phase 38.)
+  Wave 0 raised the conformance caps to 1085/138/143/44 to admit work in progress. Waves 1-7 paid
+  the debt down to 556/70/56/18 — and nobody lowered the caps afterwards. The gate then reported
+  **green while permitting a silent regression of 702 violations**, all the way back to the worst
+  the code had ever been, plus 107 baseline entries scoring zero that existed only as headroom.
+  Re-record the baseline to measured truth at the END of the work, lowering only; a cap set to
+  yesterday's mess is indistinguishable from no cap at all and looks healthier.
+- **A component that handles `isPending` and not `isError` states a fact it does not have.**
+  Settings → Two-factor derived `enabled` from `status.data?.enabled ?? false` and gated its
+  enrolment call-to-action on `!status.isPending`. On a failed request `isPending` is false and
+  `data` is undefined, so an unreachable auth-service rendered a confident **"two-factor is off —
+  set it up"** to accounts whose second factor was ON: a protection reported as absent, and an
+  invitation to re-enrol a live factor. Same shape as the phase-14b defect that read an error as an
+  empty result and told an owner they had no vendors. Gate on `isSuccess`, never on `!isPending` —
+  "I could not find out" must never be rendered as "it is off". Caught by phase 38's
+  `state-coverage` gate the moment the trees met, not by the author.
+
 ## 3. Git discipline in a shared checkout
 
 Worktrees isolate **commits**. They do **not** isolate the main checkout's **index**. During this
