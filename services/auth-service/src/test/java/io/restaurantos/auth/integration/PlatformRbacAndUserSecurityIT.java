@@ -289,6 +289,17 @@ class PlatformRbacAndUserSecurityIT extends BaseIntegrationTest {
 
     @Test
     void list_filtersByUserStatus_andLockedIsNotTheSameAsInactive() {
+        // Clear every lock FIRST, so this test owns its own precondition.
+        //
+        // `containsExactly` below is the assertion worth keeping — LOCKED and INACTIVE being
+        // distinguishable is the whole point of the test — but it is only meaningful if the set of
+        // locked users is one this test put there. The ITs share one Postgres container with no
+        // truncation between classes, so a sibling that exercises failed-login lockout leaves its
+        // subject locked and this assertion sees two ids. It passed locally and failed in CI for
+        // exactly that reason: locally the class runs alone, in CI it runs after its siblings.
+        //
+        // Loosening to `contains` would have hidden the coupling instead of removing it.
+        execute("UPDATE users SET locked_until = NULL WHERE locked_until IS NOT NULL");
         execute("UPDATE users SET locked_until = now() + interval '15 minutes' WHERE id = '"
             + TestFixtures.MANAGER_USER_ID + "'");
         try {
