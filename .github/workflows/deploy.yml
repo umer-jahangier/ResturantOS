@@ -181,7 +181,46 @@ jobs:
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          # Retry, and verify the RESULT rather than the exit code.
+          #
+          # This step runs under `bash -e`, and ssh-keyscan returns non-zero on a
+          # transient DNS or network hiccup. That killed the deploy on two
+          # consecutive commits while succeeding on the one between them — a flaky
+          # step failing a build that was otherwise fine. 2>/dev/null then hid the
+          # reason, so the job reported only "exit code 1".
+          #
+          # The LOOP CONDITION tests the RESULT, not the exit code — the original
+          # only applied that rule to the final assertion, and the difference is a
+          # real hole: ssh-keyscan can exit 0 having written nothing, in which case
+          # `if ssh-keyscan ...; then break; fi` breaks on attempt 1 and the retry
+          # budget is never spent. Asking "do we have a key yet?" cannot be fooled
+          # that way.
+          #
+          # Five attempts with backoff (5s, 10s, 20s, 30s = ~65s) rather than three
+          # at a flat 5s (~10s). This step has now killed three deploys on a host
+          # that was reachable from a workstation seconds later, so the window was
+          # simply too short for a transient runner-to-VPS blip. Everything below
+          # is still fail-loud: a genuinely unreachable host stops the deploy and
+          # says why, which is the property worth keeping.
+          keyscan_ok=""
+          for attempt in 1 2 3 4 5; do
+            ssh-keyscan -T 15 -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>>/tmp/keyscan.err || true
+            if grep -q . ~/.ssh/known_hosts 2>/dev/null; then
+              keyscan_ok="yes"
+              echo "  host key acquired on attempt $attempt"
+              break
+            fi
+            backoff=$(( attempt * 5 ))
+            [ "$attempt" -ge 4 ] && backoff=30
+            echo "  ssh-keyscan attempt $attempt produced no key; retrying in ${backoff}s"
+            sleep "$backoff"
+          done
+          if [ -z "$keyscan_ok" ]; then
+            echo "::error::ssh-keyscan produced no host key for ${{ secrets.VPS_HOST }} after 5 attempts over ~65s"
+            echo "--- ssh-keyscan stderr ---"
+            cat /tmp/keyscan.err || true
+            exit 1
+          fi
 
       - name: Refresh the GHCR pull secret
         # The kubelet pulls images long after this job ends (any pod restart,
@@ -218,7 +257,7 @@ jobs:
             for d in \$(k3s kubectl -n $NS get deploy -o name); do
               if ! k3s kubectl -n $NS rollout status \$d --timeout=8m; then
                 failed=1
-                echo \"::error:: rollout failed for \$d\"
+                echo "::error:: rollout failed for $d"
                 k3s kubectl -n $NS describe \$d | tail -25
                 k3s kubectl -n $NS logs \$d --tail=60 --all-containers 2>/dev/null || true
               fi

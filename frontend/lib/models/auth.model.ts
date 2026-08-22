@@ -92,6 +92,23 @@ export interface TotpSetup {
   otpauthUri: string;
 }
 
+/**
+ * Single-use codes that get a user back in when the authenticator is gone.
+ *
+ * Returned exactly once, by whichever call ACTIVATES the second factor. There is no endpoint that
+ * re-reads them — the server holds only digests — so a screen that receives these and does not put
+ * them in front of the user has destroyed them.
+ */
+export interface RecoveryCodes {
+  recoveryCodes: string[];
+}
+
+/** Whether 2FA is on for the signed-in user, and how many recovery codes remain unspent. */
+export interface TwoFactorStatus {
+  enabled: boolean;
+  recoveryCodesRemaining: number;
+}
+
 /** Tenant feature flags (D4 — shape mocked in Phase 4, live endpoint is Phase-3). */
 export interface FeatureFlags {
   features: string[];

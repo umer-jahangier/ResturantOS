@@ -39,6 +39,24 @@ export const apiTotpSetupSchema = z.object({
   otpauthUri: z.string(),
 });
 
+/**
+ * The recovery codes handed back when a second factor is ACTIVATED, and never again.
+ *
+ * The server keeps only SHA-256 digests, so this response is the single moment the plaintext
+ * exists anywhere. `.min(1)` rather than a bare array because an empty list here would be a silent
+ * contract break: the UI would render a reassuring "save these codes" panel containing nothing, and
+ * the user would file away an empty page believing they were covered.
+ */
+export const apiRecoveryCodesSchema = z.object({
+  recoveryCodes: z.array(z.string()).min(1),
+});
+
+/** `GET /api/v1/auth/2fa/status` — never carries the codes themselves, only how many are left. */
+export const apiTwoFactorStatusSchema = z.object({
+  enabled: z.boolean(),
+  recoveryCodesRemaining: z.number(),
+});
+
 /** Feature-flags endpoint (D4 — shape mocked in Phase 4; confirm live contract). */
 export const apiFeatureFlagsSchema = z.object({
   features: z.array(z.string()),

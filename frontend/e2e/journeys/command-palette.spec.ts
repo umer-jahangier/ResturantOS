@@ -56,7 +56,9 @@ test.describe("command palette", () => {
     await page.getByRole("button", { name: "Open command palette" }).click();
 
     await page.getByTestId("command-palette-input").fill("ord");
-    await expect(page.getByTestId("command-palette-item-page.purchasing.purchase-orders")).toBeVisible();
+    await expect(
+      page.getByTestId("command-palette-item-page.purchasing.purchase-orders"),
+    ).toBeVisible();
     // The measured defect: a subsequence matcher returns Dashboard for `ord`.
     await expect(page.getByTestId("command-palette-item-page.dashboard")).toHaveCount(0);
   });

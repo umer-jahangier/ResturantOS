@@ -5,6 +5,8 @@ import { Check, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 import { useTotpBootstrap, useTotpBootstrapVerify } from "@/lib/hooks/auth/use-totp-enrollment";
+import { RecoveryCodesPanel } from "@/components/auth/recovery-codes-panel";
+import { TotpQrCode } from "@/components/auth/totp-qr-code";
 import { formatUserFacingError } from "@/lib/errors";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -41,12 +43,21 @@ import { Label } from "@/components/ui/label";
  * token here. So enrolment happens in place: the password never leaves the form's memory, and
  * navigating away discards it, which is the correct outcome.
  *
- * <h3>Manual entry, not a QR code — for now</h3>
+ * <h3>QR, key and link — all three</h3>
  *
- * The product has no QR library in any `package.json` (GA-101), and adding a dependency to render
- * one is not something to do inside a triage phase. Manual entry is what every authenticator app
- * supports as its fallback, and on a phone the `otpauth://` link opens the app directly. Phase 23
- * adds the QR image; the flow it wraps is complete and correct without it.
+ * The QR is what a person actually uses, and it arrived late: this component shipped with manual
+ * entry only because no `package.json` carried a QR library and adding one mid-triage was the wrong
+ * trade. The other two paths stay because each covers a case the QR does not — the printed key for
+ * a desktop authenticator or a password manager, and the `otpauth:` link for the user enrolling ON
+ * the phone that holds the app, who has no second screen to point a camera at.
+ *
+ * <h3>Enrolment now ends on the recovery codes, not on success</h3>
+ *
+ * `/bootstrap/verify` returns the account's recovery codes and the server keeps only their digests,
+ * so this component holds the single copy that will ever exist. It therefore does NOT call
+ * `onEnrolled` when verification succeeds — it renders {@link RecoveryCodesPanel} and waits for the
+ * user to acknowledge. Returning to the login form on success, as it did when the response was
+ * empty, would now silently destroy them.
  */
 
 interface TotpEnrollmentProps {
@@ -89,6 +100,7 @@ export function TotpEnrollment({
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
 
   const credentials = { email, password, tenantSlug };
   const secret = otpauthUri ? secretFrom(otpauthUri) : null;
@@ -106,10 +118,9 @@ export function TotpEnrollment({
     verify.mutate(
       { ...credentials, code: code.trim() },
       {
-        onSuccess: () => {
-          toast.success("Two-factor authentication is set up. Sign in with your code.");
-          onEnrolled();
-        },
+        // Deliberately NOT onEnrolled() here. The response carries the recovery codes and nothing
+        // can reissue them, so the flow stops on the panel that shows them.
+        onSuccess: (result) => setRecoveryCodes(result.recoveryCodes),
         // The server returns the same refusal for a wrong code and an expired window, so the
         // message names the recoverable cause rather than guessing: a stale code is by far the
         // likelier of the two, and "wait for the next one" is the action either way.
@@ -132,11 +143,31 @@ export function TotpEnrollment({
     }
   }
 
+  if (recoveryCodes) {
+    return (
+      <div className="grid gap-4" data-testid="totp-enrollment">
+        <div>
+          <h2 className="text-h2 font-medium">Two-factor authentication is on</h2>
+          <p className="text-body text-muted-foreground">One last step before you sign in.</p>
+        </div>
+        <RecoveryCodesPanel
+          codes={recoveryCodes}
+          accountLabel={email}
+          continueLabel="Done — take me to sign in"
+          onAcknowledged={() => {
+            toast.success("Two-factor authentication is set up. Sign in with your code.");
+            onEnrolled();
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-4" data-testid="totp-enrollment">
       <div>
-        <h2 className="text-base font-medium">Set up two-factor authentication</h2>
-        <p className="text-sm text-muted-foreground">
+        <h2 className="text-h2 font-medium">Set up two-factor authentication</h2>
+        <p className="text-body text-muted-foreground">
           This account can approve payroll, close accounting periods or manage access, so signing in
           needs a code from an authenticator app as well as your password. Setting it up takes a
           minute and only happens once.
@@ -152,13 +183,14 @@ export function TotpEnrollment({
 
       {!otpauthUri ? (
         <>
-          <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+          <ol className="list-decimal space-y-1 pl-5 text-body text-muted-foreground">
             <li>
               Install an authenticator app — Google Authenticator, Authy, 1Password and Microsoft
               Authenticator all work.
             </li>
-            <li>Press the button below to generate your key.</li>
-            <li>Add the key to the app, then enter the six-digit code it shows.</li>
+            <li>Press the button below to generate your setup code.</li>
+            <li>Scan the QR code, then enter the six-digit code the app shows.</li>
+            <li>Save the recovery codes we give you at the end.</li>
           </ol>
           <Button
             type="button"
@@ -175,11 +207,15 @@ export function TotpEnrollment({
       ) : (
         <>
           <div className="grid gap-2 rounded-lg border bg-muted/40 p-3">
-            <p className="text-sm font-medium">Add this key to your authenticator app</p>
+            <p className="text-body font-medium">Scan this with your authenticator app</p>
+            <TotpQrCode otpauthUri={otpauthUri} />
+            <p className="text-label text-muted-foreground">
+              Can&apos;t scan it? Enter this key by hand instead:
+            </p>
             {secret ? (
               <div className="flex items-center gap-2">
                 <code
-                  className="flex-1 select-all break-all rounded bg-background px-2 py-1.5 font-mono text-sm tracking-wide"
+                  className="flex-1 select-all break-all rounded-md bg-background px-2 py-1.5 font-mono text-body tracking-wide"
                   data-testid="totp-secret"
                 >
                   {grouped(secret)}
@@ -199,14 +235,14 @@ export function TotpEnrollment({
                 otpauth: scheme — which is the closest thing to scanning a code without one. */}
             <a
               href={otpauthUri}
-              className="text-sm text-primary underline underline-offset-4"
+              className="text-body text-primary underline underline-offset-4"
               data-testid="totp-otpauth-link"
             >
               Open in your authenticator app
             </a>
-            <p className="text-xs text-muted-foreground">
-              Keep this key somewhere safe. If you lose the app and the key, only a platform
-              administrator can reset it.
+            <p className="text-label text-muted-foreground">
+              After you enter the code below we will give you recovery codes — those, not this key,
+              are what gets you back in if you lose your phone.
             </p>
           </div>
 

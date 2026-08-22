@@ -26,3 +26,8 @@ patches:
       - op: replace
         path: /data/CORS_ALLOWED_ORIGINS
         value: "https://dev.restaurantos.softxlogic.com,https://*.restaurantos.io,http://localhost:3000"
+  - target: { kind: ConfigMap, name: restaurantos-config }
+    patch: |-
+      - op: add
+        path: /data/AUTH_STEP_UP_ENABLED
+        value: "false"

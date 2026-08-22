@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      Recovery codes: the only way back in when the authenticator is gone.
+
+      Until now a lost phone was a PERMANENT lockout, and deliberately so — scripts/CREDENTIALS.md
+      records that no endpoint at any tier resets another user's second factor, on the reasoning
+      that an admin who can re-point your TOTP is an admin who can become you. That reasoning is
+      correct and this table does not weaken it: recovery codes are held by the USER, issued once
+      at enrolment, and never visible to anyone else including the platform. Nobody gains the power
+      to reset someone else's factor; the user gains the power to reset their own.
+
+      Why VARCHAR(64) and not a bcrypt column: these are 50-bit machine-generated secrets, not
+      human-chosen passwords. Bcrypt's cost exists to make GUESSING expensive, which is worth
+      nothing against a uniform draw from 2^50, and it would force a scan-and-compare across every
+      unused code on each attempt. SHA-256 hex — the same shape and the same reasoning as
+      refresh_sessions.token_hash (050) — makes redemption a single indexed lookup instead, which
+      also means the response time carries no signal about how many codes remain.
+    -->
+    <changeSet id="auth-1.0.0-096-create-user-recovery-codes" author="restaurantos-agent">
+        <createTable tableName="user_recovery_codes">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="user_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="code_hash" type="VARCHAR(64)"><constraints nullable="false"/></column>
+            <column name="used_at" type="TIMESTAMPTZ"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!--
+          UNIQUE, not merely indexed. Two identical live codes for one user is a ~1-in-2^50 draw
+          that the generator already retries past, but if it ever happened the atomic single-use
+          UPDATE would burn both rows in one redemption and silently cost the user a code. The
+          constraint turns an invisible miscount into a failed insert the generator can retry.
+        -->
+        <createIndex tableName="user_recovery_codes" indexName="uq_user_recovery_codes_user_hash"
+                     unique="true">
+            <column name="user_id"/>
+            <column name="code_hash"/>
+        </createIndex>
+
+        <rollback>
+            <dropIndex tableName="user_recovery_codes" indexName="uq_user_recovery_codes_user_hash"/>
+            <dropTable tableName="user_recovery_codes"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-096b-enable-rls-user-recovery-codes" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            ALTER TABLE user_recovery_codes ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE user_recovery_codes FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON user_recovery_codes
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+            GRANT SELECT, INSERT, UPDATE, DELETE ON user_recovery_codes TO auth_user;
+        </sql>
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DROP POLICY IF EXISTS tenant_isolation ON user_recovery_codes;
+                ALTER TABLE user_recovery_codes NO FORCE ROW LEVEL SECURITY;
+                ALTER TABLE user_recovery_codes DISABLE ROW LEVEL SECURITY;
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

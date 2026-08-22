@@ -47,6 +47,13 @@ const BASELINE_DEPENDENCIES = [
   "lucide-react",
   "next",
   "next-intl",
+  // Added for the TOTP enrolment module: renders the `otpauth://` provisioning URI as a
+  // scannable QR. ~19 kB gzipped and no transitive runtime deps, against the alternative of
+  // adding zxing to auth-service and returning a base64 PNG of a live credential through the
+  // gateway. The enrolment screen shipped with manual key entry only BECAUSE no package here
+  // could draw one, and every authenticator app leads with the camera — this is the gap that
+  // deferral left. Manual entry and the `otpauth:` link both stay as fallbacks.
+  "qrcode",
   "radix-ui",
   "react",
   "react-countup",

@@ -17,6 +17,7 @@ import {
 import { AccessDenied } from "@/components/shared/access-denied";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { BranchSettingsForm } from "@/components/settings/branch-settings-form";
+import { TwoFactorPanel } from "@/components/settings/two-factor-panel";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { InsetRow } from "@/components/ui/inset-row";
 import { PageHeader } from "@/components/ui/page-header";
@@ -252,6 +253,11 @@ function SettingsPage() {
         `/api/v1/branches/{id}` is the only settings write endpoint that exists.
       */}
       <BranchSettingsForm branchId={branchId || null} />
+
+      {/* Per-USER, not per-branch, and the only control on this page that is. Kept from
+          main's recovery-codes work (ba231b76): profile-panel reports the same state
+          read-only, and a status with no action beside it sends the user hunting. */}
+      <TwoFactorPanel />
 
       {visibleGroups.map((group) => (
         <Card key={group.id} depth={1}>

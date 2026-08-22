@@ -65,6 +65,7 @@ public class AuthServiceImpl implements AuthService {
     private final LoginEventPublisher loginEventPublisher;
     private final AuthJwtProperties jwtProperties;
     private final TotpService totpService;
+    private final RecoveryCodeService recoveryCodeService;
     private final PasswordPolicyService passwordPolicyService;
     private final LoginIdentityResolver loginIdentityResolver;
     private final PlatformTokenService platformTokenService;
@@ -89,6 +90,7 @@ public class AuthServiceImpl implements AuthService {
                            LoginEventPublisher loginEventPublisher,
                            AuthJwtProperties jwtProperties,
                            TotpService totpService,
+                           RecoveryCodeService recoveryCodeService,
                            PasswordPolicyService passwordPolicyService,
                            LoginIdentityResolver loginIdentityResolver,
                            PlatformTokenService platformTokenService,
@@ -107,6 +109,7 @@ public class AuthServiceImpl implements AuthService {
         this.loginEventPublisher = loginEventPublisher;
         this.jwtProperties = jwtProperties;
         this.totpService = totpService;
+        this.recoveryCodeService = recoveryCodeService;
         this.passwordPolicyService = passwordPolicyService;
         this.loginIdentityResolver = loginIdentityResolver;
         this.platformTokenService = platformTokenService;
@@ -760,12 +763,27 @@ public class AuthServiceImpl implements AuthService {
                 "Two-factor authentication is required for this account but has not been set up",
                 request.tenantSlug());
         }
-        if (request.totpCode() == null
-            || request.totpCode().isBlank()
-            || !totpService.verify(user.getTotpSecret(), request.totpCode())) {
+        if (request.totpCode() == null || request.totpCode().isBlank()) {
             loginEventPublisher.publishFailed(tenantId, user.getId(), email, ip);
             throw new TotpRequiredException("TOTP code required");
         }
+        // A recovery code arrives in this same field, and is told apart by shape alone: six
+        // characters is a TOTP code, ten is a recovery code. Sharing the field is what makes the
+        // feature reachable — the user who needs it is staring at a form that asks for the code
+        // their lost phone would have produced, and there is no second form to send them to that
+        // they could reach without the token this very check is withholding.
+        boolean accepted = RecoveryCodeService.looksLikeRecoveryCode(request.totpCode())
+            ? recoveryCodeService.redeem(user.getId(), request.totpCode())
+            : totpService.verify(user.getTotpSecret(), request.totpCode());
+        if (!accepted) {
+            // Same exception and same event either way. A response that distinguished "wrong TOTP
+            // code" from "wrong recovery code" would confirm to an attacker holding a stolen
+            // password that recovery codes exist on this account and that they had the shape right.
+            loginEventPublisher.publishFailed(tenantId, user.getId(), email, ip);
+            throw new TotpRequiredException("TOTP code required");
+        }
+        // Redeeming a recovery code satisfies step-up, exactly as a TOTP code does. See
+        // RecoveryCodeService's class javadoc for why a weaker grant would defeat the purpose.
         return true;
     }
 

@@ -92,6 +92,7 @@ class PlatformRefreshRotationTest {
             mock(LoginEventPublisher.class),
             new AuthJwtProperties(),
             mock(TotpService.class),
+            mock(RecoveryCodeService.class),
             mock(PasswordPolicyService.class),
             mock(LoginIdentityResolver.class),
             platformTokenService,

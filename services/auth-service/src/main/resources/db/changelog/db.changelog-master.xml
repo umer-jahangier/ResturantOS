@@ -184,4 +184,10 @@
          owner. Explicit and verified for the reason 088-093 give. -->
     <include file="db/changelog/v1.0.0/095-nlq-ai-settings-permission.xml"/>
 
+    <!-- 096: recovery codes. A lost authenticator was a permanent lockout — the deadlock 
+         TotpEnrollmentRequiredException's javadoc describes, but AFTER enrolment, where bootstrap
+         cannot help because it refuses once a secret exists. Held by the user, never by an admin,
+         so the "no one resets another user's second factor" rule in scripts/CREDENTIALS.md holds. -->
+    <include file="db/changelog/v1.0.0/096-user-recovery-codes.xml"/>
+
 </databaseChangeLog>

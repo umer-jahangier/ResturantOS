@@ -149,11 +149,23 @@ describe.each(GATES)("$id — $name conformance", ({ key, pattern, id }) => {
     // so it is being done in the open, in one commit, with the per-file numbers regenerated to
     // measured truth in the same commit. Later waves MUST bring these down as each screen plan
     // migrates its own call sites; nothing may raise them again.
+    // WAVE 8, 2026-08-22 — CAPS LOWERED, and this is the repair of a real hole.
+    //
+    // Wave 0 raised these to 1085/138/143/44 because the product had grown past them during a
+    // repair drive. Waves 1-7 then paid the debt down hard — but NOBODY LOWERED THE BASELINE
+    // AFTER, so the gates went on permitting the old numbers. Measured at wave 8: 556/70/56/18
+    // against caps of 1085/138/143/44, i.e. **702 violations the ratchet would have allowed back
+    // in silently**, and 107 files listed in the baseline that now score zero.
+    //
+    // A ratchet that is not re-tightened after the work is a ratchet in name only: it reports
+    // green while permitting a regression all the way back to the worst the code has ever been.
+    // Re-recorded to measured truth, and the per-file baseline was regenerated the same way —
+    // 314 file entries down to 141.
     const HIGH_WATER: Record<string, number> = {
-      typeScale: 1085,
-      bareRounded: 138,
-      rawPalette: 143,
-      handRolledTable: 44,
+      typeScale: 556,
+      bareRounded: 70,
+      rawPalette: 56,
+      handRolledTable: 18,
     };
     expect(
       drift.baselineTotal,
@@ -180,7 +192,7 @@ describe("the product-wide totals, re-recorded in wave 0 and owed back down", ()
     // 25 of the difference was already paid here, by converging void-refund-dialog.tsx and
     // service-charge-form.tsx to zero.
     const total = Object.values(scan(TYPE_SCALE)).reduce((a, b) => a + b, 0);
-    expect(total, "type-scale classes").toBeLessThanOrEqual(1085);
+    expect(total, "type-scale classes").toBeLessThanOrEqual(556);
   });
 
   it("hand-rolled <table> count does not exceed the count measured in wave 0", () => {
@@ -194,7 +206,7 @@ describe("the product-wide totals, re-recorded in wave 0 and owed back down", ()
     // two-line rows, `<th scope="row">` — rather than change behaviour on an accountability
     // screen. D-38-17: later waves bring this down; it may not rise again.
     const total = Object.values(scan(HAND_ROLLED_TABLE)).reduce((a, b) => a + b, 0);
-    expect(total, "hand-rolled <table>").toBeLessThanOrEqual(44);
+    expect(total, "hand-rolled <table>").toBeLessThanOrEqual(18);
   });
 
   it("bare `rounded` call sites do not exceed the count measured in wave 0", () => {
@@ -207,6 +219,6 @@ describe("the product-wide totals, re-recorded in wave 0 and owed back down", ()
     // `charge-summary.tsx` had already shed four, which is why the rise is 1 and not 8.
     // D-38-17 binds later waves to bring it down.
     const total = Object.values(scan(BARE_ROUNDED)).reduce((a, b) => a + b, 0);
-    expect(total, "bare rounded").toBeLessThanOrEqual(138);
+    expect(total, "bare rounded").toBeLessThanOrEqual(70);
   });
 });

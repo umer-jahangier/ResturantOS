@@ -80,8 +80,14 @@ describe("LoginForm", () => {
     await user.type(screen.getByLabelText(/password/i), "secret");
     await user.click(screen.getByRole("button", { name: /sign in/i }));
 
-    const totpField = await screen.findByLabelText(/authenticator code/i);
+    const totpField = await screen.findByLabelText(/authenticator or recovery code/i);
     expect(totpField).toBeInTheDocument();
+
+    // This field is the ONLY place a recovery code is redeemed, and it shipped labelled
+    // "Authenticator code" with placeholder 123456 — so the user it exists to rescue had no way to
+    // learn the option was there. The label and hint are the feature, not decoration.
+    expect(totpField).toHaveAttribute("inputMode", "text");
+    expect(screen.getByText(/recovery codes you saved/i)).toBeInTheDocument();
     expect(pushMock).not.toHaveBeenCalled();
 
     await user.type(totpField, "123456");
@@ -474,7 +480,7 @@ describe("LoginForm — email-first (16a-01)", () => {
     await user.click(screen.getByRole("button", { name: /^change password$/i }));
 
     // Challenged, not signed in.
-    expect(await screen.findByLabelText(/authenticator code/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/authenticator or recovery code/i)).toBeInTheDocument();
     expect(pushMock).not.toHaveBeenCalled();
 
     // And told, in the same breath, that the password change itself succeeded — otherwise the

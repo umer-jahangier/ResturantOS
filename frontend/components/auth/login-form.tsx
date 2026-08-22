@@ -597,19 +597,30 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
                     name="totpCode"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Authenticator code</FormLabel>
+                        <FormLabel>Authenticator or recovery code</FormLabel>
                         <FormControl>
+                          {/*
+                            inputMode is "text", not "numeric", and that is the whole point of this
+                            field now. A recovery code is the ONLY way back in for someone whose
+                            phone is gone, it is redeemed HERE (the server tells the two apart by
+                            shape), and a numeric keypad on a phone makes "ABCDE-FGHJK" close to
+                            untypeable. There is no digit filter either — one would silently eat
+                            every letter and leave the user staring at a field that swallowed most
+                            of what they typed.
+                          */}
                           <Input
-                            inputMode="numeric"
+                            inputMode="text"
                             autoComplete="one-time-code"
-                            placeholder="123456"
+                            autoCapitalize="characters"
+                            placeholder="123456 or ABCDE-FGHJK"
                             aria-describedby="totp-hint"
                             data-testid="totp-code"
                             {...field}
                           />
                         </FormControl>
                         <p id="totp-hint" className="text-sm text-muted-foreground">
-                          Enter your authenticator code to finish signing in.
+                          Enter the six-digit code from your authenticator app. Lost your phone? Use
+                          one of the recovery codes you saved when you set it up — each works once.
                         </p>
                         <FormMessage />
                       </FormItem>
