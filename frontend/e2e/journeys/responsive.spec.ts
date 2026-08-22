@@ -128,11 +128,27 @@ test.describe("38-14 · viewport integrity", () => {
             scroll.clientWidth + 2,
           );
 
-          // ── 2. Element overflow. The audit's own predicate; see viewport-integrity.mjs. ──
+          // ── 2. Element overflow that actually REACHES the viewport. ──────────────────────
+          //
+          // `seen.overflow` is the audit's raw count and stays in the report because the plan's
+          // baselines are expressed in it. What is asserted is `escapees`: the same predicate
+          // minus the boxes a horizontal scroll container of their own has already dealt with.
+          //
+          // The distinction is brief §57's, not a softening. `DataGrid` adapts a wide table two
+          // ways — a card list below `md`, and an `overflow-x-auto` wrapper at `md`–`xl` — and
+          // the second one leaves the table's bounding box wider than the viewport by design,
+          // with the page fixed and the last columns a swipe away. Measured on the FIXED
+          // `/app/inventory/stock` at 768px: 41 boxes past the edge, 0 of them reachable by the
+          // page. Asserting the raw count would make this gate red on the fix.
+          //
+          // `<main>` is deliberately NOT accepted as a container — see `clipperOf` in
+          // viewport-integrity.mjs. Content wider than `<main>` drags the page header and the
+          // tabs sideways with it, which is what a person means by "it scrolls sideways".
           expect(
-            seen.overflow,
-            `${where}: ${seen.overflow} elements past the viewport\n` +
-              result.overflowBlame.slice(0, 8).map(describeEl).join("\n"),
+            seen.escapees,
+            `${where}: ${seen.escapees} elements past the viewport with nothing containing them\n` +
+              result.escapees.slice(0, 8).map(describeEl).join("\n") +
+              `\n(raw overflow including scroll-contained boxes: ${seen.overflow})`,
           ).toBe(0);
 
           // ── 3. Occlusion. THIS is the check that catches the POS cart overlay, and the

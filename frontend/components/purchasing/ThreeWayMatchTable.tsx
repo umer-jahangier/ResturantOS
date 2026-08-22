@@ -30,7 +30,10 @@ export function MatchStatusBadge({ status }: { status: string }) {
 
 export function ThreeWayMatchTable({ invoice }: { invoice: VendorInvoice }) {
   return (
-    <table className="w-full text-sm">
+    // `table-stack` (globals.css): below `md` each invoice line becomes a labelled card. Three
+    // "qty @ price" pairs and a status badge across four columns is unreadable at 390px, and a
+    // three-way match is exactly the screen someone opens on a phone while standing at a delivery.
+    <table className="table-stack w-full text-sm">
       <thead>
         <tr className="border-b text-left">
           <th className="py-2">PO qty / price</th>
@@ -42,14 +45,16 @@ export function ThreeWayMatchTable({ invoice }: { invoice: VendorInvoice }) {
       <tbody>
         {invoice.lines.map((line) => (
           <tr key={line.id} className="border-b">
-            <td className="py-2">
+            <td className="py-2" data-label="PO qty / price">
               {line.poQty ?? "—"} @ {line.poUnitPricePaisa ?? "—"}
             </td>
-            <td className="py-2">{line.grnQty ?? "0"}</td>
-            <td className="py-2">
+            <td className="py-2" data-label="GRN qty">
+              {line.grnQty ?? "0"}
+            </td>
+            <td className="py-2" data-label="Invoice qty / price">
               {line.qty} @ {line.unitPricePaisa}
             </td>
-            <td className="py-2">
+            <td className="py-2" data-label="Status">
               <MatchStatusBadge status={line.matchStatus} />
             </td>
           </tr>

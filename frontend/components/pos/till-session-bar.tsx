@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CircleAlert, CircleCheck, CircleSlash } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { useOpenTill, useCloseTill, useTillReconciliation } from "@/lib/hooks/pos/use-till";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
@@ -218,18 +219,29 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
               Starting a new cashier till session. Record the counted starting float before taking
               any orders.
             </p>
-            <label className="text-body">
-              Opening Float (PKR)
+            {/*
+             * `<Label htmlFor>` BESIDE the control, not wrapped around it.
+             *
+             * A `<label>` is `display: inline`, so a `w-full` input written as its child shares
+             * the label text's line box and the two render on top of each other — the collision
+             * the product owner photographed on the close-till panel below. Gated by G12g in
+             * `__tests__/lib/theme/a11y-invariants.test.ts`.
+             */}
+            <div className="flex max-w-xs flex-col gap-1.5">
+              <Label htmlFor="open-till-float" className="text-body">
+                Opening Float (PKR)
+              </Label>
               <input
+                id="open-till-float"
                 type="number"
                 min={0}
                 step="0.01"
                 value={openingFloat}
                 onChange={(e) => setOpeningFloat(e.target.value)}
-                className="mt-1 min-h-11 w-full max-w-xs rounded-md border px-3 py-2 text-body"
+                className="min-h-11 w-full rounded-md border px-3 py-2 text-body"
                 placeholder="e.g. 5000.00"
               />
-            </label>
+            </div>
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setShowOpenModal(false)}
@@ -364,9 +376,13 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
             </div>
           </div>
 
-          <label className="text-body">
-            Declared Cash Count (PKR)
+          {/* The photographed collision itself. See the note on the opening-float field above. */}
+          <div className="flex max-w-xs flex-col gap-1.5">
+            <Label htmlFor="close-till-declared" className="text-body">
+              Declared Cash Count (PKR)
+            </Label>
             <input
+              id="close-till-declared"
               type="number"
               min={0}
               step="0.01"
@@ -374,10 +390,10 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
               onChange={(e) => setDeclaredCash(e.target.value)}
               aria-invalid={declaredError !== null}
               aria-describedby={declaredError ? "close-till-declared-error" : undefined}
-              className="mt-1 min-h-11 w-full max-w-xs rounded-md border px-3 py-2 text-body"
+              className="min-h-11 w-full rounded-md border px-3 py-2 text-body"
               placeholder="e.g. 12500.00"
             />
-          </label>
+          </div>
           {declaredError && (
             <p
               id="close-till-declared-error"
@@ -388,18 +404,21 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
             </p>
           )}
 
-          <label className="text-body">
-            Note for manager review (optional)
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="close-till-note" className="text-body">
+              Note for manager review (optional)
+            </Label>
             <textarea
+              id="close-till-note"
               data-testid="close-till-note"
               value={closeNote}
               onChange={(e) => setCloseNote(e.target.value)}
               maxLength={500}
               rows={3}
-              className="mt-1 w-full rounded-md border px-3 py-2 text-body"
+              className="w-full rounded-md border px-3 py-2 text-body"
               placeholder="e.g. 200 short — customer disputed change on order #1042"
             />
-          </label>
+          </div>
 
           {/* Variance preview — live, before anything is submitted. */}
           {declaredValid && (

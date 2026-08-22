@@ -83,8 +83,35 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
      * taken from {@code Pageable} so a caller cannot ask for an order the supporting index does not
      * serve, and so the contract 13-12 codes against does not depend on a query parameter.
      *
+     * <h2>The two filters the platform console added, and why they are HERE (superadmin plan)</h2>
+     *
+     * <p>A cross-tenant user directory has to be able to ask "every MANAGER" and "everyone locked
+     * out". Neither is answerable from the row alone: the role lives in {@code user_branch_roles},
+     * and "locked" is a comparison of {@code locked_until} against now. Doing either in the caller
+     * means fetching every user and filtering in memory — an N+1 across a service boundary for the
+     * role case, and a page whose {@code totalCount} describes a different set from its rows in
+     * both. Both tables are in THIS database, so the predicate belongs in this query.
+     *
+     * <p>Both are OPTIONAL and null means "no filter", so the existing caller
+     * ({@code GET /internal/auth/users} as user-service has always called it) is unaffected: it
+     * sends neither and gets exactly what it got before.
+     *
+     * <p>{@code status} and {@code activeOnly} are ANDed rather than one overriding the other.
+     * {@code activeOnly=true} with {@code status=INACTIVE} therefore returns nothing, which is the
+     * honest answer to a contradictory request — the alternative, letting one silently win, means a
+     * caller gets rows they excluded.
+     *
      * @param activeOnly when true, only {@code is_active} rows; when false, all live rows
      * @param term a pre-lowercased {@code %fragment%}, or null for no search
+     * @param status {@code ACTIVE} | {@code INACTIVE} | {@code LOCKED}, or null for any.
+     *               {@code ACTIVE} means usable RIGHT NOW — the flag is on AND no live lockout —
+     *               because an account whose {@code locked_until} is in the future cannot log in,
+     *               and listing it as active tells an operator the opposite of what they need.
+     * @param roleCode an ACTIVE branch-role code the user must hold at any branch, or null for any.
+     *                 Inactive assignments do not match: a revoked role is not a role.
+     * @param now the instant {@code locked_until} is compared against. Passed in rather than read
+     *            as {@code CURRENT_TIMESTAMP} inside the query so a test can pin it, and so the
+     *            count query and the row query cannot disagree by the microseconds between them.
      */
     @Query(value = """
         SELECT u FROM UserEntity u
@@ -94,6 +121,19 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
            AND (:term IS NULL
                 OR LOWER(u.email) LIKE :term
                 OR LOWER(COALESCE(u.fullName, '')) LIKE :term)
+           AND (:status IS NULL
+                OR (:status = 'ACTIVE'
+                    AND u.active = true
+                    AND (u.lockedUntil IS NULL OR u.lockedUntil <= :now))
+                OR (:status = 'INACTIVE' AND u.active = false)
+                OR (:status = 'LOCKED'
+                    AND u.lockedUntil IS NOT NULL AND u.lockedUntil > :now))
+           AND (:roleCode IS NULL
+                OR EXISTS (SELECT 1 FROM UserBranchRoleEntity ubr
+                            WHERE ubr.userId = u.id
+                              AND ubr.tenantId = u.tenantId
+                              AND ubr.active = true
+                              AND ubr.roleCode = :roleCode))
          ORDER BY u.email ASC, u.id ASC
         """,
         countQuery = """
@@ -104,10 +144,26 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
            AND (:term IS NULL
                 OR LOWER(u.email) LIKE :term
                 OR LOWER(COALESCE(u.fullName, '')) LIKE :term)
+           AND (:status IS NULL
+                OR (:status = 'ACTIVE'
+                    AND u.active = true
+                    AND (u.lockedUntil IS NULL OR u.lockedUntil <= :now))
+                OR (:status = 'INACTIVE' AND u.active = false)
+                OR (:status = 'LOCKED'
+                    AND u.lockedUntil IS NOT NULL AND u.lockedUntil > :now))
+           AND (:roleCode IS NULL
+                OR EXISTS (SELECT 1 FROM UserBranchRoleEntity ubr
+                            WHERE ubr.userId = u.id
+                              AND ubr.tenantId = u.tenantId
+                              AND ubr.active = true
+                              AND ubr.roleCode = :roleCode))
         """)
     Page<UserEntity> findPageForTenant(@Param("tenantId") UUID tenantId,
                                        @Param("activeOnly") boolean activeOnly,
                                        @Param("term") String term,
+                                       @Param("status") String status,
+                                       @Param("roleCode") String roleCode,
+                                       @Param("now") java.time.Instant now,
                                        Pageable pageable);
 
     /**

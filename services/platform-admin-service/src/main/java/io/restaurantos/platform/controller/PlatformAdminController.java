@@ -144,7 +144,16 @@ public class PlatformAdminController {
             throw new IllegalArgumentException("Unknown tier '" + req.tier()
                 + "' — expected one of STARTER, GROWTH, ENTERPRISE, CUSTOM");
         }
-        var result = subscriptionService.changeTier(tenantId, tier, req.forced());
+        // The acting administrator, so the tier change lands in subscription_history attributed
+        // rather than anonymous. Read from the verified token's `sub`, never from the body — the
+        // same rule the impersonation endpoint below applies, for the same reason.
+        //
+        // `platformPrincipalOrNull` and not `requirePlatformPrincipal`: this endpoint has never
+        // refused for want of a resolvable subject and turning it into one now would be a behaviour
+        // change to a shipped contract for the sake of a log field. A null attributes the row to
+        // SYSTEM, which is a true statement about a call path with no principal on it.
+        var result = subscriptionService.changeTier(
+            tenantId, tier, req.forced(), platformPrincipalOrNull(), null);
         return ResponseEntity.ok(ApiResponse.ok(TierChangeResponse.from(result)));
     }
 
@@ -418,14 +427,31 @@ public class PlatformAdminController {
      * principal distinguishable from a tenant one at this point.
      */
     private UUID requirePlatformPrincipal() {
+        UUID subject = platformPrincipalOrNull();
+        if (subject != null) {
+            return subject;
+        }
+        throw new PermissionDeniedException(
+            "Impersonation requires an authenticated platform administrator; the acting id is taken "
+                + "from the verified token and is never substituted");
+    }
+
+    /**
+     * The authenticated platform user's id, or null.
+     *
+     * <p>The non-refusing half of {@link #requirePlatformPrincipal}, for the call sites where an
+     * unattributable action is recorded as such rather than rejected. Both read the same place —
+     * the {@code sub} of the RS256-verified control-plane token that {@code JwtAuthenticationFilter}
+     * put in the security context — so there is one definition of "who is acting" and two policies
+     * about what to do when there is nobody.
+     */
+    private UUID platformPrincipalOrNull() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Object principal = authentication != null ? authentication.getPrincipal() : null;
         if (principal instanceof JwtClaims claims && claims.subject() != null) {
             return claims.subject();
         }
-        throw new PermissionDeniedException(
-            "Impersonation requires an authenticated platform administrator; the acting id is taken "
-                + "from the verified token and is never substituted");
+        return null;
     }
 
     // --- Inner request records ---

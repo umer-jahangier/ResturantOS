@@ -17,6 +17,27 @@
          the console (0 rows read, 42501 on write). Placed before the seeds only for ordering
          hygiene; it touches no seeded row. -->
     <include file="db/changelog/v1.0.0/040-platform-db-rls-posture.xml"/>
+    <!-- 050 adds the commercial layer around the entitlement that already existed: plans
+         (price in BIGINT paisa, billing period, the ceilings they grant), one live subscription per
+         tenant, and an APPEND-ONLY subscription_history so a tier change stops being a silent
+         overwrite. Additive and reversible; it alters no existing table. It seeds four tier-aligned
+         plans WITHOUT a context, because without at least one plan the subscription surface is
+         unusable in every environment — but it deliberately backfills NO subscription for any
+         existing tenant, because inventing one would assert a price nobody agreed to. It adds NO
+         RLS: read 040's header first. MUST stay after 010 (tenants) and before the seeds. -->
+    <include file="db/changelog/v1.0.0/050-subscription-plans-and-subscriptions.xml"/>
+    <!-- 050 adds platform_admin_audit — the platform operator's OWN accountability trail, and the
+         only record of the two actions that publish no tenant-side event (unlock, revoke-sessions).
+         Append-only by trigger, no RLS: 040's decision applies unchanged and its header is the
+         reasoning. Placed after 040 and before the seeds because it depends on neither. -->
+    <include file="db/changelog/v1.0.0/050-platform-admin-audit.xml"/>
+    <!-- 060 adds announcements + audience + acknowledgements: IN-APP banners only. There is no
+         email/SMS/WhatsApp delivery and none can be built on these tables — notification-service is
+         an empty POM module with no source. Adds NO RLS (040's decision applies unchanged) and
+         alters no existing table. Numbered 060 because two independent 050 changelogs already
+         exist; Liquibase applies includes in declaration order, not by number, so the number is a
+         reading aid and the position is the contract. -->
+    <include file="db/changelog/v1.0.0/060-platform-announcements.xml"/>
     <include file="db/changelog/v1.0.0/900-seed-platform-users.xml"/>
     <include file="db/changelog/v1.0.0/901-seed-demo-tenant.xml"/>
     <!-- 910 rotates the SuperAdmin credential (D-03). MUST stay after 900: it deactivates the row

@@ -57,9 +57,15 @@ export function TenderSplit({ lines }: { lines: TenderLine[] }) {
   }
 
   return (
-    <table className="w-full text-small" data-testid="tender-split">
+    /*
+     * `table-stack` (globals.css): below `md` the rows become bordered cards and every cell
+     * carries its own column name. Five money columns on a 390px phone is the shape brief §57
+     * forbids, and this table is read on a phone more than most — a cashier reconciling a drawer
+     * at the end of a shift is standing up, holding one.
+     */
+    <table className="table-stack w-full text-small" data-testid="tender-split">
       <thead>
-        <tr className="border-b text-left text-label uppercase tracking-wide text-muted-foreground">
+        <tr className="border-b text-left text-label uppercase tracking-[0.08em] text-muted-foreground">
           <th className="pb-2 font-medium">Tender</th>
           <th className="pb-2 text-right font-medium">Payments</th>
           <th
@@ -89,12 +95,18 @@ export function TenderSplit({ lines }: { lines: TenderLine[] }) {
             className="border-b last:border-0"
             data-testid={`tender-row-${line.method}`}
           >
-            <td className="py-2 font-medium">{label(line.method)}</td>
-            <td className="py-2 text-right tabular-nums text-muted-foreground">
+            <td className="py-2 font-medium" data-label="Tender">
+              {label(line.method)}
+            </td>
+            <td
+              className="py-2 text-right tabular-nums text-muted-foreground"
+              data-label="Payments"
+            >
               {line.paymentCount}
             </td>
             <td
               className="py-2 text-right"
+              data-label="Amount"
               data-paisa={line.amountPaisa}
               data-testid={`tender-amount-${line.method}`}
             >
@@ -106,6 +118,7 @@ export function TenderSplit({ lines }: { lines: TenderLine[] }) {
                 reader has never been shown before. */}
             <td
               className="py-2 text-right"
+              data-label="Tips (on top)"
               data-paisa={line.tipPaisa}
               data-testid={`tender-tip-${line.method}`}
             >
@@ -121,6 +134,7 @@ export function TenderSplit({ lines }: { lines: TenderLine[] }) {
                 line, and a zero in a money column reads as a figure somebody computed. */}
             <td
               className="py-2 text-right text-muted-foreground"
+              data-label="On open orders"
               data-paisa={line.unclosedAmountPaisa}
               data-testid={`tender-unclosed-${line.method}`}
             >

@@ -80,6 +80,36 @@ restaurantos:
     uri: ${USER_SERVICE_URI:http://localhost:8082}
   finance-service:
     uri: ${FINANCE_SERVICE_URI:http://localhost:8086}
+  # The cross-tenant audit read. audit-service listens on 8093 (its application.yml) and gates
+  # /internal/** on X-Internal-Service-SECRET — a different header name from the one every other
+  # internal seam here uses, which is why AuditPlatformClient carries its own Feign config.
+  audit-service:
+    uri: ${AUDIT_SERVICE_URI:http://localhost:8093}
+  # System health. Probing an actuator is a real network call to a service that may be the one
+  # that is down, so the timeout is short and configurable: a status page that hangs is a status
+  # page nobody opens during an incident.
+  health:
+    probe-timeout-ms: ${PLATFORM_HEALTH_PROBE_TIMEOUT_MS:2000}
+    # reporting-service refuses to boot unless its four ClickHouse fact tables exist
+    # (ClickHouseSchemaGuard). Its discovery name is how the health surface finds it; if the name
+    # changes, the ClickHouse tile must report UNKNOWN rather than quietly disappear.
+    reporting-service-id: ${PLATFORM_HEALTH_REPORTING_SERVICE_ID:reporting-service}
   provisioning:
     seed-coa:
       enabled: ${PROVISIONING_SEED_COA_ENABLED:true}
+  # The subscription sweep applies instructions operators ALREADY gave — scheduled plan changes and
+  # cancellations reaching their effective date — and moves elapsed trials to TRIAL_ENDED.
+  #
+  # It deliberately does NOT roll renewal periods forward when current_period_end_at elapses:
+  # advancing that date asserts that the tenant paid, and this product observes no payments. An
+  # elapsed period surfaces as renewalOverdue on the register instead, and a human asserts the
+  # renewal through POST /tenants/{id}/subscription/renew.
+  #
+  # Every apply re-reads and re-checks its own row inside its own transaction, so two replicas
+  # sweeping at once is harmless; the Redis lease is an optimisation, not the control. Set
+  # `cron: "-"` to disable the trigger while leaving the component callable (that is what the test
+  # profile does), or `enabled: false` to make it a no-op entirely.
+  subscription:
+    sweep:
+      enabled: ${PLATFORM_SUBSCRIPTION_SWEEP_ENABLED:true}
+      cron: ${PLATFORM_SUBSCRIPTION_SWEEP_CRON:0 */15 * * * *}

@@ -79,7 +79,7 @@ export function OneTimePasswordPanel({
       <div className="flex items-center gap-2">
         <code
           data-testid="one-time-password-value"
-          className="flex-1 overflow-x-auto rounded-md border border-border-interactive bg-background px-3 py-2 font-mono text-small select-all"
+          className="relative flex-1 overflow-x-auto rounded-md border border-border-interactive bg-background px-3 py-2 font-mono text-small select-all"
         >
           {result.tempPassword}
         </code>

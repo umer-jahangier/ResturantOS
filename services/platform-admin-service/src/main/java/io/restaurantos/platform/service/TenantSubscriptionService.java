@@ -3,12 +3,16 @@ package io.restaurantos.platform.service;
 import io.restaurantos.platform.client.UserInternalClient;
 import io.restaurantos.platform.config.TierFeatureDefaults;
 import io.restaurantos.platform.config.TierLimits;
+import io.restaurantos.platform.entity.SubscriptionHistoryEntity.ActorKind;
+import io.restaurantos.platform.entity.SubscriptionPlanEntity;
 import io.restaurantos.platform.entity.TenantEntity;
 import io.restaurantos.platform.entity.TenantEntity.TenantStatus;
 import io.restaurantos.platform.entity.TenantEntity.TierType;
 import io.restaurantos.platform.exception.TierLimitExceededException;
 import io.restaurantos.platform.exception.TierLimitExceededException.Violation;
+import io.restaurantos.platform.repository.SubscriptionPlanRepository;
 import io.restaurantos.platform.repository.TenantRepository;
+import io.restaurantos.platform.repository.TenantSubscriptionRepository;
 import io.restaurantos.shared.exception.ResourceNotFoundException;
 import io.restaurantos.shared.exception.StateInvalidException;
 import org.slf4j.Logger;
@@ -88,19 +92,28 @@ public class TenantSubscriptionService {
     private final TierLimits tierLimits;
     private final UserInternalClient userClient;
     private final StringRedisTemplate redis;
+    private final SubscriptionHistoryRecorder historyRecorder;
+    private final TenantSubscriptionRepository subscriptionRepository;
+    private final SubscriptionPlanRepository planRepository;
 
     public TenantSubscriptionService(TenantRepository tenantRepository,
                                      FeatureFlagAdminService featureFlagAdminService,
                                      TierFeatureDefaults tierFeatureDefaults,
                                      TierLimits tierLimits,
                                      UserInternalClient userClient,
-                                     StringRedisTemplate redis) {
+                                     StringRedisTemplate redis,
+                                     SubscriptionHistoryRecorder historyRecorder,
+                                     TenantSubscriptionRepository subscriptionRepository,
+                                     SubscriptionPlanRepository planRepository) {
         this.tenantRepository = tenantRepository;
         this.featureFlagAdminService = featureFlagAdminService;
         this.tierFeatureDefaults = tierFeatureDefaults;
         this.tierLimits = tierLimits;
         this.userClient = userClient;
         this.redis = redis;
+        this.historyRecorder = historyRecorder;
+        this.subscriptionRepository = subscriptionRepository;
+        this.planRepository = planRepository;
     }
 
     /**
@@ -136,9 +149,55 @@ public class TenantSubscriptionService {
             tenant.setRenewsAt(renewsAt);
         }
         tenantRepository.save(tenant);
+        projectDatesOntoSubscription(tenantId, trialEndsAt, renewsAt);
         log.info("[subscription] tenant={} updated — billingRef={} trialEndsAt={} renewsAt={}",
             tenantId, tenant.getBillingRef(), tenant.getTrialEndsAt(), tenant.getRenewsAt());
         return tenant;
+    }
+
+    /**
+     * Keep {@code tenants.trial_ends_at} / {@code tenants.renews_at} and the live subscription row
+     * from drifting apart.
+     *
+     * <p>Both places genuinely need the dates. The tenant columns are contract-frozen: they are on
+     * {@code TenantResponse}, the tenant list and detail screens read them, and this PATCH is the
+     * only editor they have ever had. The subscription row needs them because a subscription that
+     * cannot express its own period is not a subscription. Without this projection an operator
+     * editing the renewal date here would leave the subscription claiming the old one, and the two
+     * screens would disagree with no way to tell which was right.
+     *
+     * <p><b>The trial date is projected only onto a subscription that ALREADY has a trial window.</b>
+     * {@code chk_tenant_subscriptions_trial_pair} requires the start and the end together, so
+     * setting an end on a subscription that never had a trial would mean inventing a start — and
+     * the honest start of a trial that was never recorded is not knowable. A no-op with a log line
+     * is the correct answer there; the subscription endpoint is where a trial is actually opened.
+     *
+     * <p>A no-op when the tenant has no subscription, which is every tenant in this database today.
+     */
+    private void projectDatesOntoSubscription(UUID tenantId, Instant trialEndsAt, Instant renewsAt) {
+        if (trialEndsAt == null && renewsAt == null) {
+            return;
+        }
+        subscriptionRepository.findLive(tenantId).ifPresent(subscription -> {
+            boolean changed = false;
+            if (renewsAt != null) {
+                subscription.setCurrentPeriodEndAt(renewsAt);
+                changed = true;
+            }
+            if (trialEndsAt != null) {
+                if (subscription.getTrialStartAt() != null) {
+                    subscription.setTrialEndAt(trialEndsAt);
+                    changed = true;
+                } else {
+                    log.info("[subscription] tenant={} trialEndsAt was set on the tenant row but its "
+                        + "subscription has no trial window to extend — not inventing a trial start",
+                        tenantId);
+                }
+            }
+            if (changed) {
+                subscriptionRepository.save(subscription);
+            }
+        });
     }
 
     /**
@@ -149,6 +208,32 @@ public class TenantSubscriptionService {
      */
     @Transactional
     public TierChangeResult changeTier(UUID tenantId, TierType targetTier, boolean force) {
+        return changeTier(tenantId, targetTier, force, null, null);
+    }
+
+    /**
+     * As above, naming the SuperAdmin who did it so the change lands in {@code subscription_history}
+     * attributed rather than anonymous.
+     *
+     * <p><b>Why the actor is a parameter and not read from the {@code SecurityContext} here.</b>
+     * This method has two call paths with genuinely different principals: the public endpoint, where
+     * the acting id is the {@code sub} of a verified control-plane token, and a direct in-process
+     * call (the scheduler applying a plan change, an integration test driving the service), where
+     * there is no human at all. A service reaching into the security context would silently record
+     * the second case as whoever happened to be on the thread, which is worse than recording that
+     * nobody was: {@code actorKind} says which, and the database refuses an OPERATOR row with no id.
+     *
+     * @param actingPlatformUserId {@code platform_users.id}, or null when no operator principal
+     *                             exists on this path — the row is then attributed to SYSTEM.
+     * @param reason               optional. The pre-existing {@code POST /tenants/{id}/tier} body
+     *                             carries none and that contract is frozen, so a tier change made
+     *                             through it records who and when but not why. The subscription
+     *                             endpoints require a reason; this one cannot without breaking a
+     *                             shipped contract.
+     */
+    @Transactional
+    public TierChangeResult changeTier(UUID tenantId, TierType targetTier, boolean force,
+                                       UUID actingPlatformUserId, String reason) {
         TenantEntity tenant = requireTenant(tenantId);
         if (TIER_CHANGE_FORBIDDEN.contains(tenant.getStatus())) {
             throw new StateInvalidException(
@@ -178,8 +263,44 @@ public class TenantSubscriptionService {
                 tenantId, previousTier, targetTier, violations);
         }
 
+        List<String> changedCodes = applyEntitlement(tenant, targetTier, target);
+
+        boolean forcedOverLimits = force && !violations.isEmpty();
+        log.info("[subscription] tenant={} tier {}→{} applied — limits {} , {} feature code(s) changed{}",
+            tenantId, previousTier, targetTier, target, changedCodes.size(),
+            forcedOverLimits ? " (FORCED over limits)" : "");
+
+        // The record that did not exist before the subscription registry: tenants.tier is a column
+        // an operator overwrites, this method publishes no event, and platform_db cannot reach
+        // audit_db — so until now a tier change left no trace anywhere in the product.
+        recordTierHistory(tenantId, previousTier, targetTier, changedCodes, violations,
+            forcedOverLimits, actingPlatformUserId, reason);
+
+        return new TierChangeResult(tenantId, previousTier.name(), targetTier.name(),
+            changedCodes, target, forcedOverLimits);
+    }
+
+    /**
+     * Apply BOTH halves of an entitlement to a tenant: the numeric ceilings and the feature set.
+     *
+     * <p><b>Extracted so there is exactly one applier with two callers</b> — {@link #changeTier},
+     * which passes the TIER's limits, and {@code SubscriptionService}, which passes the PLAN's,
+     * because a bespoke plan can carry negotiated ceilings its tier's defaults do not. Two copies of
+     * this sequence would diverge on the day one of them learned about a fifth ceiling or a second
+     * cache key, and nothing would fail: the tenant would simply be entitled to different things
+     * depending on which endpoint moved it. That is the same argument {@link TierLimits}' own
+     * javadoc makes about the tier table having two callers.
+     *
+     * <p>Does not save the tenant's caller-visible response and does not validate: the caller owns
+     * the refusal policy, this owns the mechanics.
+     *
+     * @return the feature codes whose stored value moved
+     */
+    @Transactional
+    public List<String> applyEntitlement(TenantEntity tenant, TierType targetTier, TierLimits.Limits limits) {
+        UUID tenantId = tenant.getId();
         tenant.setTier(targetTier);
-        tierLimits.applyTo(tenant);
+        tierLimits.applyTo(tenant, limits);
         tenantRepository.save(tenant);
 
         // The qualitative half. Overrides survive; both cache key shapes are written for every code
@@ -191,14 +312,45 @@ public class TenantSubscriptionService {
         // than deleted: a delete would leave the gateway to re-resolve on the next request, and a
         // resolution that fails now fails CLOSED (503), so a tier UPGRADE could briefly refuse
         // requests it just paid for.
-        writeQuotaKey(tenantId, target.nlqQuota());
+        writeQuotaKey(tenantId, limits.nlqQuota());
+        return changedCodes;
+    }
 
-        log.info("[subscription] tenant={} tier {}→{} applied — limits {} , {} feature code(s) changed{}",
-            tenantId, previousTier, targetTier, target, changedCodes.size(),
-            force && !violations.isEmpty() ? " (FORCED over limits)" : "");
-
-        return new TierChangeResult(tenantId, previousTier.name(), targetTier.name(),
-            changedCodes, target, force && !violations.isEmpty());
+    /**
+     * One history row per tier change, with the tenant's live subscription attached when there is
+     * one — and a note when the tier now disagrees with the plan that subscription names.
+     *
+     * <p>The divergence is RECORDED, never silently reconciled. Moving the tier directly while a
+     * subscription names a different one is a real operator action and so is the subscription; the
+     * product must not guess which was meant. {@code GET .../subscription} surfaces the same fact as
+     * {@code planTierMatchesTenantTier}.
+     */
+    private void recordTierHistory(UUID tenantId, TierType previousTier, TierType targetTier,
+                                   List<String> changedCodes, List<Violation> violations,
+                                   boolean forcedOverLimits, UUID actingPlatformUserId, String reason) {
+        var subscription = subscriptionRepository.findLive(tenantId).orElse(null);
+        String planTier = null;
+        if (subscription != null) {
+            planTier = planRepository.findById(subscription.getPlanId())
+                .map(SubscriptionPlanEntity::getTier)
+                .map(Enum::name)
+                .orElse(null);
+        }
+        boolean divergedFromPlan = planTier != null && !planTier.equals(targetTier.name());
+        if (divergedFromPlan) {
+            log.warn("[subscription] tenant={} tier moved to {} directly while its subscription "
+                + "names a {} plan — the divergence is recorded, not reconciled", tenantId,
+                targetTier, planTier);
+        }
+        String detail = "{\"changedFeatureCodes\":" + changedCodes.size()
+            + ",\"violationsOverridden\":" + violations.size()
+            + ",\"subscriptionPlanTier\":" + (planTier == null ? "null" : "\"" + planTier + "\"")
+            + ",\"divergedFromSubscriptionPlan\":" + divergedFromPlan
+            + ",\"via\":\"POST /tenants/{id}/tier\"}";
+        historyRecorder.recordTierChange(tenantId, subscription, previousTier.name(),
+            targetTier.name(),
+            actingPlatformUserId != null ? ActorKind.OPERATOR : ActorKind.SYSTEM,
+            actingPlatformUserId, reason, forcedOverLimits, detail);
     }
 
     // --- Usage ----------------------------------------------------------------------------------

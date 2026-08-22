@@ -41,12 +41,16 @@ import { cn } from "@/lib/utils";
  */
 export interface PageBodyProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
-   * Reach the viewport edge — no gutter at all. For the POS terminal, the KDS board and the
-   * floor plan (UI-SPEC §5: `operational` surfaces own their viewport).
+   * Decline the back-office gutter and take the viewport. For the POS terminal, the KDS board
+   * and the floor plan (UI-SPEC §5: `operational` surfaces own their viewport).
    *
    * <p>Still emits `data-page-body`, which is what suppresses the shell's default padding.
    * A full-bleed page that did not emit it would inherit the back-office gutter and the opt-out
    * would silently do nothing.
+   *
+   * <p>"Full-bleed" means *not the fixed back-office gutter*; it does not mean zero. See the
+   * inline note on the emitted class for the percentage gutter this now carries and why the
+   * KDS opts back out of it.
    */
   fullBleed?: boolean;
 }
@@ -57,9 +61,35 @@ export function PageBody({ fullBleed = false, className, children, ...rest }: Pa
       data-page-body={fullBleed ? "full-bleed" : "gutter"}
       className={cn(
         fullBleed
-          ? // No padding, and no bottom clearance either: a full-bleed surface manages its
-            // own scroll region. The POS cart and the KDS columns both do.
-            "h-full"
+          ? // No VERTICAL padding and no bottom clearance: a full-bleed surface manages its own
+            // scroll region, and the POS cart and the KDS columns both do.
+            //
+            // But the inline axis is not zero any more, and that was a real defect: this branch
+            // emitted `h-full` and nothing else, so the POS opened edge-to-edge on a 1440px
+            // monitor with the first menu tile touching the bezel. Reviewed as "literally
+            // expanding to full screen with 0 padding at left and right".
+            //
+            // The gutter is a PERCENTAGE, not a step off the spacing ladder, because the thing
+            // being asked for scales: ~2.5% of the viewport on each side at every width the
+            // terminal ships to. `clamp()` bounds it at both ends so it never becomes either
+            // invisible or absurd — 8px is the floor below ~320px, 64px the ceiling above
+            // 2560px. Measured: 390px → 10px, 768px → 19px, 1024px → 26px, 1440px → 36px,
+            // 1920px → 48px. That is the 2–5% the review asked for and it holds on a phone.
+            //
+            // What it deliberately is NOT: the fixed 255px back-office gutter wave 4 removed.
+            // A percentage that yields 36px at 1440 cannot grow into a 255px inset, and the
+            // ceiling makes that structural rather than a promise.
+            //
+            // The cart is unaffected — `lg:w-[360px] lg:shrink-0` is a fixed track that the
+            // container's padding cannot compress (pos-terminal.tsx, asserted by
+            // `__tests__/pos/pos-layout-css.test.ts`); the gutter comes out of the menu grid,
+            // whose `repeat(auto-fill, minmax(130px, 1fr))` is built to absorb it.
+            //
+            // The KDS opts back out — see `[data-page-body="full-bleed"]:has([data-surface="kds"])`
+            // in globals.css. Padding here would inset the board's dark ground and show app
+            // chrome down both edges, which is the "dark board floating in light chrome" the
+            // audit photographed and the whole reason `fullBleed` exists.
+            "h-full px-[clamp(var(--space-sm),2.5%,var(--space-3xl))]"
           : "p-(--space-lg) pb-20 md:pb-(--space-lg) lg:p-(--space-xl)",
         className,
       )}

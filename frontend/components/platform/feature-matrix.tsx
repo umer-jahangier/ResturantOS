@@ -65,7 +65,8 @@ export function FeatureMatrix({ tenantId, tenantName }: { tenantId: string; tena
 
       <QueryBoundary query={features} what="this tenant's modules">
         <div className="overflow-hidden rounded-lg border">
-          <table className="w-full text-sm" data-testid="feature-matrix">
+          {/* `table-stack` (globals.css): four columns, one of them a pair of buttons. */}
+          <table className="table-stack w-full text-sm" data-testid="feature-matrix">
             <caption className="sr-only">
               Modules for {tenantName}, showing whether each value comes from the tenant&apos;s tier
               or from an explicit override
@@ -173,7 +174,7 @@ function FeatureRow({
         {state.code}
       </th>
 
-      <td className="px-4 py-2.5">
+      <td className="px-4 py-2.5" data-label="State">
         <span
           className={cn(
             "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium",
@@ -192,7 +193,7 @@ function FeatureRow({
         </span>
       </td>
 
-      <td className="px-4 py-2.5">
+      <td className="px-4 py-2.5" data-label="Source">
         <div className="flex flex-col gap-0.5">
           <span
             className={cn(
@@ -216,7 +217,7 @@ function FeatureRow({
         </div>
       </td>
 
-      <td className="px-4 py-2.5">
+      <td className="px-4 py-2.5" data-label="Actions">
         <div className="flex items-center justify-end gap-2">
           {overridden && (
             <Button

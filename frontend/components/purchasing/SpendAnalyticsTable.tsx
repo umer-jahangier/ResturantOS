@@ -26,8 +26,16 @@ export function SpendAnalyticsTable({
 }) {
   return (
     <div>
-      <h2 className="text-sm font-semibold text-muted-foreground">{title}</h2>
-      <table className="mt-2 w-full text-sm">
+      <h2 className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary">
+        {title}
+      </h2>
+      {/*
+        `table-stack` (globals.css): below `md` each vendor becomes a bordered card with its four
+        figures labelled, instead of four money columns squeezed into 342px. The vendor names this
+        table carries are long ("Karachi Fresh Foods (Pvt) Ltd"), which is what makes the desktop
+        layout unreadable on a phone rather than merely tight.
+      */}
+      <table className="table-stack mt-2 w-full text-sm">
         <thead>
           <tr className="border-b text-left">
             <th className="py-2">Label</th>
@@ -46,14 +54,16 @@ export function SpendAnalyticsTable({
           ) : (
             buckets.map((bucket) => (
               <tr key={bucket.id ?? bucket.label} className="border-b">
-                <td className="py-2 font-medium">{bucket.label}</td>
-                <td className="py-2">
+                <td className="py-2 font-medium" data-label="Label">
+                  {bucket.label}
+                </td>
+                <td className="py-2" data-label="Current">
                   <MoneyDisplay paisa={bucket.spendPaisa} />
                 </td>
-                <td className="py-2">
+                <td className="py-2" data-label="Prior">
                   <MoneyDisplay paisa={bucket.priorSpendPaisa} />
                 </td>
-                <td className="py-2">
+                <td className="py-2" data-label="Delta %">
                   <DeltaPct deltaPct={bucket.deltaPct} />
                 </td>
               </tr>

@@ -76,7 +76,7 @@ export default function PlatformTenantsPage() {
           />
         }
       >
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="relative overflow-x-auto rounded-lg border">
           <table className="w-full text-sm" data-testid="tenant-table">
             <caption className="sr-only">Platform tenants</caption>
             <thead className="bg-muted/50 text-left">

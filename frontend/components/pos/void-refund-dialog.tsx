@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PermissionGuard } from "@/components/shared/permission-guard";
+import { Label } from "@/components/ui/label";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useVoidOrder, useRefundOrder, useOrderPayments } from "@/lib/hooks/pos/use-payments";
@@ -261,17 +262,25 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
               This will cancel order <strong>#{order.orderNo ?? order.id.slice(0, 8)}</strong>. This
               action cannot be undone.
             </p>
-            <label className="text-small">
-              Reason <span className="text-destructive">*</span>
+            {/*
+             * `<Label htmlFor>` BESIDE the control. A `<label>` is `display: inline`, so a
+             * `w-full` textarea written as its child shares the label text's line box and the
+             * two overlap — the same defect as the till panel's cash-count field. G12g.
+             */}
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="void-reason" className="text-small">
+                Reason <span className="text-destructive">*</span>
+              </Label>
               <textarea
+                id="void-reason"
                 value={voidReason}
                 onChange={(e) => setVoidReason(e.target.value)}
                 rows={3}
                 maxLength={500}
-                className="mt-1 w-full rounded border px-3 py-2 text-small resize-none"
+                className="w-full resize-none rounded-md border px-3 py-2 text-small"
                 placeholder="e.g. Customer left without ordering"
               />
-            </label>
+            </div>
             <p className="text-small text-muted-foreground">
               Resulting state: order will be marked <strong>VOIDED</strong> and removed from active
               settlement.
@@ -345,31 +354,37 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
             </p>
 
             {refundScope === "PARTIAL" && (
-              <label className="text-small">
-                Amount (PKR) <span className="text-destructive">*</span>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="refund-amount" className="text-small">
+                  Amount (PKR) <span className="text-destructive">*</span>
+                </Label>
                 <input
+                  id="refund-amount"
                   type="number"
                   min={0.01}
                   step={0.01}
                   value={refundAmount}
                   onChange={(e) => setRefundAmount(e.target.value)}
-                  className="mt-1 w-full rounded border px-3 py-2 text-small"
+                  className="w-full rounded-md border px-3 py-2 text-small"
                   placeholder="e.g. 250.00"
                 />
-              </label>
+              </div>
             )}
 
-            <label className="text-small">
-              Reason <span className="text-destructive">*</span>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="refund-reason" className="text-small">
+                Reason <span className="text-destructive">*</span>
+              </Label>
               <textarea
+                id="refund-reason"
                 value={refundReason}
                 onChange={(e) => setRefundReason(e.target.value)}
                 rows={3}
                 maxLength={500}
-                className="mt-1 w-full rounded border px-3 py-2 text-small resize-none"
+                className="w-full resize-none rounded-md border px-3 py-2 text-small"
                 placeholder="e.g. Wrong item served"
               />
-            </label>
+            </div>
 
             <p className="text-small text-muted-foreground">
               Resulting state: order will be marked{" "}

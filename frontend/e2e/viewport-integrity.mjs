@@ -68,6 +68,10 @@ export const AUDIT_WIDTHS = [390, 768, 1024, 1440];
  * @property {boolean} clipping
  * @property {boolean} numeric
  * @property {boolean} isTable
+ * @property {boolean} [inlineTarget]
+ * @property {boolean} [rendersAsTable]
+ * @property {string | null} clippedBy
+ * @property {boolean} scrollContained
  */
 
 /** The one layout boundary below which a desktop table may not appear (Tailwind `md`). */
@@ -158,6 +162,45 @@ export const COLLECT = () => {
     return { sampled, covered, by };
   };
 
+  /**
+   * The nearest ancestor that does NOT let this element paint outside it horizontally.
+   *
+   * <p>Why this exists: `getBoundingClientRect()` on a block-level child of an
+   * `overflow-x: auto` container reports the child's FULL width, not the part you can see. So a
+   * `DataGrid` table inside its own scroll container — the shape 38-02 built deliberately, and
+   * the shape brief §57 sanctions ("scroll inside its own container with the page still fixed")
+   * — measures as "past the viewport" while nothing is past anything. Counting those makes the
+   * gate red on the fix, which is how a gate gets switched off.
+   *
+   * <p>Two ancestors are deliberately NOT accepted as containment:
+   *
+   * <ul>
+   *   <li><b>`<main>`, `<body>`, `<html>`.</b> `<main>` in this product is `overflow-y-auto`, and
+   *       CSS computes the other axis of a non-visible overflow to `auto` — so EVERY element in
+   *       the product is horizontally clipped by `<main>`, and accepting it would make this
+   *       check vacuously green on every page forever. It is also the right answer on the
+   *       merits: content wider than `<main>` drags the page header and the tabs sideways with
+   *       it, which is exactly what a person means by "the page scrolls sideways".</li>
+   *   <li><b>A clipper that is itself past the viewport.</b> A scroll container you cannot reach
+   *       has not contained anything.</li>
+   * </ul>
+   */
+  const PAGE_LEVEL = new Set(["MAIN", "BODY", "HTML"]);
+  const clipperOf = (el) => {
+    for (let p = el.parentElement; p; p = p.parentElement) {
+      const cs = getComputedStyle(p);
+      if (cs.overflowX === "visible") continue;
+      if (PAGE_LEVEL.has(p.tagName)) return null;
+      const r = p.getBoundingClientRect();
+      if (r.right > vw + 2) return null;
+      return {
+        id: p.getAttribute("data-testid") || p.getAttribute("data-slot") || p.tagName.toLowerCase(),
+        scrollable: cs.overflowX === "auto" || cs.overflowX === "scroll",
+      };
+    }
+    return null;
+  };
+
   const out = [];
   for (const el of document.querySelectorAll("body *")) {
     const cs = getComputedStyle(el);
@@ -205,8 +248,31 @@ export const COLLECT = () => {
         cs.fontVariantNumeric.includes("tabular-nums") &&
         /\d/.test((el.textContent || "").trim()) &&
         el.children.length === 0,
+      // WCAG 2.5.8's own exception, read off the layout rather than guessed: "the target is in a
+      // sentence, or its size is otherwise constrained by the line-height of non-target text."
+      // A control whose computed display is `inline` IS in a text flow — it cannot be given a
+      // height without changing the line it sits in. Every real control in this product is
+      // `inline-flex`, `flex`, `block` or `grid`, so this exempts text links and nothing else.
+      inlineTarget: interactive && cs.display === "inline",
       isTable: el.tagName === "TABLE",
+      // A `<table>` that has been given `display: block` below `md` is no longer a table on the
+      // screen — its rows are stacked cards and its header is gone. The TAG is the wrong thing to
+      // judge that on, and judging on the tag would mean the only sanctioned adaptation for a
+      // hand-rolled table is a second copy of it in JSX.
+      rendersAsTable: el.tagName === "TABLE" && cs.display.startsWith("table"),
+      // Set below, once, so the analyser can tell "spilling into the viewport" from "wider than
+      // its own scroll container", which look identical in a bounding box.
+      clippedBy: null,
+      scrollContained: false,
     };
+    const clipper = clipperOf(el);
+    if (clipper) {
+      record.clippedBy = clipper.id;
+      // `hidden`/`clip` contain the box but give no way to READ the rest of it, so they are
+      // containment for the purposes of "does the page move" and not for "can the user get at
+      // the last column". Only a scrollable clipper counts as an adaptation.
+      record.scrollContained = clipper.scrollable;
+    }
     out.push(record);
   }
   return out;
@@ -254,6 +320,37 @@ export function overflowBlame(records) {
 }
 
 /**
+ * The overflow that actually reaches the viewport: past the right edge, blamed at the shallowest
+ * element, and NOT absorbed by a horizontal scroll container of its own.
+ *
+ * <h3>Why this is a second predicate and not a redefinition of {@link isOverflowing}</h3>
+ *
+ * `isOverflowing` is the AUDIT's predicate, and the plan's baselines (stock 100 @390, 42 @1024,
+ * PO 4 @390) are expressed in it. Changing it would silently redefine every number this phase is
+ * measured against, so it stays exactly as it was and this sits beside it.
+ *
+ * <h3>Why containment is allowed at all</h3>
+ *
+ * Brief §57 offers two adaptations for a wide table and both are acceptable: *become a card list
+ * below `md`*, or *scroll inside your own container with the page still fixed*. `DataGrid` does
+ * the first below `md` and the second at `md`–`xl` (its `hideBelow` ladder plus an
+ * `overflow-x-auto` wrapper), which is the design 38-02 shipped on purpose. A check that could
+ * not tell that from a table dumped onto the page would report 41 offenders on the FIXED screen
+ * — and the next person would delete the check rather than the table.
+ *
+ * <p>What it still catches, unchanged: anything wider than `<main>`, anything clipped by an
+ * ancestor that is itself off-screen, and anything merely `overflow: hidden` (contained, but with
+ * no way to read what was cut off — see the collector).
+ */
+/**
+ * @param {ViewportRecord[]} records
+ * @returns {ViewportRecord[]}
+ */
+export function viewportEscapees(records) {
+  return records.filter((r) => isOverflowing(r) && !r.parentOverflows && !r.scrollContained);
+}
+
+/**
  * Interactive elements wholly covered by something that is not them.
  *
  * <p>This is the check that catches the POS cart overlay, and the reason the plan orders the
@@ -291,7 +388,11 @@ export function occludedInteractives(records) {
  */
 export function undersizedTargets(records, min = MIN_TARGET) {
   return records.filter(
-    (r) => r.interactive && r.rect.height > 0 && (r.rect.height < min || r.rect.width < min),
+    (r) =>
+      r.interactive &&
+      !r.inlineTarget &&
+      r.rect.height > 0 &&
+      (r.rect.height < min || r.rect.width < min),
   );
 }
 
@@ -329,7 +430,10 @@ export function truncatedValues(records) {
  */
 export function desktopTablesBelowMd(records, viewportWidth) {
   if (viewportWidth >= MD) return [];
-  return records.filter((r) => r.isTable);
+  // `rendersAsTable` is what the browser is doing; `isTable` is what the markup says. Older
+  // records (and the synthetic ones in the unit suite) carry only the latter, so it is the
+  // fallback rather than an alternative.
+  return records.filter((r) => (r.rendersAsTable === undefined ? r.isTable : r.rendersAsTable));
 }
 
 /** Every check, in one shape, so a caller cannot run four of the five and report a pass. */
@@ -341,6 +445,7 @@ export function analyse(records, viewportWidth) {
   return {
     overflow: overflowOffenders(records),
     overflowBlame: overflowBlame(records),
+    escapees: viewportEscapees(records),
     occluded: occludedInteractives(records),
     undersized: undersizedTargets(records),
     truncated: truncatedValues(records),
@@ -355,6 +460,9 @@ export function analyse(records, viewportWidth) {
 export function counts(result) {
   return {
     overflow: result.overflow.length,
+    // The number a gate should assert on: `overflow` counts every box whose rect runs past the
+    // edge, including the ones a local scroll container has already dealt with.
+    escapees: result.escapees.length,
     occluded: result.occluded.length,
     undersized: result.undersized.length,
     truncated: result.truncated.length,

@@ -63,7 +63,18 @@ export function PageHeader({
       className={cn("flex flex-wrap items-start justify-between gap-(--space-md)", className)}
     >
       <div className="min-w-0 flex-1">
-        <h1 className="text-h1 font-semibold text-balance">{title}</h1>
+        {/*
+         * The DISPLAY SERIF, and this is the one line that puts it on every screen at once.
+         *
+         * The demo sets its page titles in Fraunces; this product set them in Sora, and a
+         * 20px semibold sans title over a sans description is the typographic signature of a
+         * scaffold — nothing on the page announces that a designer chose anything. `font-heading`
+         * is a family only: no size change, no weight change, no motion, so the operational zone
+         * (POS/KDS, which reach this through `kitchen/[stationCode]`) is unaffected beyond the
+         * face. The description and meta below deliberately stay in the body sans, which is the
+         * demo's pairing — serif states, sans explains.
+         */}
+        <h1 className="font-heading text-h1 font-semibold text-balance">{title}</h1>
         {description ? (
           <p className="mt-(--space-xs) text-body text-foreground-secondary">{description}</p>
         ) : null}

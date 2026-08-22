@@ -140,7 +140,9 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
               </dl>
 
               <section className="space-y-2">
-                <h3 className="text-small font-medium">Roles by branch</h3>
+                <h3 className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary">
+                  Roles by branch
+                </h3>
                 {assignments.length === 0 ? (
                   <p className="rounded-md border border-warning bg-warning/10 px-3 py-2 text-small text-warning-foreground">
                     This account holds no role on any branch, so it cannot sign in. Assign a role to
@@ -246,7 +248,9 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
                 exactly this reason.
               */}
               <section className="space-y-2" data-testid="user-station-scope">
-                <h3 className="text-small font-medium">Stations</h3>
+                <h3 className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary">
+                  Stations
+                </h3>
                 {stationScope.isError ? (
                   <QueryErrorNotice
                     what="this user's stations"
@@ -290,7 +294,9 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
                 confine a cashier just because it can look one up.
               */}
               <section className="space-y-2" data-testid="user-menu-category-scope">
-                <h3 className="text-body font-medium">Menu sections</h3>
+                <h3 className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary">
+                  Menu sections
+                </h3>
                 {menuScope.isError ? (
                   <QueryErrorNotice
                     what="this user's menu sections"

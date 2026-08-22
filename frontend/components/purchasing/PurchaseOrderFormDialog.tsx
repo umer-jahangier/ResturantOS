@@ -378,7 +378,9 @@ export function PurchaseOrderFormDialog({ trigger }: PurchaseOrderFormDialogProp
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium">Lines</h3>
+                <h3 className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary">
+                  Lines
+                </h3>
                 <Button
                   type="button"
                   variant="outline"

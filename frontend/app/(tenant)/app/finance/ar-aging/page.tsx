@@ -1,6 +1,8 @@
 "use client";
 
 import { useArAging } from "@/lib/hooks/finance/use-finance";
+import { countLine, statLine } from "@/lib/format/stat-line";
+import { MoneyDisplay } from "@/components/ui/money-display";
 import { ArAgingTable } from "@/components/finance/ArAgingTable";
 import { FinanceEmptyState } from "@/components/finance/FinanceEmptyState";
 import { PageBody } from "@/components/ui/page-body";
@@ -14,12 +16,29 @@ export default function ArAgingPage() {
   // a collections screen; a false all-clear here is money left uncollected.
   const arAging = useArAging();
   const aging = arAging.data;
+  const overduePaisa = (aging?.buckets ?? []).reduce(
+    (sum, b) => (b.label.toLowerCase().includes("over") ? sum + b.amountPaisa : sum),
+    0,
+  );
 
   return (
     <PageBody className="space-y-(--space-lg)">
       <PageHeader
         title="AR Aging"
         description="Outstanding house-account charges bucketed by how overdue they are."
+        /* Counts reconcile with the grid beneath — see the note on the AP screen. */
+        meta={
+          aging ? (
+            <>
+              {statLine(countLine(aging.buckets.length, "bucket"))}
+              {" · Total outstanding "}
+              <MoneyDisplay paisa={aging.totalArPaisa} />
+              {" · "}
+              <MoneyDisplay paisa={overduePaisa} />
+              {" overdue"}
+            </>
+          ) : undefined
+        }
       />
 
       <QueryBoundary

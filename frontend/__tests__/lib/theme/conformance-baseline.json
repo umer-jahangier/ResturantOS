@@ -76,8 +76,6 @@
     "components/shared/catalog-item-combobox.tsx": 8,
     "components/shared/field-help.tsx": 1,
     "components/shared/section-switcher.tsx": 1,
-    "components/shared/sidebar.tsx": 6,
-    "components/shared/top-bar.tsx": 5,
     "components/shared/uom-select.tsx": 1,
     "components/ui/alert.tsx": 2,
     "components/ui/button.tsx": 2,
@@ -118,8 +116,7 @@
     "components/purchasing/PoStatusBadge.tsx": 1,
     "components/purchasing/PurchaseOrderFormDialog.tsx": 1,
     "components/purchasing/ThreeWayMatchTable.tsx": 1,
-    "components/purchasing/VendorInvoiceFormDialog.tsx": 1,
-    "components/shared/top-bar.tsx": 1
+    "components/purchasing/VendorInvoiceFormDialog.tsx": 1
   },
   "rawPalette": {
     "components/auth/step-up-required-notice.tsx": 6,

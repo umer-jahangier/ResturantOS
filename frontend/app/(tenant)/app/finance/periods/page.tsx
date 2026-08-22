@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { CalendarRange, LockKeyhole, LockKeyholeOpen } from "lucide-react";
 import { usePeriods } from "@/lib/hooks/finance/use-periods";
 import { useFinanceSetupStatus } from "@/lib/hooks/finance/use-accounts";
 import { currentPakistanFiscalYear } from "@/lib/utils/pakistan-fiscal-year";
@@ -15,6 +16,9 @@ import { Button } from "@/components/ui/button";
 import { PageBody } from "@/components/ui/page-body";
 import { PageHeader } from "@/components/ui/page-header";
 import { DataGrid, type ColumnDef } from "@/components/ui/data-grid/data-grid";
+import { StatTile } from "@/components/ui/stat-tile";
+import { countLine, statLine } from "@/lib/format/stat-line";
+import { formatNumber } from "@/lib/format/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { AccountingPeriod } from "@/lib/models/finance.model";
 
@@ -29,6 +33,13 @@ export default function PeriodsPage() {
   const { data: setupStatus } = useFinanceSetupStatus();
   const [closingPeriod, setClosingPeriod] = useState<AccountingPeriod | null>(null);
   const [provisionOpen, setProvisionOpen] = useState(false);
+
+  /*
+   * Off `periods` — the same array the grid renders — so "5 open" and five OPEN chips in the
+   * table are one fact stated twice, not two facts that can drift apart.
+   */
+  const rows = periods ?? [];
+  const openCount = rows.filter((p) => p.status === "OPEN").length;
 
   const columns = useMemo<ColumnDef<AccountingPeriod, unknown>[]>(
     () => [
@@ -84,6 +95,15 @@ export default function PeriodsPage() {
       <PageHeader
         title="Accounting Periods"
         description={`FY ${fiscalYear - 1}–${fiscalYear} (Jul – Jun)`}
+        meta={
+          periodsQuery.isSuccess
+            ? statLine(
+                countLine(rows.length, "period"),
+                `${formatNumber(openCount)} open`,
+                `${formatNumber(rows.length - openCount)} locked`,
+              )
+            : undefined
+        }
         actions={
           <>
             <FiscalYearNav fiscalYear={fiscalYear} onChange={setFiscalYear} />
@@ -95,6 +115,28 @@ export default function PeriodsPage() {
           </>
         }
       />
+
+      {rows.length > 0 && (
+        <div className="grid gap-(--space-md) md:grid-cols-3">
+          <StatTile
+            label="Periods in this fiscal year"
+            value={formatNumber(rows.length)}
+            icon={CalendarRange}
+            accent="primary"
+          />
+          <StatTile
+            label="Open for posting"
+            value={formatNumber(openCount)}
+            icon={LockKeyholeOpen}
+            accent="secondary"
+          />
+          <StatTile
+            label="Locked"
+            value={formatNumber(rows.length - openCount)}
+            icon={LockKeyhole}
+          />
+        </div>
+      )}
 
       <QueryBoundary
         query={periodsQuery}

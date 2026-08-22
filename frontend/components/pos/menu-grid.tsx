@@ -212,7 +212,7 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
           could not reach the configure dialog behind it. A category row is a rail, not a
           paragraph; a till with forty categories should scroll it, not grow a wall.
         */}
-        <div className="flex flex-1 gap-2 overflow-x-auto lg:flex-wrap lg:overflow-x-visible">
+        <div className="relative flex flex-1 gap-2 overflow-x-auto lg:flex-wrap lg:overflow-x-visible">
           <button
             onClick={() => setActiveCategoryId(undefined)}
             className={cn(

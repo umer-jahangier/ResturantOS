@@ -143,7 +143,7 @@ export function PermissionPicker({
                 <div className="flex items-center justify-between gap-3 border-b pb-1">
                   <h3
                     id={`${idPrefix}-${group.module}`}
-                    className="text-body font-semibold uppercase tracking-wide text-foreground"
+                    className="text-body font-semibold uppercase tracking-[0.08em] text-foreground"
                   >
                     {group.module}
                   </h3>

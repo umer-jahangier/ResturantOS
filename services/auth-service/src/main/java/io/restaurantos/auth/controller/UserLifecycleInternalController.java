@@ -126,6 +126,22 @@ public class UserLifecycleInternalController {
      * and this is offset pagination; putting the number where a cursor goes keeps one envelope for
      * every list in the platform rather than inventing a second, and {@code nextCursor} is null on
      * the last page, which is the question a client actually asks.
+     *
+     * <h2>{@code status} and {@code roleCode} (superadmin plan)</h2>
+     *
+     * <p>Both OPTIONAL and additive: a caller that sends neither gets exactly the response this
+     * endpoint has always returned, which is why user-service's client needed no change. They exist
+     * because a cross-tenant user directory has to ask "every MANAGER" and "everyone locked out",
+     * and neither is answerable from the summary rows — the role is in {@code user_branch_roles}
+     * and "locked" is a comparison against now. Filtering in the caller would be an N+1 across a
+     * service boundary and would produce a {@code totalCount} describing a different set from its
+     * own rows. See {@code UserRepository.findPageForTenant}.
+     *
+     * <p>{@code status} is {@code ACTIVE} | {@code INACTIVE} | {@code LOCKED}. Anything else is a
+     * <b>400</b>, not an ignored filter — a caller who asked for the locked accounts and received
+     * all of them would have no way to notice. {@code roleCode} is deliberately NOT validated
+     * against the catalogue, because an unknown code legitimately matches nobody and refusing it
+     * would make the directory unable to answer "does anyone still hold this retired role?".
      */
     @GetMapping
     public ResponseEntity<ApiResponse<List<UserSummary>>> list(
@@ -133,8 +149,11 @@ public class UserLifecycleInternalController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "0") int size,
             @RequestParam(defaultValue = "false") boolean activeOnly,
-            @RequestParam(required = false) String search) {
-        Page<UserSummary> result = userLifecycleService.list(tenantId, page, size, activeOnly, search);
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String roleCode) {
+        Page<UserSummary> result =
+            userLifecycleService.list(tenantId, page, size, activeOnly, search, status, roleCode);
         PageMeta meta = new PageMeta(
             new PageMeta.Page(
                 String.valueOf(result.getNumber()),

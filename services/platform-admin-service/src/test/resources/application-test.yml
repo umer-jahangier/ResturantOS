@@ -10,6 +10,16 @@ restaurantos:
   provisioning:
     seed-coa:
       enabled: false
+  # "-" is Spring's own "never schedule this task" cron. The BEAN stays live and callable, which is
+  # what SubscriptionLifecycleIT needs: it invokes sweep() directly to assert that the sweep does
+  # NOT roll a renewal period forward. Setting `enabled: false` instead would make that assertion
+  # vacuous — the method would return before doing anything and the test would pass for the wrong
+  # reason. Disabling the TRIGGER (and not the code) also stops a 15-minute cron firing in the
+  # middle of a test that has just back-dated a pending change.
+  subscription:
+    sweep:
+      enabled: true
+      cron: "-"
 spring:
   jpa:
     hibernate:

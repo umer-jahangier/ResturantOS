@@ -9,6 +9,7 @@ import {
   overflowOffenders,
   truncatedValues,
   undersizedTargets,
+  viewportEscapees,
 } from "../../e2e/viewport-integrity.mjs";
 
 /**
@@ -67,6 +68,8 @@ function el(over: Record<string, unknown> = {}) {
     clipping: false,
     numeric: false,
     isTable: false,
+    clippedBy: null,
+    scrollContained: false,
     ...over,
   };
 }
@@ -79,6 +82,7 @@ describe("viewport integrity — the probe judges what the audit measured", () =
     ];
     expect(counts(analyse(page, 390))).toEqual({
       overflow: 0,
+      escapees: 0,
       occluded: 0,
       undersized: 0,
       truncated: 0,
@@ -133,6 +137,19 @@ describe("viewport integrity — the probe judges what the audit measured", () =
         el({ tag: "LI", rect: box(16, 140 + i * 64, 358, 64) }),
       );
       expect(counts(analyse(cards, 390))).toMatchObject({ overflow: 0, tablesBelowMd: 0 });
+    });
+
+    it("does not report a table the stylesheet has stacked into cards", () => {
+      // `.table-stack` (globals.css) gives a hand-rolled `<table>` `display: block` below `md`,
+      // its `<tr>`s become bordered cards and each `<td>` carries its own header as a `::before`.
+      // On the screen that is a card list; only the tag says otherwise, and the tag is not what a
+      // reader is holding. The DEFECT this check exists for — twelve columns and a horizontal
+      // scrollbar on a 390px phone — is still `display: table`, and still reported.
+      const stacked = el({ isTable: true, rendersAsTable: false, rect: box(0, 100, 358, 900) });
+      expect(desktopTablesBelowMd([stacked], 390)).toHaveLength(0);
+
+      const stillATable = el({ isTable: true, rendersAsTable: true, rect: box(0, 100, 358, 900) });
+      expect(desktopTablesBelowMd([stillATable], 390)).toHaveLength(1);
     });
 
     it("reports a visible <table> below md as its own failure, not merely as overflow", () => {
@@ -233,6 +250,29 @@ describe("viewport integrity — the probe judges what the audit measured", () =
       expect(undersizedTargets([at44])).toHaveLength(0);
     });
 
+    it("exempts a text link in a sentence, and only a text link", () => {
+      // WCAG 2.5.8's inline exception, and it is not a loophole: an `<a>` whose computed display
+      // is `inline` is sitting in a line of prose, and giving it 44px of height would push the
+      // sentence apart. Every real control here is `inline-flex`/`flex`/`block`, so nothing else
+      // qualifies — the check below is what keeps that true.
+      const inSentence = el({
+        tag: "A",
+        interactive: true,
+        inlineTarget: true,
+        name: "Floating Terrace",
+        rect: box(204, 201, 53, 37),
+      });
+      expect(undersizedTargets([inSentence])).toHaveLength(0);
+
+      const sameSizeButABlock = el({
+        tag: "A",
+        interactive: true,
+        inlineTarget: false,
+        rect: box(204, 201, 53, 37),
+      });
+      expect(undersizedTargets([sameSizeButABlock])).toHaveLength(1);
+    });
+
     it("measures BOTH dimensions — a tall thin control is still unhittable", () => {
       const tallThin = el({ tag: "BUTTON", interactive: true, rect: box(0, 0, 24, 48) });
       expect(undersizedTargets([tallThin])).toHaveLength(1);
@@ -275,6 +315,48 @@ describe("viewport integrity — the probe judges what the audit measured", () =
       // A truncated vendor name is a design decision. A truncated number is a wrong number.
       const clippedProse = el({ numeric: false, ellipsis: true, clipping: true });
       expect(truncatedValues([clippedProse])).toHaveLength(0);
+    });
+  });
+
+  describe("a table inside its own scroll container is contained, not overflowing", () => {
+    /**
+     * The distinction brief §57 draws, as two records that are geometrically identical.
+     *
+     * <p>Both are a 700px table on a 390px viewport. One sits inside `DataGrid`'s
+     * `overflow-x-auto` wrapper — the shape 38-02 shipped, where the last columns are a swipe
+     * away and the page does not move. One sits on the page. `getBoundingClientRect()` cannot
+     * tell them apart, which is why the collector records the clipper rather than inferring it.
+     */
+    const wide = (over: Record<string, unknown> = {}) =>
+      el({ tag: "TABLE", isTable: true, rect: box(0, 100, 700, 400), ...over });
+
+    it("still counts both in the audit's raw number, so the baselines stay comparable", () => {
+      expect(overflowOffenders([wide()])).toHaveLength(1);
+      expect(
+        overflowOffenders([wide({ clippedBy: "data-grid", scrollContained: true })]),
+      ).toHaveLength(1);
+    });
+
+    it("reports only the uncontained one as reaching the viewport", () => {
+      expect(viewportEscapees([wide()])).toHaveLength(1);
+      expect(
+        viewportEscapees([wide({ clippedBy: "data-grid", scrollContained: true })]),
+      ).toHaveLength(0);
+    });
+
+    it("does not accept `overflow: hidden` as an adaptation", () => {
+      // Contained — the page will not move — but the last columns are gone with no way to reach
+      // them. The collector sets `scrollContained` only for `auto`/`scroll` for this reason.
+      expect(viewportEscapees([wide({ clippedBy: "panel", scrollContained: false })])).toHaveLength(
+        1,
+      );
+    });
+
+    it("does not report a symptom when the CONTAINER is the thing that is too wide", () => {
+      // A cell inside an overflowing row inside an overflowing table: `parentOverflows` already
+      // isolates the shallowest offender, and this predicate keeps that behaviour.
+      const cell = el({ tag: "TD", rect: box(600, 100, 200, 44), parentOverflows: true });
+      expect(viewportEscapees([cell])).toHaveLength(0);
     });
   });
 

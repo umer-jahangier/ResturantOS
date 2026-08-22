@@ -52,6 +52,29 @@ public final class UserDtos {
     public record UserDetail(UserSummary user, List<UserAssignment> assignments) {}
 
     /**
+     * The outcome of a platform-tier security action that is not a profile edit — clearing a
+     * brute-force lockout, or revoking a user's live sessions (superadmin plan).
+     *
+     * <p>It reports the state AFTER the action rather than a bare success, because both operations
+     * are frequently no-ops on a healthy account and an operator needs to tell the two apart: an
+     * unlock on an account that was never locked and an unlock that released one look identical
+     * from a 200. {@code sessionsRevoked} is the same counter {@code UserActivationChangedPayload}
+     * carries, so "revoked 0" honestly means the user held no live refresh session, not that the
+     * call did nothing.
+     *
+     * <p>{@code lockedUntil} is null when the account is not locked. Null is a state here, not a
+     * missing value, and must render as "not locked" rather than as a blank date.
+     */
+    public record UserSecurityState(
+        UUID userId,
+        String email,
+        boolean active,
+        Instant lockedUntil,
+        int failedLoginCount,
+        int sessionsRevoked
+    ) {}
+
+    /**
      * The result of creating a user.
      *
      * <p><b>{@code tempPassword} crosses back exactly once and exists nowhere else</b> — not in a

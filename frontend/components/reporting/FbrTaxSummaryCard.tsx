@@ -1,6 +1,13 @@
 "use client";
 
-import { ArrowDownLeft, ArrowUpRight, Receipt, ShoppingCart } from "lucide-react";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  Percent,
+  PiggyBank,
+  Receipt,
+  ShoppingCart,
+} from "lucide-react";
 
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -76,14 +83,27 @@ export function FbrTaxSummaryCard({ summary, isLoading }: FbrTaxSummaryCardProps
           label="Taxable sales"
           value={<MoneyDisplay paisa={summary.taxableSalesPaisa} />}
           icon={Receipt}
+          accent="secondary"
         />
-        <StatTile label="Output tax" value={<MoneyDisplay paisa={summary.outputTaxPaisa} />} />
+        {/* The two TAX figures carry the same glyph and no accent on purpose: they are derived
+            from the two tiles beside them, and giving them their own hue would present four
+            independent subjects where there are two. */}
+        <StatTile
+          label="Output tax"
+          value={<MoneyDisplay paisa={summary.outputTaxPaisa} />}
+          icon={Percent}
+        />
         <StatTile
           label="Taxable purchases"
           value={<MoneyDisplay paisa={summary.taxablePurchasesPaisa} />}
           icon={ShoppingCart}
+          accent="secondary"
         />
-        <StatTile label="Input tax" value={<MoneyDisplay paisa={summary.inputTaxPaisa} />} />
+        <StatTile
+          label="Input tax"
+          value={<MoneyDisplay paisa={summary.inputTaxPaisa} />}
+          icon={PiggyBank}
+        />
       </div>
 
       {isRefundable && (

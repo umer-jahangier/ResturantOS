@@ -284,7 +284,20 @@ function Meter({
               {status.label}
             </span>
           ) : null}
-          <span id={readoutId} className="font-medium tabular-nums">
+          {/*
+           * The readout is the DEMO'S right-hand figure — `8 / 14`, `18.2%` — and it carries the
+           * weight, which is the whole reason the pair reads as a measurement rather than as two
+           * loose words. `font-semibold text-foreground` against the label's plain
+           * `text-foreground-secondary` is the demo's `.text-muted` / `.text-bold` pair verbatim
+           * (`DEMO-COMPONENTS.md:727`).
+           *
+           * `font-mono` is deliberately NOT applied. It would be consistent with the table's
+           * numeric columns, but a meter readout is a SINGLE figure with nothing under it to
+           * align to — mono buys nothing here and costs the readout the body face it shares with
+           * the label beside it. `tabular-nums` stays, because a meter that animates or polls
+           * must not jitter its own width as the digits change.
+           */}
+          <span id={readoutId} className="font-semibold text-foreground tabular-nums">
             {known ? (
               <>
                 {writeNumber(value as number | bigint)}
