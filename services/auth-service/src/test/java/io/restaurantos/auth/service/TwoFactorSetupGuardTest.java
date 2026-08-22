@@ -136,6 +136,38 @@ class TwoFactorSetupGuardTest {
     }
 
     @Test
+    @DisplayName("a null code answers AuthenticationFailed, not whatever the verifier throws")
+    void nullCodeIsAClientErrorNotAServerError() {
+        user.setTotpSecret(LIVE_SECRET);
+        user.setTotpEnabled(true);
+        // A REAL verifier, deliberately: the mocked one returns false for an unstubbed null and so
+        // agreed with the guard while the live service answered 500. Anything that is not
+        // AuthenticationFailedException here becomes a 500 at the edge.
+        TwoFactorService real = new TwoFactorService(userRepository, new TotpService(),
+            tenantContextFor(), entityManagerFor(), recoveryCodeService);
+
+        assertThatThrownBy(() -> real.setup(null))
+            .isInstanceOf(AuthenticationFailedException.class);
+        assertThatThrownBy(() -> real.setup("   "))
+            .isInstanceOf(AuthenticationFailedException.class);
+        assertThat(user.getTotpSecret()).isEqualTo(LIVE_SECRET);
+    }
+
+    private TenantContext tenantContextFor() {
+        TenantContext tc = mock(TenantContext.class);
+        when(tc.requireTenantId()).thenReturn(TENANT);
+        return tc;
+    }
+
+    private EntityManager entityManagerFor() {
+        EntityManager em = mock(EntityManager.class);
+        Query q = mock(Query.class);
+        when(em.createNativeQuery(anyString())).thenReturn(q);
+        when(q.setParameter(anyString(), any())).thenReturn(q);
+        return em;
+    }
+
+    @Test
     @DisplayName("a live authenticator code DOES allow re-enrolment")
     void liveCodeAllowsRePointing() {
         user.setTotpSecret(LIVE_SECRET);

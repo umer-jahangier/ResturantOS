@@ -71,9 +71,17 @@ public class TwoFactorService {
     @Transactional
     public TotpSetupResponse setup(String currentCode) {
         UserEntity user = loadCurrentUser();
-        if (user.getTotpSecret() != null
-            && !totpService.verify(user.getTotpSecret(), currentCode)) {
-            throw new AuthenticationFailedException("Invalid TOTP code");
+        if (user.getTotpSecret() != null) {
+            // The null/blank case is checked BEFORE the verifier, not left to it. Handing null to
+            // dev.samstevens.totp throws, which surfaced as a 500 on the live probe — a caller
+            // omitting the field is an ordinary client error and must answer 401 like a wrong code,
+            // not an Internal Server Error. The unit test missed this because a Mockito verifier
+            // returns false for an unstubbed null instead of throwing, so the test agreed with the
+            // guard while production disagreed with both.
+            if (currentCode == null || currentCode.isBlank()
+                || !totpService.verify(user.getTotpSecret(), currentCode)) {
+                throw new AuthenticationFailedException("Invalid TOTP code");
+            }
         }
         String secret = totpService.generateSecret();
         user.setTotpSecret(secret);
