@@ -266,6 +266,29 @@ jobs:
             exit \$failed
           "
 
+      - name: Privileged post-migration fixups Liquibase cannot perform
+        # The SQL lives in deploy/k8s/post-migrate-privileged.sql so it is reviewable in
+        # a diff rather than buried in shell quoting; that file explains the defect and
+        # asserts its own repair. Read it before changing this step.
+        #
+        # Transported as base64 ON PURPOSE. Two earlier drafts died on quoting — one
+        # nested a heredoc inside an SSH double-quoted command, the other referenced a
+        # RUNNER-side shell variable from inside the REMOTE command, where it does not
+        # exist. Both look fine in review and fail at deploy time. base64 is
+        # alphanumeric plus +/=, so it survives every shell between here and psql
+        # untouched, and the decode either produces the exact file or fails loudly.
+        env: { NS: "${{ needs.setup.outputs.namespace }}" }
+        run: |
+          set -euo pipefail
+          B64=$(base64 < deploy/k8s/post-migrate-privileged.sql | tr -d '\n')
+          ssh -o StrictHostKeyChecking=yes ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
+            set -eu
+            PG=\$(k3s kubectl -n $NS get pod -l app=postgres -o jsonpath='{.items[0].metadata.name}')
+            SU=\$(k3s kubectl -n $NS exec \$PG -- printenv POSTGRES_SUPERUSER)
+            echo $B64 | base64 -d | k3s kubectl -n $NS exec -i \$PG -- \
+              psql -U \$SU -d auth_db -v ON_ERROR_STOP=1 -f -
+          "
+
       - name: Smoke-test the deployed environment
         # A green rollout means the containers started. It does not mean the site
         # answers. This is the only step that tests what a user actually touches.
