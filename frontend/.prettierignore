@@ -15,3 +15,8 @@ pnpm-lock.yaml
 # is still fully checked. If a probe is ever promoted to real test infrastructure,
 # give it a .ts extension and it is covered again automatically.
 e2e/**/*.mjs
+
+# The one exception (38-14): `viewport-integrity.mjs` is imported by a journey spec AND by a
+# vitest suite, so it is real test infrastructure that happens to keep the `.mjs` extension —
+# see the matching note in `.gitignore`. Checked like the rest of the source it belongs to.
+!e2e/viewport-integrity.mjs

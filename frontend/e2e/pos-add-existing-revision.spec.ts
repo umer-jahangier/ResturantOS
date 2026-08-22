@@ -161,11 +161,19 @@ test.describe("POS-21: add-existing item on a fired order shows/fires 'Send New 
       const drawer = page.getByTestId("order-table-detail-drawer");
       await expect(drawer).toBeVisible({ timeout: 10_000 });
       // POS-25: no centered/narrow dialog class on the panelized surface.
+      //
+      // 38-14 renamed every dialog width variant `sm:` → `md:` (declared breakpoints are
+      // 390/768/1024/1440; 640 is none of them). Checking only `sm:max-w-md` after that
+      // migration is checking for a string that no longer exists in the product, so both
+      // spellings are checked — the live one because it is the defect, the retired one because
+      // a revert would bring it back.
       const drawerClass = (await drawer.getAttribute("class")) ?? "";
-      if (drawerClass.includes("sm:max-w-md")) {
-        throw new Error(
-          `order-table-detail-drawer still carries a centered "sm:max-w-md" dialog class`,
-        );
+      for (const width of ["md:max-w-md", "sm:max-w-md"]) {
+        if (drawerClass.includes(width)) {
+          throw new Error(
+            `order-table-detail-drawer still carries a centered "${width}" dialog class`,
+          );
+        }
       }
 
       // Before adding anything, the CTA must be absent (0 PENDING lines — everything on

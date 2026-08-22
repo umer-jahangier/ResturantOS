@@ -133,7 +133,7 @@ export function PermissionPicker({
             : "This role grants no permissions."}
         </p>
       ) : (
-        <div className="max-h-[46vh] space-y-4 overflow-y-auto pr-1">
+        <div className="max-h-[46dvh] space-y-4 overflow-y-auto pr-1">
           {visibleModules.map((group) => {
             const codes = group.permissions.map((p) => p.code);
             const chosen = codes.filter((code) => selectedSet.has(code)).length;
@@ -177,7 +177,7 @@ export function PermissionPicker({
                           {readOnly ? (
                             <span
                               aria-hidden="true"
-                              className="mt-1 size-2 shrink-0 rounded-full bg-primary"
+                              className="mt-1 size-2 shrink-0 rounded-full bg-primary-solid"
                             />
                           ) : (
                             <input

@@ -46,7 +46,7 @@ export function RoleDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] w-[min(100vw-1.5rem,42rem)] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="max-h-[92dvh] w-[min(100vw-1.5rem,42rem)] overflow-y-auto md:max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex flex-wrap items-center gap-2">
             {role.name}

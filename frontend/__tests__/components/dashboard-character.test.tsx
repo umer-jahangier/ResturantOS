@@ -130,7 +130,17 @@ describe("D-34-02 · the treatment pass did not move the composition", () => {
 // Task 1 — glass, depth, lift, stagger
 // ─────────────────────────────────────────────────────────────────────────────────────────
 
-function renderTile(overrides: Partial<React.ComponentProps<typeof KpiTile>> = {}) {
+/**
+ * No overrides parameter.
+ *
+ * <p>It used to be `Partial<React.ComponentProps<typeof KpiTile>>`, and phase 38 made
+ * `KpiTileProps` a discriminated union — `value` XOR `unavailableReason`, and `higherIsBetter`
+ * only alongside a `deltaPct` — so `Partial<…>` over that union widens every discriminant back
+ * to optional and stops being assignable to any single member. Neither caller ever passed an
+ * override, so the parameter is deleted rather than cast around: a cast here would be this file
+ * quietly opting out of the very refusal the union exists to enforce.
+ */
+function renderTile() {
   return render(
     <ZoneProvider zone="expressive">
       <KpiTile
@@ -140,7 +150,6 @@ function renderTile(overrides: Partial<React.ComponentProps<typeof KpiTile>> = {
         density="comfortable"
         value="7"
         caption="7 orders in view"
-        {...overrides}
       />
     </ZoneProvider>,
   );

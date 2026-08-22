@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { AppearanceForm } from "@/components/settings/appearance-form";
 import { ZoneProvider } from "@/components/providers/zone-provider";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const metadata: Metadata = {
   title: "Appearance | Settings",
@@ -45,13 +46,10 @@ export default function AppearancePage() {
      * validation rule. `AppearanceForm` is untouched.
      */
     <ZoneProvider zone="expressive" className="mx-auto max-w-2xl space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Appearance</h1>
-        <p className="text-sm text-muted-foreground">
-          Choose the colour this app uses on your screen. It is remembered in this browser — it is
-          not part of your restaurant&apos;s settings and other people will not see it.
-        </p>
-      </div>
+      <PageHeader
+        title="Appearance"
+        description="Choose the colour this app uses on your screen. It is remembered in this browser — it is not part of your restaurant's settings and other people will not see it."
+      />
 
       {/*
        * The rule became a surface. A horizontal rule separates two things; a card says which

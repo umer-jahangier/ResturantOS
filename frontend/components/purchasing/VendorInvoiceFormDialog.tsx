@@ -154,7 +154,7 @@ export function VendorInvoiceFormDialog({ trigger }: VendorInvoiceFormDialogProp
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="md:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Book vendor invoice</DialogTitle>
           <DialogDescription>
@@ -166,15 +166,15 @@ export function VendorInvoiceFormDialog({ trigger }: VendorInvoiceFormDialogProp
           <form
             id="invoice-form"
             onSubmit={form.handleSubmit(onSubmit)}
-            className="grid max-h-[65vh] gap-4 overflow-y-auto"
+            className="grid max-h-[65dvh] gap-4 overflow-y-auto"
             noValidate
           >
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-3">
               <FormField
                 control={form.control}
                 name="purchaseOrderId"
                 render={({ field }) => (
-                  <FormItem className="sm:col-span-1">
+                  <FormItem className="md:col-span-1">
                     <FormLabel>Purchase order</FormLabel>
                     <FormControl>
                       <select

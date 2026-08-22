@@ -73,7 +73,7 @@ export function StationAssignmentField({
       {!isSignedInBranch ? (
         <p
           data-testid="station-assignment-cross-branch"
-          className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
+          className="rounded-md border border-border bg-muted/40 px-3 py-2 text-label text-muted-foreground"
         >
           Stations are listed for the branch you are signed in to. Switch to {branchLabel} to choose
           its stations — you can set them any time by editing this account.
@@ -90,7 +90,7 @@ export function StationAssignmentField({
           isRetrying={stations.isFetching}
         />
       ) : offered.length === 0 ? (
-        <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+        <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-label text-muted-foreground">
           {branchLabel} has no stations yet. Add one on the Stations screen and it will appear here;
           until then everyone at this branch sees the whole board.
         </p>
@@ -99,16 +99,16 @@ export function StationAssignmentField({
           <ul className="max-h-44 space-y-1 overflow-y-auto rounded-md border p-2">
             {offered.map((station) => (
               <li key={station.id}>
-                <label className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-sm hover:bg-muted/50">
+                <label className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-small hover:bg-muted/50">
                   <input
                     type="checkbox"
-                    className="size-4 rounded border-input"
+                    className="size-4 rounded-md border-input"
                     checked={value.includes(station.code)}
                     disabled={disabled}
                     onChange={() => toggle(station.code)}
                   />
                   <span className="min-w-0 flex-1 truncate">{station.name}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground">
+                  <span className="shrink-0 text-label text-muted-foreground">
                     {stationTypeLabel(station.stationType)} —{" "}
                     {stationTypeScreen(station.stationType)}
                   </span>
@@ -117,7 +117,7 @@ export function StationAssignmentField({
             ))}
           </ul>
 
-          <p data-testid="station-assignment-summary" className="text-xs text-muted-foreground">
+          <p data-testid="station-assignment-summary" className="text-label text-muted-foreground">
             {selectedNames.length === 0
               ? "They will see every station in this branch."
               : `They will see ${formatList(selectedNames)} only.`}
@@ -125,7 +125,7 @@ export function StationAssignmentField({
         </>
       )}
 
-      <p data-testid="station-assignment-delay-notice" className="text-xs text-muted-foreground">
+      <p data-testid="station-assignment-delay-notice" className="text-label text-muted-foreground">
         If they are already signed in, the change reaches them when their session next refreshes —
         within {ACCESS_TOKEN_MINUTES} minutes, or straight away if they sign out and back in.
       </p>

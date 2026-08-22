@@ -31,8 +31,9 @@ const QUERY = "(prefers-reduced-motion: reduce)";
  * that matters, and it is not symmetric with the other direction.
  *
  * <p>Implemented with `useSyncExternalStore`, the same SSR-safe pattern
- * `components/shared/page-transition.tsx` and `components/ui/theme-toggle.tsx` already use, so
- * there is no setState-in-effect and no hydration mismatch.
+ * `components/ui/theme-toggle.tsx` already uses, so there is no setState-in-effect and no
+ * hydration mismatch. (`components/shared/page-transition.tsx` was the other example named
+ * here; 38-13 deleted it along with the rest of the orphaned page-transition island.)
  */
 export function useReducedMotion(): boolean {
   return React.useSyncExternalStore(subscribe, getClientSnapshot, getServerSnapshot);

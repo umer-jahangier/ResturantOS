@@ -101,7 +101,7 @@ function ServiceRow({ service }: { service: ServiceHealth }) {
         </span>
       </div>
 
-      <dl className="mt-3 grid gap-x-6 gap-y-1 text-label text-muted-foreground sm:grid-cols-2">
+      <dl className="mt-3 grid gap-x-6 gap-y-1 text-label text-muted-foreground md:grid-cols-2">
         <div className="flex gap-1.5">
           <dt className="font-medium">Last reachable</dt>
           <dd data-testid={`fleet-last-reachable-${service.name}`}>

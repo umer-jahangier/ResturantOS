@@ -87,6 +87,23 @@ export function useStandardForm<TValues extends FieldValues>({
     // The two settings this whole hook exists for. See the class comment.
     mode: "onTouched",
     reValidateMode: "onChange",
+    /*
+     * §22 / UI-SPEC §11: focus moves to the first invalid field on submit.
+     *
+     * <p>This is react-hook-form's default, and it is written out anyway. An accessibility
+     * requirement that holds only because a library has not changed its default is a
+     * requirement nobody is checking — and the failure would be invisible in review, because
+     * the code that provides it is a line that is not there. Stating it makes the guarantee
+     * greppable, and `__tests__/lib/forms/focus-first-invalid.test.tsx` asserts the behaviour
+     * rather than the flag.
+     *
+     * <p>What it costs to keep working: the control must receive the `ref` react-hook-form
+     * hands to `render={({ field }) => …}`. Every call site that spreads `{...field}` gets it
+     * for free; one that picks out `value` and `onChange` by hand silently loses the focus
+     * move while keeping the error message, which is the one form of this defect worth
+     * watching for.
+     */
+    shouldFocusError: true,
   });
 
   // Subscribing to these individually is what makes the component re-render as validity changes;

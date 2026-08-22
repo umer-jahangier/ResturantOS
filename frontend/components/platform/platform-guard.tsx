@@ -118,7 +118,7 @@ export function PlatformGuard({ children }: { children: React.ReactNode }) {
         </div>
         <Link
           href="/app/dashboard"
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+          className="rounded-md bg-primary-solid px-4 py-2 text-sm font-medium text-primary-solid-foreground"
         >
           Back to your dashboard
         </Link>

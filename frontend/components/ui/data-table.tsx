@@ -33,6 +33,15 @@ interface DataTableProps<TData> {
   pageSize?: number;
   rowClassName?: (row: TData) => string | undefined;
   columnFilters?: ColumnFiltersState;
+  /**
+   * Forwarded to {@link DataGrid}. `columnFilters` alone already makes the grid render the
+   * filtered-empty copy instead of "nothing here yet", so this is only needed for a filter the
+   * grid cannot see — a server-side query, a date range, a tab.
+   */
+  isFiltered?: boolean;
+  /** Wires the `[Clear all]` affordance on the filtered-empty state. Without it the state is a
+   * description with no way out of itself. */
+  onClearFilters?: () => void;
 }
 
 function DataTable<TData>({
@@ -43,6 +52,8 @@ function DataTable<TData>({
   pageSize = 25,
   rowClassName,
   columnFilters,
+  isFiltered,
+  onClearFilters,
 }: DataTableProps<TData>) {
   return (
     <DataGrid
@@ -53,6 +64,8 @@ function DataTable<TData>({
       pageSize={pageSize}
       rowClassName={rowClassName}
       columnFilters={columnFilters}
+      isFiltered={isFiltered}
+      onClearFilters={onClearFilters}
     />
   );
 }

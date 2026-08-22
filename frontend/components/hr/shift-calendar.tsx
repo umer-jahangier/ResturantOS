@@ -75,28 +75,30 @@ export function ShiftCalendar({
   }
 
   if (isLoading || !grid) {
-    return <p className="text-sm text-muted-foreground">Loading week…</p>;
+    return <p className="text-small text-muted-foreground">Loading week…</p>;
   }
 
   return (
     <div className="flex gap-4">
       <aside className="w-40 shrink-0 space-y-1">
-        <p className="text-xs font-medium text-muted-foreground">Employees</p>
+        <p className="text-label font-medium text-muted-foreground">Employees</p>
         {employees.map((e) => (
           <div
             key={e.id}
             draggable
             onDragStart={(ev) => startDrag(ev, { employeeId: e.id })}
-            className="cursor-grab rounded border bg-muted px-2 py-1 text-xs"
+            className="cursor-grab rounded-md border bg-muted px-2 py-1 text-label"
           >
             {e.fullName}
           </div>
         ))}
-        {employees.length === 0 && <p className="text-xs text-muted-foreground">No employees.</p>}
+        {employees.length === 0 && (
+          <p className="text-label text-muted-foreground">No employees.</p>
+        )}
       </aside>
 
       <div className="grow overflow-x-auto">
-        <table className="w-full border-collapse text-xs">
+        <table className="w-full border-collapse text-label">
           <thead>
             <tr>
               <th className="border p-1 text-left">Shift</th>
@@ -134,7 +136,7 @@ export function ShiftCalendar({
                           onDragStart={(ev) =>
                             startDrag(ev, { employeeId: a.employeeId, assignmentId: a.id })
                           }
-                          className="mb-1 cursor-grab rounded bg-primary/10 px-1 py-0.5"
+                          className="mb-1 cursor-grab rounded-md bg-primary/10 px-1 py-0.5"
                         >
                           {empName(a.employeeId)}
                         </div>

@@ -227,7 +227,11 @@ export function RecipeFormDialog({ trigger, defaultMenuItemId }: RecipeFormDialo
   const [pendingItem, setPendingItem] = useState<{ id: string; name: string } | null>(null);
   const [syncTimedOut, setSyncTimedOut] = useState(false);
 
-  const { data: menuItems } = useMenuItemCatalog(pendingItem ? MENU_ITEM_SYNC_POLL_MS : false);
+  const {
+    data: menuItems,
+    isError: menuItemsFailed,
+    refetch: refetchMenuItems,
+  } = useMenuItemCatalog(pendingItem ? MENU_ITEM_SYNC_POLL_MS : false);
   const { data: menuCategories } = useMenuCategories();
   const { data: ingredients } = useIngredients();
   const { data: uoms } = useUoms();
@@ -357,7 +361,7 @@ export function RecipeFormDialog({ trigger, defaultMenuItemId }: RecipeFormDialo
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="md:max-w-2xl">
         <DialogHeader>
           <DialogTitle>New recipe version</DialogTitle>
           <DialogDescription>
@@ -369,10 +373,10 @@ export function RecipeFormDialog({ trigger, defaultMenuItemId }: RecipeFormDialo
           <form
             id="recipe-form"
             onSubmit={form.handleSubmit(onSubmit)}
-            className="grid max-h-[65vh] gap-4 overflow-y-auto"
+            className="grid max-h-[65dvh] gap-4 overflow-y-auto"
             noValidate
           >
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="menuItemId"
@@ -425,6 +429,11 @@ export function RecipeFormDialog({ trigger, defaultMenuItemId }: RecipeFormDialo
                               placeholder="Select a menu item…"
                               emptyHeading="No matching menu items"
                               emptyBody="Try a different search, or add a new one below."
+                              // The quick-create below is right there, so "no matching menu items"
+                              // during an outage does not merely mislead — it invites a duplicate.
+                              isError={menuItemsFailed}
+                              errorLabel="the menu catalog"
+                              onRetry={() => void refetchMenuItems()}
                             />
                           </FormControl>
                           <button

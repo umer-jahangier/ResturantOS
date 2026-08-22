@@ -28,6 +28,7 @@ import { useMenuItems } from "@/lib/hooks/pos/use-menu";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useZone } from "@/components/providers/zone-provider";
+import { overlayEntranceClass } from "@/components/ui/overlay-motion";
 import { getOrderDisplayStatus, type MenuItem, type Order } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
 
@@ -96,6 +97,7 @@ export function OrderTableDetailDrawer({
     ? (tableQuery.data?.activeOrder ?? null)
     : (orderQuery.data ?? null);
   const isLoading = isTableMode ? tableQuery.isLoading : orderQuery.isLoading;
+  const readFailed = isTableMode ? tableQuery.isError : orderQuery.isError;
   const isRefetching = isTableMode ? tableQuery.isFetching : orderQuery.isFetching;
   const resolvedTableId = order?.tableId ?? tableId ?? null;
   const resolvedTableName = isTableMode
@@ -162,18 +164,48 @@ export function OrderTableDetailDrawer({
         {/*
          * Large in-place panel (POS-25/D-10) — occupies the primary content area (nearly
          * full viewport, responsive, no horizontal body overflow) rather than a centered
-         * `sm:max-w-md`/narrow-sidebar dialog. Built directly from the Radix Dialog
+         * `md:max-w-md`/narrow-sidebar dialog. Built directly from the Radix Dialog
          * primitives (not the shared `DialogContent`) specifically to avoid that shared
-         * component's `sm:max-w-sm` default width.
+         * component's `md:max-w-sm` default width.
+         *
+         * The entrance is zoned exactly like the shared overlays (D-38-04). It used to be a
+         * hard-coded `zoom-in-95`/`zoom-out-95` pair — a TRANSFORM — on the panel a cashier
+         * opens to inspect a bill: the one screen the spec says spends nothing on decoration,
+         * and the one route that carries the receipt print path.
+         *
+         * <p>Unlike the shared overlays this needs no `ZoneProvider` inside the portal. Those
+         * are rendered from every zone in the product and must let an expressive caller keep
+         * its entrance; both call sites for this panel (Order Management and Table Floor View)
+         * live under `app/pos`, so `zone` is `operational` and `overlayEntranceClass` returns
+         * nothing at all. Adding a wrapper to host a rule that can never match would be
+         * spending DOM on the terminal for no effect.
          */}
         <DialogPrimitive.Content
           data-testid="order-table-detail-drawer"
+          /*
+           * The FOURTH dialog surface, and the one 38-03's fix could not reach.
+           *
+           * <p>That plan set `aria-modal="true"` on the shared `DialogContent` and verified it on
+           * the confirm dialog and the ⌘K palette — correctly, and it fixed every dialog that
+           * goes through the shared component. This panel deliberately does NOT: the comment
+           * above says so, because it needs a full-viewport width the shared `md:max-w-sm`
+           * forbids. So it inherited the shared component's WIDTH decision but not its
+           * accessibility one, and stayed at `aria-modal: null` — on the POS, which is the
+           * busiest route in the product.
+           *
+           * <p>38-03's own negative control is the reason this is not optional: removing the
+           * attribute from the shared component made the rendered dialog lack it entirely, which
+           * proved Radix never supplies it. Nothing was going to add it here either.
+           *
+           * <p>Gate G12 now asserts it against every `DialogPrimitive.Content` in the tree rather
+           * than against the shared component, which is the check that would have found this.
+           */
+          aria-modal="true"
           className={cn(
             "fixed inset-4 z-50 flex flex-col gap-0 overflow-hidden rounded-xl border bg-popover p-0",
             "text-sm text-popover-foreground shadow-lg outline-none ring-1 ring-foreground/10 duration-100",
-            "sm:inset-6 lg:inset-10",
-            "data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95",
-            "data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            "md:inset-6 lg:inset-10",
+            overlayEntranceClass(zone),
           )}
         >
           <div className="flex shrink-0 items-start justify-between gap-2 space-y-1.5 border-b px-4 py-3">
@@ -213,6 +245,20 @@ export function OrderTableDetailDrawer({
           {isLoading ? (
             <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">
               Loading order…
+            </div>
+          ) : readFailed ? (
+            /*
+             * Before `!order`, because `!order` says "No active order found." — a statement about
+             * the TABLE, made from a request that never answered (GA-001). A server told that
+             * about an occupied table walks away from a live check.
+             */
+            <div
+              role="alert"
+              data-testid="order-drawer-unavailable"
+              className="m-4 flex flex-1 items-center justify-center rounded-md border border-destructive/30 bg-destructive/15 p-8 text-small font-medium text-destructive"
+            >
+              Couldn&apos;t read this table. It may still have a live check — refresh before seating
+              anyone.
             </div>
           ) : !order ? (
             <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">
@@ -256,7 +302,7 @@ export function OrderTableDetailDrawer({
                     data-testid="send-new-items-button"
                     onClick={() => void handleSendNewItems()}
                     disabled={sendToKds.isPending}
-                    className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full rounded-xl bg-primary-solid py-3 text-sm font-semibold text-primary-solid-foreground transition-all hover:bg-primary-solid/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {sendToKds.isPending ? "Sending..." : `Send New Items (${pendingItems.length})`}
                   </button>
@@ -451,7 +497,7 @@ function InstructionsField({ orderId, notes, disabled }: InstructionsFieldProps)
           <button
             type="button"
             onClick={save}
-            className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground"
+            className="rounded bg-primary-solid px-2 py-1 text-xs text-primary-solid-foreground"
           >
             Save
           </button>
@@ -532,7 +578,7 @@ function QuickAddSearch({ orderId, branchId, tableId, onFullMenu }: QuickAddSear
                   type="button"
                   onClick={() => void handleAdd(item)}
                   disabled={addItem.isPending}
-                  className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground disabled:opacity-50"
+                  className="rounded bg-primary-solid px-2 py-1 text-xs text-primary-solid-foreground disabled:opacity-50"
                 >
                   Add
                 </button>

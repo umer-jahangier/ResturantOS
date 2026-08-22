@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CircleAlert, CircleCheck, CircleSlash } from "lucide-react";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { useOpenTill, useCloseTill, useTillReconciliation } from "@/lib/hooks/pos/use-till";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
@@ -170,12 +171,13 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
    */
   if (readFailed) {
     return (
-      <div className="border-b border-destructive/30">
+      <div className="border-b">
         <div
           role="status"
           data-testid="till-status-unavailable"
           className="flex items-center gap-2 bg-destructive/10 px-3 py-2"
         >
+          <CircleAlert className="size-4 shrink-0 text-destructive" aria-hidden="true" />
           <span className="text-small font-medium text-destructive">
             Till status unavailable — the till service is not answering
           </span>
@@ -186,14 +188,15 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
 
   if (!activeTill || activeTill.status === "CLOSED") {
     return (
-      <div className="border-b border-warning/30">
+      <div className="border-b">
         {!showOpenModal ? (
-          <div className="flex items-center gap-2 px-3 py-2 bg-warning/15">
-            <span className="text-small text-warning font-medium">No active till</span>
+          <div className="flex items-center gap-2 bg-surface-2 px-3 py-2">
+            <CircleSlash className="size-4 shrink-0 text-warning" aria-hidden="true" />
+            <span className="text-small font-medium text-warning">No active till</span>
             <button
               data-testid="open-till-button"
               onClick={() => setShowOpenModal(true)}
-              className="ml-auto min-h-11 text-small bg-success text-success-foreground rounded-md px-4 py-2 font-medium hover:opacity-90"
+              className="ml-auto min-h-11 shrink-0 rounded-md bg-success px-4 py-2 text-small font-medium text-success-foreground hover:opacity-90"
             >
               Open Till
             </button>
@@ -208,14 +211,14 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
            */
           <div
             data-testid="open-till-panel"
-            className="flex flex-col gap-4 bg-warning/15 p-4 sm:p-6"
+            className="flex flex-col gap-4 bg-surface-2 p-4 md:p-6"
           >
             <h2 className="font-semibold">Open Till Session</h2>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-label text-muted-foreground">
               Starting a new cashier till session. Record the counted starting float before taking
               any orders.
             </p>
-            <label className="text-sm">
+            <label className="text-body">
               Opening Float (PKR)
               <input
                 type="number"
@@ -223,14 +226,14 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
                 step="0.01"
                 value={openingFloat}
                 onChange={(e) => setOpeningFloat(e.target.value)}
-                className="mt-1 w-full max-w-xs rounded border px-3 py-2 text-sm"
+                className="mt-1 min-h-11 w-full max-w-xs rounded-md border px-3 py-2 text-body"
                 placeholder="e.g. 5000.00"
               />
             </label>
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setShowOpenModal(false)}
-                className="text-sm px-4 py-2 rounded border"
+                className="touch-target rounded-md border px-4 text-small font-medium hover:bg-accent"
               >
                 Cancel
               </button>
@@ -244,7 +247,7 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
               </button>
             </div>
             {openTillMutation.isError && (
-              <p data-testid="open-till-error" className="text-xs text-destructive">
+              <p data-testid="open-till-error" className="text-label text-destructive">
                 {getTillErrorMessage(openTillMutation.error, "open")}
               </p>
             )}
@@ -255,48 +258,70 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
   }
 
   return (
-    <div className="border-b border-success/30">
+    <div className="border-b">
       {!showCloseModal ? (
-        <div className="flex items-center gap-3 px-3 py-2 bg-success/15">
-          <span className="text-small font-medium text-success">Till OPEN</span>
-          <span className="text-xs text-muted-foreground">
-            Float: <MoneyDisplay paisa={activeTill.openingFloatPaisa} className="text-xs" />
+        /*
+          38-04 task 6. Two changes, both measured complaints.
+
+          <p><b>The pale-green band is gone.</b> `bg-success/15` washed the full width of the
+          terminal in a colour whose only job was to say "open" — 60/30/10 spent on a one-word
+          status, above the one screen the brief says to optimise for speed. The state now reads
+          through three narrow channels instead (§4.2 / D-38-13): the `CircleCheck` SHAPE, the
+          literal words "Till OPEN", and `text-success` on the words alone. The band is
+          `bg-surface-2`, the same chrome tier as the operator strip above it, so the two read as
+          one piece of chrome rather than as a warning stripe.
+
+          <p><b>`Float: Rs` / `5,000.00` no longer wraps mid-value.</b> At 390px the metrics were
+          direct flex children with no wrapping rule, so the line broke inside a money figure —
+          the currency on one row, the number on the next. Each metric is now `whitespace-nowrap`
+          inside a wrapping rail: the row breaks BETWEEN figures or not at all. A split money
+          value is not a cosmetic defect on a till.
+        */
+        <div className="flex items-center gap-2 bg-surface-2 px-3 py-2">
+          <span className="flex shrink-0 items-center gap-1.5 text-small font-medium text-success">
+            <CircleCheck className="size-4" aria-hidden="true" />
+            Till OPEN
           </span>
-          {recon && (
-            <>
-              <span className="text-xs text-muted-foreground" data-testid="till-live-cash">
-                Cash: <MoneyDisplay paisa={recon.liveExpectedCashPaisa} className="text-xs" />
-              </span>
-              <span className="text-xs text-muted-foreground">
-                Orders: <span className="font-medium tabular-nums">{recon.orderCount}</span>
-              </span>
-            </>
-          )}
-          {variance !== null && variance !== undefined && (
-            <span
-              className={cn(
-                "text-xs font-medium",
-                Math.abs(variance) > varianceThreshold ? "text-destructive" : "text-success",
-              )}
-            >
-              Var: <MoneyDisplay paisa={Math.abs(variance)} className="text-xs" />
-              {!variancePositive && " short"}
+          <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="whitespace-nowrap text-label text-muted-foreground">
+              Float: <MoneyDisplay paisa={activeTill.openingFloatPaisa} className="text-label" />
             </span>
-          )}
+            {recon && (
+              <>
+                <span
+                  className="whitespace-nowrap text-label text-muted-foreground"
+                  data-testid="till-live-cash"
+                >
+                  Cash: <MoneyDisplay paisa={recon.liveExpectedCashPaisa} className="text-label" />
+                </span>
+                <span className="whitespace-nowrap text-label text-muted-foreground">
+                  Orders: <span className="font-medium tabular-nums">{recon.orderCount}</span>
+                </span>
+              </>
+            )}
+            {variance !== null && variance !== undefined && (
+              <span
+                className={cn(
+                  "whitespace-nowrap text-label font-medium",
+                  Math.abs(variance) > varianceThreshold ? "text-destructive" : "text-success",
+                )}
+              >
+                Var: <MoneyDisplay paisa={Math.abs(variance)} className="text-label" />
+                {!variancePositive && " short"}
+              </span>
+            )}
+          </span>
           <button
             data-testid="close-till-button"
             onClick={() => setShowCloseModal(true)}
-            className="ml-auto min-h-11 text-small bg-secondary text-secondary-foreground rounded-md px-4 py-2 font-medium hover:opacity-90"
+            className="min-h-11 shrink-0 rounded-md bg-secondary px-4 py-2 text-small font-medium text-secondary-foreground hover:opacity-90"
           >
             Close Till
           </button>
         </div>
       ) : (
         /* Dedicated large in-place panel (POS-25/D-10) — see the open-till panel comment above. */
-        <div
-          data-testid="close-till-panel"
-          className="flex flex-col gap-4 bg-success/15 p-4 sm:p-6"
-        >
+        <div data-testid="close-till-panel" className="flex flex-col gap-4 bg-surface-2 p-4 md:p-6">
           <h2 className="font-semibold">Close Till Session</h2>
 
           {/*
@@ -304,7 +329,7 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
            * expected. The Expected row is ALWAYS rendered — a missing row reads as "there is no
            * such number", which is the lie this panel used to tell.
            */}
-          <div className="text-sm space-y-1">
+          <div className="text-body space-y-1">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Opening float:</span>
               <MoneyDisplay paisa={activeTill.openingFloatPaisa} />
@@ -339,7 +364,7 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
             </div>
           </div>
 
-          <label className="text-sm">
+          <label className="text-body">
             Declared Cash Count (PKR)
             <input
               type="number"
@@ -349,7 +374,7 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
               onChange={(e) => setDeclaredCash(e.target.value)}
               aria-invalid={declaredError !== null}
               aria-describedby={declaredError ? "close-till-declared-error" : undefined}
-              className="mt-1 w-full max-w-xs rounded border px-3 py-2 text-sm"
+              className="mt-1 min-h-11 w-full max-w-xs rounded-md border px-3 py-2 text-body"
               placeholder="e.g. 12500.00"
             />
           </label>
@@ -357,13 +382,13 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
             <p
               id="close-till-declared-error"
               data-testid="close-till-declared-error"
-              className="text-xs text-destructive"
+              className="text-label text-destructive"
             >
               {declaredError}
             </p>
           )}
 
-          <label className="text-sm">
+          <label className="text-body">
             Note for manager review (optional)
             <textarea
               data-testid="close-till-note"
@@ -371,14 +396,14 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
               onChange={(e) => setCloseNote(e.target.value)}
               maxLength={500}
               rows={3}
-              className="mt-1 w-full rounded border px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md border px-3 py-2 text-body"
               placeholder="e.g. 200 short — customer disputed change on order #1042"
             />
           </label>
 
           {/* Variance preview — live, before anything is submitted. */}
           {declaredValid && (
-            <div className="text-sm" role="status" aria-live="polite">
+            <div className="text-body" role="status" aria-live="polite">
               {previewVariance === null ? (
                 <span data-testid="close-till-variance" className="font-medium text-warning">
                   Variance cannot be checked until the expected cash figure loads.
@@ -407,7 +432,7 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
           <div className="flex gap-2 justify-end">
             <button
               onClick={() => setShowCloseModal(false)}
-              className="text-sm px-4 py-2 rounded border"
+              className="touch-target rounded-md border px-4 text-small font-medium hover:bg-accent"
             >
               Cancel
             </button>
@@ -421,7 +446,7 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
             </button>
           </div>
           {closeTillMutation.isError && (
-            <p data-testid="close-till-error" className="text-xs text-destructive">
+            <p data-testid="close-till-error" className="text-label text-destructive">
               {getTillErrorMessage(closeTillMutation.error, "close")}
             </p>
           )}

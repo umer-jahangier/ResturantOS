@@ -6,6 +6,7 @@ import { Building2, LayoutDashboard, LogOut, ShieldAlert } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { MAIN_CONTENT_ID, SkipLink } from "@/components/shared/skip-link";
 import { useLogout } from "@/lib/hooks/auth/use-logout";
 
 /**
@@ -42,6 +43,15 @@ export function PlatformShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col">
+      {/*
+        First in the document, above the warning rule and the console nav (plan 38-15 task 1).
+        The tenant shell's 22-stop walk was measured; this shell was never probed, but it has the
+        same shape — a header nav of three links plus a sign-out button standing between the
+        caret and the page — and the fix is the same one. It is mounted here rather than left to
+        the four platform pages for the reason stated in `skip-link.tsx`: a skip link is only
+        correct if it is FIRST, and "first" is a property of the document, not of a page.
+      */}
+      <SkipLink />
       {/*
         The 4px --warning rule. Uses the semantic token, not a literal colour — Phase 20 forbids
         new colours and this band has to track the theme in both light and dark.
@@ -112,7 +122,18 @@ export function PlatformShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="flex-1 p-6">{children}</main>
+      {/*
+        `id` + `tabIndex={-1}`: the fragment target has to be focusable or the skip link scrolls
+        and leaves the caret in the header, which is the failure mode this pattern is known for.
+        The inset offset keeps the confirmation outline off the clipping edge.
+      */}
+      <main
+        id={MAIN_CONTENT_ID}
+        tabIndex={-1}
+        className="flex-1 p-6 focus-visible:outline-offset-[-2px]"
+      >
+        {children}
+      </main>
     </div>
   );
 }

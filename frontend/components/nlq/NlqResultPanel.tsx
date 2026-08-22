@@ -1,52 +1,48 @@
 "use client";
 
-import { MoneyDisplay } from "@/components/ui/money-display";
+import * as React from "react";
+import { DatabaseZap } from "lucide-react";
+
+import { DataGrid } from "@/components/ui/data-grid/data-grid";
 import { EmptyState } from "@/components/ui/empty-state";
-import type { NlqResult } from "@/lib/models/nlq.model";
-
-/** Money columns are anything ending `_paisa` (the same ClickHouse column-alias convention
- * `ReportTable` uses). */
-function isMoneyColumn(column: string): boolean {
-  return column.endsWith("_paisa");
-}
-
-function formatLabel(column: string): string {
-  return column
-    .split("_")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-}
-
-function renderCell(column: string, value: unknown) {
-  if (value === null || value === undefined) {
-    return <span aria-label={`${formatLabel(column)} not available`}>—</span>;
-  }
-  if (isMoneyColumn(column) && (typeof value === "number" || typeof value === "bigint")) {
-    return <MoneyDisplay paisa={value} />;
-  }
-  return <span>{String(value)}</span>;
-}
-
-interface NlqResultPanelProps {
-  result: NlqResult;
-}
+import { reportCardRenderers, reportColumns } from "@/components/reporting/report-cells";
+import { formatNumber } from "@/lib/format/locale";
+import type { NlqResult, NlqRow } from "@/lib/models/nlq.model";
 
 /**
- * NLQ-01/NLQ-02: the narrative, the result table, a collapsible disclosure of the EXECUTED SQL
- * (deliberately shown — it's post-validation and tenant-scoped, and it's what makes an
- * AI-generated answer trustworthy), a "cached result" badge when `cacheHit`, and a
- * rowCount/durationMs footer.
+ * NLQ-01/NLQ-02: the narrative, the result grid, a disclosure of the EXECUTED SQL, a cache badge
+ * and a row/duration footer.
+ *
+ * <h3>Brought onto the shared grammar (N12)</h3>
+ *
+ * This screen answered questions with a hand-rolled `<table>` (gate G4) and six off-contract type
+ * classes, sitting a click away from `/app/dashboard`. It renders the same wire shape as a
+ * report — `columns` plus `List<Map<String,Object>>` off ClickHouse — and it carried its own
+ * byte-identical copies of `isMoneyColumn`, `formatLabel` and `renderCell` to prove it. Both now
+ * come from `components/reporting/report-cells.tsx`, so a `…_paisa` column renders as money and a
+ * null renders as a stated absence in exactly one implementation rather than two that agreed on
+ * the day they were written.
+ *
+ * <h3>The SQL stays visible, deliberately</h3>
+ *
+ * It is post-validation and tenant-scoped, and it is the only thing that makes an AI-generated
+ * answer auditable. It is a `<details>` rather than an always-open block because the answer is
+ * what was asked for and the query is the evidence behind it.
  */
-export function NlqResultPanel({ result }: NlqResultPanelProps) {
+export function NlqResultPanel({ result }: { result: NlqResult }) {
+  const columns = React.useMemo(() => reportColumns<NlqRow>(result.columns), [result.columns]);
+  const card = React.useMemo(() => reportCardRenderers<NlqRow>(result.columns), [result.columns]);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-(--space-md)">
       {result.cacheHit && (
-        <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted/60 px-2.5 py-1 text-xs text-muted-foreground">
-          Cached result
-        </span>
+        <p className="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-label font-medium text-foreground-secondary">
+          <DatabaseZap className="size-3.5 shrink-0" aria-hidden="true" />
+          Cached result — served without re-running the query
+        </p>
       )}
 
-      {result.narrative && <p className="text-sm leading-relaxed">{result.narrative}</p>}
+      {result.narrative && <p className="text-body leading-relaxed">{result.narrative}</p>}
 
       {result.rows.length === 0 ? (
         <EmptyState
@@ -54,47 +50,22 @@ export function NlqResultPanel({ result }: NlqResultPanelProps) {
           description="Try being more specific — a date range, a branch, or a shorter time window."
         />
       ) : (
-        <div className="w-full overflow-x-auto rounded-lg border border-border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/40">
-                {result.columns.map((column) => (
-                  <th
-                    key={column}
-                    className="px-4 py-3 text-left font-medium text-muted-foreground"
-                  >
-                    {formatLabel(column)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {result.rows.map((row, idx) => (
-                <tr key={idx} className="border-b border-border last:border-0">
-                  {result.columns.map((column) => (
-                    <td key={column} className="px-4 py-3 tabular-nums">
-                      {renderCell(column, row[column])}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataGrid columns={columns} data={result.rows} card={card} label="Answer" />
       )}
 
-      <details className="rounded-lg border border-border px-3 py-2 text-sm">
-        <summary className="cursor-pointer font-medium text-muted-foreground">
+      <details className="rounded-lg border border-border px-(--space-md) py-(--space-sm)">
+        <summary className="cursor-pointer text-small font-medium text-foreground-secondary">
           Show the SQL that ran
         </summary>
-        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-muted/40 p-3 text-xs">
+        <pre className="mt-(--space-sm) overflow-x-auto rounded-md bg-muted p-(--space-md) text-label break-words whitespace-pre-wrap">
           {result.sql}
         </pre>
       </details>
 
-      <div className="text-xs text-muted-foreground">
-        {result.rowCount} row{result.rowCount === 1 ? "" : "s"} · {result.durationMs}ms
-      </div>
+      <p className="text-small text-foreground-tertiary tabular-nums">
+        {formatNumber(result.rowCount)} row{result.rowCount === 1 ? "" : "s"} ·{" "}
+        {formatNumber(result.durationMs)} ms
+      </p>
     </div>
   );
 }

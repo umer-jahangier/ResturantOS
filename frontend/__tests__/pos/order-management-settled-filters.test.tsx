@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -177,7 +177,14 @@ describe("OrderManagement — settled orders are reachable (S0-04)", () => {
     expect(screen.queryByLabelText("In Progress")).not.toBeInTheDocument();
 
     // Money, reason and actor — the three things the register said no screen could show.
-    expect(screen.getByText("Rs 100.00")).toBeInTheDocument();
+    //
+    // Scoped to the GRID. 38-06 added the header's `·`-separated stat line, whose money figure is
+    // the sum of the rows on screen — so with one Rs 100.00 row on the Voided chip, "Rs 100.00"
+    // now legitimately appears twice, once in the Total column and once as the sum of that one
+    // column. That agreement IS the contract (`order-list-stats.ts`); an unscoped `getByText`
+    // would fail precisely when the subtitle is correct.
+    expect(within(screen.getByRole("table")).getByText("Rs 100.00")).toBeInTheDocument();
+    expect(screen.getByTestId("order-stat-line")).toHaveTextContent("Rs 100.00");
     expect(screen.getByText("Guest walked out before service")).toBeInTheDocument();
     expect(screen.getByText(/by Terrace Manager/)).toBeInTheDocument();
   });

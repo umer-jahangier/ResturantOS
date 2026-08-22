@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { DataTable, type ColumnDef } from "@/components/ui/data-table";
+import { DataGrid, type ColumnDef } from "@/components/ui/data-grid/data-grid";
+import { FilterBar } from "@/components/ui/filter-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -26,7 +27,17 @@ import {
   type DerivedOrderStatus,
   type OrderStatus,
   type OrderSummary,
+  type OrderType,
+  type PaymentStatus,
 } from "@/lib/models/pos.model";
+import {
+  orderCountLabel,
+  orderIdentifier,
+  summariseOrders,
+  unpaidLabel,
+} from "@/components/pos/order-list-stats";
+import { ELAPSED_UNKNOWN, readElapsed } from "@/lib/format/elapsed";
+import { formatDateTime } from "@/lib/format/locale";
 import { cn } from "@/lib/utils";
 
 interface OrderManagementProps {
@@ -183,7 +194,7 @@ function formatSettledAt(at: string | null | undefined): string | null {
   if (!at) return null;
   const ms = new Date(at).getTime();
   if (Number.isNaN(ms)) return null;
-  return new Date(ms).toLocaleString(undefined, {
+  return formatDateTime(ms, {
     day: "2-digit",
     month: "short",
     hour: "2-digit",
@@ -191,16 +202,117 @@ function formatSettledAt(at: string | null | undefined): string | null {
   });
 }
 
-function formatAge(openedAt: string | null): string {
-  if (!openedAt) return "—";
-  const openedMs = new Date(openedAt).getTime();
-  if (Number.isNaN(openedMs)) return "—";
-  const minutes = Math.max(0, Math.floor((Date.now() - openedMs) / 60_000));
-  if (minutes < 1) return "<1m";
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  const rem = minutes % 60;
-  return rem > 0 ? `${hours}h ${rem}m` : `${hours}h`;
+/**
+ * The wall-clock the check was opened at — the demo's `Time` column, `19:42`.
+ *
+ * <p>Deliberately NOT a duration: `Time` answers *when did this start* and `Prep` answers *how
+ * long has it been*, and a column that tries to be both is the `113h 52m`-under-ACT-NOW defect
+ * `lib/format/elapsed.ts` was written to end. The date is dropped because every row in an
+ * operational order list is from the current service; a row that is not says so in `Prep`, which
+ * stops counting at 24 h and prints the date instead.
+ */
+function formatOpenedClock(openedAt: string | null): string {
+  if (!openedAt) return ELAPSED_UNKNOWN;
+  const ms = new Date(openedAt).getTime();
+  if (Number.isNaN(ms)) return ELAPSED_UNKNOWN;
+  return new Date(ms).toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+/**
+ * How often the `Prep` column re-reads the clock.
+ *
+ * <p>This is data freshness, not motion. `formatElapsedCompact` drops seconds above one hour
+ * precisely so nothing on an `operational` surface repaints once a second (D-38-04), so a
+ * half-minute tick is the coarsest interval that still keeps a `07:42` from going stale in front
+ * of a cashier. Everything below an hour is `mm:ss`, which would visibly lag at anything slower.
+ */
+const PREP_TICK_MS = 30_000;
+
+/**
+ * One clock for the whole list, mirroring the KDS's `useKdsClock`: every row must agree on `now`,
+ * or two rows opened in the same second render different ages depending on what else re-rendered.
+ */
+function useNow(intervalMs: number): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(timer);
+  }, [intervalMs]);
+  return now;
+}
+
+/**
+ * The two facets that filter the ROWS ON SCREEN rather than the query (38-06 task 4).
+ *
+ * <p>`GET /api/v1/pos/orders` accepts `branchId`, `status[]`, `q` and a `Pageable` and nothing
+ * else — verified at `OrderController.listOrders`. There is no `type` and no `paymentStatus`
+ * parameter, so these two narrow the fetched set, exactly as the status chips have always done.
+ * That is honest here and would not be honest for a date range, which is why no date control is
+ * offered: a date picker over one page of a live, day-agnostic listing would filter the page and
+ * claim to filter the day (UI-SPEC §13, audit §12).
+ */
+const TYPE_FILTER_OPTIONS: { value: OrderType; label: string }[] = [
+  { value: "DINE_IN", label: orderTypeLabel("DINE_IN") },
+  { value: "TAKEAWAY", label: orderTypeLabel("TAKEAWAY") },
+  { value: "DELIVERY", label: orderTypeLabel("DELIVERY") },
+  { value: "PICKUP", label: orderTypeLabel("PICKUP") },
+];
+
+const PAYMENT_FILTER_OPTIONS: { value: PaymentStatus; label: string }[] = [
+  { value: "UNPAID", label: "Unpaid" },
+  { value: "PARTIALLY_PAID", label: "Partially paid" },
+  { value: "PAID", label: "Paid" },
+  { value: "REFUNDED", label: "Refunded" },
+];
+
+/** `""` is "not filtering" — an absent facet and an empty one are the same thing (FilterBar). */
+function matchesFacets(
+  row: OrderSummary,
+  type: "" | OrderType,
+  payment: "" | PaymentStatus,
+): boolean {
+  if (type !== "" && row.type !== type) return false;
+  if (payment !== "" && row.paymentStatus !== payment) return false;
+  return true;
+}
+
+/**
+ * The `Prep` column — how long this check has been open, bounded.
+ *
+ * <p>Three channels, none of them colour (D-38-13 / UI-SPEC §4.2): the compact TEXT changes shape
+ * at the 24-hour bound from a running timer (`07:42`) to a date (`7 Aug`), the urgency treatment
+ * is withdrawn with it, and the screen reader gets `srLabel` — spelled out in words, because
+ * `07:42` announced on its own is a clock time ("seven forty-two"), which is a different fact.
+ */
+function PrepCell({ openedAt, now }: { openedAt: string | null; now: number }) {
+  if (!openedAt) {
+    return (
+      <span className="text-small text-foreground-tertiary" aria-label="Age unknown">
+        {ELAPSED_UNKNOWN}
+      </span>
+    );
+  }
+  const reading = readElapsed(openedAt, now);
+  return (
+    <span
+      className={cn(
+        "text-small tabular-nums",
+        reading.withinUrgencyWindow ? "text-foreground" : "text-foreground-tertiary",
+      )}
+      title={
+        reading.withinUrgencyWindow
+          ? `Open for ${reading.long}`
+          : `Opened ${reading.long} — older than a day, so this is a date, not a timer`
+      }
+    >
+      <span aria-hidden="true">{reading.compact}</span>
+      <span className="sr-only">{reading.srLabel}</span>
+    </span>
+  );
 }
 
 /**
@@ -282,6 +394,8 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
   const { userId } = useCurrentUser();
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [typeFilter, setTypeFilter] = useState<"" | OrderType>("");
+  const [paymentFilter, setPaymentFilter] = useState<"" | PaymentStatus>("");
   const [viewAll, setViewAll] = useState(true);
   const [search, setSearch] = useState("");
   const [openOrder, setOpenOrder] = useState<{ orderId: string; tableName: string | null } | null>(
@@ -289,6 +403,9 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
   );
 
   const serverScopedFilter = isServerScopedFilter(statusFilter) ? statusFilter : null;
+
+  // One `now` for every Prep cell in the list — see PREP_TICK_MS.
+  const now = useNow(PREP_TICK_MS);
 
   // The ACTIVE (default, non-terminal/non-DRAFT) list — always fetched, and the ONLY
   // source fed to `useFadeOutList` below. A server-scoped chip (Draft/Closed/Voided/Refunded)
@@ -364,7 +481,10 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
     // it — the point of the search is to reach past the chip you happen to have selected.
     if (isSearching) {
       const rows = searchQuery.data?.data ?? [];
-      return viewAll ? rows : rows.filter((row) => row.cashierId === userId);
+      return rows.filter(
+        (row) =>
+          (viewAll || row.cashierId === userId) && matchesFacets(row, typeFilter, paymentFilter),
+      );
     }
 
     // Draft is the one chip whose rows come from BOTH sources, because "draft" names two
@@ -404,7 +524,7 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
         return false;
       }
       if (!viewAll && row.cashierId !== userId) return false;
-      return true;
+      return matchesFacets(row, typeFilter, paymentFilter);
     });
   }, [
     isSearching,
@@ -413,92 +533,91 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
     scopedQuery.data,
     visible,
     statusFilter,
+    typeFilter,
+    paymentFilter,
     viewAll,
     userId,
   ]);
 
+  /**
+   * The stat line, computed from `filtered` — the SAME array handed to the grid below, never a
+   * second read. See `order-list-stats.ts` for why that is the whole point of it.
+   */
+  const stats = useMemo(() => summariseOrders(filtered), [filtered]);
+
+  /**
+   * The column grammar (38-06 task 1, DEMO-SCREENS §5).
+   *
+   * <h3>What changed and why it is not a reshuffle</h3>
+   *
+   * The list used to open with one column headed **"Order / Type"** holding the order number on
+   * top of `"Dine-in · H1"` — three different facts stacked in one cell, none of them sortable,
+   * none of them scannable down a column. The demo supplies the grammar this screen was missing:
+   *
+   * ```
+   * Order#  Table  Items  Type  Time  Prep  Total  Status
+   * ```
+   *
+   * Each column now answers exactly one question, which is what makes a list scannable: the eye
+   * runs DOWN a column comparing like with like, and it cannot do that when two facts share a
+   * cell and one of them is sometimes absent.
+   *
+   * <h3>Two badges, never one badge doing two jobs</h3>
+   *
+   * `Type` and `Status` are separate badge columns. They were previously the same cell, so a
+   * dine-in check with no table read "Takeaway" (F2) — one badge carrying two meanings is how a
+   * surface starts stating things it does not know. `Payment` is a third, independent axis and
+   * keeps its own column: settlement status and payment status are different facts and a check
+   * can be SERVED and UNPAID at the same time.
+   *
+   * <h3>Prep is `lib/format/elapsed.ts`, not a fourth age formatter</h3>
+   *
+   * The removed `formatAge` was this codebase's THIRD hand-rolled elapsed formatter
+   * (`station-picker.tsx` and `kds-aging.ts` were the other two, and they disagreed by design —
+   * that is the whole subject of `elapsed.ts`'s docblock). It was also unbounded: a check left
+   * open over a close rendered `113h 52m`, which is true and useless. `readElapsed` stops
+   * counting at 24 h and prints the DATE instead, and returns `withinUrgencyWindow` so the shape
+   * of the text — timer vs date — carries the boundary without colour (D-38-13).
+   *
+   * <h3>Identifiers are mono, money is accent</h3>
+   *
+   * The demo's money/identifier formatting is adopted verbatim: `.td-mono` on the order number so
+   * digits align down the column and a transposed one is visible, and the total in `--primary`,
+   * which is the text/link accent role. Money renders through `MoneyDisplay` and nowhere else.
+   */
   const columns = useMemo<ColumnDef<OrderSummary, unknown>[]>(
     () => [
       {
-        id: "orderTable",
-        header: "Order / Type",
+        id: "orderNo",
+        header: "Order #",
+        accessorFn: (row: OrderSummary) => row.orderNo ?? "",
         cell: ({ row }) => {
-          const o = row.original;
-          // F2 (b). This read `{o.tableName ?? "Takeaway"}` — the order's own `type` was never
-          // consulted because the summary row never carried it. Every DINE_IN check without a
-          // table therefore read "Takeaway": measured 2026-08-12, ten of ten rows on the first
-          // page and thirteen consecutive rows on the Voided chip, on a screen a manager scans
-          // all day. The type is now server-authoritative and the table name rides ALONGSIDE it
-          // rather than standing in for it, so "Dine-in" and "Dine-in · H1" are both sayable.
-          const label = orderTypeLabel(o.type);
-          return (
-            <div className="flex flex-col">
-              <span className="text-sm font-medium">{o.orderNo ?? "New Order"}</span>
-              <span className="text-xs text-muted-foreground" data-testid="order-type-cell">
-                {o.tableName ? `${label} · ${o.tableName}` : label}
-              </span>
-            </div>
-          );
-        },
-      },
-      {
-        id: "status",
-        header: "Status",
-        // S0-04: a settled order shows its SETTLEMENT outcome, not its kitchen progress.
-        // `derivedStatus` on a voided check still reads "In Progress" — it records how far
-        // the food got, which is exactly the wrong answer once the check has been voided.
-        // getOrderDisplayStatus() is the shared merge every other POS surface already uses.
-        cell: ({ row }) => (
-          <StatusBadge
-            status={getOrderDisplayStatus({
-              status: row.original.settlementStatus,
-              derivedStatus: row.original.derivedStatus,
-            })}
-          />
-        ),
-      },
-      {
-        id: "payment",
-        header: "Payment",
-        cell: ({ row }) => <PaymentStatusBadge status={row.original.paymentStatus} />,
-      },
-      {
-        id: "cashier",
-        header: "Server/Cashier",
-        // F2 (a). This printed `cashierId.slice(0, 8)` — "bc0d9897" — for every row and every
-        // persona, while the SAME table's Voided column printed "by Shift Cashier 984155" for a
-        // user id resolved by the same mechanism a few pixels away. The name now comes down on
-        // the row itself (OrderCashierNameService); the id remains the fallback, because a
-        // directory outage must cost the name and not the attribution.
-        cell: ({ row }) => {
-          const { cashierName, cashierId } = row.original;
-          if (cashierName) {
-            return (
-              <span className="text-sm" data-testid={`cashier-cell-${row.original.orderId}`}>
-                {cashierName}
-              </span>
-            );
-          }
-          if (cashierId) {
-            return (
-              <span
-                className="font-mono text-xs text-muted-foreground"
-                data-testid={`cashier-cell-${row.original.orderId}`}
-                title="This person's name could not be looked up just now — this is their user id."
-              >
-                {cashierId.slice(0, 8)}
-              </span>
-            );
-          }
+          const { text, isReal } = orderIdentifier(row.original.orderNo);
           return (
             <span
-              className="text-xs text-muted-foreground"
-              data-testid={`cashier-cell-${row.original.orderId}`}
+              data-testid={`order-no-${row.original.orderId}`}
+              className={cn(
+                "font-medium",
+                isReal ? "font-mono tracking-tight" : "text-foreground-secondary italic",
+              )}
             >
-              —
+              {text}
             </span>
           );
         },
+      },
+      {
+        id: "table",
+        header: "Table",
+        accessorFn: (row: OrderSummary) => row.tableName ?? "",
+        cell: ({ row }) =>
+          row.original.tableName ? (
+            <span className="text-small">{row.original.tableName}</span>
+          ) : (
+            <span className="text-small text-foreground-tertiary" aria-label="No table">
+              {ELAPSED_UNKNOWN}
+            </span>
+          ),
       },
       {
         // POS-24: replaces the old "Covers" column — total item quantity across
@@ -525,11 +644,11 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
                   : `${qty} ${qty === 1 ? "item" : "items"} in total, on ${lines} ${lines === 1 ? "line" : "lines"} of the check`
               }
             >
-              <span className="text-sm tabular-nums">
+              <span className="text-small tabular-nums">
                 {qty} {qty === 1 ? "item" : "items"}
               </span>
               {lines !== qty && (
-                <span className="text-xs text-muted-foreground tabular-nums">
+                <span className="text-label text-foreground-secondary tabular-nums">
                   {lines} {lines === 1 ? "line" : "lines"}
                 </span>
               )}
@@ -538,9 +657,114 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
         },
       },
       {
+        id: "type",
+        header: "Type",
+        // F2 (b). This read `{o.tableName ?? "Takeaway"}` — the order's own `type` was never
+        // consulted because the summary row never carried it. Every DINE_IN check without a
+        // table therefore read "Takeaway": measured 2026-08-12, ten of ten rows on the first
+        // page and thirteen consecutive rows on the Voided chip, on a screen a manager scans
+        // all day. The type is server-authoritative and now has its own column, so it can never
+        // again be inferred from whether a table happens to be assigned.
+        cell: ({ row }) => (
+          <span
+            data-testid="order-type-cell"
+            className="inline-flex shrink-0 items-center rounded-full border border-border bg-surface-2 px-2 py-0.5 text-label font-medium text-foreground-secondary"
+          >
+            {orderTypeLabel(row.original.type)}
+          </span>
+        ),
+      },
+      {
+        id: "time",
+        header: "Time",
+        accessorFn: (row: OrderSummary) => (row.openedAt ? new Date(row.openedAt).getTime() : 0),
+        cell: ({ row }) => (
+          <span className="text-small tabular-nums text-foreground-secondary">
+            {formatOpenedClock(row.original.openedAt)}
+          </span>
+        ),
+      },
+      {
+        id: "prep",
+        header: "Prep",
+        cell: ({ row }) => <PrepCell openedAt={row.original.openedAt} now={now} />,
+      },
+      {
         id: "total",
         header: "Total",
-        cell: ({ row }) => <MoneyDisplay paisa={row.original.totalPaisa} className="text-sm" />,
+        accessorFn: (row: OrderSummary) => row.totalPaisa,
+        cell: ({ row }) => (
+          // The demo's `.td-mono .text-primary`. `--primary` is the TEXT/link accent role — not
+          // `--primary-solid`, which is the fill role and would paint a bronze block behind the
+          // number in light mode.
+          <MoneyDisplay paisa={row.original.totalPaisa} className="text-small text-primary" />
+        ),
+      },
+      {
+        id: "status",
+        header: "Status",
+        // S0-04: a settled order shows its SETTLEMENT outcome, not its kitchen progress.
+        // `derivedStatus` on a voided check still reads "In Progress" — it records how far
+        // the food got, which is exactly the wrong answer once the check has been voided.
+        // getOrderDisplayStatus() is the shared merge every other POS surface already uses.
+        cell: ({ row }) => (
+          <StatusBadge
+            status={getOrderDisplayStatus({
+              status: row.original.settlementStatus,
+              derivedStatus: row.original.derivedStatus,
+            })}
+          />
+        ),
+      },
+      {
+        id: "payment",
+        header: "Payment",
+        cell: ({ row }) => <PaymentStatusBadge status={row.original.paymentStatus} />,
+      },
+      {
+        id: "cashier",
+        // "Server/Cashier", not the tidier "Server". Nine F2 diagnostic journeys locate this
+        // column by `headers.findIndex(h => /Server\/Cashier/i.test(h))` — e2e/floor/f2-01,
+        // -04, -05, -09 (×2), -10, -11, -12 and f2-reopen-attempt. Renaming the header would
+        // silently return -1 in each, and a column index of -1 reads an undefined cell, i.e.
+        // every one of those checks would report an empty cashier and pass its "no hex fragment"
+        // assertion for the wrong reason. The header is the journeys' selector; it is not
+        // cosmetic.
+        header: "Server/Cashier",
+        // F2 (a). This printed `cashierId.slice(0, 8)` — "bc0d9897" — for every row and every
+        // persona, while the SAME table's Voided column printed "by Shift Cashier 984155" for a
+        // user id resolved by the same mechanism a few pixels away. The name now comes down on
+        // the row itself (OrderCashierNameService); the id remains the fallback, because a
+        // directory outage must cost the name and not the attribution.
+        cell: ({ row }) => {
+          const { cashierName, cashierId } = row.original;
+          if (cashierName) {
+            return (
+              <span className="text-small" data-testid={`cashier-cell-${row.original.orderId}`}>
+                {cashierName}
+              </span>
+            );
+          }
+          if (cashierId) {
+            return (
+              <span
+                className="font-mono text-label text-foreground-secondary"
+                data-testid={`cashier-cell-${row.original.orderId}`}
+                title="This person's name could not be looked up just now — this is their user id."
+              >
+                {cashierId.slice(0, 8)}
+              </span>
+            );
+          }
+          return (
+            <span
+              className="text-label text-foreground-tertiary"
+              data-testid={`cashier-cell-${row.original.orderId}`}
+            >
+              {ELAPSED_UNKNOWN}
+            </span>
+          );
+        },
       },
       // S0-04. Only on the Voided/Refunded chips: on every other view every row would be
       // blank, and a permanently-empty column is worse than no column (DESIGN-BRIEF §23).
@@ -557,13 +781,6 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
             } as ColumnDef<OrderSummary, unknown>,
           ]
         : []),
-      {
-        id: "age",
-        header: "Age",
-        cell: ({ row }) => (
-          <span className="text-xs text-muted-foreground">{formatAge(row.original.openedAt)}</span>
-        ),
-      },
       {
         id: "actions",
         header: "",
@@ -589,7 +806,7 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
                 }
                 data-testid={`open-order-${row.original.orderId}`}
                 aria-label={`${isDraft ? "Continue" : "Open"} order ${row.original.orderNo ?? row.original.orderId}`}
-                className="text-xs font-medium text-primary underline"
+                className="text-label font-medium text-primary underline"
               >
                 {isDraft ? "Continue" : "Open"}
               </button>
@@ -598,113 +815,227 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
         },
       },
     ],
-    [serverScopedFilter],
+    [serverScopedFilter, now],
   );
 
   const showEmptyState = !isLoading && filtered.length === 0;
+  /**
+   * Whether a CLIENT-side facet is what emptied the list — the case the empty states below could
+   * not previously name. Read against the source the facets were applied to, not against
+   * `filtered`, so this is only true when there were rows to narrow away.
+   */
+  const facetsNarrowing =
+    (typeFilter !== "" || paymentFilter !== "" || !viewAll) && !isSearching && !serverScopedFilter;
 
   return (
-    <div className="flex h-full flex-col gap-3 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex h-full flex-col gap-(--space-sm) p-(--space-md)">
+      {/*
+        Title + `·`-separated stat line — the demo's back-office header grammar (DEMO-SCREENS §5,
+        D-38-15 "adopt").
+
+        The title is an <h2>, NOT an <h1>. `app/(tenant)/app/pos/page.tsx` already renders the
+        route's one (sr-only) <h1> "Point of sale", and gate G12a asserts exactly one per route —
+        a PageHeader here would make it two. It is also rendered at the label role rather than a
+        20px page title on purpose: this is a full-bleed `operational` surface where vertical
+        space is the scarce resource, and the visible tab immediately above already says "Order
+        Management" to sighted users. The <h2> restores the region's name in the outline without
+        spending the pixels twice.
+
+        Every figure on the stat line is computed from `filtered` — the array handed to the grid
+        below — so all three reconcile against columns a reader can count. See
+        `order-list-stats.ts` for what is deliberately NOT claimed here.
+      */}
+      <div className="flex flex-wrap items-baseline gap-x-(--space-md) gap-y-1">
+        <h2 className="text-label font-semibold tracking-wide uppercase text-foreground-secondary">
+          Order management
+        </h2>
+        <p
+          data-testid="order-stat-line"
+          className="flex flex-wrap items-baseline gap-x-1.5 text-small text-foreground-secondary"
+          aria-live="polite"
+        >
+          <span className="tabular-nums">{orderCountLabel(stats.listed)}</span>
+          <span aria-hidden="true" className="text-foreground-tertiary">
+            ·
+          </span>
+          {/* Money has exactly one formatting path in this product (money-display.tsx). */}
+          <MoneyDisplay paisa={stats.totalPaisa} className="text-small text-primary" />
+          <span>across them</span>
+          <span aria-hidden="true" className="text-foreground-tertiary">
+            ·
+          </span>
+          <span className="tabular-nums">{unpaidLabel(stats.unpaid)}</span>
+        </p>
+      </div>
+
+      {/*
+        The shared filter strip (UI-SPEC §7.3). `bare` because this is an operational tab that is
+        already inside the POS shell — the card variant would add a second border ring around a
+        strip that sits directly above a bordered grid.
+
+        The status CHIPS stay chips rather than becoming a fourth <Select>. They carry
+        `data-testid="status-filter-*"`, which sixteen e2e journeys drive, and a chip row is the
+        right control for a nine-value axis a cashier switches constantly on a touch screen. They
+        are passed as `children`, which is exactly what `extraActiveCount` exists for — the count
+        sentence and "Clear all" then cover controls FilterBar cannot see, instead of offering a
+        Clear that silently leaves three filters on.
+      */}
+      <FilterBar
+        variant="bare"
+        filters={[
+          {
+            id: "order-type",
+            label: "Type",
+            value: typeFilter,
+            onChange: (value) => setTypeFilter(value as "" | OrderType),
+            options: TYPE_FILTER_OPTIONS,
+            allLabel: "All types",
+          },
+          {
+            id: "payment-status",
+            label: "Payment",
+            value: paymentFilter,
+            onChange: (value) => setPaymentFilter(value as "" | PaymentStatus),
+            options: PAYMENT_FILTER_OPTIONS,
+            allLabel: "All payment states",
+          },
+        ]}
+        extraActiveCount={
+          (statusFilter === "ALL" ? 0 : 1) + (search.trim() === "" ? 0 : 1) + (viewAll ? 0 : 1)
+        }
+        onClearAll={() => {
+          setStatusFilter("ALL");
+          setTypeFilter("");
+          setPaymentFilter("");
+          setSearch("");
+          setViewAll(true);
+        }}
+        actions={
+          <div className="flex flex-wrap items-center gap-(--space-sm)">
+            {/*
+              Search box. S0-05: this asks the SERVER, which searches order number, table name and
+              the attached customer's phone/name across EVERY status and every page — so a check
+              you have just voided is found by typing its number, with no chip to switch first.
+              It used to be a substring filter over the rows already on screen, which could not
+              reach a voided order, a closed one, or anything past the first page.
+
+              It stays this component's own <Input> rather than FilterBar's `search` slot for one
+              reason: `data-testid="order-management-search"`, which the S0-05 wire tests and the
+              diagnostic journeys drive. FilterBar generates its own ids and has no testid seam.
+            */}
+            <Input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search order #, table or phone…"
+              aria-label="Search orders"
+              data-testid="order-management-search"
+              /*
+                `h-11`, not `h-9`. UI-SPEC §9.2 / plan 38-04 task 4: every interactive target on
+                an operational surface is at least 44×44, and `/app/pos` was measured at 0
+                violations at 390/768/1440. `h-9` is 36px — this box was ADDED at 36 after that
+                measurement, so the count was 0 only because nobody re-measured. `Input`'s own
+                base is `h-8`; the class here is what decides, and twMerge lets it win.
+              */
+              className="h-11 max-w-56"
+            />
+
+            {/* My Orders / All Branch — permission-gated, never a disabled control (UI-SPEC §1) */}
+            <PermissionGuard require={ALL_BRANCH_PERMISSION}>
+              <div className="flex items-center gap-1 rounded-full border p-1 text-label">
+                <button
+                  type="button"
+                  onClick={() => setViewAll(false)}
+                  data-testid="toggle-my-orders"
+                  className={cn(
+                    "rounded-full px-3 py-1.5 font-medium transition-colors",
+                    !viewAll
+                      ? "bg-primary-solid text-primary-solid-foreground"
+                      : "text-foreground-secondary",
+                  )}
+                >
+                  My Orders
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewAll(true)}
+                  data-testid="toggle-all-branch"
+                  className={cn(
+                    "rounded-full px-3 py-1.5 font-medium transition-colors",
+                    viewAll
+                      ? "bg-primary-solid text-primary-solid-foreground"
+                      : "text-foreground-secondary",
+                  )}
+                >
+                  All Branch
+                </button>
+              </div>
+            </PermissionGuard>
+
+            {/* Manual Refresh (POS-21) — re-fetches the summaries list on demand; a
+                subtle spin while `isFetching` (initial load OR this click) without
+                disturbing the fade-out-list invariant above. */}
+            <button
+              type="button"
+              onClick={() => void refetch()}
+              disabled={isFetching}
+              data-testid="order-management-refresh"
+              aria-label="Refresh orders"
+              /*
+                `min-h-11` (44px), not `min-h-9` (36px) — same §9.2 floor as the status chips
+                below, which were raised to `min-h-11` in the very same change that moved this
+                button up here and left it at 36.
+              */
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 py-2 text-label font-medium text-foreground-secondary transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RefreshCw
+                className={cn("size-3.5", isFetching && "animate-spin")}
+                aria-hidden="true"
+              />
+              Refresh
+            </button>
+          </div>
+        }
+      >
         {/* Status filter chips — reuses menu-grid.tsx's category-pill visual pattern */}
-        <div className="flex flex-wrap gap-2">
+        <div
+          role="group"
+          aria-label="Filter orders by status"
+          className="flex flex-wrap gap-(--space-sm)"
+        >
           {STATUS_FILTERS.map((f) => (
             <button
               key={f.id}
               type="button"
+              aria-pressed={statusFilter === f.id}
               onClick={() => setStatusFilter(f.id)}
               data-testid={`status-filter-${f.id}`}
               className={cn(
-                "rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                "min-h-11 rounded-full px-4 py-2 text-small font-medium transition-colors",
                 statusFilter === f.id
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80",
+                  ? "bg-primary-solid text-primary-solid-foreground"
+                  : "bg-surface-2 text-foreground-secondary hover:bg-surface-3",
               )}
             >
               {f.label}
             </button>
           ))}
         </div>
+      </FilterBar>
 
-        {/*
-          S0-04. The chip row cannot silently mean something narrower than it says. "Active"
-          shows live orders only; the register found a voided check appearing under NONE of the
-          chips, and the honest fix is both to add the chips that can find it AND to say on the
-          screen where it went, in the one place someone is looking when they cannot find it.
-        */}
-        <p
-          data-testid="order-scope-note"
-          className="w-full text-xs text-muted-foreground"
-          aria-live="polite"
-        >
-          {serverScopedFilter ? SCOPE_NOTE[serverScopedFilter] : ACTIVE_SCOPE_NOTE}
-        </p>
-
-        {/*
-          Search box. S0-05: this asks the SERVER, which searches order number, table name and
-          the attached customer's phone/name across EVERY status and every page — so a check
-          you have just voided is found by typing its number, with no chip to switch first.
-          It used to be a substring filter over the rows already on screen, which could not
-          reach a voided order, a closed one, or anything past the first page.
-        */}
-        <Input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search order #, table or phone…"
-          aria-label="Search orders"
-          data-testid="order-management-search"
-          className="h-9 max-w-56"
-        />
-
-        <div className="flex items-center gap-2">
-          {/* My Orders / All Branch — permission-gated, never a disabled control (UI-SPEC §1) */}
-          <PermissionGuard require={ALL_BRANCH_PERMISSION}>
-            <div className="flex items-center gap-1 rounded-full border p-1 text-xs">
-              <button
-                type="button"
-                onClick={() => setViewAll(false)}
-                data-testid="toggle-my-orders"
-                className={cn(
-                  "rounded-full px-3 py-1.5 font-medium transition-colors",
-                  !viewAll ? "bg-primary text-primary-foreground" : "text-muted-foreground",
-                )}
-              >
-                My Orders
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewAll(true)}
-                data-testid="toggle-all-branch"
-                className={cn(
-                  "rounded-full px-3 py-1.5 font-medium transition-colors",
-                  viewAll ? "bg-primary text-primary-foreground" : "text-muted-foreground",
-                )}
-              >
-                All Branch
-              </button>
-            </div>
-          </PermissionGuard>
-
-          {/* Manual Refresh (POS-21) — re-fetches the summaries list on demand; a
-              subtle spin while `isFetching` (initial load OR this click) without
-              disturbing the fade-out-list invariant above. */}
-          <button
-            type="button"
-            onClick={() => void refetch()}
-            disabled={isFetching}
-            data-testid="order-management-refresh"
-            aria-label="Refresh orders"
-            className="inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <RefreshCw
-              className={cn("size-3.5", isFetching && "animate-spin")}
-              aria-hidden="true"
-            />
-            Refresh
-          </button>
-        </div>
-      </div>
+      {/*
+        S0-04. The chip row cannot silently mean something narrower than it says. "Active"
+        shows live orders only; the register found a voided check appearing under NONE of the
+        chips, and the honest fix is both to add the chips that can find it AND to say on the
+        screen where it went, in the one place someone is looking when they cannot find it.
+      */}
+      <p
+        data-testid="order-scope-note"
+        className="w-full text-label text-foreground-secondary"
+        aria-live="polite"
+      >
+        {serverScopedFilter ? SCOPE_NOTE[serverScopedFilter] : ACTIVE_SCOPE_NOTE}
+      </p>
 
       {/*
         S0-05 — what the rows on screen actually are while a search is running. Two honest
@@ -715,12 +1046,19 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
       {isSearching && (
         <p
           data-testid="order-search-scope-note"
-          className="text-xs text-muted-foreground"
+          className="text-label text-foreground-secondary"
           aria-live="polite"
         >
           {`Searching every order — live, closed, voided and refunded — for “${debouncedSearch}”.`}
+          {/*
+            "Listing", not "Showing". 38-06 put this list on `DataGrid`, which pages at 25 — so
+            of a hundred fetched matches only twenty-five are on screen at once, and the older
+            word would have been the third number on this screen making a claim the grid does not
+            back. `listed` is the same word the stat line above uses for the same quantity, and
+            the grid's own `Page N of M · 100 rows` line says how it is divided up.
+          */}
           {searchTruncated
-            ? ` Showing the first ${filtered.length} of ${searchTotal} matches; narrow the search to see the rest.`
+            ? ` Listing the first ${filtered.length} of ${searchTotal} matches; narrow the search to see the rest.`
             : ""}
         </p>
       )}
@@ -769,6 +1107,30 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
                   : undefined
               }
             />
+          ) : facetsNarrowing ? (
+            /*
+             * The facet filters — order type, payment status, "everyone's orders" — narrow the
+             * list CLIENT-side, after the status chip has chosen the source. Emptying it that way
+             * fell through to "No active orders" below, which is a claim about the RESTAURANT
+             * made by three controls the cashier set themselves: a manager who filtered to
+             * Delivery + Unpaid during a dine-in-only lunch was told the floor was clear.
+             *
+             * `[Clear all]` rather than "Go to POS" (UI-SPEC §8.3): the next useful action is
+             * widening the view, not opening a new check. Offering the create CTA here is how a
+             * duplicate order gets rung up for a table that already has one.
+             */
+            <EmptyState
+              title="No orders match these filters"
+              description="There are open orders — none of them match the type, payment or ownership you have selected."
+              action={{
+                label: "Clear all",
+                onClick: () => {
+                  setTypeFilter("");
+                  setPaymentFilter("");
+                  setViewAll(true);
+                },
+              }}
+            />
           ) : (
             <EmptyState
               title="No active orders"
@@ -780,11 +1142,33 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
             />
           )
         ) : (
-          <DataTable
+          /*
+            The shared grid (UI-SPEC §7). What this buys over the `DataTable` it replaces, on
+            THIS screen: a sticky header (measured `static` on 12 of 12 tables product-wide, so
+            scrolling past row 12 lost every column meaning), one 44px row height instead of the
+            audit's 65-81px pair, and pagination — the search page fetches up to 100 rows and
+            used to render all of them in one ungated list.
+
+            No `card` renderer is passed, deliberately: DataGrid keeps BOTH branches in the DOM
+            and lets CSS pick, so a card list duplicates every row's text. That is correct on a
+            back-office route and is recorded as owed here rather than taken silently — see the
+            38-06 report.
+
+            No `bulkActions`/`getRowId` either: row selection without a bulk operation is a
+            control that cannot do anything, and pos-service exposes no bulk order endpoint.
+          */
+          <DataGrid
             columns={columns}
             data={filtered}
             isLoading={isLoading}
-            emptyMessage={
+            density="comfortable"
+            pageSize={25}
+            label="Orders"
+            /* No `isFiltered`/`onClearFilters`: `showEmptyState` above short-circuits on
+               `filtered.length === 0`, so this grid's own empty branch is unreachable. The
+               filtered-empty states live up there, where they can name WHICH filter emptied the
+               list. */
+            emptyTitle={
               isSearching
                 ? "No orders match that search"
                 : serverScopedFilter
@@ -857,7 +1241,7 @@ function SettlementDetailCell({ order }: { order: OrderSummary }) {
               title={recordedReason}
               aria-label={`Read the full reason for order ${order.orderNo ?? order.orderId}`}
               data-testid={`settlement-reason-${order.orderId}`}
-              className="min-w-0 truncate text-left text-sm underline decoration-dotted underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="min-w-0 truncate text-left text-small underline decoration-dotted underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               {recordedReason}
             </button>
@@ -867,16 +1251,16 @@ function SettlementDetailCell({ order }: { order: OrderSummary }) {
             className="w-80"
             data-testid={`settlement-reason-full-${order.orderId}`}
           >
-            <p className="text-sm break-words whitespace-normal">{recordedReason}</p>
-            <p className="mt-2 text-xs break-words whitespace-normal text-muted-foreground">
+            <p className="text-small break-words whitespace-normal">{recordedReason}</p>
+            <p className="mt-2 text-label break-words whitespace-normal text-foreground-secondary">
               {byline}
             </p>
           </PopoverContent>
         </Popover>
       ) : (
-        <span className="truncate text-sm text-muted-foreground">{reason}</span>
+        <span className="truncate text-small text-foreground-secondary">{reason}</span>
       )}
-      <span className="truncate text-xs text-muted-foreground" title={byline}>
+      <span className="truncate text-label text-foreground-secondary" title={byline}>
         {byline}
       </span>
     </div>
@@ -927,7 +1311,7 @@ function AssignTableAction({ orderId }: AssignTableActionProps) {
       onClick={() => setOpen(true)}
       disabled={assignTable.isPending}
       data-testid={`assign-table-${orderId}`}
-      className="text-xs font-medium text-primary underline disabled:cursor-not-allowed disabled:opacity-50"
+      className="text-label font-medium text-primary underline disabled:cursor-not-allowed disabled:opacity-50"
     >
       Assign Table
     </button>
@@ -971,7 +1355,7 @@ function CancelDraftAction({ orderId }: CancelDraftActionProps) {
           onClick={() => void handleCancel()}
           disabled={voidOrder.isPending}
           data-testid={`cancel-draft-confirm-${orderId}`}
-          className="text-xs font-medium text-destructive underline disabled:opacity-50"
+          className="text-label font-medium text-destructive underline disabled:opacity-50"
         >
           {voidOrder.isPending ? "Cancelling…" : "Confirm"}
         </button>
@@ -979,7 +1363,7 @@ function CancelDraftAction({ orderId }: CancelDraftActionProps) {
           type="button"
           onClick={() => setConfirming(false)}
           disabled={voidOrder.isPending}
-          className="text-xs text-muted-foreground underline"
+          className="text-label text-foreground-secondary underline"
         >
           Keep
         </button>
@@ -992,7 +1376,7 @@ function CancelDraftAction({ orderId }: CancelDraftActionProps) {
       type="button"
       onClick={() => setConfirming(true)}
       data-testid={`cancel-draft-${orderId}`}
-      className="text-xs font-medium text-destructive underline"
+      className="text-label font-medium text-destructive underline"
     >
       Cancel
     </button>

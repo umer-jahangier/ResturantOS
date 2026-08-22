@@ -287,7 +287,7 @@ export function IngredientFormDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="md:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit ingredient" : "Add ingredient"}</DialogTitle>
           <DialogDescription>
@@ -301,7 +301,7 @@ export function IngredientFormDialog({
             <form
               id="ingredient-form"
               onSubmit={form.handleSubmit(onSubmit)}
-              className="grid max-h-[65vh] gap-6 overflow-y-auto"
+              className="grid max-h-[65dvh] gap-6 overflow-y-auto"
               noValidate
             >
               {/* General */}
@@ -310,12 +310,12 @@ export function IngredientFormDialog({
                   invisible on the fields that genuinely need it. */}
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold">General</h3>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="name"
                     render={({ field }) => (
-                      <FormItem className="sm:col-span-2">
+                      <FormItem className="md:col-span-2">
                         <FormLabel>Name</FormLabel>
                         <FormControl>
                           <Input placeholder="Chicken" {...field} />
@@ -429,7 +429,7 @@ export function IngredientFormDialog({
                       control={form.control}
                       name="producedByRecipeId"
                       render={({ field }) => (
-                        <FormItem className="sm:col-span-2">
+                        <FormItem className="md:col-span-2">
                           <FieldLabel help="The recipe your kitchen follows to make this item.">
                             Produced by recipe
                           </FieldLabel>
@@ -462,7 +462,7 @@ export function IngredientFormDialog({
                     control={form.control}
                     name="description"
                     render={({ field }) => (
-                      <FormItem className="sm:col-span-2">
+                      <FormItem className="md:col-span-2">
                         <FormLabel>Description</FormLabel>
                         <FormControl>
                           <Input placeholder="Optional" {...field} />
@@ -477,7 +477,7 @@ export function IngredientFormDialog({
               {/* Units */}
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold">Units</h3>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="measureType"
@@ -708,7 +708,7 @@ export function IngredientFormDialog({
               {/* Stock */}
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold">Stock</h3>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="parLevel"

@@ -1,37 +1,42 @@
 "use client";
 
-import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/ui/empty-state";
-import { MoneyDisplay } from "@/components/ui/money-display";
-import type { ReportResult } from "@/lib/models/reporting.model";
+import * as React from "react";
 
-const NULLABLE_MONEY_COLUMNS = new Set(["cogs_paisa", "gross_margin_paisa"]);
-
-/** Money columns are anything ending `_paisa` (the ClickHouse column-alias convention). */
-function isMoneyColumn(column: string): boolean {
-  return column.endsWith("_paisa");
-}
-
-function formatLabel(column: string): string {
-  return column
-    .split("_")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-}
+import { DataGrid } from "@/components/ui/data-grid/data-grid";
+import { DataTableSkeleton } from "@/components/skeletons/data-table-skeleton";
+import { ReportDataNotes } from "@/components/reporting/ReportDataNotes";
+import { reportCardRenderers, reportColumns } from "@/components/reporting/report-cells";
+import type { ReportResult, ReportRow } from "@/lib/models/reporting.model";
 
 /**
- * A `null` cell renders as an em-dash — NEVER as 0, never as blank. A user seeing `0` margin
- * would reasonably conclude the business is selling at cost; that is worse than showing nothing.
+ * A report result, as the product's one enterprise grid.
+ *
+ * <h3>What changed and why</h3>
+ *
+ * This used to hand-roll a `<table>` — sticky-less headers, no pagination, no row-selection, and
+ * a desktop layout dropped unchanged onto a 390px phone. It is now `DataGrid`, which is the
+ * single sanctioned table in the product (gate G4), so a report inherits sticky column headers,
+ * one row height, 25/50/100 paging with a reconciling row count, and a card list below `md`
+ * instead of a sideways scroll. The cell conventions moved to
+ * `components/reporting/report-cells.tsx`, which `NlqResultPanel` now shares — the two files used
+ * to carry byte-identical private copies of `isMoneyColumn`/`formatLabel`/`renderCell`.
+ *
+ * <h3>The hardcoded caveat is GONE</h3>
+ *
+ * The previous version, when a result carried `cogs_paisa`/`gross_margin_paisa` and the server
+ * sent no `dataNotes`, supplied its own sentence: *"COGS and margin require Inventory (Phase 8)
+ * and are not yet available."* That is a frontend copy of a string the backend owns and is
+ * currently revising, and it made the UI assert a REASON it does not know — it knows the column
+ * is null, which the em-dash already says honestly. {@link ReportDataNotes} now renders exactly
+ * what the API sent and nothing when it sent nothing.
+ *
+ * <h3>Empty is a state, not a blank</h3>
+ *
+ * `result === undefined` renders `null` only because the caller — the run page — wraps this in a
+ * `QueryBoundary` that owns the error, loading and unknown-code states. That division is
+ * deliberate and is what F15 was about: this component genuinely cannot tell a 503 from a report
+ * that has not been asked to run, so it is not allowed to draw a conclusion about either.
  */
-function renderCell(column: string, value: unknown) {
-  if (value === null || value === undefined) {
-    return <span aria-label={`${formatLabel(column)} not available`}>—</span>;
-  }
-  if (isMoneyColumn(column) && (typeof value === "number" || typeof value === "bigint")) {
-    return <MoneyDisplay paisa={value} />;
-  }
-  return <span>{String(value)}</span>;
-}
 
 interface ReportTableProps {
   result: ReportResult | undefined;
@@ -39,76 +44,30 @@ interface ReportTableProps {
 }
 
 export function ReportTable({ result, isLoading }: ReportTableProps) {
-  if (isLoading) {
-    return (
-      <div className="w-full overflow-hidden rounded-lg border border-border">
-        <div className="flex items-center gap-4 border-b border-border bg-muted/40 px-4 py-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-4 w-24" />
-          ))}
-        </div>
-        {Array.from({ length: 6 }).map((_, rowIndex) => (
-          <div
-            key={rowIndex}
-            className="flex items-center gap-4 border-b border-border px-4 py-3 last:border-0"
-          >
-            {Array.from({ length: 5 }).map((_, colIndex) => (
-              <Skeleton key={colIndex} className="h-4 w-24" />
-            ))}
-          </div>
-        ))}
-      </div>
-    );
-  }
+  const columnNames = result?.columns;
+  const columns = React.useMemo(() => reportColumns<ReportRow>(columnNames ?? []), [columnNames]);
+  const card = React.useMemo(
+    () => reportCardRenderers<ReportRow>(columnNames ?? []),
+    [columnNames],
+  );
 
-  if (!result) {
-    return null;
-  }
-
-  const hasNullableCogs = result.columns.some((c) => NULLABLE_MONEY_COLUMNS.has(c));
-
-  if (result.rows.length === 0) {
-    return (
-      <EmptyState
-        title="No data for this period"
-        description="Try a wider date range or a different branch."
-      />
-    );
-  }
+  if (isLoading) return <DataTableSkeleton columns={columnNames?.length ?? 5} />;
+  if (!result) return null;
 
   return (
-    <div className="space-y-3">
-      {(hasNullableCogs || result.dataNotes.length > 0) && (
-        <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-          {result.dataNotes.length > 0
-            ? result.dataNotes.join(" ")
-            : "COGS and margin require Inventory (Phase 8) and are not yet available."}
-        </div>
-      )}
-      <div className="w-full overflow-x-auto rounded-lg border border-border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/40">
-              {result.columns.map((column) => (
-                <th key={column} className="px-4 py-3 text-left font-medium text-muted-foreground">
-                  {formatLabel(column)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {result.rows.map((row, idx) => (
-              <tr key={idx} className="border-b border-border last:border-0">
-                {result.columns.map((column) => (
-                  <td key={column} className="px-4 py-3 tabular-nums">
-                    {renderCell(column, row[column])}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div className="space-y-(--space-md)">
+      {/* Above the grid, not below it: a caveat a reader meets after they have finished reading
+          the numbers is a caveat that arrived too late to change how they read them. */}
+      <ReportDataNotes notes={result.dataNotes} />
+
+      <DataGrid
+        columns={columns}
+        data={result.rows}
+        card={card}
+        label={result.title}
+        emptyTitle="No data for this period"
+        emptyDescription="Try a wider date range, or a different branch."
+      />
     </div>
   );
 }

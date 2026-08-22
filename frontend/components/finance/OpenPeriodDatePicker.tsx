@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { QueryErrorNotice } from "@/components/ui/query-boundary";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useOpenPeriods } from "@/lib/hooks/finance/use-periods";
 import { formatIsoDateLong, localIsoToday } from "@/lib/utils/open-period-entry-date";
 import type { AccountingPeriod } from "@/lib/models/finance.model";
@@ -91,11 +92,12 @@ function OpenPeriodDatePicker({ value, onChange }: OpenPeriodDatePickerProps) {
 
   if (isLoading) {
     return (
-      <div
-        role="status"
-        aria-label="Loading open accounting periods"
-        className="h-64 animate-pulse rounded-md border bg-muted"
-      />
+      // `role="status"` stays on the wrapper so the wait is ANNOUNCED; the placeholder itself is
+      // the zone-aware `Skeleton` (aria-hidden by construction) rather than a hand-rolled
+      // `animate-pulse`, so the shimmer follows the zone instead of the importing file.
+      <div role="status" aria-label="Loading open accounting periods" className="rounded-md border">
+        <Skeleton className="h-64 w-full rounded-md" />
+      </div>
     );
   }
 
@@ -160,7 +162,7 @@ function OpenPeriodDatePicker({ value, onChange }: OpenPeriodDatePickerProps) {
               title={selectable ? undefined : "Not in an open accounting period"}
               className={`h-9 rounded-lg font-mono text-body tabular-nums ${
                 selected
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary-solid text-primary-solid-foreground"
                   : selectable
                     ? "hover:bg-accent"
                     : "cursor-not-allowed text-muted-foreground/40"

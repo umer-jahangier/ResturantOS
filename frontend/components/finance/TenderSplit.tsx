@@ -1,6 +1,6 @@
 "use client";
 
-import { formatPaisa } from "@/lib/adapters/shared";
+import { MoneyDisplay } from "@/components/ui/money-display";
 import type { TenderLine } from "@/lib/models/takings.model";
 
 const METHOD_LABEL: Record<string, string> = {
@@ -50,16 +50,16 @@ function label(method: string): string {
 export function TenderSplit({ lines }: { lines: TenderLine[] }) {
   if (lines.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground" data-testid="tender-split-empty">
+      <p className="text-small text-muted-foreground" data-testid="tender-split-empty">
         No payments were taken on this day.
       </p>
     );
   }
 
   return (
-    <table className="w-full text-sm" data-testid="tender-split">
+    <table className="w-full text-small" data-testid="tender-split">
       <thead>
-        <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+        <tr className="border-b text-left text-label uppercase tracking-wide text-muted-foreground">
           <th className="pb-2 font-medium">Tender</th>
           <th className="pb-2 text-right font-medium">Payments</th>
           <th
@@ -94,23 +94,23 @@ export function TenderSplit({ lines }: { lines: TenderLine[] }) {
               {line.paymentCount}
             </td>
             <td
-              className="py-2 text-right font-mono tabular-nums"
+              className="py-2 text-right"
               data-paisa={line.amountPaisa}
               data-testid={`tender-amount-${line.method}`}
             >
-              {formatPaisa(line.amountPaisa)}
+              <MoneyDisplay paisa={line.amountPaisa} />
             </td>
             {/* Same em-dash rule as the subset column: most tenders carry no tip and a Rs 0.00
                 there reads as a figure somebody worked out. When there IS one it is emphasised
                 rather than muted, because on the cash line it is the part of the drawer the
                 reader has never been shown before. */}
             <td
-              className="py-2 text-right font-mono tabular-nums"
+              className="py-2 text-right"
               data-paisa={line.tipPaisa}
               data-testid={`tender-tip-${line.method}`}
             >
               {line.tipPaisa > 0 ? (
-                <>+{formatPaisa(line.tipPaisa)}</>
+                <MoneyDisplay paisa={line.tipPaisa} sign="signed" />
               ) : (
                 <span className="text-muted-foreground" aria-label="none">
                   —
@@ -120,13 +120,13 @@ export function TenderSplit({ lines }: { lines: TenderLine[] }) {
             {/* An em dash, not "Rs 0.00": nothing outstanding is the ordinary state of a settled
                 line, and a zero in a money column reads as a figure somebody computed. */}
             <td
-              className="py-2 text-right font-mono tabular-nums text-muted-foreground"
+              className="py-2 text-right text-muted-foreground"
               data-paisa={line.unclosedAmountPaisa}
               data-testid={`tender-unclosed-${line.method}`}
             >
               {line.unclosedAmountPaisa > 0 ? (
                 <>
-                  {formatPaisa(line.unclosedAmountPaisa)}
+                  <MoneyDisplay paisa={line.unclosedAmountPaisa} />
                   <span className="ml-1 text-label">({line.unclosedPaymentCount})</span>
                 </>
               ) : (

@@ -97,7 +97,7 @@ export function ArSettlementDialog({ account, trigger }: ArSettlementDialogProps
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="md:max-w-md">
         <DialogHeader>
           <DialogTitle>Settle {account.name}</DialogTitle>
           <DialogDescription>Posts DR Bank / CR Accounts Receivable.</DialogDescription>

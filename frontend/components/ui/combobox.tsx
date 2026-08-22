@@ -120,11 +120,18 @@ function Combobox({
       </PopoverTrigger>
       <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
         <Command shouldFilter={false}>
+          {/*
+            No `outline-none` here: it sits in the `utilities` layer and beats the `:focus-visible`
+            rule in `base`, so it was silently deleting this field's only focus indicator — the
+            demo's exact failure (D-38-15, "outline:none on inputs with no replacement"). The
+            offset is negative because `Command`'s surface is `overflow-hidden` and a `+2px`
+            outline would be clipped away. See `command-palette.tsx` for the full note.
+          */}
           <Command.Input
             value={query}
             onValueChange={setQuery}
             placeholder={placeholder}
-            className="h-9 w-full border-b border-border px-3 text-sm outline-none placeholder:text-muted-foreground"
+            className="h-9 w-full border-b border-border px-3 text-sm focus-visible:outline-offset-[-2px] placeholder:text-muted-foreground"
           />
           {/* Filtering a listbox announces nothing on its own. Without this a screen-reader user
               cannot tell 4 results from 0. */}

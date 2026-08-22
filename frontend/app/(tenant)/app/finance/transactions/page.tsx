@@ -1,19 +1,18 @@
 "use client";
 
 import { TransactionRegister } from "@/components/finance/TransactionRegister";
+import { PageBody } from "@/components/ui/page-body";
+import { PageHeader } from "@/components/ui/page-header";
 
 // URL: /app/finance/transactions
 export default function TransactionsPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Transactions</h1>
-        <p className="text-sm text-muted-foreground">
-          Every payment, refund and void. Open any row to see the order behind it and the accounting
-          entries it produced.
-        </p>
-      </div>
+    <PageBody className="space-y-(--space-lg)">
+      <PageHeader
+        title="Transactions"
+        description="Every payment, refund and void. Open any row to see the order behind it and the accounting entries it produced."
+      />
       <TransactionRegister />
-    </div>
+    </PageBody>
   );
 }

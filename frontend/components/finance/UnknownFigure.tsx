@@ -1,6 +1,6 @@
 "use client";
 
-import { formatPaisa } from "@/lib/adapters/shared";
+import { MoneyDisplay } from "@/components/ui/money-display";
 import { isKnown, type MoneyFigure } from "@/lib/models/takings.model";
 import { cn } from "@/lib/utils";
 
@@ -51,13 +51,13 @@ export function UnknownFigure({
         className,
       )}
     >
-      <span className="text-sm font-medium italic">{headline}</span>
+      <span className="text-small font-medium italic">{headline}</span>
       {!compact && (
         // Clamped, not truncated away: the first two lines carry the point ("comps are not recorded
         // separately"), and the whole sentence stays reachable through the tooltip and the
         // accessible label. A reason that pushes every other figure off the fold is a reason nobody
         // reads — but a reason only available on hover would fail a screen reader, hence both.
-        <span className="line-clamp-2 max-w-prose text-xs font-normal not-italic leading-snug">
+        <span className="line-clamp-2 max-w-prose text-label font-normal not-italic leading-snug">
           {figure.reason}
         </span>
       )}
@@ -91,11 +91,17 @@ export function FigureValue({
   if (!isKnown(figure)) {
     return <UnknownFigure figure={figure} className={className} compact={compact} />;
   }
-  const prefix = signed && figure.paisa > 0 ? "+" : "";
   return (
-    <span data-testid="known-figure" className={cn("tabular-nums", className)}>
-      {prefix}
-      {formatPaisa(figure.paisa)}
+    <span data-testid="known-figure">
+      {/* THE money path (38-08 task 2). This used to call `formatPaisa` straight — which is the
+          right FORMATTER but not the shared component, so this screen owned its own money markup
+          and could drift from every other one in weight, alignment and, after this plan, in how a
+          negative is written. `MoneyDisplay` is the only place any of that is decided. */}
+      <MoneyDisplay
+        paisa={figure.paisa}
+        sign={signed ? "signed" : "plain"}
+        className={cn("tabular-nums", className)}
+      />
     </span>
   );
 }

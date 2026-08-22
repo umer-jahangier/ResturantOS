@@ -10,11 +10,15 @@ import {
   useRestoreCategory,
 } from "@/lib/hooks/inventory/use-inventory";
 import type { ItemCategory, ItemCategoryNode } from "@/lib/adapters/inventory.adapter";
+import { countLine, statLine } from "@/lib/format/stat-line";
 import { CategoryTree } from "@/components/inventory/category-tree";
 import { CategoryFormDialog } from "@/components/inventory/CategoryFormDialog";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { FilterBar } from "@/components/ui/filter-bar";
+import { PageBody } from "@/components/ui/page-body";
+import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryBoundary } from "@/components/ui/query-boundary";
@@ -125,36 +129,52 @@ export default function CategoriesPage() {
     });
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Categories</h1>
-          <p className="text-sm text-muted-foreground">
-            Organize ingredients into up to three levels — categories drive default GL account
-            codes.
-          </p>
-        </div>
-        <PermissionGuard require="inventory.item.manage">
-          <Button type="button" onClick={() => openCreate(null)}>
-            Add category
-          </Button>
-        </PermissionGuard>
-      </div>
+  // Derived from the SAME tree the CategoryTree renders below, so the subtitle cannot state a
+  // taxonomy size the screen is not showing.
+  const ingredientTotal = flat.reduce((sum, n) => sum + n.category.ingredientCount, 0);
+  const archivedCount = flat.filter((n) => n.category.archivedAt != null).length;
 
-      {/* Archived categories still reserve their name (creating a new one with the same name is
-          refused), so without this a manager can be told a name "already exists" while looking
-          at a screen that shows nothing with that name — this is the only way to see, and
-          restore, the category actually holding it. */}
-      <label className="flex w-fit items-center gap-2 text-sm text-muted-foreground">
-        <input
-          type="checkbox"
-          checked={showArchived}
-          onChange={(e) => setShowArchived(e.target.checked)}
-          className="size-4 rounded border-input"
-        />
-        Show archived
-      </label>
+  return (
+    <PageBody className="space-y-(--space-lg)">
+      <PageHeader
+        title="Categories"
+        description="Organize ingredients into up to three levels — categories drive default GL account codes."
+        meta={statLine(
+          countLine(flat.length, "category", "categories"),
+          countLine(ingredientTotal, "ingredient"),
+          archivedCount > 0 ? `${archivedCount} archived` : null,
+        )}
+        actions={
+          <PermissionGuard require="inventory.item.manage">
+            <Button type="button" onClick={() => openCreate(null)}>
+              Add category
+            </Button>
+          </PermissionGuard>
+        }
+      />
+
+      <FilterBar
+        title="Category tree"
+        // The tree is not a filterable list — it is a hierarchy, and hiding a parent would orphan
+        // its children on screen. The one control it has is the archived toggle, which is a
+        // scope switch rather than a filter, so it is declared through `extraActiveCount`.
+        extraActiveCount={showArchived ? 1 : 0}
+        onClearAll={() => setShowArchived(false)}
+      >
+        {/* Archived categories still reserve their name (creating a new one with the same name is
+            refused), so without this a manager can be told a name "already exists" while looking
+            at a screen that shows nothing with that name — this is the only way to see, and
+            restore, the category actually holding it. */}
+        <label className="flex min-h-11 w-fit items-center gap-2 text-small text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={(e) => setShowArchived(e.target.checked)}
+            className="size-4 rounded-sm border-input"
+          />
+          Show archived
+        </label>
+      </FilterBar>
 
       <QueryBoundary
         query={treeQuery}
@@ -228,6 +248,6 @@ export default function CategoriesPage() {
         onConfirm={handleConfirmArchive}
         isPending={archiveCategory.isPending}
       />
-    </div>
+    </PageBody>
   );
 }

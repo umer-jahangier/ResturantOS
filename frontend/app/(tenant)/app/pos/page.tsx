@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { FeatureGuard } from "@/components/shared/feature-guard";
 import { PermissionGuard } from "@/components/shared/permission-guard";
+import { PageBody } from "@/components/ui/page-body";
 import { PosTerminal } from "@/components/pos/pos-terminal";
 import { TableFloorView } from "@/components/pos/table-floor-view";
 import type { FullMenuTarget } from "@/components/pos/order-table-detail-drawer";
@@ -88,7 +89,18 @@ export default function PosPage() {
           </div>
         }
       >
-        <div className="flex flex-col h-full">
+        {/*
+          Full-bleed (UI-SPEC §5, D-38-02). `PageBody fullBleed` emits `data-page-body`, which is
+          what strips the back-office gutter off `<main>` via the `main:has([data-page-body])`
+          rule in globals.css. Without it the terminal renders inside 16-24px of chrome padding
+          it cannot decline — the audit's "dark board floating in light chrome", one screen over.
+
+          Deliberately plain: no transform, filter, backdrop-filter, perspective, will-change or
+          contain on this ancestor chain. `receipt-print.css:180` anchors the bill with
+          `position: fixed`, and any one of those on an ancestor makes it the containing block
+          for fixed descendants at print time as well as on screen.
+        */}
+        <PageBody fullBleed className="flex flex-col">
           {/*
             The page's one <h1>, and it is deliberately sr-only.
 
@@ -108,12 +120,18 @@ export default function PosPage() {
           <TillSessionBar activeTill={activeTill} readFailed={tillUnavailable} />
 
           {/* View tabs */}
-          <div className="flex items-center gap-1 px-4 pt-3 border-b bg-background shrink-0">
+          {/*
+            One scrolling row, never a wrapped block. At 390px the three labels wrapped to two
+            lines each — "POS / Terminal", "Floor / View", "Order / Management" — spending ~40px of
+            the scarcest axis on a screen where the audit already measured the first menu tile
+            pushed below the fold. A tab strip is a rail; it scrolls.
+          */}
+          <div className="flex items-center gap-1 overflow-x-auto border-b bg-background px-4 pt-3 shrink-0">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setView(tab.id)}
-                className={`min-h-11 px-4 py-2 text-pos font-medium border-b-2 transition-colors ${
+                className={`min-h-11 shrink-0 whitespace-nowrap px-4 py-2 text-pos font-medium border-b-2 transition-colors ${
                   view === tab.id
                     ? "border-primary text-primary"
                     : "border-transparent text-muted-foreground hover:text-foreground"
@@ -154,8 +172,8 @@ export default function PosPage() {
                   data-testid="pos-till-closed-notice"
                   className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center"
                 >
-                  <p className="text-base font-medium text-foreground">Your till is closed</p>
-                  <p className="max-w-sm text-sm text-muted-foreground">
+                  <p className="text-h2 font-medium text-foreground">Your till is closed</p>
+                  <p className="max-w-sm text-body text-muted-foreground">
                     Open your till from the bar above — recording the counted starting float —
                     before taking any orders. Orders can&apos;t be created without an open drawer.
                   </p>
@@ -192,7 +210,7 @@ export default function PosPage() {
               />
             )}
           </div>
-        </div>
+        </PageBody>
       </PermissionGuard>
     </FeatureGuard>
   );

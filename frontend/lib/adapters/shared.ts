@@ -1,6 +1,8 @@
 // Cross-domain adapter helpers (§7.2.5). Money is stored as integer paisa on the
 // wire and must NEVER be divided by 100 in a component — always go through here.
 
+import { PLATFORM_LOCALE } from "@/lib/format/locale";
+
 export interface Money {
   /** Raw integer amount in paisa (1 PKR = 100 paisa). */
   paisa: number;
@@ -24,10 +26,15 @@ const NON_BREAKING_SPACE = " ";
 /**
  * THE one construction of a currency-styled platform formatter in the frontend tree. Everything
  * else — including the cache's value type — is derived from it, so there is no second place where
- * a locale, a currency or a fraction-digit setting could be chosen differently.
+ * a currency or a fraction-digit setting could be chosen differently.
+ *
+ * <p>The LOCALE is no longer decided here either. It was typed out as `"en-PK"` in this function
+ * and, independently, in `components/ui/meter.tsx` — two strings that agreed by luck while every
+ * unpinned `toLocaleString()` in the product disagreed by omission. It now arrives from
+ * `lib/format/locale.ts`, which is the single literal the whole tree reads.
  */
 function makeCurrencyFormatter(currency: string, maxFractionDigits: number) {
-  return new Intl.NumberFormat("en-PK", {
+  return new Intl.NumberFormat(PLATFORM_LOCALE, {
     style: "currency",
     currency,
     minimumFractionDigits: 2,

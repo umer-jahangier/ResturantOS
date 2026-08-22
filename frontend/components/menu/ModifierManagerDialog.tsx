@@ -151,7 +151,7 @@ export function ModifierManagerDialog({ item, onOpenChange }: ModifierManagerDia
           </DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
+        <div className="max-h-[60dvh] space-y-4 overflow-y-auto pr-1">
           {groupsQuery.isError ? (
             <QueryErrorNotice
               what="this dish's option groups"

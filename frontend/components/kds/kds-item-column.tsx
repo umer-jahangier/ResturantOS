@@ -15,6 +15,36 @@ import { cn } from "@/lib/utils";
 
 export type KdsColumnKey = "NEW" | "STARTED" | "PREPARING" | "READY";
 
+/**
+ * NEW · STARTED · PREPARING · READY.
+ *
+ * <h3>Why this is NOT UI-SPEC §9.3's "NEW · PREPARING · READY · COMPLETED", and what it would take</h3>
+ *
+ * Recorded here rather than only in a report, because the next reader will otherwise compare the
+ * two lists, assume drift, and "fix" it.
+ *
+ * These four are not labels over a layout. Each one IS a kitchen-service item status, and the set
+ * is fixed by `validateTransition` on the server: `PENDING → ACCEPTED → PREPARING/COOKING →
+ * READY`. Adopting the spec's four means two separate product changes, neither of them a UI one:
+ *
+ *   1. **Merging ACCEPTED into PREPARING** deletes a bump step. A cook currently bumps a line
+ *      three times and the card MOVES all three times, which is the entire feedback loop of a
+ *      bump bar. Merged, the first bump would leave the card exactly where it was — the cook
+ *      would read that as "the key did nothing" and press it again, and the second press would
+ *      send the dish to READY uncooked. The API would still accept and record the ACCEPTED
+ *      transition, so the board would also be showing a state the server does not agree with.
+ *   2. **A COMPLETED column has no data behind it.** `useKdsTickets` reads the server's
+ *      `PENDING,COOKING,READY` filter, and `isBoardTicket` drops SERVED / CANCELLED / CLEARED on
+ *      purpose — a finished check is not the kitchen's work any more. A COMPLETED column would
+ *      therefore be permanently empty while occupying a quarter of a board read at two metres,
+ *      which is worse than not having it. Completed work already has a surface:
+ *      `/app/kitchen/[stationCode]/cleared`.
+ *
+ * 38-05's own "Out of scope" section says "ticket routing logic", and the phase's binding rule is
+ * that API contracts are preserved exactly. So the columns stay as the statuses are, and the
+ * spec's row is a request for a kitchen-service change — a terminal per-item state, and a
+ * decision about whether ACCEPTED earns its own stage — not something a screen plan may invent.
+ */
 export const KDS_COLUMN_ORDER: readonly KdsColumnKey[] = ["NEW", "STARTED", "PREPARING", "READY"];
 
 export const KDS_COLUMN_LABELS: Record<KdsColumnKey, string> = {
@@ -219,12 +249,57 @@ export function KdsItemColumn({
                      * ran against the station picker instead and passed on a screen with no
                      * tickets on it. Found 2026-08-12 by adding a board anchor.
                      *
-                     * The collapse transition below STAYS. It is feedback for an action the
-                     * cook just took — a bump — not decoration on arrival, and it is already
-                     * `motion-safe:` scoped so a reduced-motion user gets `hidden` instead.
+                     * The collapse transition below STAYS, and 38-05 was asked to say why rather
+                     * than to keep or drop it quietly. The reasoning, in full:
+                     *
+                     * **It is not what the gate is for.** "0 running animations on the board"
+                     * exists to stop AMBIENT motion — an entrance fade per ticket on arrival, an
+                     * attention loop on a late card, a page transition the shell applies to every
+                     * route. All of those run without anyone asking, on a screen read at two
+                     * metres, and they cost a cook their place on the board. This runs only in
+                     * the 400ms after the cook themself pressed `F`, and it is the only signal
+                     * that an OPTIMISTIC bump landed — the mutation is still in flight, the card
+                     * is still in the DOM, and without the collapse a successful bump and a dead
+                     * key are the same picture. UI-SPEC §7.2 names it as the one permitted
+                     * animation for exactly that reason.
+                     *
+                     * **So it is a sanctioned exception, not a gate hole** — but only if the gate
+                     * can tell the two apart without a stopwatch, and only if the exception
+                     * cannot quietly grow. Both are now true:
+                     *
+                     *   - the element carries `data-collapsing="true"` for the whole window, so a
+                     *     gate that samples mid-bump excludes it by SELECTOR rather than by
+                     *     hoping to sample at rest. At rest there is no such element and the
+                     *     count is 0, unconditionally.
+                     *
+                     *     TRUE AS OF 38-13, and it was not true when it was written. The
+                     *     attribute was here; no gate anywhere referenced it. `grep -rn
+                     *     data-collapsing __tests__ e2e` returned nothing — a fence that
+                     *     existed only in this paragraph. It is real now:
+                     *     `reduced-motion.spec.ts` filters on it and
+                     *     `kds-operational-stillness.test.ts` fences the class list.
+                     *
+                     *     38-13 also found the gate could never have gone red for this in the
+                     *     first place: it read `getComputedStyle(el).animationName`, and a
+                     *     TRANSITION has no animation-name — only `@keyframes` do. So it saw
+                     *     no transition anywhere on this board, sanctioned or not. That is a
+                     *     bigger hole than the one this exception was suspected of being, and
+                     *     it is why the gate now reads `getAnimations()`.
+                     *   - `transition-all` became `transition-opacity`. `all` was an open door:
+                     *     it transitions every animatable property, so the day someone adds a
+                     *     `transform` or a `filter` to a collapsing card the exception silently
+                     *     widens into precisely the compositing motion D-38-04 forbids, and the
+                     *     gate would be arguing about a property nobody chose to animate. It
+                     *     also over-promised — `height: auto → 1px` is not interpolable, so the
+                     *     geometry never transitioned in the first place; the card has always
+                     *     snapped out of the way and faded. Naming `opacity` is what actually
+                     *     happens, with the door shut. Same 400ms, same rendered result.
+                     *
+                     * Still `motion-safe:`, so a cook who has asked their OS for reduced motion
+                     * gets `hidden` and no transition at all.
                      */
                     isCollapsing &&
-                      "pointer-events-none motion-safe:h-px motion-safe:overflow-hidden motion-safe:opacity-0 motion-safe:transition-all motion-safe:duration-400 motion-reduce:hidden",
+                      "pointer-events-none motion-safe:h-px motion-safe:overflow-hidden motion-safe:opacity-0 motion-safe:transition-opacity motion-safe:duration-400 motion-reduce:hidden",
                   )}
                 >
                   <button

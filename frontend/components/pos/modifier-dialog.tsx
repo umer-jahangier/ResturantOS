@@ -158,7 +158,7 @@ export function ModifierDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-[55vh] space-y-4 overflow-y-auto pr-1">
+        <div className="max-h-[55dvh] space-y-4 overflow-y-auto pr-1">
           {isError ? (
             <QueryErrorNotice
               what="this dish's options"
@@ -201,7 +201,7 @@ export function ModifierDialog({
                     </span>
                   </legend>
 
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                     {group.options.map((option) => {
                       const on = chosen.includes(option.id);
                       return (

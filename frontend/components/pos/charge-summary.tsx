@@ -19,8 +19,9 @@ import {
   type PaymentMethod,
 } from "@/lib/models/pos.model";
 import { formatServiceChargeRate } from "@/lib/models/service-charge.model";
-import { formatPaisa, paisaToRupeeInput, parseRupeesToPaisa } from "@/lib/adapters/shared";
+import { paisaToRupeeInput, parseRupeesToPaisa } from "@/lib/adapters/shared";
 import { cn } from "@/lib/utils";
+import { formatDateTime } from "@/lib/format/locale";
 
 interface ChargeSummaryProps {
   orderId: string;
@@ -173,10 +174,7 @@ function newTenderRow(amountText = ""): TenderRow {
 }
 
 function formatOrderTime(value: string | null): string {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+  return formatDateTime(value, { dateStyle: "medium", timeStyle: "short" });
 }
 
 function shortId(id: string | null): string {
@@ -253,8 +251,12 @@ function getCloseErrorMessage(
  */
 export function ChargeSummary({ orderId }: ChargeSummaryProps) {
   const router = useRouter();
-  const { data: order, isLoading: orderLoading } = useOrder(orderId);
-  const { data: payments = [], isLoading: paymentsLoading } = useOrderPayments(orderId);
+  const { data: order, isLoading: orderLoading, isError: orderFailed } = useOrder(orderId);
+  const {
+    data: payments = [],
+    isLoading: paymentsLoading,
+    isError: paymentsFailed,
+  } = useOrderPayments(orderId);
   const { data: tables = [] } = useTables();
   const recordPayment = useRecordPayment(orderId);
   const sendToKds = useSendToKds(orderId);
@@ -426,6 +428,24 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
     return (
       <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
         Loading order…
+      </div>
+    );
+  }
+
+  /*
+   * Before `!order`, because `!order` renders "Order not found." — on the CHARGE screen, to a
+   * cashier holding the bill in their hand (GA-001). The check exists; the request did not
+   * answer. Told the first sentence, the operator re-rings the whole order.
+   */
+  if (orderFailed) {
+    return (
+      <div
+        role="alert"
+        data-testid="charge-order-unavailable"
+        className="m-4 flex h-64 items-center justify-center rounded-md border border-destructive/30 bg-destructive/15 p-4 text-center text-small font-medium text-destructive"
+      >
+        Couldn&apos;t read this check. It has NOT been cancelled — do not re-ring it. Try again in a
+        moment.
       </div>
     );
   }
@@ -620,6 +640,21 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
           <h2 className="text-sm font-semibold">Payment History</h2>
           {paymentsLoading ? (
             <p className="py-4 text-center text-sm text-muted-foreground">Loading payments…</p>
+          ) : paymentsFailed ? (
+            /*
+             * Checked BEFORE the empty branch, and this is the highest-stakes instance of that
+             * ordering in the product (GA-001). `data: payments = []` turned a failed read into
+             * an empty history one line later, and this panel then said "No payments yet" on a
+             * bill that had already been settled. The next thing a cashier does with that
+             * sentence is take the money again.
+             */
+            <p
+              role="alert"
+              data-testid="payments-unavailable"
+              className="rounded-md border border-destructive/30 bg-destructive/15 py-4 text-center text-small font-medium text-destructive"
+            >
+              Payment history unavailable — do not take payment until this loads.
+            </p>
           ) : payments.length === 0 ? (
             <p
               data-testid="no-payments-empty-state"
@@ -666,7 +701,15 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
                           data-paisa={payment.tipPaisa}
                           className="text-xs text-muted-foreground"
                         >
-                          Tip {formatPaisa(payment.tipPaisa)} — held for staff, not part of the bill
+                          {/*
+                            The tip amount goes through <MoneyDisplay>, not `formatPaisa`
+                            interpolated into the caption. It is a JSX child position, so the
+                            element fits with no restructuring, and the rendered text is
+                            unchanged — the e2e probes that read this node's `textContent` and
+                            its `data-paisa` see exactly what they saw before.
+                          */}
+                          Tip <MoneyDisplay paisa={payment.tipPaisa} /> — held for staff, not part
+                          of the bill
                         </span>
                       )}
                     </div>
@@ -997,7 +1040,10 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
                               aria-live="polite"
                               className="text-xs text-destructive"
                             >
-                              Tendered is {formatPaisa(reading.shortPaisa)} short of the amount.
+                              {/* Same as the tip line: a JSX child, so the element fits. The
+                                  `aria-live` announcement still reads the whole sentence. */}
+                              Tendered is <MoneyDisplay paisa={reading.shortPaisa} /> short of the
+                              amount.
                             </p>
                           )}
                         </div>
@@ -1070,7 +1116,7 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
                 className={cn(
                   "h-12 w-full rounded-xl text-sm font-semibold transition-all",
                   "disabled:cursor-not-allowed disabled:opacity-40",
-                  "bg-primary text-primary-foreground enabled:hover:bg-primary/90 enabled:active:scale-[0.98]",
+                  "bg-primary-solid text-primary-solid-foreground enabled:hover:bg-primary-solid/90 enabled:active:scale-[0.98]",
                 )}
               >
                 {recordPayment.isPending ? "Recording…" : "Record Payment"}

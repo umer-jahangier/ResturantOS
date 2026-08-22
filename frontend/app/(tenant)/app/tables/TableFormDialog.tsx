@@ -118,7 +118,7 @@ export function TableFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="md:max-w-md">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit table" : "Add table"}</DialogTitle>
           <DialogDescription>
@@ -139,7 +139,18 @@ export function TableFormDialog({
               control={form.control}
               name="tableNumber"
               render={({ field }) => (
-                <FormItem>
+                /*
+                 * `required` — the measured fix. `audit-interactions.json` recorded
+                 * `tableDialog.requiredMarked: 0`: three inputs, two of them mandatory, and
+                 * nothing on screen or in the accessibility tree said which. The only way to
+                 * find out was to press Save.
+                 *
+                 * It is declared per field rather than derived from `tableFormSchema` because
+                 * `section` is `.optional()` while `capacity` is two `.refine()`s over a string
+                 * — a schema walker would have to be right about both, and would be silently
+                 * wrong about the second. See `FormItem`'s docblock.
+                 */
+                <FormItem required>
                   <FieldLabel help="What staff call this table — a number, or a name like “Window 2”.">
                     Name or number
                   </FieldLabel>
@@ -155,7 +166,7 @@ export function TableFormDialog({
               control={form.control}
               name="capacity"
               render={({ field }) => (
-                <FormItem>
+                <FormItem required>
                   <FieldLabel help="How many people it normally seats. Used for cover counts and per-head reporting.">
                     Seats
                   </FieldLabel>

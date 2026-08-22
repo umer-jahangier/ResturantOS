@@ -5,10 +5,10 @@ import { AlertTriangle, Clock, Flame } from "lucide-react";
 import { useKdsClock } from "@/lib/hooks/kds/use-kds-clock";
 import {
   DEFAULT_ESCALATION_THRESHOLD_SECONDS,
-  formatAge,
   getAgingTreatment,
   type KdsAgingIcon,
 } from "@/components/kds/kds-aging";
+import { readElapsed } from "@/lib/format/elapsed";
 import { T_BODY, T_H2, T_KDS, T_LABEL, T_SMALL } from "@/components/kds/kds-type";
 import type { KdsTicket, KdsTicketItem } from "@/lib/models/kds.model";
 import { cn } from "@/lib/utils";
@@ -97,10 +97,23 @@ export function KdsTicketCard({
 }: KdsTicketCardProps) {
   const now = useKdsClock();
   const ageMs = now - ticket.receivedAt.getTime();
+  /*
+   * ONE reading, used for the face AND for what a screen reader hears, per `elapsed.ts`:
+   * reading the text from one function and the threshold from another is how `Oldest 113h 52m`
+   * ended up wrapped in an ACT NOW treatment.
+   *
+   * This also bounds the chip. The card's own `formatAge` ran `h:mm:ss` forever, so a ticket
+   * left on the board over a close printed `113:52:07` at the two metres this face is read
+   * from — noise, not a number. Past 24 h the chip now names the DAY the ticket was fired
+   * (`7 Aug`), which is the only question worth answering about it, and the change of text
+   * SHAPE is a colour-independent channel in its own right (D-38-13).
+   */
+  const elapsed = readElapsed(ticket.receivedAt, now);
   const displayItems = items ?? ticket.items;
   const aging = getAgingTreatment(
     ageMs,
     escalationThresholdSeconds ?? DEFAULT_ESCALATION_THRESHOLD_SECONDS,
+    now,
   );
   const AgingIcon = AGING_ICONS[aging.icon];
   const typeLabel = orderTypeLabel(ticket.orderType);
@@ -164,7 +177,7 @@ export function KdsTicketCard({
             fill={aging.state === "late" ? "currentColor" : "none"}
             strokeWidth={aging.state === "fresh" ? 2 : 2.5}
           />
-          {formatAge(ageMs)}
+          {elapsed.compact}
           {aging.chipSuffix && <span className="tracking-wider">{aging.chipSuffix}</span>}
         </span>
       </div>

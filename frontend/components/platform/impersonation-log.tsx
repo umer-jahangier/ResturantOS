@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { formatDateTime } from "@/lib/format/locale";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryBoundary } from "@/components/ui/query-boundary";
@@ -70,7 +71,7 @@ export function ImpersonationStatusBadge({ status }: { status: ImpersonationStat
 }
 
 function when(value: Date | null): string {
-  return value ? value.toLocaleString() : "—";
+  return formatDateTime(value);
 }
 
 /**
@@ -125,7 +126,7 @@ export function ImpersonationTable({
               data-testid={`impersonation-row-${row.id}`}
             >
               <th scope="row" className="px-4 py-2.5 text-left font-normal whitespace-nowrap">
-                {row.startedAt.toLocaleString()}
+                {formatDateTime(row.startedAt)}
               </th>
               {showTenant && (
                 <td className="px-4 py-2.5">

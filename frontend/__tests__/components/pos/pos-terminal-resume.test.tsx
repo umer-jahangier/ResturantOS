@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 
@@ -165,7 +165,17 @@ describe("S0-09: resuming a parked order from Full Menu", () => {
     expect(screen.getByText("Garlic Naan")).toBeInTheDocument();
 
     // The running total is the ORDER's total, to the paisa.
-    expect(screen.getByText("Rs 682.50")).toBeInTheDocument();
+    //
+    // Scoped to the order panel because 38-04 gives a phone-width terminal a persistent total bar
+    // OUTSIDE the sheet (`pos-order-summary-bar`, `lg:hidden`). jsdom has no viewport, so both
+    // render here and an unscoped `getByText` matches two nodes. Scoping keeps this assertion
+    // about the thing it was always about — the panel's own total — rather than about how many
+    // places the product happens to print it. The bar is asserted to agree, below.
+    expect(within(screen.getByTestId("order-panel")).getByText("Rs 682.50")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("pos-order-summary-bar")).getByText("Rs 682.50"),
+      "the phone summary bar and the order panel must never quote different totals for one check",
+    ).toBeInTheDocument();
 
     // And the "nothing here yet" cart empty state must NOT be what the cashier sees.
     expect(screen.queryByText("Add items to start an order")).not.toBeInTheDocument();
@@ -234,7 +244,9 @@ describe("S0-09: resuming a parked order from Full Menu", () => {
     // The new line landed on the resumed order — the panel now totals all three lines,
     // and offers to fire ONLY the new one as the next revision.
     expect(await screen.findByText("Send New Items (1)")).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText("Rs 840.00")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(within(screen.getByTestId("order-panel")).getByText("Rs 840.00")).toBeInTheDocument(),
+    );
     // Still the same check: one order number, never a second.
     expect(screen.getByText(ORDER_NO)).toBeInTheDocument();
   });

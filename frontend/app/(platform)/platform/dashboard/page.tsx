@@ -48,7 +48,7 @@ export default function PlatformDashboardPage() {
 
       <QueryBoundary query={tenants} what="the platform overview">
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             <StatTile
               icon={Building2}
               label="Tenants"
@@ -100,7 +100,7 @@ export default function PlatformDashboardPage() {
             <h2 id="by-tier-heading" className="text-lg font-semibold">
               By tier
             </h2>
-            <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <ul className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
               {(["STARTER", "GROWTH", "ENTERPRISE", "CUSTOM"] as const).map((tier) => (
                 <li
                   key={tier}

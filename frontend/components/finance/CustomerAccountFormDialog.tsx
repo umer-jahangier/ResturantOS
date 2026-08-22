@@ -148,7 +148,7 @@ export function CustomerAccountFormDialog({ trigger }: CustomerAccountFormDialog
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="md:max-w-lg">
         <DialogHeader>
           <DialogTitle>New house account</DialogTitle>
           <DialogDescription>
@@ -165,7 +165,7 @@ export function CustomerAccountFormDialog({ trigger }: CustomerAccountFormDialog
             noValidate
           >
             <div className="space-y-1.5">
-              <p className="text-sm font-medium">Customer</p>
+              <p className="text-small font-medium">Customer</p>
               <CustomerPicker
                 value={customer}
                 onChange={(c) => {
@@ -173,7 +173,7 @@ export function CustomerAccountFormDialog({ trigger }: CustomerAccountFormDialog
                   applyCustomer(form, c);
                 }}
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-label text-muted-foreground">
                 Link an existing customer so their loyalty and their account balance stay on one
                 record. Leave empty for a corporate account with no customer profile.
               </p>

@@ -47,15 +47,15 @@ export default function TaxSettingsPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="text-lg font-semibold">Tax &amp; EOBI</h1>
-          <p className="text-muted-foreground max-w-prose text-sm">
+          <h1 className="text-h2 font-semibold">Tax &amp; EOBI</h1>
+          <p className="text-muted-foreground max-w-prose text-small">
             The income-tax bands and EOBI rates payroll applies. Payroll refuses to run for a fiscal
             year that has none — it will not fall back to last year&apos;s rates, because a wrong
             payslip is worse than a refused run.
           </p>
         </div>
         <div className="w-48">
-          <label className="text-muted-foreground mb-1 block text-xs" htmlFor="fiscal-year">
+          <label className="text-muted-foreground mb-1 block text-label" htmlFor="fiscal-year">
             Fiscal year
           </label>
           <Select
@@ -71,7 +71,7 @@ export default function TaxSettingsPage() {
       </div>
 
       {current.data && !current.data.configured && fiscalYear === current.data.fiscalYear ? (
-        <div className="border-destructive/40 bg-destructive/5 rounded-lg border p-3 text-sm">
+        <div className="border-destructive/40 bg-destructive/5 rounded-lg border p-3 text-small">
           <strong>Payroll cannot run yet.</strong> FY{current.data.fiscalYear} (
           {current.data.startsOn} to {current.data.endsOn}) has no tax table in force. Fill this in
           and tick “In force”.
@@ -85,12 +85,12 @@ export default function TaxSettingsPage() {
           onRetry={() => void config.refetch()}
         />
       ) : config.isPending && fiscalYear != null && !notConfigured ? (
-        <p className="text-muted-foreground text-sm">Loading…</p>
+        <p className="text-muted-foreground text-small">Loading…</p>
       ) : fiscalYear == null ? null : (
         <PermissionGuard
           require="hr.config.manage"
           fallback={
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground text-small">
               You can see this configuration but not change it. Editing the tax table is limited to
               the owner and tenant administrators.
             </p>

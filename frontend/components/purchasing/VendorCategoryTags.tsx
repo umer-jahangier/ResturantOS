@@ -12,6 +12,8 @@ import {
 import type { VendorCategory } from "@/lib/adapters/purchasing.adapter";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { QueryErrorNotice } from "@/components/ui/query-boundary";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // The invariant caption — rendered verbatim from the UI-SPEC and the Copywriting Contract; every
 // call site (editable or read-only, empty or populated) must show this exact text so the D-01
@@ -33,7 +35,8 @@ interface VendorCategoryTagsProps {
  * It always renders, including when the tag list is empty (T-08.2-183).
  */
 export function VendorCategoryTags({ vendorId, editable, className }: VendorCategoryTagsProps) {
-  const { data: categories, isLoading } = useVendorCategories(vendorId);
+  const categoriesQuery = useVendorCategories(vendorId);
+  const { data: categories, isLoading } = categoriesQuery;
   const replaceCategories = useReplaceVendorCategories(vendorId);
 
   const [newTagName, setNewTagName] = useState("");
@@ -80,8 +83,43 @@ export function VendorCategoryTags({ vendorId, editable, className }: VendorCate
     setNewTagName("");
   }
 
+  /*
+   * Error before loading, and both before "No category tags yet." (UI-SPEC §8).
+   *
+   * The empty sentence below was rendered on a failed request as well as an empty one. On a
+   * read-only vendor page that is a buyer being told this supplier is uncategorised when the
+   * product simply could not read the list; on the editable one it is worse, because the add/
+   * remove control persists by REPLACING the whole set — so a tag added on top of a list that
+   * never loaded would have written an empty list back over the vendor's real categories.
+   *
+   * The caption is not repeated in the failure: it describes what the tags DO, and there are no
+   * tags on screen to describe.
+   */
+  if (categoriesQuery.isError) {
+    return (
+      <QueryErrorNotice
+        className={className}
+        what="this vendor's category tags"
+        moduleLabel="Purchasing"
+        error={categoriesQuery.error}
+        onRetry={() => void categoriesQuery.refetch()}
+        isRetrying={categoriesQuery.isFetching}
+      />
+    );
+  }
+
   if (isLoading) {
-    return <p className={cn("text-sm text-muted-foreground", className)}>Loading category tags…</p>;
+    return (
+      <div
+        className={cn("flex flex-wrap items-center gap-1.5", className)}
+        role="status"
+        aria-label="Loading category tags"
+      >
+        <Skeleton className="h-6 w-20 rounded-full" />
+        <Skeleton className="h-6 w-24 rounded-full" />
+        <Skeleton className="h-6 w-16 rounded-full" />
+      </div>
+    );
   }
 
   return (

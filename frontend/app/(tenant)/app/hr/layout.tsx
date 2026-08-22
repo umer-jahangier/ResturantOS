@@ -1,13 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 
 import { AccessDenied } from "@/components/shared/access-denied";
 import { FeatureGuard } from "@/components/shared/feature-guard";
 import { PermissionGuard } from "@/components/shared/permission-guard";
-import { cn } from "@/lib/utils";
+import { SectionTabs } from "@/components/shared/section-tabs";
 
 const TABS = [
   { href: "/app/hr/employees", label: "Employees" },
@@ -19,36 +17,11 @@ const TABS = [
   { href: "/app/hr/settings", label: "Settings" },
 ];
 
-function HrTabs() {
-  const pathname = usePathname();
-  return (
-    <nav className="mb-4 flex gap-4 border-b">
-      {TABS.map((tab) => {
-        const active = pathname?.startsWith(tab.href);
-        return (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            className={cn(
-              "border-b-2 px-1 pb-2 text-sm font-medium",
-              active
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground",
-            )}
-          >
-            {tab.label}
-          </Link>
-        );
-      })}
-    </nav>
-  );
-}
-
 export default function HrLayout({ children }: { children: ReactNode }) {
   return (
     <PermissionGuard require="hr.employee.view" fallback={<AccessDenied />}>
       <FeatureGuard feature="FEATURE_HR" failOpenOnError fallback={<AccessDenied />}>
-        <HrTabs />
+        <SectionTabs tabs={TABS} label="People" testId="hr-tabs" />
         {children}
       </FeatureGuard>
     </PermissionGuard>

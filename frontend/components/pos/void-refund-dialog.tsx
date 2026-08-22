@@ -74,7 +74,11 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
    * rows, so a fully-reversed order nets to zero and reads correctly as "nothing held" without
    * this component knowing anything about refund records.
    */
-  const { data: payments = [], isLoading: paymentsLoading } = useOrderPayments(order.id);
+  const {
+    data: payments = [],
+    isLoading: paymentsLoading,
+    isError: paymentsFailed,
+  } = useOrderPayments(order.id);
   const amountPaidPaisa = payments.reduce((acc, p) => acc + p.amountPaisa, 0);
   const hasMoneyOnIt = amountPaidPaisa > 0;
 
@@ -106,7 +110,20 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
     (i) => i.itemStatus === "READY" || i.itemStatus === "SERVED",
   );
 
-  const canVoidOwn = voidableStatus && !hasMoneyOnIt && !anyLinePlated && !paymentsLoading;
+  /*
+   * `!paymentsFailed`, and it is the same clause as `!paymentsLoading` for the same reason.
+   *
+   * <p>`data: payments = []` made a FAILED read indistinguishable from a check with nothing on
+   * it: `amountPaidPaisa` summed to 0, `hasMoneyOnIt` went false, and Void unlocked on a check
+   * that had already been paid. That is the ORIGINAL defect this component's docblock describes
+   * — "three clicks then deleted the order from every screen while its payment row survived" —
+   * reachable again through an outage instead of through a status bug.
+   *
+   * <p>`paymentsLoading` was already excluded, which is the same judgement: this gate may only
+   * be opened by a positive answer, never by the absence of one.
+   */
+  const canVoidOwn =
+    voidableStatus && !hasMoneyOnIt && !anyLinePlated && !paymentsLoading && !paymentsFailed;
   // Refund wherever money was actually taken and the order has not already been settled away.
   // Deliberately NOT `status === "CLOSED"`: that is the gate that made this unreachable.
   const canRefund = hasMoneyOnIt && order.status !== "VOIDED" && order.status !== "REFUNDED";
@@ -215,64 +232,64 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
     return (
       <div
         data-testid="void-refund-panel"
-        className="flex w-full flex-col gap-4 rounded-xl border bg-background p-4 sm:p-6"
+        className="flex w-full flex-col gap-4 rounded-xl border bg-background p-4 md:p-6"
       >
         {/* Order summary — full analytic info regardless of mode */}
         <div className="flex flex-wrap items-start justify-between gap-2 border-b pb-3">
           <div className="flex flex-col gap-0.5">
             <h2
               className={cn(
-                "font-heading text-base font-semibold",
+                "font-heading text-h2 font-semibold",
                 mode === "void" && "text-destructive",
               )}
             >
               {mode === "void" ? "Void Order" : "Refund Order"}
             </h2>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-small text-muted-foreground">
               Order #{order.orderNo ?? order.id.slice(0, 8)} · {orderTypeLabel(order.type)}
             </p>
           </div>
-          <div className="text-right text-sm">
-            <span className="text-xs text-muted-foreground">Order total</span>
+          <div className="text-right text-small">
+            <span className="text-label text-muted-foreground">Order total</span>
             <MoneyDisplay paisa={order.totalPaisa} className="block font-medium" />
           </div>
         </div>
 
         {mode === "void" ? (
           <>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-small text-muted-foreground">
               This will cancel order <strong>#{order.orderNo ?? order.id.slice(0, 8)}</strong>. This
               action cannot be undone.
             </p>
-            <label className="text-sm">
+            <label className="text-small">
               Reason <span className="text-destructive">*</span>
               <textarea
                 value={voidReason}
                 onChange={(e) => setVoidReason(e.target.value)}
                 rows={3}
                 maxLength={500}
-                className="mt-1 w-full rounded border px-3 py-2 text-sm resize-none"
+                className="mt-1 w-full rounded border px-3 py-2 text-small resize-none"
                 placeholder="e.g. Customer left without ordering"
               />
             </label>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-small text-muted-foreground">
               Resulting state: order will be marked <strong>VOIDED</strong> and removed from active
               settlement.
             </p>
             <div className="flex gap-2 justify-end">
-              <button onClick={closePanel} className="text-sm px-4 py-2 rounded border">
+              <button onClick={closePanel} className="text-small px-4 py-2 rounded border">
                 Cancel
               </button>
               <button
                 onClick={() => void handleVoid()}
                 disabled={!voidReason.trim() || voidMutation.isPending}
-                className="text-sm px-4 py-2 rounded bg-destructive text-destructive-foreground font-medium hover:bg-destructive/90 disabled:opacity-50"
+                className="text-small px-4 py-2 rounded bg-destructive text-destructive-foreground font-medium hover:bg-destructive/90 disabled:opacity-50"
               >
                 {voidMutation.isPending ? "Voiding…" : "Confirm Void"}
               </button>
             </div>
             {voidMutation.isError && (
-              <p data-testid="void-error" className="text-xs text-destructive">
+              <p data-testid="void-error" className="text-small text-destructive">
                 {voidMutation.error?.status === 403
                   ? "You don't have permission to void this order."
                   : voidMutation.error?.status === 409
@@ -304,7 +321,7 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
             {/* Scope selector */}
             <div className="flex gap-3">
               {(["FULL", "PARTIAL"] as const).map((s) => (
-                <label key={s} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                <label key={s} className="flex items-center gap-1.5 text-small cursor-pointer">
                   <input
                     type="radio"
                     name="refund-scope"
@@ -317,7 +334,7 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
               ))}
             </div>
 
-            <p className="text-sm text-muted-foreground">
+            <p className="text-small text-muted-foreground">
               Collected on this order:{" "}
               <MoneyDisplay
                 paisa={amountPaidPaisa}
@@ -328,7 +345,7 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
             </p>
 
             {refundScope === "PARTIAL" && (
-              <label className="text-sm">
+              <label className="text-small">
                 Amount (PKR) <span className="text-destructive">*</span>
                 <input
                   type="number"
@@ -336,39 +353,39 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
                   step={0.01}
                   value={refundAmount}
                   onChange={(e) => setRefundAmount(e.target.value)}
-                  className="mt-1 w-full rounded border px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded border px-3 py-2 text-small"
                   placeholder="e.g. 250.00"
                 />
               </label>
             )}
 
-            <label className="text-sm">
+            <label className="text-small">
               Reason <span className="text-destructive">*</span>
               <textarea
                 value={refundReason}
                 onChange={(e) => setRefundReason(e.target.value)}
                 rows={3}
                 maxLength={500}
-                className="mt-1 w-full rounded border px-3 py-2 text-sm resize-none"
+                className="mt-1 w-full rounded border px-3 py-2 text-small resize-none"
                 placeholder="e.g. Wrong item served"
               />
             </label>
 
-            <p className="text-xs text-muted-foreground">
+            <p className="text-small text-muted-foreground">
               Resulting state: order will be marked{" "}
               <strong>{refundScope === "FULL" ? "REFUNDED" : "PARTIALLY REFUNDED"}</strong>
               {refundScope === "PARTIAL" ? " (remaining balance retained)" : ""}.
             </p>
 
             <div className="flex gap-2 justify-end">
-              <button onClick={closePanel} className="text-sm px-4 py-2 rounded border">
+              <button onClick={closePanel} className="text-small px-4 py-2 rounded border">
                 Cancel
               </button>
               <button
                 onClick={() => void handleRefund()}
                 disabled={!refundReason.trim() || refundMutation.isPending}
                 className={cn(
-                  "text-sm px-4 py-2 rounded font-medium disabled:opacity-50",
+                  "text-small px-4 py-2 rounded font-medium disabled:opacity-50",
                   "bg-warning text-warning-foreground hover:bg-warning/90",
                 )}
               >
@@ -376,7 +393,7 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
               </button>
             </div>
             {refundMutation.isError && (
-              <p data-testid="refund-error" className="text-xs text-destructive">
+              <p data-testid="refund-error" className="text-small text-destructive">
                 Failed to refund. Please try again.
               </p>
             )}
@@ -396,7 +413,7 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
               setOpen(true);
             }}
             aria-label="Void order"
-            className="text-xs px-3 py-1 rounded border border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground transition"
+            className="text-small px-3 py-1 rounded border border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground transition"
           >
             Void
           </button>
@@ -416,7 +433,7 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
         <span
           data-testid="void-blocked-paid-notice"
           data-reader-can-refund={readerCanRefund ? "true" : "false"}
-          className="text-xs text-muted-foreground"
+          className="text-small text-muted-foreground"
         >
           {paidNotice}
         </span>
@@ -429,7 +446,7 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
         that cannot tell them apart would pass while the screen named the wrong remedy.
       */}
       {platedNotice && (
-        <span data-testid="void-blocked-plated-notice" className="text-xs text-muted-foreground">
+        <span data-testid="void-blocked-plated-notice" className="text-small text-muted-foreground">
           {platedNotice}
         </span>
       )}
@@ -442,7 +459,7 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
               setOpen(true);
             }}
             aria-label="Refund order"
-            className="text-xs px-3 py-1 rounded border border-warning text-warning hover:bg-warning/10 transition"
+            className="text-small px-3 py-1 rounded border border-warning text-warning hover:bg-warning/10 transition"
           >
             Refund
           </button>

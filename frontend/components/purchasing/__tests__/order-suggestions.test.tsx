@@ -37,7 +37,9 @@ describe("Suggested orders", () => {
     renderPage();
 
     const cell = await screen.findByText("Chicken breast");
-    const row = cell.closest("tr") as HTMLElement;
+    // `InsetRow` renders each suggestion as one `<li>` at every viewport width — the screen no
+    // longer has a `<table>` to scope to (plan 38-07: 0 tables at 390px).
+    const row = cell.closest("li") as HTMLElement;
 
     // 4 kg on hand against a 25 kg par is 21 kg short. The supplier ships in 10 kg increments, so
     // 21 rounds UP to 30 — showing only the order figure hides why it exceeds what's missing, and
@@ -80,15 +82,18 @@ describe("Suggested orders", () => {
     const user = userEvent.setup();
 
     const qty = await screen.findByLabelText("Order quantity for Chicken breast");
-    const row = qty.closest("tr") as HTMLElement;
+    const row = qty.closest("li") as HTMLElement;
     // Intl renders PKR as "Rs" and separates it with a non-breaking space, so normalise both
     // rather than hard-coding a formatting detail this test is not about.
+    // `getAll`, not `get`: `InsetRow` wraps the trailing slot in its own <span>, so the money
+    // span and its wrapper both carry exactly this text. Either being present is the fact under
+    // test — that the line total followed the edited quantity.
     const amount = (value: string) =>
-      within(row).getByText(
+      within(row).getAllByText(
         (_text, element) =>
           element?.tagName === "SPAN" &&
           (element.textContent ?? "").replace(/ /g, " ").trim() === `Rs ${value}`,
-      );
+      )[0];
 
     // 30 kg at Rs 950.00 each.
     expect(amount("28,500.00")).toBeInTheDocument();

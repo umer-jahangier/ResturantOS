@@ -135,7 +135,19 @@ export function KdsTicketDetail({ ticketId, branchId, canUpdate = false }: KdsTi
                       <StatusBadge status={toLineItemStatusVariant(item.status)} />
                       <RevisionBadge revisionNo={item.revisionNo} />
                     </div>
-                    <div className={cn("truncate font-semibold text-kds-text", T_KDS)}>
+                    {/*
+                      38-14: this was `truncate`. A dish name is the one string on a kitchen
+                      screen that may never be shortened — "Chicken Karahi (Half)" and "Chicken
+                      Karahi (Full)" truncate to the same characters, and the cook cannot tell
+                      which one to plate. `kds-ticket-card.tsx:73` already recorded that exact
+                      lesson for the ticket LIST ("the item list was one truncated line") and
+                      fixed it there; the detail panel kept the defect.
+
+                      `break-words` rather than plain wrapping, so a long unbroken token — a
+                      pasted SKU, a name typed without spaces — breaks instead of pushing the
+                      row past the card edge. The row grows in height, which a ticket may do.
+                    */}
+                    <div className={cn("font-semibold break-words text-kds-text", T_KDS)}>
                       {item.qty > 1 && <span className="mr-1 text-kds-muted">×{item.qty}</span>}
                       {item.name}
                     </div>

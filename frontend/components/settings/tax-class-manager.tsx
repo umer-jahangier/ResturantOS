@@ -12,6 +12,7 @@ import {
 } from "@/lib/hooks/pos/use-tax-classes";
 import type { TaxClass } from "@/lib/models/tax-class.model";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
@@ -258,7 +259,7 @@ function NewTaxClassRow({ onDone }: { onDone: () => void }) {
       className="border-border-interactive space-y-3 rounded-lg border border-dashed p-3"
       data-testid="new-tax-class-row"
     >
-      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,7rem)]">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,7rem)]">
         <Field
           id="new-tax-code"
           label="Tax code"
@@ -340,6 +341,7 @@ function TaxClassRow({ taxClass }: { taxClass: TaxClass }) {
   });
   const errors = validate(draft);
   const inUse = taxClass.categoryCount > 0 || taxClass.itemCount > 0;
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const dirty =
     draft.code !== taxClass.code ||
@@ -380,7 +382,7 @@ function TaxClassRow({ taxClass }: { taxClass: TaxClass }) {
       data-testid="tax-class-row"
       data-tax-code={taxClass.code}
     >
-      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,7rem)]">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,7rem)]">
         <Field
           id={`tax-code-${taxClass.id}`}
           label="Tax code"
@@ -432,6 +434,13 @@ function TaxClassRow({ taxClass }: { taxClass: TaxClass }) {
           >
             {taxClass.active ? "Retire" : "Bring back"}
           </Button>
+          {/*
+            38-10 task 5. This button used to delete on the first click, with no confirmation
+            anywhere in `components/settings/**` — the audit measured "settings (0 — printer +
+            tax-class deletes)" against seven files that already import the shared primitive.
+            Deleting a tax class is not reversible and the rate is a statutory fact about the
+            business, so it now asks, names the class, and says what happens to the menu.
+          */}
           <Button
             type="button"
             variant="outline"
@@ -443,12 +452,7 @@ function TaxClassRow({ taxClass }: { taxClass: TaxClass }) {
                 : undefined
             }
             disabled={remove.isPending || inUse}
-            onClick={() =>
-              remove.mutate(taxClass.id, {
-                onSuccess: () => toast.success(`Deleted ${taxClass.name}`),
-                onError: (error) => toast.error(formatUserFacingError(error)),
-              })
-            }
+            onClick={() => setConfirmingDelete(true)}
           >
             <Trash2 className="size-4" aria-hidden />
             Delete
@@ -464,6 +468,31 @@ function TaxClassRow({ taxClass }: { taxClass: TaxClass }) {
           </Button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmingDelete}
+        onOpenChange={setConfirmingDelete}
+        title={`Delete ${taxClass.name}?`}
+        body={
+          <>
+            The rate disappears from the list of rates a dish can be given. Nothing already charged
+            changes — past bills and past returns keep the rate they were calculated at. This cannot
+            be undone; <strong>Retire</strong> is the reversible version.
+          </>
+        }
+        confirmLabel="Delete rate"
+        pendingLabel="Deleting…"
+        isPending={remove.isPending}
+        onConfirm={() =>
+          remove.mutate(taxClass.id, {
+            onSuccess: () => {
+              toast.success(`Deleted ${taxClass.name}`);
+              setConfirmingDelete(false);
+            },
+            onError: (error) => toast.error(formatUserFacingError(error)),
+          })
+        }
+      />
     </div>
   );
 }

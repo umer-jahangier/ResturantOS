@@ -215,7 +215,7 @@ export function BranchFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="md:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit branch" : "Add a branch"}</DialogTitle>
           <DialogDescription>
@@ -296,7 +296,7 @@ export function BranchFormDialog({
               )}
             />
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="phone"
@@ -335,7 +335,7 @@ export function BranchFormDialog({
                     Opened on
                   </FieldLabel>
                   <FormControl>
-                    <Input {...field} type="date" className="sm:w-1/2" />
+                    <Input {...field} type="date" className="md:w-1/2" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

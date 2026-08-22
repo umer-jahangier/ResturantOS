@@ -36,7 +36,7 @@ export default function PurchasingPage() {
     <div>
       <h1 className="text-xl font-semibold">Purchasing</h1>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {SECTIONS.map((section) => (
           <Link key={section.href} href={section.href}>
             <Card className="h-full transition-colors hover:bg-accent/50">

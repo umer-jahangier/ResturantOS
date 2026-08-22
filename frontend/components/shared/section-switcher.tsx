@@ -47,7 +47,7 @@ export function SectionSwitcher({
             className={cn(
               "rounded-md px-3 py-1.5 text-sm transition-colors",
               active
-                ? "bg-primary text-primary-foreground shadow-sm"
+                ? "bg-primary-solid text-primary-solid-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >

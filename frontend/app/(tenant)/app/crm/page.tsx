@@ -6,25 +6,29 @@ import { PermissionGuard } from "@/components/shared/permission-guard";
 import { AccessDenied } from "@/components/shared/access-denied";
 import { CustomerList } from "@/components/crm/customer-list";
 import { CustomerDetail } from "@/components/crm/customer-detail";
+import { PageBody } from "@/components/ui/page-body";
+import { PageHeader } from "@/components/ui/page-header";
 import type { Customer } from "@/lib/models/crm.model";
 
 function CrmPage() {
   const [selected, setSelected] = useState<Customer | null>(null);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Customers</h1>
-        <p className="text-sm text-muted-foreground">
-          Find a customer, see their loyalty standing, and review the points they have earned.
-        </p>
-      </div>
+    <PageBody className="space-y-(--space-lg)">
+      <PageHeader
+        title="Customers"
+        description="Find a customer, see their loyalty standing, and review the points they have earned."
+      />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      {/* The demo's universal back-office split — a wide list beside a narrow stack
+          (DEMO-SCREENS §"the universal two-column body pattern"). `minmax(0,1fr)` on the BASE
+          track and not only at `lg`: a grid item defaults to `min-width: auto`, so without it the
+          grid refuses to shrink below its content and the list runs past the viewport at 390. */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <CustomerList onSelect={setSelected} selectedId={selected?.id ?? null} />
         <CustomerDetail customerId={selected?.id ?? null} />
       </div>
-    </div>
+    </PageBody>
   );
 }
 

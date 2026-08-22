@@ -25,13 +25,13 @@ import { useStations } from "@/lib/hooks/pos/use-station-admin";
 import { useMenuCategoriesAdmin } from "@/lib/hooks/pos/use-menu-admin";
 import { useTenantBranches } from "@/lib/hooks/use-tenant-settings";
 import { formatUserFacingError } from "@/lib/errors";
-import { formatPaisa } from "@/lib/adapters/shared";
+import { MoneyDisplay } from "@/components/ui/money-display";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-0.5">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="text-sm">{children}</dd>
+      <dt className="text-label text-muted-foreground">{label}</dt>
+      <dd className="text-small">{children}</dd>
     </div>
   );
 }
@@ -89,7 +89,7 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
   if (!userId) {
     return (
       <Card>
-        <CardContent className="py-10 text-center text-sm text-muted-foreground">
+        <CardContent className="py-10 text-center text-small text-muted-foreground">
           Choose someone from the list to see their roles and manage their account.
         </CardContent>
       </Card>
@@ -140,9 +140,9 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
               </dl>
 
               <section className="space-y-2">
-                <h3 className="text-sm font-medium">Roles by branch</h3>
+                <h3 className="text-small font-medium">Roles by branch</h3>
                 {assignments.length === 0 ? (
-                  <p className="rounded-md border border-warning bg-warning/10 px-3 py-2 text-sm text-warning-foreground">
+                  <p className="rounded-md border border-warning bg-warning/10 px-3 py-2 text-small text-warning-foreground">
                     This account holds no role on any branch, so it cannot sign in. Assign a role to
                     finish setting it up.
                   </p>
@@ -171,7 +171,7 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
                     {assignments.map((a) => (
                       <li
                         key={`${a.branchId}-${a.roleCode}`}
-                        className="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-2 text-sm"
+                        className="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-2 text-small"
                       >
                         <span className="min-w-0 basis-full font-medium break-words">
                           {branchName(a.branchId)}
@@ -184,16 +184,24 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
                           phase closing.
                         */}
                         <span
-                          className="shrink-0 text-xs text-muted-foreground"
+                          className="shrink-0 text-label text-muted-foreground"
                           data-testid={`approval-limit-${a.branchId}`}
                         >
-                          {a.approvalLimitPaisa === null || a.approvalLimitPaisa === undefined
-                            ? "No approval authority"
-                            : `Approves up to ${formatPaisa(a.approvalLimitPaisa)}`}
+                          {/* 38-08 task 2 — one money path. This was a template string around
+                              `formatPaisa`: the right FORMATTER, but money markup owned by this
+                              file, so weight and alignment could drift from every other amount in
+                              the product without anything failing. */}
+                          {a.approvalLimitPaisa === null || a.approvalLimitPaisa === undefined ? (
+                            "No approval authority"
+                          ) : (
+                            <>
+                              Approves up to <MoneyDisplay paisa={a.approvalLimitPaisa} />
+                            </>
+                          )}
                         </span>
                         <span className="ml-auto flex shrink-0 items-center gap-2">
                           {a.primary && (
-                            <span className="text-xs text-muted-foreground">primary</span>
+                            <span className="text-label text-muted-foreground">primary</span>
                           )}
                           <StatusBadge status="active" label={a.roleCode} />
                           {/*
@@ -238,7 +246,7 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
                 exactly this reason.
               */}
               <section className="space-y-2" data-testid="user-station-scope">
-                <h3 className="text-sm font-medium">Stations</h3>
+                <h3 className="text-small font-medium">Stations</h3>
                 {stationScope.isError ? (
                   <QueryErrorNotice
                     what="this user's stations"
@@ -247,9 +255,9 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
                     isRetrying={stationScope.isFetching}
                   />
                 ) : stationScope.isPending ? (
-                  <p className="text-sm text-muted-foreground">Loading…</p>
+                  <p className="text-small text-muted-foreground">Loading…</p>
                 ) : stationScope.data?.unrestrictedEverywhere ? (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-small text-muted-foreground">
                     Sees every station in every branch they work.
                   </p>
                 ) : (
@@ -257,10 +265,10 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
                     {(stationScope.data?.branches ?? []).map((b) => (
                       <li
                         key={b.branchId}
-                        className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
+                        className="flex items-center justify-between gap-2 px-3 py-2 text-small"
                       >
                         <span className="min-w-0 flex-1 truncate">{branchName(b.branchId)}</span>
-                        <span className="shrink-0 text-xs text-muted-foreground">
+                        <span className="shrink-0 text-label text-muted-foreground">
                           {b.stationCodes.map((code) => stationName(code)).join(", ")}
                         </span>
                       </li>
@@ -394,7 +402,7 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
               </div>
 
               {canAdministerUsers && isSelf && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-label text-muted-foreground">
                   You cannot deactivate your own account here — it would sign you out mid-action.
                   Ask another administrator.
                 </p>

@@ -12,7 +12,8 @@ import { buildCss, builtVar, utilityBody } from "./built-css";
  * and `min-w-*` consult for a NAMED key, in preference to `--container-*`. Publishing
  * `--spacing-lg: 24px` therefore redefined `max-w-lg` from `32rem` (512px) to **24px**.
  *
- * `components/ui/dialog.tsx` sizes its panel `sm:max-w-sm`, and 53 call sites across the
+ * `components/ui/dialog.tsx` sizes its panel `md:max-w-sm` (`sm:` until 38-14 renamed every
+ * dialog width variant onto the declared breakpoint set), and 53 call sites across the
  * product override it with `max-w-md` / `max-w-lg` / `max-w-2xl`. Every dialog in the product
  * — including screens no design plan had touched — collapsed to a sliver.
  *

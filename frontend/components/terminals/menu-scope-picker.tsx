@@ -42,7 +42,7 @@ export function MenuScopePicker({
 
   return (
     <div data-testid="menu-scope-picker" className="space-y-2">
-      <p data-testid="menu-scope-summary" className="text-xs text-muted-foreground">
+      <p data-testid="menu-scope-summary" className="text-label text-muted-foreground">
         {selectedNames.length === 0
           ? "Tick nothing and this terminal offers the whole menu."
           : `This terminal shows ${formatList(selectedNames)} only.`}
@@ -58,7 +58,7 @@ export function MenuScopePicker({
           isRetrying={categories.isFetching}
         />
       ) : offered.length === 0 ? (
-        <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+        <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-label text-muted-foreground">
           This branch has no menu categories yet. Add them on Menu Items; until then every terminal
           offers everything.
         </p>
@@ -66,10 +66,10 @@ export function MenuScopePicker({
         <ul className="max-h-40 space-y-1 overflow-y-auto rounded-md border p-2">
           {offered.map((category) => (
             <li key={category.id}>
-              <label className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-sm hover:bg-muted/50">
+              <label className="flex cursor-pointer items-center gap-2 rounded-sm px-1 py-1 text-small hover:bg-muted/50">
                 <input
                   type="checkbox"
-                  className="size-4 rounded border-input"
+                  className="size-4 rounded-sm border-input"
                   checked={value.includes(category.id)}
                   disabled={disabled}
                   onChange={() => toggle(category.id)}
@@ -81,7 +81,7 @@ export function MenuScopePicker({
         </ul>
       )}
 
-      <p className="text-xs text-muted-foreground">
+      <p className="text-label text-muted-foreground">
         This decides what the terminal shows. It is not a permission — it does not stop anyone
         ringing up an item, it decides which ones are on the grid in front of them.
       </p>

@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { AccessDenied } from "@/components/shared/access-denied";
 import { PermissionGuard } from "@/components/shared/permission-guard";
+import { PageHeader } from "@/components/ui/page-header";
 import { TaxClassManager } from "@/components/settings/tax-class-manager";
 import { ZoneProvider } from "@/components/providers/zone-provider";
 
@@ -38,16 +39,18 @@ function TaxSettingsPage() {
     /* ZONE: expressive (D-34-02) — settings is named in that decision's table, and this page is
        nested inside the restrained back-office shell exactly as /app/settings is. */
     <ZoneProvider zone="expressive" className="space-y-6">
-      <div>
-        <h1 className="text-h1 font-semibold">Sales tax</h1>
-        <p className="text-muted-foreground text-small">
-          The rates you charge guests. Set a rate here once, then apply it to a menu category on{" "}
-          <Link href="/app/menu/items" className="underline underline-offset-2">
-            Menu Items
-          </Link>{" "}
-          — every dish in that category inherits it, and a single dish can be given its own.
-        </p>
-      </div>
+      <PageHeader
+        title="Sales tax"
+        description={
+          <>
+            The rates you charge guests. Set a rate here once, then apply it to a menu category on{" "}
+            <Link href="/app/menu/items" className="underline underline-offset-2">
+              Menu Items
+            </Link>{" "}
+            — every dish in that category inherits it, and a single dish can be given its own.
+          </>
+        }
+      />
 
       <TaxClassManager />
 

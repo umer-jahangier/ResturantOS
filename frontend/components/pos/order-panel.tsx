@@ -1,13 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { CloudOff, MessageSquare, Minus, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MoneyDisplay } from "@/components/ui/money-display";
-// The SHARED formatter, and the only way money is ever rendered — the caption below prints a
-// delta inline inside a sentence, where a <MoneyDisplay> element cannot go.
-import { formatPaisa } from "@/lib/adapters/shared";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   RevisionBadge,
@@ -21,6 +18,7 @@ import {
   cartLineKey,
   cartTotalPaisa,
   cartTaxPaisa,
+  cartEstimatedTotalPaisa,
   cartServiceChargePaisa,
   serviceChargeAppliesTo,
   lineSubtotalPaisa,
@@ -184,10 +182,16 @@ function PreSendCart({
     ? cartServiceChargePaisa(subtotal, serviceChargePolicy!.ratePct)
     : 0;
 
-  const estTotal = subtotal + estTax + estServiceCharge;
+  /*
+    ONE composition, shared with the 390px persistent total bar in `pos-terminal.tsx`
+    (`cartEstimatedTotalPaisa`). Composed inline here and inline there, the two figures agree
+    only until somebody edits one of them — and the first a cashier hears of it is a bar quoting
+    one total over a panel quoting another, on the same cart.
+  */
+  const estTotal = cartEstimatedTotalPaisa(cart, serviceChargePolicy ?? null, orderType);
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div className="flex flex-col h-full min-h-0" data-testid="order-panel">
       {/* Order type + table (D-03) */}
       <div className="shrink-0 px-4 py-3 border-b space-y-2">
         <OrderTypeToggle value={orderType} onChange={onOrderTypeChange} />
@@ -285,7 +289,7 @@ function PreSendCart({
           data-testid="send-to-kitchen-button"
           onClick={() => void onSendToKitchen()}
           disabled={!canSend}
-          className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 active:scale-[0.98] transition-all"
+          className="min-h-11 w-full rounded-xl bg-primary-solid py-3 text-body font-semibold text-primary-solid-foreground transition-all hover:bg-primary-solid/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isPersisting ? "Sending..." : "Send to Kitchen"}
         </button>
@@ -295,7 +299,7 @@ function PreSendCart({
             data-testid="save-draft-button"
             onClick={() => void onSaveAsDraft()}
             disabled={!canSend}
-            className="flex-1 h-12 rounded-xl border font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-accent active:scale-[0.98] transition-all"
+            className="h-12 flex-1 rounded-xl border text-body font-semibold transition-all hover:bg-accent active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {isPersisting ? "Saving..." : "Save as Draft"}
           </button>
@@ -305,7 +309,7 @@ function PreSendCart({
             onClick={() => void onChargeNow()}
             disabled={!canSend}
             aria-label="Charge Now"
-            className="flex-1 h-12 rounded-xl bg-success text-success-foreground font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-success/90 active:scale-[0.98] transition-all"
+            className="h-12 flex-1 rounded-xl bg-success text-body font-semibold text-success-foreground transition-all hover:bg-success/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {isPersisting ? "…" : "Charge Now"}
           </button>
@@ -324,65 +328,123 @@ interface CartLineRowProps {
 }
 
 function CartLineRow({ line, lineKey, onIncrement, onDecrement, onRemove }: CartLineRowProps) {
+  /*
+    Two rows, not one, and the panel is 360px rather than 320 (UI-SPEC §3.10, §9.2).
+
+    <p>On one row at 320px the four fixed elements — stepper, quantity, line total, remove — left
+    the dish name about 90px, so "Chicken Karahi (Half) — Extra Spicy" truncated to "Chicken Ka…"
+    and the modifier line beneath it truncated to nothing readable. A cashier cannot check a check
+    they cannot read. Splitting the controls onto their own row gives the name and the modifier
+    line the full width, and gives every control the 44px §9.2 requires without stealing it from
+    the words.
+
+    <p>The demo's ticket rows use 22px +/- buttons (`DEMO-SCREENS.md` §3). Explicitly rejected
+    under D-38-15: 22px is half the minimum a thumb needs, and hover — which is how the demo makes
+    them findable — does not exist on a terminal.
+  */
   return (
-    <div className="px-4 py-2 flex items-center gap-2">
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{line.name}</p>
-        {/* S6 — the chosen modifiers, by NAME, under the dish. Without this the cashier can see
+    <div className="px-4 py-2">
+      <div className="flex items-start gap-2">
+        <div className="flex-1 min-w-0">
+          <p className="text-body font-medium">{line.name}</p>
+          {/* S6 — the chosen modifiers, by NAME, under the dish. Without this the cashier can see
             that a line costs more than the menu price and has no way to find out why, and cannot
             tell two otherwise-identical lines apart before sending them to the kitchen. */}
-        {line.modifiers.length > 0 && (
-          <p className="text-xs text-muted-foreground" data-testid="cart-line-modifiers">
-            {line.modifiers
-              .map((m) =>
-                m.priceDeltaPaisa === 0
-                  ? m.name
-                  : `${m.name} ${m.priceDeltaPaisa > 0 ? "+" : "−"}${formatPaisa(Math.abs(m.priceDeltaPaisa))}`,
-              )
-              .join(" · ")}
-          </p>
-        )}
-        {line.notes && <p className="text-xs text-muted-foreground italic">Note: {line.notes}</p>}
+          {line.modifiers.length > 0 && (
+            <p className="text-label text-muted-foreground" data-testid="cart-line-modifiers">
+              {/*
+              The delta goes through <MoneyDisplay sign="signed">, not `formatPaisa`
+              interpolated into a joined string.
+
+              The comment that used to sit on the `formatPaisa` import said "a <MoneyDisplay>
+              element cannot go here". It can. The only thing stopping it was `.join()`, which
+              flattens JSX to text; rendered as fragments instead, the element fits. What it
+              replaced was a hand-rolled re-implementation of `sign="signed"` — explicit `+` on a
+              surcharge, `Math.abs` before formatting, its own minus glyph.
+
+              A SURCHARGE renders byte-identically ("Extra Cheese +Rs 50.00"). A DEDUCTION does
+              not, and that is the point rather than a regression: the old code spelled the minus
+              U+2212, which is not the minus `formatPaisa` emits, so the same amount was written
+              one way here and another way everywhere else in the product. `money-display.tsx`
+              settled that question on 2026-08-22 — the signed face now prints exactly what
+              `formatPaisa` returned and adds only the `+`. This call site follows it instead of
+              keeping a private second spelling.
+
+              Also gained: the `signed` face's aria-label ("negative Rs 50.00"), where the
+              hand-rolled version handed a screen reader a bare glyph it does not voice.
+            */}
+              {line.modifiers.map((m, i) => (
+                <Fragment key={m.id}>
+                  {i > 0 ? " · " : null}
+                  {m.name}
+                  {m.priceDeltaPaisa !== 0 ? (
+                    <>
+                      {" "}
+                      <MoneyDisplay paisa={m.priceDeltaPaisa} sign="signed" />
+                    </>
+                  ) : null}
+                </Fragment>
+              ))}
+            </p>
+          )}
+          {line.notes && (
+            <p className="text-label text-muted-foreground italic">Note: {line.notes}</p>
+          )}
+        </div>
+
+        {/* S6: the line total INCLUDES the modifier deltas — one definition, shared with the cart
+            subtotal and with the server's own `OrderPricingCalculator.lineSubtotal`. It read
+            `unitPricePaisa * quantity` here, which would have shown the plain dish price beside a
+            cart total that already carried the extras. */}
+        <MoneyDisplay
+          paisa={lineSubtotalPaisa(line)}
+          className="text-body font-mono shrink-0 text-right"
+        />
       </div>
 
-      {/* − / + steppers (POS-17) */}
-      <div className="flex items-center gap-1">
+      {/* − / + steppers (POS-17), and remove. 44×44 each per UI-SPEC §9.2 — `touch-target` is the
+          hit area, the bordered square inside it is the visual, so a thumb-sized target does not
+          have to look like a thumb-sized button in a 360px panel. */}
+      <div className="mt-1 flex items-center gap-1">
         <button
           type="button"
           onClick={() => onDecrement(lineKey)}
           aria-label={`Decrease ${line.name} quantity`}
-          className="min-w-[32px] min-h-[32px] flex items-center justify-center rounded border text-muted-foreground hover:text-foreground hover:bg-accent"
+          className="touch-target flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
         >
-          <Minus className="size-3.5" aria-hidden="true" />
+          <span className="flex size-8 items-center justify-center rounded-md border">
+            <Minus className="size-4" aria-hidden="true" />
+          </span>
         </button>
-        <span className="text-sm font-mono tabular-nums min-w-[24px] text-center">
+        <span
+          data-testid={`cart-line-qty-${line.menuItemId}`}
+          className="min-w-[32px] text-center font-mono text-body tabular-nums"
+        >
           {line.quantity}
         </span>
         <button
           type="button"
           onClick={() => onIncrement(lineKey)}
           aria-label={`Increase ${line.name} quantity`}
-          className="min-w-[32px] min-h-[32px] flex items-center justify-center rounded border text-muted-foreground hover:text-foreground hover:bg-accent"
+          className="touch-target flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
         >
-          <Plus className="size-3.5" aria-hidden="true" />
+          <span className="flex size-8 items-center justify-center rounded-md border">
+            <Plus className="size-4" aria-hidden="true" />
+          </span>
+        </button>
+
+        <span className="flex-1" />
+
+        {/* Remove line outright — faster than decrementing quantity down to 0 */}
+        <button
+          type="button"
+          onClick={() => onRemove(lineKey)}
+          aria-label={`Remove ${line.name} from cart`}
+          className="touch-target flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+        >
+          <X className="size-4" aria-hidden="true" />
         </button>
       </div>
-
-      {/* S6: the line total INCLUDES the modifier deltas — one definition, shared with the cart
-          subtotal and with the server's own `OrderPricingCalculator.lineSubtotal`. It read
-          `unitPricePaisa * quantity` here, which would have shown the plain dish price beside a
-          cart total that already carried the extras. */}
-      <MoneyDisplay paisa={lineSubtotalPaisa(line)} className="text-sm font-mono w-20 text-right" />
-
-      {/* Remove line outright — faster than decrementing quantity down to 0 */}
-      <button
-        type="button"
-        onClick={() => onRemove(lineKey)}
-        aria-label={`Remove ${line.name} from cart`}
-        className="min-w-[32px] min-h-[32px] flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-      >
-        <X className="size-3.5" aria-hidden="true" />
-      </button>
     </div>
   );
 }
@@ -432,7 +494,7 @@ function SentOrder({ order, onClearNewOrder }: SentOrderProps) {
   };
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div className="flex flex-col h-full min-h-0" data-testid="order-panel">
       {/* Order header */}
       <div className="shrink-0 px-4 py-3 border-b space-y-1.5">
         <div className="flex items-center justify-between gap-2">
@@ -517,7 +579,7 @@ function SentOrder({ order, onClearNewOrder }: SentOrderProps) {
             data-testid="send-to-kitchen-button"
             onClick={() => void handleSendToKitchen()}
             disabled={sendToKds.isPending}
-            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 active:scale-[0.98] transition-all"
+            className="min-h-11 w-full rounded-xl bg-primary-solid py-3 text-body font-semibold text-primary-solid-foreground transition-all hover:bg-primary-solid/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {sendToKds.isPending ? "Sending..." : ctaLabel}
           </button>
@@ -529,7 +591,7 @@ function SentOrder({ order, onClearNewOrder }: SentOrderProps) {
           type="button"
           data-testid="clear-new-order-button"
           onClick={onClearNewOrder}
-          className="w-full py-2.5 rounded-xl border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          className="min-h-11 w-full rounded-xl border py-2.5 text-body font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
           Clear / New Order
         </button>
@@ -648,7 +710,7 @@ function SpecialInstructionsField({ notes, disabled, onSave }: SpecialInstructio
               onSave(draft);
               setEditing(false);
             }}
-            className="text-xs px-2 py-1 rounded bg-primary text-primary-foreground"
+            className="text-xs px-2 py-1 rounded bg-primary-solid text-primary-solid-foreground"
           >
             Save
           </button>
@@ -819,7 +881,7 @@ function OrderLineItem({ item, orderId, orderStatus, isSettled }: OrderLineItemP
           <button
             type="button"
             onClick={saveNote}
-            className="text-xs px-2 py-1 rounded bg-primary text-primary-foreground"
+            className="text-xs px-2 py-1 rounded bg-primary-solid text-primary-solid-foreground"
           >
             Save
           </button>

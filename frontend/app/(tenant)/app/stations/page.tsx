@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 
 const EMPTY_TITLE = "No stations yet";
@@ -54,6 +55,7 @@ export default function StationsPage() {
     () => (showRetired ? allStations : allStations.filter((s) => s.active)),
     [allStations, showRetired],
   );
+  const retiredCount = allStations.filter((s) => !s.active).length;
 
   function handleToggleActive(station: Station) {
     if (station.active) {
@@ -92,27 +94,32 @@ export default function StationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Stations</h1>
-          <p className="text-sm text-muted-foreground">
-            Where tickets go. A station&apos;s type decides which screen it appears on, and staff
-            can be put on specific stations from the Users screen.
-          </p>
-        </div>
-        <PermissionGuard require="pos.menu.manage">
-          <Button type="button" onClick={() => setFormTarget({ mode: "create" })}>
-            Add station
-          </Button>
-        </PermissionGuard>
-      </div>
+      <PageHeader
+        title="Stations"
+        description="Where tickets go. A station's type decides which screen it appears on, and staff can be put on specific stations from the Users screen."
+        /* Two array lengths this screen has already read. `retiredCount` appears only when it is
+           non-zero — see the same note on /app/branches. */
+        meta={
+          <>
+            {allStations.length} {allStations.length === 1 ? "station" : "stations"}
+            {retiredCount > 0 ? ` · ${retiredCount} retired` : ""}
+          </>
+        }
+        actions={
+          <PermissionGuard require="pos.menu.manage">
+            <Button type="button" onClick={() => setFormTarget({ mode: "create" })}>
+              Add station
+            </Button>
+          </PermissionGuard>
+        }
+      />
 
-      <label className="flex w-fit items-center gap-2 text-sm text-muted-foreground">
+      <label className="flex w-fit items-center gap-2 text-small text-muted-foreground">
         <input
           type="checkbox"
           checked={showRetired}
           onChange={(e) => setShowRetired(e.target.checked)}
-          className="size-4 rounded border-input"
+          className="size-4 rounded-sm border-input"
         />
         Show retired
       </label>

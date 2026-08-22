@@ -34,6 +34,28 @@ import { StationBoard } from "@/components/kds/station-board";
 
 const BRANCH = "b1000001-0000-4000-8000-000000000001";
 
+/**
+ * THE CLOCK IS INJECTED. Everything below is measured against this instant and nothing reads the
+ * wall.
+ *
+ * <p>This file used to render the walkthrough's real 2026-08-07 ticket against whatever day the
+ * suite happened to run on and assert {@code /5d/} — true on the day it was written, false from
+ * 2026-08-13 onward, and by 2026-08-21 the dialog was rendering {@code 14d 17h} against a fixture
+ * that had not changed a character. That is not a flake: it is an assertion about a CONSTANT that
+ * was written against a VARIABLE, and it fails louder every day it is left.
+ *
+ * <p>2026-08-12 10:00 Asia/Karachi — inside the trading day that {@link DAY_START} opened, after
+ * {@link THIS_MORNING}'s service, and five days and change after {@link FIVE_DAYS_AGO}. The one
+ * `now` the dialog, the board and every ticket card underneath it all age against.
+ * `lib/format/elapsed.ts` takes it explicitly for exactly this reason.
+ */
+const NOW = Date.parse("2026-08-12T05:00:00.000Z");
+
+vi.mock("@/lib/hooks/kds/use-kds-clock", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/hooks/kds/use-kds-clock")>();
+  return { ...actual, useKdsClock: () => NOW };
+});
+
 vi.mock("@/lib/hooks/kds/use-kds-socket", () => ({
   useKdsSocket: () => ({ isConnected: true }),
 }));
@@ -236,8 +258,10 @@ describe("F17 — a cook can get back to a clean board", () => {
     // HOW MANY, and on which board.
     expect(within(dialog).getByText(/Clear 1 ticket from Main line\?/i)).toBeInTheDocument();
     // HOW OLD — in prose a cook can act on, plus the order number, not a bare "123:35:12".
-    // `5d` deliberately, not `123:35:12`: the ticket face's mm:ss timer is unreadable in a
-    // sentence, which is why formatAgeLong exists beside formatAge rather than instead of it.
+    // `5d` deliberately: the ticket face's mm:ss timer is unreadable in a sentence, which is why
+    // `formatElapsedLong` exists beside `formatElapsedCompact` rather than instead of it. Both
+    // now come from `lib/format/elapsed.ts` — the board's own `formatAgeLong` said `5d 3h` here
+    // while the station picker said `5d`, which is the disagreement that module exists to end.
     expect(dialog).toHaveTextContent(/5d/);
     expect(dialog).toHaveTextContent(/ORD-20260807-0001/);
     // WHICH BOUNDARY, and on WHOSE clock. 04:00 Karachi, not 09:00 — this product has already
