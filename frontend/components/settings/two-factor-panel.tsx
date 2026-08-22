@@ -123,7 +123,9 @@ export function TwoFactorPanel() {
               </Alert>
             ) : remaining < 3 ? (
               <Alert>
-                <AlertTitle>{remaining} recovery code{remaining === 1 ? "" : "s"} left</AlertTitle>
+                <AlertTitle>
+                  {remaining} recovery code{remaining === 1 ? "" : "s"} left
+                </AlertTitle>
                 <AlertDescription>
                   Generate a new set before you run out — the last one is not a good place to find
                   yourself.
@@ -135,7 +137,12 @@ export function TwoFactorPanel() {
               </p>
             )}
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => setMode("regenerating")}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setMode("regenerating")}
+              >
                 <KeyRound className="size-4" />
                 Generate new recovery codes
               </Button>
@@ -172,7 +179,10 @@ export function TwoFactorPanel() {
           <div className="grid gap-3 rounded-lg border bg-muted/40 p-3">
             <p className="text-body font-medium">Scan this with your authenticator app</p>
             <TotpQrCode otpauthUri={otpauthUri} />
-            <a href={otpauthUri} className="text-center text-body text-primary underline underline-offset-4">
+            <a
+              href={otpauthUri}
+              className="text-center text-body text-primary underline underline-offset-4"
+            >
               Open in your authenticator app
             </a>
             <CodeField
@@ -273,8 +283,7 @@ export function TwoFactorPanel() {
                       toast.success("Two-factor authentication is off.");
                       reset();
                     },
-                    onError: () =>
-                      setError("That code wasn't accepted. Check it and try again."),
+                    onError: () => setError("That code wasn't accepted. Check it and try again."),
                   });
                 }}
                 data-testid="two-factor-disable"

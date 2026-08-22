@@ -148,9 +148,7 @@ export function TotpEnrollment({
       <div className="grid gap-4" data-testid="totp-enrollment">
         <div>
           <h2 className="text-h2 font-medium">Two-factor authentication is on</h2>
-          <p className="text-body text-muted-foreground">
-            One last step before you sign in.
-          </p>
+          <p className="text-body text-muted-foreground">One last step before you sign in.</p>
         </div>
         <RecoveryCodesPanel
           codes={recoveryCodes}

@@ -109,7 +109,9 @@ describe("SessionRepository — two-factor management", () => {
     server.use(
       http.post("*/api/v1/auth/2fa/setup", () =>
         HttpResponse.json({
-          data: { otpauthUri: "otpauth://totp/RestaurantOS:a@b.test?secret=ABC&issuer=RestaurantOS" },
+          data: {
+            otpauthUri: "otpauth://totp/RestaurantOS:a@b.test?secret=ABC&issuer=RestaurantOS",
+          },
           meta: null,
           warnings: [],
         }),
