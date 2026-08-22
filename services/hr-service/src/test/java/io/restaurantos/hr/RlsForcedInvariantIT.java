@@ -50,39 +50,12 @@ class RlsForcedInvariantIT extends HrTestBase {
     private static final String CANARY_PASSWORD = "hr_rls_canary_pw";
 
     /** The four tables 35-02 created. Asserted empty below — the behavioural proof of "unseeded". */
-    private static final List<String> CONFIG_TABLES = List.of(
-            "departments", "designations", "salary_components", "employee_salary_components");
 
-    /**
-     * Row counts captured BEFORE any test in this class runs.
-     *
-     * <p>Snapshotted rather than asserted inline because the other tests here insert departments
-     * and salary components of their own, and JUnit gives no guaranteed method order — asserting
-     * inline made the result depend on which test happened to run first, which is a test that
-     * fails for a reason unrelated to the thing it is checking.
-     *
-     * <p>{@code @BeforeEach} with a once-guard, NOT {@code @BeforeAll}: Spring loads the
-     * ApplicationContext lazily, so at {@code @BeforeAll} time Liquibase has not run and the
-     * tables do not exist yet. {@code @BeforeEach} runs after the context is up and before any
-     * test BODY, which is exactly the window this needs to observe.
-     */
-    private static final Map<String, Long> COUNTS_AFTER_MIGRATION = new LinkedHashMap<>();
-
-    @BeforeEach
-    void captureCountsBeforeAnyTestInserts() throws SQLException {
-        if (!COUNTS_AFTER_MIGRATION.isEmpty()) {
-            return;
-        }
-        try (Connection c = asSuperuser(); Statement s = c.createStatement()) {
-            for (String table : CONFIG_TABLES) {
-                // Superuser deliberately: RLS must not be what makes this look empty.
-                try (ResultSet rs = s.executeQuery("SELECT count(*) FROM " + table)) {
-                    rs.next();
-                    COUNTS_AFTER_MIGRATION.put(table, rs.getLong(1));
-                }
-            }
-        }
-    }
+    // COUNTS_AFTER_MIGRATION and CONFIG_TABLES live in HrTestBase. They have to: the Postgres
+    // container is a static singleton shared by every subclass, so a snapshot taken in THIS class
+    // only sees "after migration" when this class happens to run first. In a full-module run the
+    // siblings had already inserted 14 departments and 2 designations, and this test read their
+    // fixtures as migration-seeded data.
 
     private Connection asSuperuser() throws SQLException {
         return DriverManager.getConnection(
