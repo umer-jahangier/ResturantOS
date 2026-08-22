@@ -1,0 +1,105 @@
+[
+  {
+    "k": "url",
+    "v": "http://localhost:3000/app/dashboard"
+  },
+  {
+    "k": "switcher-initial",
+    "v": {
+      "present": true,
+      "label": "Floating Terrace HQ"
+    }
+  },
+  {
+    "k": "jwt-initial",
+    "v": {
+      "where": null,
+      "branch": null,
+      "keys": [
+        "ss:__next_debug_channel:tScJ2q2PB-uABx4sbubz0"
+      ]
+    }
+  },
+  {
+    "k": "switcher-menu",
+    "v": [
+      "Floating Terrace HQ",
+      "Floating Terrace — Rooftop"
+    ]
+  },
+  {
+    "k": "switcher-menu-size",
+    "v": {
+      "w": 231,
+      "h": 97
+    }
+  },
+  {
+    "k": "switcher-after-click",
+    "v": {
+      "present": true,
+      "label": "Floating Terrace — Rooftop"
+    }
+  },
+  {
+    "k": "jwt-after-click",
+    "v": {
+      "where": null,
+      "branch": null,
+      "keys": [
+        "ss:__next_debug_channel:tScJ2q2PB-uABx4sbubz0"
+      ]
+    }
+  },
+  {
+    "k": "switcher-after-reload",
+    "v": {
+      "present": true,
+      "label": "Floating Terrace HQ"
+    }
+  },
+  {
+    "k": "jwt-after-reload",
+    "v": {
+      "where": null,
+      "branch": null,
+      "keys": [
+        "ss:__next_debug_channel:tScJ2q2PB-uABx4sbubz0",
+        "ss:__next_debug_channel:6EdGu2Iz_4nHmVwOZ3c8n"
+      ]
+    }
+  },
+  {
+    "k": "switcher-after-nav",
+    "v": {
+      "present": true,
+      "label": "Floating Terrace HQ"
+    }
+  },
+  {
+    "k": "jwt-after-nav",
+    "v": {
+      "where": null,
+      "branch": null,
+      "keys": [
+        "ss:__next_debug_channel:bSRimI1n2-tbBstzGaFgQ",
+        "ss:__next_debug_channel:tScJ2q2PB-uABx4sbubz0",
+        "ss:__next_debug_channel:6EdGu2Iz_4nHmVwOZ3c8n"
+      ]
+    }
+  },
+  {
+    "k": "switcher-new-tab",
+    "v": {
+      "present": true,
+      "label": "Floating Terrace HQ"
+    }
+  },
+  {
+    "k": "manager-settings",
+    "v": {
+      "text": "Floating Terrace\nFloating Terrace HQ\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\nCollapse\nApp\nSettings\nFloating Terrace HQ\nSearch…\n⌘K\nF\nAccess denied\n\nYou do not have permission to view this page.\n\nBack to da",
+      "hasAddress": false
+    }
+  }
+]

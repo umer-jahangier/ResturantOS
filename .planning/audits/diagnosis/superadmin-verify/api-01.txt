@@ -1,0 +1,7 @@
+200 POST /api/v1/auth/login
+200 GET /api/v1/platform/tenants?page=0&size=200
+200 POST /api/v1/auth/refresh
+200 GET /api/v1/platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+200 GET /api/v1/platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8/features
+200 GET /api/v1/platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8/usage
+429 POST /api/v1/auth/refresh

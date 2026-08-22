@@ -1,0 +1,255 @@
+signed in cashier
+A) after 1 tap on Chicken Karahi, PANEL >>>
+Add customer
+Dine-in
+Takeaway
+Pickup
+No table (optional)
+
+Chicken Karahi
+
+1
+Rs 1,450.00
+Subtotal
+Rs 1,450.00
+Tax (est.)
+Rs 232.00
+Total (est.)
+Rs 1,682.00
+
+Estimated — final tax & any discounts confirmed on the order.
+
+Send to Kitchen
+Save as Draft
+Charge Now
+<<<
+B) cart = Karahi x2 + Naan x1, PANEL >>>
+Add customer
+Dine-in
+Takeaway
+Pickup
+No table (optional)
+
+Chicken Karahi
+
+2
+Rs 2,900.00
+
+Butter Naan
+
+1
+Rs 80.00
+Subtotal
+Rs 2,980.00
+Tax (est.)
+Rs 476.80
+Total (est.)
+Rs 3,456.80
+
+Estimated — final tax & any discounts confirmed on the order.
+
+Send to Kitchen
+Save as Draft
+Charge Now
+<<<
+  shot: 10-cart-built
+ORDER PANEL CONTROLS: ["Add customer","Dine-in","Takeaway","Pickup","No table (optional)","Decrease Chicken Karahi quantity","Increase Chicken Karahi quantity","Remove Chicken Karahi from cart","Decrease Butter Naan quantity","Increase Butter Naan quantity","Remove Butter Naan from cart","Send to Kitchen","Save as Draft","Charge Now"]
+  shot: 11-table-picker
+TABLE PICKER: "No table (optional)\nG1\nOccupied\nH1\nAvailable\nT1\nAvailable\nT2\nAvailable\nT3\nAvailable"
+picked table
+C) PANEL after table >>>
+Add customer
+Dine-in
+Takeaway
+Pickup
+No table (optional)
+
+Chicken Karahi
+
+2
+Rs 2,900.00
+
+Butter Naan
+
+1
+Rs 80.00
+Subtotal
+Rs 2,980.00
+Tax (est.)
+Rs 476.80
+Total (est.)
+Rs 3,456.80
+
+Estimated — final tax & any discounts confirmed on the order.
+
+Send to Kitchen
+Save as Draft
+Charge Now
+<<<
+  shot: 12-table-selected
+  ! pageerror: ApiError: The service is temporarily unavailable. Please try again later.
+D) after SEND, PANEL >>>
+Add customer
+Dine-in
+Takeaway
+Pickup
+No table (optional)
+
+Chicken Karahi
+
+2
+Rs 2,900.00
+
+Butter Naan
+
+1
+Rs 80.00
+Subtotal
+Rs 2,980.00
+Tax (est.)
+Rs 476.80
+Total (est.)
+Rs 3,456.80
+
+Estimated — final tax & any discounts confirmed on the order.
+
+Send to Kitchen
+Save as Draft
+Charge Now
+<<<
+  shot: 13-after-send
+URL: http://localhost:3000/app/pos
+POST-SEND BUTTONS: ["Collapse","Toggle mobile menu","Search…\n⌘K","Search","Switch to light mode","E","Close Till","POS Terminal","Floor View","Order Management","All","Starters","Mains","Drinks","Soft Drinks","Clear All","Audit Item 52235\nRs 499.00","Audit Item 60568\nRs 499.00","Butter Naan\nRs 80.00","Remove Butter Naan from cart","Chicken Karahi\nRs 1,450.00","Remove Chicken Karahi from cart","Chicken Samosa\nRs 250.00","Fresh Lime\nRs 220.00","Mutton Biryani\nRs 1,250.00","Photo Dish 50585\nRs 725.00","Pinacolada\nRs 700.00","Seekh Kebab\nRs 450.00","Add customer","Dine-in","Takeaway","Pickup","No table (optional)","Decrease Chicken Karahi quantity","Increase Chicken Karahi quantity","Remove Chicken Karahi from cart","Decrease Butter Naan quantity","Increase Butter Naan quantity","Remove Butter Naan from cart","Send to Kitchen","Save as Draft","Charge Now"]
+  shot: 14-order-management
+ORDER MGMT >>>
+Point of sale
+Till OPEN
+Float: Rs 5,000.00
+Cash: Rs 37,307.00
+Orders: 32
+Close Till
+POS Terminal
+Floor View
+Order Management
+Live
+All
+Draft
+In Progress
+Partially Served
+Served
+Closed
+Paid
+Refresh
+ORDER / TABLE	STATUS	PAYMENT	SERVER/CASHIER	ITEMS	TOTAL	AGE	
+
+ORD-20260812-0005
+Takeaway
+	
+In Progress
+	
+Unpaid
+	eb2ee67e	
+2 Items
+1 Items / 2 Qty
+	Rs 3,364.00	1h 52m	
+Assign Table
+Open
+
+
+ORD-20260812-0004
+Takeaway
+	
+In Progress
+	
+Unpaid
+	eb2ee67e	
+1 Items
+	Rs 1,682.00	1h 55m	
+Assign Table
+Open
+
+2 rows
+<<<
+ORDER MGMT BUTTONS: ["Collapse","Toggle mobile menu","Search…\n⌘K","Search","Switch to light mode","E","Close Till","POS Terminal","Floor View","Order Management","All","Draft","In Progress","Partially Served","Served","Closed","Paid","Refresh","Assign Table","Open","Assign Table","Open"]
+  shot: 15-order-drawer
+ORDER DRAWER: null
+  shot: 16-floor-view
+FLOOR VIEW >>>
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+PEOPLE
+
+Customers
+Collapse
+App
+POS
+Floating Terrace HQ
+Search…
+⌘K
+E
+Point of sale
+Till OPEN
+Float: Rs 5,000.00
+Cash: Rs 37,307.00
+Orders: 33
+Close Till
+POS Terminal
+Floor View
+Order Management
+Live
+G1
+Occupied
+In Progress
+8 seats
+H1
+Available
+4 seats
+T1
+Available
+4 seats
+T2
+Available
+2 seats
+T3
+Available
+6 seats
+<<<
+
+=== NET ===
+200 POST /api/v1/auth/login
+429 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+200 GET /api/v1/feature-flags
+200 GET /api/v1/branches/mine
+200 GET /api/v1/pos/tills?cashierId=eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1&status=OPEN
+200 GET /api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 POST /api/v1/auth/refresh
+429 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+200 GET /api/v1/feature-flags
+200 GET /api/v1/branches/mine
+200 GET /api/v1/pos/tills?cashierId=eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1&status=OPEN
+200 GET /api/v1/pos/menu/categories
+200 GET /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/menu/items?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+503 POST /api/v1/pos/orders
+200 GET /api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+200 POST /api/v1/auth/refresh
+200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+200 GET /api/v1/feature-flags
+200 GET /api/v1/pos/tills?cashierId=eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1&status=OPEN
+200 GET /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/menu/categories
+200 GET /api/v1/branches/mine
+200 GET /api/v1/pos/menu/items?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+200 GET /api/v1/pos/tables/3ce7f565-5e38-4c4b-9ca4-b5e78275f338/active-order?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03

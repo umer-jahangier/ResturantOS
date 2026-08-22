@@ -1,10 +1,9 @@
 {
-  "newHire": "f12.hire.557712@terrace.local",
+  "newHire": "f12.hire.251194@terrace.local",
   "urls": [
     "http://localhost:3000/login",
     "http://localhost:3000/login",
     "http://localhost:3000/app/dashboard",
-    "http://localhost:3000/login",
     "http://localhost:3000/login",
     "http://localhost:3000/login"
   ],

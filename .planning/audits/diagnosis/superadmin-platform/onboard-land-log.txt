@@ -1,0 +1,7 @@
+URL: http://localhost:3000/login
+SCREEN: Sign in to RestaurantOS | Enter your email and password to continue | Email | Password | Authenticator code | Enter your authenticator code to finish signing in. | Use a restaurant identifier instead | Sign in
+REACHED THE APP: false
+
+API: [
+ "401 POST /api/v1/auth/login"
+]

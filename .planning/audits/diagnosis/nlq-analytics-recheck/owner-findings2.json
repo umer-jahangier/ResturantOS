@@ -1,0 +1,86 @@
+{
+  "net": [
+    "429 POST http://localhost:8080/api/v1/auth/login",
+    "401 POST http://localhost:8080/api/v1/auth/login",
+    "429 GET http://localhost:8080/api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8",
+    "503 POST http://localhost:8080/api/v1/nlq/query"
+  ],
+  "out": [
+    {
+      "probe": "owner-dashboard",
+      "trendChart": 1,
+      "polylinePoints": [
+        2,
+        2
+      ],
+      "screenshot": "/Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/diagnosis/nlq-analytics-recheck/owner-01-dashboard.png",
+      "text": "\n6\nIs the business healthy?\n\nLast 30 days vs the 30 before\n\nNET SALES\n\nRs 26,442.60\n\n12 orders in 30 days\n\nNo comparable prior period\n\nGROSS MARGIN\n\n—\n\nCost of goods is not yet posted per item, so margin cannot be computed. Showing nothing rather than a wrong number.\n\nCOVERS\n\n45\n\nAcross 20 closed orders\nAVERAGE ORDER\n\nRs 2,203.55\n\nNet sales divided by orders\n\nNo comparable prior period\n\nSALES AND ORDER VOLUME\nNet sales\nOrders\nAug 8\nAug 11\nNet sales — solid\nOrders — dashed\nNet sales and Orders by period\nPeriod\tNet sales\tOrders\nAug 8\tRs 10,515\t5\nAug 11\tRs 15,928\t7\nNet sales: Rs 15,928 latest\nOrders: 7 latest\nTOP ITEMS BY REVENUE\nChicken Karahi\nRs 13,456.00 · 8 sold\nMutton Biryani\nRs 7,250.00 · 5 sold\nBeef Nihari\nRs 2,486.00 · 2 sold\nAudit Item 52235\nRs 1,996.00 · 4 sold\nAudit Item 60568\nRs 1,497.00 · 3 sold\nNEEDS A DECISION\nCHECK\nORD-20260812-0014 — voided\nRs 1682.00 · 8/12/2026\nCHECK\nORD-20260812-0003 — voided\nRs 499.00 · 8/12/2026\nCHECK\nORD-20260807-0027 — voided\nRs 92.80 · 8/7/2026\nCHECK\nORD-20260807-0025 — refunded\nRs 2486.00 · 8/7/2026"
+    },
+    {
+      "probe": "owner-settings",
+      "accessDenied": false,
+      "aiMention": false,
+      "links": [
+        "Dashboard -> /app/dashboard",
+        "POS -> /app/pos",
+        "Kitchen Display -> /app/kitchen",
+        "Till Review -> /app/pos/tills",
+        "Inventory -> /app/inventory",
+        "Menu Items -> /app/menu/items",
+        "Tables -> /app/tables",
+        "Stations -> /app/stations",
+        "POS Terminals -> /app/terminals",
+        "Guide -> /app/finance/guide",
+        "Takings -> /app/finance/takings",
+        "Accounts -> /app/finance/accounts",
+        "Journal Entries -> /app/finance/journal-entries",
+        "General Ledger -> /app/finance/gl",
+        "Periods -> /app/finance/periods",
+        "Expenses -> /app/finance/expenses",
+        "AP Aging -> /app/finance/ap-aging",
+        "Purchasing -> /app/purchasing",
+        "HR -> /app/hr",
+        "Customers -> /app/crm",
+        "Reports -> /app/reports",
+        "Realtime Dashboard -> /app/dashboard/realtime",
+        "Ask (NLQ) -> /app/nlq",
+        "General -> /app/settings",
+        "Appearance -> /settings/appearance",
+        "Users -> /app/users",
+        "Manage users -> /app/users",
+        "Change appearance -> /settings/appearance",
+        "Dashboard -> /app/dashboard",
+        "Orders -> /app/pos",
+        "Menu -> /app/inventory",
+        "Finance -> /app/finance/accounts",
+        "Settings -> /app/settings"
+      ],
+      "screenshot": "/Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/diagnosis/nlq-analytics-recheck/owner-02-settings.png",
+      "text": "\n6\nSettings\n\nHow this branch is set up, and who can sign in to it.\n\nBranch details\nSaved to your restaurant's record and visible to everyone on this branch.\nBranch name\nAddress\nPhone\nEmail\nTime zone\n\nAn IANA name. Business dates and reports are cut on it.\n\nOpened on\n\nSales tax registration (STRN)\n\nNot set\n\nNational tax number (NTN)\n\nNot set\n\nRead-only here. The branch update API has no field for either, so an editable box would accept your change and discard it. Tax registration is set during onboarding.\n\nSave changes\nUsers\nAdd staff, set what they can do on each branch, and issue a password when someone is locked out.\nManage users\nAppearance\nBrand colour and logo. Stored in this browser only — it is not saved to your account, so colleagues and your other devices see the default.\nChange appearance"
+    },
+    {
+      "probe": "owner-report-branch-switch",
+      "switched": false,
+      "before": {
+        "rows": 2,
+        "text": "\n6\n← All reports\nSales by Day\nFrom\nTo\nBusiness Date\tOrder Count\tSubtotal Paisa\tDiscount Paisa\tTax Paisa\tTotal Paisa\n2026-08-07T19:00:00.000Z\t5\tRs 9,603.00\tRs 0.00\tRs 911.60\tRs 10,514.60\n2026-08-10T19:00:00.000Z\t7\tRs 14,550.00\tRs 950.00\tRs 2,328.00\tRs 15,928.00"
+      },
+      "after": {
+        "rows": 2,
+        "alerts": [],
+        "url": "http://localhost:3000/app/reports/sales-by-day",
+        "text": "\n6\n← All reports\nSales by Day\nFrom\nTo\nBusiness Date\tOrder Count\tSubtotal Paisa\tDiscount Paisa\tTax Paisa\tTotal Paisa\n2026-08-07T19:00:00.000Z\t5\tRs 9,603.00\tRs 0.00\tRs 911.60\tRs 10,514.60\n2026-08-10T19:00:00.000Z\t7\tRs 14,550.00\tRs 950.00\tRs 2,328.00\tRs 15,928.00"
+      },
+      "screenshot": "/Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/diagnosis/nlq-analytics-recheck/owner-05-report-branch-rooftop.png"
+    },
+    {
+      "probe": "owner-nlq",
+      "alerts": [
+        "That question couldn't be answered\nSomething prevented us from answering that question safely. Try rephrasing it or asking something more specific."
+      ],
+      "rows": 0,
+      "screenshot": "/Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/diagnosis/nlq-analytics-recheck/owner-06-nlq.png",
+      "text": "\n6\nAsk a question\n\nAsk about your restaurant's data in plain English — see the answer, and the exact SQL that ran to produce it.\n\nAsk a question about your restaurant's data\nWhat was revenue last week?\nWhich items sold most yesterday?\nWhat was our average order value this month?\nAsk\nThat question couldn't be answered\nSomething prevented us from answering that question safely. Try rephrasing it or asking something more specific."
+    }
+  ]
+}

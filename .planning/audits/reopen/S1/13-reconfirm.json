@@ -1,0 +1,66 @@
+{
+  "routes": [
+    {
+      "name": "Pinacolada",
+      "cat": "Drinks",
+      "eff": "BAR",
+      "src": "CATEGORY"
+    },
+    {
+      "name": "Chicken Karahi",
+      "cat": "Mains",
+      "eff": "GRILL",
+      "src": "CATEGORY"
+    },
+    {
+      "name": "Mutton Biryani",
+      "cat": "Mains",
+      "eff": "BAR",
+      "src": "ITEM"
+    }
+  ],
+  "orderNo": "ORD-20260812-0357",
+  "tickets": [
+    {
+      "station": "BAR",
+      "items": [
+        "undefined× undefined",
+        "undefined× undefined"
+      ]
+    },
+    {
+      "station": "GRILL",
+      "items": [
+        "undefined× undefined"
+      ]
+    }
+  ],
+  "barDom": {
+    "block": "ORD-20260812-0357 00:14 DINE-IN No table 1× Pinacolada 1× Mutton Biryani Pinacolada → Started Mutton Biryani → Started 2 ",
+    "alerts": []
+  },
+  "grillDom": {
+    "block": "ORD-20260812-0357 00:21 DINE-IN No table 1× Chicken Karahi Chicken Karahi → Started 2 ",
+    "alerts": []
+  },
+  "verdict": [
+    {
+      "n": "Pinacolada",
+      "want": "BAR",
+      "got": "(none)",
+      "ok": false
+    },
+    {
+      "n": "Chicken Karahi",
+      "want": "GRILL",
+      "got": "(none)",
+      "ok": false
+    },
+    {
+      "n": "Mutton Biryani",
+      "want": "BAR",
+      "got": "(none)",
+      "ok": false
+    }
+  ]
+}

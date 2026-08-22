@@ -1,0 +1,1 @@
+TypeError: Failed to execute 'measure' on 'Performance': '​FinancePage' cannot have a negative time stamp.

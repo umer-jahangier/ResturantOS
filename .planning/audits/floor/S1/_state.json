@@ -1,0 +1,718 @@
+{
+  "recon": {
+    "navProbe": {
+      "total": 35,
+      "routing": [
+        {
+          "text": "Station Routing",
+          "href": "/app/menu/routing"
+        }
+      ],
+      "menuGroup": [
+        "Menu Items",
+        "Station Routing"
+      ]
+    },
+    "trouble": {
+      "h1": "Station Routing",
+      "alerts": [],
+      "notFound": false,
+      "accessDenied": false,
+      "summary": "31 of 40 sellable items have no station — their tickets print on the DEFAULT board."
+    },
+    "board": {
+      "categoryCount": 7,
+      "cats": [
+        {
+          "name": "Starters",
+          "categorySelect": "Cold prep (PANTRY1)",
+          "options": [
+            "Not routed — DEFAULT board",
+            "Main bar (BAR)",
+            "Hot line (GRILL)",
+            "Diag Bar 28334 (DGB28334)",
+            "Diag Dessert 43431 (DGS43431)",
+            "Diag Dessert 20334 (DGS20334)",
+            "Cold prep (PANTRY1)"
+          ],
+          "items": [
+            {
+              "name": "Audit Item 52235",
+              "effective": "PANTRY1",
+              "source": "CATEGORY",
+              "destinationText": "Fires to PANTRY1 · From the category"
+            },
+            {
+              "name": "Audit Item 60568",
+              "effective": "PANTRY1",
+              "source": "CATEGORY",
+              "destinationText": "Fires to PANTRY1 · From the category"
+            },
+            {
+              "name": "Chicken Samosa",
+              "effective": "PANTRY1",
+              "source": "CATEGORY",
+              "destinationText": "Fires to PANTRY1 · From the category"
+            },
+            {
+              "name": "Photo Dish 50585",
+              "effective": "PANTRY1",
+              "source": "CATEGORY",
+              "destinationText": "Fires to PANTRY1 · From the category"
+            },
+            {
+              "name": "Seekh Kebab",
+              "effective": "PANTRY1",
+              "source": "CATEGORY",
+              "destinationText": "Fires to PANTRY1 · From the category"
+            }
+          ]
+        },
+        {
+          "name": "Diag Cat 683566",
+          "categorySelect": "Not routed — DEFAULT board",
+          "options": [
+            "Not routed — DEFAULT board",
+            "Main bar (BAR)",
+            "Hot line (GRILL)",
+            "Diag Bar 28334 (DGB28334)",
+            "Diag Dessert 43431 (DGS43431)",
+            "Diag Dessert 20334 (DGS20334)",
+            "Cold prep (PANTRY1)"
+          ],
+          "items": []
+        },
+        {
+          "name": "Diag Cat 785508",
+          "categorySelect": "Not routed — DEFAULT board",
+          "options": [
+            "Not routed — DEFAULT board",
+            "Main bar (BAR)",
+            "Hot line (GRILL)",
+            "Diag Bar 28334 (DGB28334)",
+            "Diag Dessert 43431 (DGS43431)",
+            "Diag Dessert 20334 (DGS20334)",
+            "Cold prep (PANTRY1)"
+          ],
+          "items": []
+        },
+        {
+          "name": "Mains",
+          "categorySelect": "Not routed — DEFAULT board",
+          "options": [
+            "Not routed — DEFAULT board",
+            "Main bar (BAR)",
+            "Hot line (GRILL)",
+            "Diag Bar 28334 (DGB28334)",
+            "Diag Dessert 43431 (DGS43431)",
+            "Diag Dessert 20334 (DGS20334)",
+            "Cold prep (PANTRY1)"
+          ],
+          "items": [
+            {
+              "name": "Butter Naan",
+              "effective": "GRILL",
+              "source": "ITEM",
+              "destinationText": "Fires to GRILL · Set for this item"
+            },
+            {
+              "name": "Chicken Karahi",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "Mutton Biryani",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            }
+          ]
+        },
+        {
+          "name": "Drinks",
+          "categorySelect": "Not routed — DEFAULT board",
+          "options": [
+            "Not routed — DEFAULT board",
+            "Main bar (BAR)",
+            "Hot line (GRILL)",
+            "Diag Bar 28334 (DGB28334)",
+            "Diag Dessert 43431 (DGS43431)",
+            "Diag Dessert 20334 (DGS20334)",
+            "Cold prep (PANTRY1)"
+          ],
+          "items": [
+            {
+              "name": "Fresh Lime",
+              "effective": "GRILL",
+              "source": "LEGACY",
+              "destinationText": "Fires to GRILL · From older settings"
+            },
+            {
+              "name": "Pinacolada",
+              "effective": "GRILL",
+              "source": "LEGACY",
+              "destinationText": "Fires to GRILL · From older settings"
+            }
+          ]
+        },
+        {
+          "name": "Soft Drinks",
+          "categorySelect": "Not routed — DEFAULT board",
+          "options": [
+            "Not routed — DEFAULT board",
+            "Main bar (BAR)",
+            "Hot line (GRILL)",
+            "Diag Bar 28334 (DGB28334)",
+            "Diag Dessert 43431 (DGS43431)",
+            "Diag Dessert 20334 (DGS20334)",
+            "Cold prep (PANTRY1)"
+          ],
+          "items": []
+        },
+        {
+          "name": "ZZ Till",
+          "categorySelect": "Not routed — DEFAULT board",
+          "options": [
+            "Not routed — DEFAULT board",
+            "Main bar (BAR)",
+            "Hot line (GRILL)",
+            "Diag Bar 28334 (DGB28334)",
+            "Diag Dessert 43431 (DGS43431)",
+            "Diag Dessert 20334 (DGS20334)",
+            "Cold prep (PANTRY1)"
+          ],
+          "items": [
+            {
+              "name": "ZZ-01",
+              "effective": "BAR",
+              "source": "LEGACY",
+              "destinationText": "Fires to BAR · From older settings"
+            },
+            {
+              "name": "ZZ-02",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-03",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-04",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-05",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-06",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-07",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-08",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-09",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-10",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-11",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-12",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-13",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-14",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-15",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-16",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-17",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-18",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-19",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-20",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-21",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-22",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-23",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-24",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-25",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-26",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-27",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-28",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-29",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            },
+            {
+              "name": "ZZ-30",
+              "effective": "DEFAULT",
+              "source": "NONE",
+              "destinationText": "Fires to DEFAULT · Not routed"
+            }
+          ]
+        }
+      ]
+    },
+    "posStations": {
+      "error": {
+        "code": "BAD_REQUEST",
+        "message": "Required request parameter 'branchId' is missing",
+        "details": [],
+        "traceId": "2f9005fb-2017-4a83-bdf4-7ace38cfa728"
+      }
+    }
+  },
+  "route": {
+    "before": {
+      "drinksCategory": {
+        "selected": "Not routed — DEFAULT board"
+      },
+      "pinacolada": {
+        "effective": "GRILL",
+        "source": "LEGACY",
+        "text": "Fires to GRILL · From older settings",
+        "selected": "No station of its own — an older setting sends it to GRILL"
+      },
+      "freshLime": {
+        "effective": "GRILL",
+        "source": "LEGACY",
+        "text": "Fires to GRILL · From older settings",
+        "selected": "No station of its own — an older setting sends it to GRILL"
+      },
+      "seekhKebab": {
+        "effective": "PANTRY1",
+        "source": "CATEGORY",
+        "text": "Fires to PANTRY1 · From the category",
+        "selected": "Follow category — Cold prep (PANTRY1)"
+      },
+      "chickenKarahi": {
+        "effective": "DEFAULT",
+        "source": "NONE",
+        "text": "Fires to DEFAULT · Not routed",
+        "selected": "Follow category — not routed"
+      }
+    },
+    "toastsSeen": [
+      {
+        "step": "drinks->BAR",
+        "toasts": [
+          "Drinks now fires to Main bar (BAR)"
+        ]
+      },
+      {
+        "step": "seekh->GRILL",
+        "toasts": [
+          "Seekh Kebab now fires to Hot line (GRILL)"
+        ]
+      }
+    ],
+    "putsA": [
+      {
+        "m": "PUT",
+        "s": 204,
+        "u": "http://localhost:8080/api/v1/pos/menu/categories/6cc887fb-2453-449b-9144-259d8d3a9281/station?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+      }
+    ],
+    "putsB": [
+      {
+        "m": "PUT",
+        "s": 200,
+        "u": "http://localhost:8080/api/v1/pos/menu/items/c496bf7b-e6e9-49ed-b08d-a45536520e90/station?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+      }
+    ],
+    "afterDrinks": {
+      "drinksCategory": {
+        "selected": "Main bar (BAR)"
+      },
+      "pinacolada": {
+        "effective": "BAR",
+        "source": "CATEGORY",
+        "text": "Fires to BAR · From the category",
+        "selected": "Follow category — Main bar (BAR)"
+      },
+      "freshLime": {
+        "effective": "BAR",
+        "source": "CATEGORY",
+        "text": "Fires to BAR · From the category",
+        "selected": "Follow category — Main bar (BAR)"
+      }
+    },
+    "afterKebab": {
+      "effective": "GRILL",
+      "source": "ITEM",
+      "text": "Fires to GRILL · Set for this item",
+      "selected": "Hot line (GRILL)"
+    },
+    "persisted": {
+      "drinksCategory": {
+        "selected": "Main bar (BAR)"
+      },
+      "pinacolada": {
+        "effective": "BAR",
+        "source": "CATEGORY",
+        "text": "Fires to BAR · From the category",
+        "selected": "Follow category — Main bar (BAR)"
+      },
+      "freshLime": {
+        "effective": "BAR",
+        "source": "CATEGORY",
+        "text": "Fires to BAR · From the category",
+        "selected": "Follow category — Main bar (BAR)"
+      },
+      "seekhKebab": {
+        "effective": "GRILL",
+        "source": "ITEM",
+        "text": "Fires to GRILL · Set for this item",
+        "selected": "Hot line (GRILL)"
+      },
+      "chickenKarahi": {
+        "effective": "DEFAULT",
+        "source": "NONE",
+        "text": "Fires to DEFAULT · Not routed",
+        "selected": "Follow category — not routed"
+      },
+      "summary": "31 of 40 sellable items have no station — their tickets print on the DEFAULT board."
+    }
+  },
+  "ring": {
+    "cart": {
+      "lines": [
+        "Pinacolada",
+        "Seekh Kebab",
+        "Chicken Karahi"
+      ],
+      "total": "Rs 2,908.50"
+    }
+  },
+  "boards": {
+    "orderNo": "ORD-20260812-0261",
+    "results": {
+      "BAR": {
+        "trouble": {
+          "bad": [],
+          "alerts": [],
+          "url": "http://localhost:3000/app/kitchen/BAR"
+        },
+        "h1": "Main bar",
+        "cardCount": 2,
+        "mineCount": 1,
+        "mineText": [
+          "1 ORD-20260812-0261 00:46 DINE-IN No table 1× Pinacolada"
+        ],
+        "alerts": [],
+        "noStations": false,
+        "bodyHasOrder": true
+      },
+      "GRILL": {
+        "trouble": {
+          "bad": [],
+          "alerts": [],
+          "url": "http://localhost:3000/app/kitchen/GRILL"
+        },
+        "h1": "Hot line",
+        "cardCount": 4,
+        "mineCount": 1,
+        "mineText": [
+          "1 ORD-20260812-0261 00:52 DINE-IN No table 1× Seekh Kebab"
+        ],
+        "alerts": [],
+        "noStations": false,
+        "bodyHasOrder": true
+      },
+      "DEFAULT": {
+        "trouble": {
+          "bad": [],
+          "alerts": [],
+          "url": "http://localhost:3000/app/kitchen/DEFAULT"
+        },
+        "h1": "DEFAULT",
+        "cardCount": 10,
+        "mineCount": 1,
+        "mineText": [
+          "1 ORD-20260812-0261 00:58 DINE-IN No table 1× Chicken Karahi"
+        ],
+        "alerts": [],
+        "noStations": false,
+        "bodyHasOrder": true
+      },
+      "PANTRY1": {
+        "trouble": {
+          "bad": [],
+          "alerts": [],
+          "url": "http://localhost:3000/app/kitchen/PANTRY1"
+        },
+        "h1": "Cold prep",
+        "cardCount": 10,
+        "mineCount": 0,
+        "mineText": [],
+        "alerts": [],
+        "noStations": false,
+        "bodyHasOrder": false
+      }
+    }
+  },
+  "bartender": {
+    "slug": "floating-terrace",
+    "email": "bartender.s1.144668@terrace.local",
+    "fullName": "Bartender S1 144668",
+    "newPassword": "Bar#Tender1234",
+    "tempPassword": "p5XUx*TAXFjwqzB%",
+    "rows": [
+      "Main bar Bar — Bar screen",
+      "Hot line Kitchen — Kitchen screen",
+      "Diag Bar 28334 Bar — Bar screen",
+      "Diag Dessert 43431 Dessert — Kitchen screen",
+      "Diag Dessert 20334 Dessert — Kitchen screen",
+      "Cold prep Pantry — Kitchen screen"
+    ],
+    "summary": "They will see Main bar only.",
+    "index": {
+      "tiles": [],
+      "noStationsPanel": false,
+      "noStationsTitle": null,
+      "bodyMentionsNoActive": false,
+      "alerts": [
+        "Couldn't check for old ticketsRetry"
+      ]
+    },
+    "board": {
+      "h1": "Main bar",
+      "cardCount": 2,
+      "mine": [
+        "1 ORD-20260812-0261 05:01 DINE-IN No table 1× Pinacolada"
+      ],
+      "bodyMentionsNoActive": false,
+      "alerts": [
+        "Couldn't check for old ticketsRetry"
+      ],
+      "mentionsPinacolada": true
+    },
+    "grill": {
+      "h1": null,
+      "cardCount": 0,
+      "mentionsKebab": false
+    },
+    "clicked": false
+  },
+  "responsive": {
+    "390-light": {
+      "docScrollW": 390,
+      "clientW": 390,
+      "horizontalOverflow": false,
+      "selectCount": 47,
+      "minSelectHeight": 32,
+      "selectsOverflowingRight": 0,
+      "rowCount": 40,
+      "rowsMissingDestination": 0,
+      "bodyBg": "oklch(1 0 195)",
+      "h1Colour": "oklch(0.168 0.006 195)",
+      "summary": "31 of 40 sellable items have no station — their tickets print on the DEFAULT board."
+    },
+    "390-dark": {
+      "docScrollW": 390,
+      "clientW": 390,
+      "horizontalOverflow": false,
+      "selectCount": 47,
+      "minSelectHeight": 32,
+      "selectsOverflowingRight": 0,
+      "rowCount": 40,
+      "rowsMissingDestination": 0,
+      "bodyBg": "oklch(0.132 0.006 195)",
+      "h1Colour": "oklch(0.985 0.002 195)",
+      "summary": "31 of 40 sellable items have no station — their tickets print on the DEFAULT board."
+    },
+    "768-light": {
+      "docScrollW": 768,
+      "clientW": 768,
+      "horizontalOverflow": false,
+      "selectCount": 47,
+      "minSelectHeight": 32,
+      "selectsOverflowingRight": 0,
+      "rowCount": 40,
+      "rowsMissingDestination": 0,
+      "bodyBg": "oklch(1 0 195)",
+      "h1Colour": "oklch(0.168 0.006 195)",
+      "summary": "31 of 40 sellable items have no station — their tickets print on the DEFAULT board."
+    },
+    "768-dark": {
+      "docScrollW": 768,
+      "clientW": 768,
+      "horizontalOverflow": false,
+      "selectCount": 47,
+      "minSelectHeight": 32,
+      "selectsOverflowingRight": 0,
+      "rowCount": 40,
+      "rowsMissingDestination": 0,
+      "bodyBg": "oklch(0.132 0.006 195)",
+      "h1Colour": "oklch(0.985 0.002 195)",
+      "summary": "31 of 40 sellable items have no station — their tickets print on the DEFAULT board."
+    },
+    "1440-light": {
+      "docScrollW": 1440,
+      "clientW": 1440,
+      "horizontalOverflow": false,
+      "selectCount": 47,
+      "minSelectHeight": 32,
+      "selectsOverflowingRight": 0,
+      "rowCount": 40,
+      "rowsMissingDestination": 0,
+      "bodyBg": "oklch(1 0 195)",
+      "h1Colour": "oklch(0.168 0.006 195)",
+      "summary": "31 of 40 sellable items have no station — their tickets print on the DEFAULT board."
+    },
+    "1440-dark": {
+      "docScrollW": 1440,
+      "clientW": 1440,
+      "horizontalOverflow": false,
+      "selectCount": 47,
+      "minSelectHeight": 32,
+      "selectsOverflowingRight": 0,
+      "rowCount": 40,
+      "rowsMissingDestination": 0,
+      "bodyBg": "oklch(0.132 0.006 195)",
+      "h1Colour": "oklch(0.985 0.002 195)",
+      "summary": "31 of 40 sellable items have no station — their tickets print on the DEFAULT board."
+    }
+  },
+  "tail": {
+    "order": "ORD-20260812-0273",
+    "pantry": {
+      "url": "http://localhost:3000/app/kitchen/PANTRY1",
+      "h1": "Cold prep",
+      "cardCount": 10,
+      "mine": [],
+      "saysNoActiveStations": false,
+      "alerts": [],
+      "mentionsSeekh": false,
+      "mentionsKarahi": false,
+      "mentionsPinacolada": false
+    },
+    "bartender": {
+      "url": "http://localhost:3000/app/kitchen/BAR",
+      "h1": "Main bar",
+      "cardCount": 3,
+      "mine": [
+        "1 ORD-20260812-0273 01:44 DINE-IN No table 1× Pinacolada"
+      ],
+      "saysNoActiveStations": false,
+      "alerts": [],
+      "mentionsSeekh": false,
+      "mentionsKarahi": false,
+      "mentionsPinacolada": true
+    }
+  }
+}

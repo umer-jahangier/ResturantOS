@@ -1,0 +1,47 @@
+[
+  {
+    "route": "/app/purchasing/order-suggestions",
+    "url": "http://localhost:3000/app/purchasing/order-suggestions",
+    "calls": [
+      {
+        "s": 200,
+        "u": "/api/v1/purchasing/order-suggestions?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+      }
+    ],
+    "text": "Floating Terrace\nFloating Terrace HQ\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\nCollapse\nApp\nPurchasing\nOrder Suggestions\nFloating Terrace HQ\nSearch…\n⌘K\nF\nVendors\nSuggested Orders\nPurchase Orders\nInvoices\nPayments\nAnalytics\nSuggested orders\n\nEverything that has dropped to its reorder point, with enough to bring it back up to its par level. Review the quantities, then create the orders.\n\n1 line · Rs 43,400.00\nCreate draft orders\nFloating Terrace Supplies\nRs 43,400.00\nINCLUDE\n\tITEM\tON HAND\n\tSHORT BY\n\tORDER\n\tUNIT PRICE\tLINE TOTAL\n\t\nChicken\nSEED-PACK-D108C2E6 · 500 G pack\n\t-2987 KG\nreorder at 5 · par 25\n\t3012 KG\t\nPACK\n\tRs 6,200.00\tRs 43,400.00\nLow, but needs setting up first (2)\nITEM\tON HAND\tWHAT'S MISSING\nConversion Probe Rice 178647558945\nRaw Materials\n\t1 KG\tNo par level set, so there is no target to order up to.\nSpice Mix\nRaw Materials\n\t0 KG\tNo supplier set up for this item. Add it to a vendor's catalogue first.\n\nPar levels are set on each item under Inventory → Ingredients. Suppliers and their pack sizes live on each vendor's catalogue."
+  },
+  {
+    "route": "/app/purchasing/payments",
+    "url": "http://localhost:3000/app/purchasing/payments",
+    "calls": [
+      {
+        "s": 200,
+        "u": "/api/v1/purchasing/invoices?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&status%5B%5D=MATCHED&status%5B%5D=APPROVED_FOR_PAYMENT&status%5B%5D=PAID"
+      },
+      {
+        "s": 200,
+        "u": "/api/v1/purchasing/bank-accounts"
+      }
+    ],
+    "text": "Floating Terrace\nFloating Terrace HQ\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\nCollapse\nApp\nPurchasing\nPayments\nFloating Terrace HQ\nSearch…\n⌘K\nF\nVendors\nSuggested Orders\nPurchase Orders\nInvoices\nPayments\nAnalytics\nAccounts payable\n\nVendor invoices ready to pay -- matched or approved for payment.\n\nPayable\nInvoice #\tVendor\tAmount\tDays outstanding\tStatus\t\nSEED-TERRACE-D108C2E6-1\tb6b79c85…\tRs 12,415.00\t0\tMATCHED\tPay\nSEED-TERRACE-D108C2E6-2\tb6b79c85…\tRs 15,030.00\t3\tMATCHED\tPay\nSEED-TERRACE-D108C2E6-3\tb6b79c85…\tRs 20,045.00\t6\tMATCHED\tPay\nSEED-TERRACE-D108C2E6-4\tb6b79c85…\tRs 25,060.00\t9\tMATCHED\tPay\nSEED-TERRACE-D108C2E6-5\tb6b79c85…\tRs 30,075.00\t12\tMATCHED\tPay\nSEED-TERRACE-D108C2E6-6\tb6b79c85…\tRs 35,090.00\t15\tMATCHED\tPay\nRecently paid\nInvoice #\tVendor\tAmount\tStatus\nINV-p36-1786475519\t5213ccd5…\tRs 12,400.00\tPAID\nINV-p36-1786474959\t138bf803…\tRs 12,400.00\tPAID\nINV-p36-1786474959\t7c8e7541…\tRs 12,400.00\tPAID\nINV-p36-1786475519\tefc86837…\tRs 12,400.00\tPAID\nINV-p36-1786468886\t322e13f8…\tRs 12,400.00\tPAID\nINV-p36-1786468886\t393cff3d…\tRs 12,400.00\tPAID\nINV-p36-1786469011\t5c733d46…\tRs 12,400.00\tPAID\nINV-p36-1786468624\t653ff10f…\tRs 12,400.00\tPAID\nINV-p36-1786468766\t6a72905e…\tRs 12,400.00\tPAID\nINV-p36-1786469957\t80108fbe…\tRs 12,400.00\tPAID\nPH22-1786452575\tb6b79c85…\tRs 29,250.00\tPAID\nINV-p36-1786468624\tf9434183…\tRs 12,400.00\tPAID\nINV-p36-1786473907\t0e5b7da2…\tRs 12,400.00\tPAID\nINV-p36-1786473907\t185b7bae…\tRs 12,400.00\tPAID\nINV-p36-1786469011\t306fac55…\tRs 12,400.00\tPAID\nINV-p36-1786468766\tbfc01e6e…\tRs 12,400.00\tPAID\nINV-p36-1786469957\tecfc4d5d…\tRs 12,400.00\tPAID\nINV-p36-1786474157\tf9324bc9…\tRs 12,400.00\tPAID\nINV-p36-1786474157\t00bb9fc5…\tRs 12,400.00\tPAID"
+  },
+  {
+    "route": "/app/purchasing/analytics",
+    "url": "http://localhost:3000/app/purchasing/analytics",
+    "calls": [
+      {
+        "s": 200,
+        "u": "/api/v1/purchasing/vendors"
+      },
+      {
+        "s": 200,
+        "u": "/api/v1/purchasing/analytics/spend?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&from=2026-07-31&to=2026-08-30"
+      },
+      {
+        "s": 200,
+        "u": "/api/v1/purchasing/analytics/scorecard?vendorId=b6b79c85-6964-45b8-bd3c-e252399494bd&branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+      }
+    ],
+    "text": "Floating Terrace\nFloating Terrace HQ\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\nCollapse\nApp\nPurchasing\nAnalytics\nFloating Terrace HQ\nSearch…\n⌘K\nF\nVendors\nSuggested Orders\nPurchase Orders\nInvoices\nPayments\nAnalytics\nVendor analytics\n\nSpend by vendor and category, 2026-07-31 to 2026-08-30, vs the prior period.\n\nPeriod\nThis month\nLast month\nLast 90 days\nThis quarter\nCustom\nVendor\nFloating Terrace Supplies\nDrive Vendor p36-1786468439 MANAGER\nDrive Vendor p36-1786468439 OWNER\nDrive Vendor p36-1786468624 MANAGER\nDrive Vendor p36-1786468624 OWNER\nDrive Vendor p36-1786468766 MANAGER\nDrive Vendor p36-1786468766 OWNER\nDrive Vendor p36-1786468886 MANAGER\nDrive Vendor p36-1786468886 OWNER\nDrive Vendor p36-1786469011 MANAGER\nDrive Vendor p36-1786469011 OWNER\nDrive Vendor p36-1786469957 MANAGER\nDrive Vendor p36-1786469957 OWNER\nDrive Vendor p36-1786473907 MANAGER\nDrive Vendor p36-1786473907 OWNER\nDrive Vendor p36-1786474157 MANAGER\nDrive Vendor p36-1786474157 OWNER\nDrive Vendor p36-1786474959 MANAGER\nDrive Vendor p36-1786474959 OWNER\nDrive Vendor p36-1786475519 MANAGER\nVendor scorecard\nOn-time delivery\n3.8%\nFill rate\n50.0%\nPrice variance\n+0.0%\nTotal spend\nRs 162,400.00\n\nvs 2026-06-30 – 2026-07-30\n\nBy vendor\nLabel\tCurrent\tPrior\tDelta %\nFloating Terrace Supplies\tRs 97,400.00\tRs 65,000.00\t+49.8%\nDrive Vendor p36-1786468766 MANAGER\tRs 12,400.00\tRs 0.00\t—\nDrive Vendor p36-1786473907 MANAGER\tRs 12,400.00\tRs 0.00\t—\nDrive Vendor p36-1786469011 OWNER\tRs 12,400.00\tRs 0.00\t—\nDrive Vendor p36-1786468886 MANAGER\tRs 12,400.00\tRs 0.00\t—\nDrive Vendor p36-1786474959 OWNER\tRs 12,400.00\tRs 0.00\t—\nDrive Vendor p36-1786468624 MANAGER\tRs 12,400.00\tRs 0.00\t—\nDrive Vendor p36-1786468624 OWNER\tRs 12,400.00\tRs 0.00\t—\nDrive Vendor p36-1786474157 MANAGER\tRs 12,400.00\tRs 0.00\t—\nDrive Vendor p36-1786469011 MANAGER\tRs 12,400.00\tRs 0.00\t—\nDrive Vendor p36-1786469957 MANAGER\tRs 12,400.00\tRs 0.00\t—\nDrive Vendor p36-1786473907 OWNER\tRs 12,400.00\tRs 0.00\t—\nDrive Vendor p36-1786475519 OWNER\tRs 12,400.00\tRs 0.00\t—\nDrive Vendor p36-1786468766 OWNER\tRs 12,400.00\tRs 0.00\t—\nDrive Vendor p36-1786474959 MANAGER\tRs 12,400.00\tRs 0.00\t—\nDrive Vendor p36-1786469957 OWNER\tRs 12,400.00\tRs 0.00\t—\nDrive Vendor p36-1786475519 MANAGER\tRs 12,400.00\tRs 0.00\t—\nDrive Vendor p36-1786468886 OWNER\tRs 12,400.00\tRs 0.00\t—\nDrive Vendor p36-1786474157 OWNER\tRs 12,400.00\tRs 0.00\t—\nBy category\nLabel\tCurrent\tPrior\tDelta %\nUncategorized\tRs 320,600.00\tRs 65,000.00\t+393.2%"
+  }
+]

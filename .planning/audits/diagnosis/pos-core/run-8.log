@@ -1,0 +1,31 @@
+NET 200 POST /api/v1/auth/login
+NET 429 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+NET 200 GET /api/v1/feature-flags
+NET 200 GET /api/v1/pos/tills?cashierId=eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1&status=OPEN
+NET 200 GET /api/v1/branches/mine
+NET 200 GET /api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+NET 200 POST /api/v1/auth/refresh
+NET 200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+NET 200 GET /api/v1/feature-flags
+NET 200 GET /api/v1/branches/mine
+NET 200 GET /api/v1/pos/tills?cashierId=eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1&status=OPEN
+NET 200 GET /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+NET 200 GET /api/v1/pos/menu/categories
+NET 200 GET /api/v1/pos/menu/items?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+NET 200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+NET 200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+POS BUTTONS: ["Collapse","Search…\n⌘K","E","Close Till","POS Terminal","Floor View","Order Management","All","Recheck Cat 186597","Diag Cat 785508","Starters","Diag Cat 683566","Mains","Soft Drinks","Drinks","Audit Item 52235\nRs 499.00","Audit Item 60568\nRs 499.00","Butter Naan\nRs 80.00","Chicken Karahi\nRs 1,450.00","Chicken Samosa\nRs 250.00","Fresh Lime\nRs 220.00","Mutton Biryani\nRs 1,250.00","Photo Dish 50585\nRs 725.00","Pinacolada\nRs 700.00","Recheck Dish 186597\nRs 911.00","Seekh Kebab\nRs 450.00","Add customer","Dine-in","Takeaway","Pickup","No table (optional)","Send to Kitchen","Save as Draft","Charge Now"]
+NET 200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+AFTER CLICK — inline panel: {"text":"Type a phone number or name to search.\n\nDine-in\nTakeaway\nPickup\nNo table (optional)\n\nAdd items to start an order\n\nTap a menu item to build the cart — nothing is saved until Send to Kitchen or Charge.\n\nSend to Kitchen\nSave as Draft\nCharge Now","inputs":["Phone or name…"]}
+NET 200 GET /api/v1/crm/customers/search?q=03&size=20
+SEARCH RESULTS: "Diag Loyalty 24573\n03009824573\n0 pts\nDine-in\nTakeaway\nPickup\nNo table (optional)\n\nAdd items to start an order\n\nTap a menu item to build the cart — nothing is saved until Send to Kitchen or Charge.\n\nSend to Kitchen\nSave as Draft\nCharge Now"
+PICKED: Diag Loyalty 24573 | 03009824573 | 0 pts
+PANEL NOW: Diag Loyalty 24573 | 03009824573 · 0 pts | BRONZE | Remove | Dine-in | Takeaway | Pickup | No table (optional) |  | Add items to start an order |  | Tap a menu item to build the cart — nothing is saved until Send to Kitchen or Charge. |  | Send to Kitchen | Save as Draft | Charge Now
+NET 201 POST /api/v1/pos/orders
+NET 200 POST /api/v1/pos/orders/0581eb44-346a-49b9-af56-77d09619f4ea/items
+NET 200 GET /api/v1/pos/orders/0581eb44-346a-49b9-af56-77d09619f4ea?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+NET 200 POST /api/v1/pos/orders/0581eb44-346a-49b9-af56-77d09619f4ea/send-to-kds
+NET 200 GET /api/v1/pos/orders/0581eb44-346a-49b9-af56-77d09619f4ea?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+NET 200 GET /api/v1/pos/orders/0581eb44-346a-49b9-af56-77d09619f4ea?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+NET 200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+AFTER SEND: Diag Loyalty 24573 | 03009824573 · 0 pts | BRONZE | Remove | ORD-20260812-0024 | In Progress |  | 1 cover(s) |  | 1 revision | + Add note |  | Fresh Lime |  | ×1 | Rs 255.20 | Sent | Mark Served | Cancel | Subtotal | Rs 220.00 | Tax | Rs 35.20 | Total | Rs 255.20 | CHARGE NOW | Void | Clear / New Order

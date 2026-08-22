@@ -1,0 +1,25 @@
+dialogs+receipt 2026-08-11T22:42:29.300Z
+signed in as OWNER
+
+[A] MENU ITEM EDIT DIALOG
+  action triggers found: 18
+  triggers: ["Actions for Recheck Cat 186597","Actions for Recheck Dish 186597","Actions for Diag Cat 785508","Actions for Starters","Actions for Audit Item 52235","Actions for Audit Item 60568","Actions for Chicken Samosa","Actions for Photo Dish 50585","Actions for Seekh Kebab","Actions for Diag Cat 683566","Actions for Mains","Actions for Butter Naan","Actions for Chicken Karahi","Actions for Mutton Biryani"]
+  opening: Actions for Audit Item 52235
+  07-menu-item-EDIT-dialog: box=512x559
+  07-menu-item-EDIT-dialog: labels=["Category","Name","Description","Price (Rs)","Picture"]
+  07-menu-item-EDIT-dialog: fields=["categoryId","name","description","priceRupees","_r_1n_"]
+  07-menu-item-EDIT-dialog: TAX CONTROL PRESENT? false
+
+[B] MENU ITEM CREATE DIALOG
+  08-menu-item-CREATE-dialog: box=512x539
+  08-menu-item-CREATE-dialog: labels=["Category","Name","Description","Price (Rs)","Picture"]
+  08-menu-item-CREATE-dialog: fields=["categoryId","name","description","priceRupees","_r_27_"]
+  08-menu-item-CREATE-dialog: TAX CONTROL PRESENT? false
+
+[C] RECEIPT RENDER
+  receipt tax/total lines: ["Subtotal","Service charge","Tax (16.00%) [OTHER]","Tax","TOTAL"]
+  literal "[OTHER]" present? true
+  bare "OTHER" token present? true
+  shot -> 09-receipt.png
+
+DONE

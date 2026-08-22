@@ -1,0 +1,335 @@
+{
+  "iphone-se": {
+    "w": 375,
+    "h": 667,
+    "geom": {
+      "vh": 667,
+      "dialog": {
+        "top": -12,
+        "bottom": 679,
+        "h": 691
+      },
+      "clipTop": 12,
+      "clipBottom": 12,
+      "innerForm": {
+        "maxH": "433.55px",
+        "overflowY": "auto",
+        "scrollH": 1576,
+        "clientH": 434,
+        "canScroll": true
+      },
+      "pageScrollable": false
+    },
+    "reach": [
+      {
+        "name": "name",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "shortName",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "sku",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "categoryId",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "itemType",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "description",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "measureType",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "baseUomCode",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "recipeUomCode",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "defaultYieldPct",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "parLevel",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "reorderPoint",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "storageLocationId",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "shelfLifeDays",
+        "reachable": true,
+        "why": null
+      }
+    ],
+    "unreachable": [],
+    "submitReach": {
+      "found": true,
+      "box": {
+        "x": 32,
+        "y": 590.7734375,
+        "width": 311,
+        "height": 32
+      },
+      "inViewport": true
+    },
+    "closeReach": {
+      "found": true,
+      "top": -4,
+      "bottom": 24,
+      "fullyVisible": false
+    }
+  },
+  "iphone-14": {
+    "w": 390,
+    "h": 844,
+    "geom": {
+      "vh": 844,
+      "dialog": {
+        "top": 19,
+        "bottom": 825,
+        "h": 806
+      },
+      "clipTop": 0,
+      "clipBottom": 0,
+      "innerForm": {
+        "maxH": "548.6px",
+        "overflowY": "auto",
+        "scrollH": 1540,
+        "clientH": 549,
+        "canScroll": true
+      },
+      "pageScrollable": false
+    },
+    "reach": [
+      {
+        "name": "name",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "shortName",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "sku",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "categoryId",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "itemType",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "description",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "measureType",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "baseUomCode",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "recipeUomCode",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "defaultYieldPct",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "parLevel",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "reorderPoint",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "storageLocationId",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "shelfLifeDays",
+        "reachable": true,
+        "why": null
+      }
+    ],
+    "unreachable": [],
+    "submitReach": {
+      "found": true,
+      "box": {
+        "x": 32,
+        "y": 736.796875,
+        "width": 326,
+        "height": 32
+      },
+      "inViewport": true
+    },
+    "closeReach": {
+      "found": true,
+      "top": 27,
+      "bottom": 55,
+      "fullyVisible": true
+    }
+  },
+  "android-small": {
+    "w": 360,
+    "h": 640,
+    "geom": {
+      "vh": 640,
+      "dialog": {
+        "top": -16,
+        "bottom": 657,
+        "h": 673
+      },
+      "clipTop": 17,
+      "clipBottom": 17,
+      "innerForm": {
+        "maxH": "416px",
+        "overflowY": "auto",
+        "scrollH": 1592,
+        "clientH": 416,
+        "canScroll": true
+      },
+      "pageScrollable": false
+    },
+    "reach": [
+      {
+        "name": "name",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "shortName",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "sku",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "categoryId",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "itemType",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "description",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "measureType",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "baseUomCode",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "recipeUomCode",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "defaultYieldPct",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "parLevel",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "reorderPoint",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "storageLocationId",
+        "reachable": true,
+        "why": null
+      },
+      {
+        "name": "shelfLifeDays",
+        "reachable": true,
+        "why": null
+      }
+    ],
+    "unreachable": [],
+    "submitReach": {
+      "found": true,
+      "box": {
+        "x": 32,
+        "y": 568.5,
+        "width": 296,
+        "height": 32
+      },
+      "inViewport": true
+    },
+    "closeReach": {
+      "found": true,
+      "top": -8,
+      "bottom": 20,
+      "fullyVisible": false
+    }
+  }
+}

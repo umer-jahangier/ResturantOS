@@ -1,0 +1,127 @@
+{
+  "routingSays": [
+    {
+      "id": "ac11b4bc-2b9a-4305-8ea2-3afb58f2ed0c",
+      "name": "Chicken Karahi",
+      "cat": "Mains",
+      "own": null,
+      "eff": "GRILL",
+      "src": "CATEGORY"
+    },
+    {
+      "id": "18011d87-31ff-4cc2-a600-4ffd366cd2b2",
+      "name": "Chicken Samosa",
+      "cat": "Starters",
+      "own": null,
+      "eff": "PANTRY1",
+      "src": "CATEGORY"
+    },
+    {
+      "id": "23acb4e9-cb07-434d-87f4-de82b3a65ae5",
+      "name": "Mutton Biryani",
+      "cat": "Mains",
+      "own": "775962d1-5f0a-451c-acda-a69599351c80",
+      "eff": "GRILL",
+      "src": "ITEM"
+    },
+    {
+      "id": "0fc28f38-8170-47fb-b0c6-e96f68c5423f",
+      "name": "Pinacolada",
+      "cat": "Drinks",
+      "own": null,
+      "eff": "BAR",
+      "src": "CATEGORY"
+    }
+  ],
+  "menuSays": [
+    {
+      "id": "ac11b4bc-2b9a-4305-8ea2-3afb58f2ed0c",
+      "name": "Chicken Karahi",
+      "station": "GRILL"
+    },
+    {
+      "id": "18011d87-31ff-4cc2-a600-4ffd366cd2b2",
+      "name": "Chicken Samosa",
+      "station": "PANTRY1"
+    },
+    {
+      "id": "23acb4e9-cb07-434d-87f4-de82b3a65ae5",
+      "name": "Mutton Biryani",
+      "station": "GRILL"
+    },
+    {
+      "id": "0fc28f38-8170-47fb-b0c6-e96f68c5423f",
+      "name": "Pinacolada",
+      "station": "BAR"
+    }
+  ],
+  "kitchenGot": [
+    {
+      "ticketId": "792cd49b-450a-4720-9890-22b981a606d5",
+      "station": "BAR",
+      "status": "PENDING",
+      "items": [
+        {
+          "name": "Pinacolada",
+          "qty": 1
+        }
+      ]
+    },
+    {
+      "ticketId": "d573715b-4c1b-40db-b5f8-6b9d167cd144",
+      "station": "GRILL",
+      "status": "PENDING",
+      "items": [
+        {
+          "name": "Chicken Karahi",
+          "qty": 1
+        },
+        {
+          "name": "Mutton Biryani",
+          "qty": 1
+        }
+      ]
+    },
+    {
+      "ticketId": "15926952-6bbf-4507-a774-11efc27dbd56",
+      "station": "PANTRY1",
+      "status": "PENDING",
+      "items": [
+        {
+          "name": "Chicken Samosa",
+          "qty": 1
+        }
+      ]
+    }
+  ],
+  "verdict": [
+    {
+      "item": "Chicken Karahi",
+      "routingSaysFiresTo": "GRILL",
+      "routeSource": "CATEGORY",
+      "actuallyLandedOn": "GRILL",
+      "agrees": true
+    },
+    {
+      "item": "Chicken Samosa",
+      "routingSaysFiresTo": "PANTRY1",
+      "routeSource": "CATEGORY",
+      "actuallyLandedOn": "PANTRY1",
+      "agrees": true
+    },
+    {
+      "item": "Mutton Biryani",
+      "routingSaysFiresTo": "GRILL",
+      "routeSource": "ITEM",
+      "actuallyLandedOn": "GRILL",
+      "agrees": true
+    },
+    {
+      "item": "Pinacolada",
+      "routingSaysFiresTo": "BAR",
+      "routeSource": "CATEGORY",
+      "actuallyLandedOn": "BAR",
+      "agrees": true
+    }
+  ]
+}

@@ -1,0 +1,209 @@
+{
+  "probe": "privilege-and-tenant-boundaries",
+  "results": [
+    {
+      "name": "TENANT_ADMIN grants OWNER over the API (dropdown bypassed)",
+      "expectation": "must-be-refused",
+      "status": 403,
+      "body": "{\"error\":{\"code\":\"ROLE_CEILING_EXCEEDED\",\"message\":\"You cannot assign the role OWNER: it grants 1 permission(s) you do not hold yourself\",\"details\":[],\"traceId\":\"f32cde4c-9e71-4676-8cbd-a5a721a0a3e9\"}}",
+      "PASS": true
+    },
+    {
+      "name": "TENANT_ADMIN grants OWNER to ITSELF",
+      "expectation": "must-be-refused",
+      "status": 403,
+      "body": "{\"error\":{\"code\":\"ROLE_CEILING_EXCEEDED\",\"message\":\"You cannot assign the role OWNER: it grants 1 permission(s) you do not hold yourself\",\"details\":[],\"traceId\":\"83c5d296-c2ff-471d-889e-736b3f2e7fc8\"}}",
+      "PASS": true
+    },
+    {
+      "name": "CASHIER grants themselves OWNER",
+      "expectation": "must-be-refused",
+      "status": 403,
+      "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"28daa29c-6f0b-43a1-8473-367808adbcf7\"}}",
+      "PASS": true
+    },
+    {
+      "name": "CASHIER reads the user list",
+      "expectation": "must-be-refused",
+      "status": 403,
+      "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"39d78930-cb5f-4049-bbaa-74b8c931cf80\"}}",
+      "PASS": true
+    },
+    {
+      "name": "TENANT_ADMIN enables a module on their OWN tenant via the platform API",
+      "expectation": "must-be-refused",
+      "status": 403,
+      "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"1fd78cc5-88cd-49e7-bc7d-1fb5633acee7\"}}",
+      "PASS": true
+    },
+    {
+      "name": "TENANT_ADMIN lists all tenants",
+      "expectation": "must-be-refused",
+      "status": 403,
+      "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"85275acf-663c-4234-a612-6c426fabff5e\"}}",
+      "PASS": true
+    },
+    {
+      "name": "OWNER enables a module on their OWN tenant via the platform API",
+      "expectation": "must-be-refused",
+      "status": 403,
+      "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"fc46c4a3-d45a-4890-9af7-4e36d5b04d0a\"}}",
+      "PASS": true
+    },
+    {
+      "name": "OWNER lists all tenants",
+      "expectation": "must-be-refused",
+      "status": 403,
+      "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"2182fe6e-0291-4355-91aa-0dc7d8e14016\"}}",
+      "PASS": true
+    },
+    {
+      "name": "MANAGER enables a module on their OWN tenant via the platform API",
+      "expectation": "must-be-refused",
+      "status": 403,
+      "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"5ec278e2-4f9c-437b-bf98-b30ebb373d81\"}}",
+      "PASS": true
+    },
+    {
+      "name": "MANAGER lists all tenants",
+      "expectation": "must-be-refused",
+      "status": 403,
+      "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"308e2f4a-ebb3-4d16-8ac6-7b27caa61add\"}}",
+      "PASS": true
+    },
+    {
+      "name": "Floating Terrace OWNER reads a Control Bistro user row",
+      "expectation": "must-be-refused",
+      "status": 404,
+      "body": "{\"error\":{\"code\":\"NOT_FOUND\",\"message\":\"User not found: a3415305-3abe-4973-b17a-1d8e3bf99d1d\",\"details\":[],\"traceId\":\"bf816b50-7125-4189-a2e0-46b6ddc5ec9a\"}}",
+      "PASS": true
+    },
+    {
+      "name": "Floating Terrace OWNER assigns a role to a Control Bistro user",
+      "expectation": "must-be-refused",
+      "status": 404,
+      "body": "{\"error\":{\"code\":\"NOT_FOUND\",\"message\":\"User not found\",\"details\":[],\"traceId\":\"fb011923-b4aa-4be5-a4ec-c05f533f6d9c\"}}",
+      "PASS": true
+    },
+    {
+      "name": "Floating Terrace OWNER reads Control Bistro's branches",
+      "expectation": "must-be-refused",
+      "status": 404,
+      "body": "{\"error\":{\"code\":\"NOT_FOUND\",\"message\":\"Branch not found: 5ae760de-850a-4829-9d49-1605280013a2\",\"details\":[],\"traceId\":\"50b4135a-b71e-4f84-81c5-fd20f15f2d10\"}}",
+      "PASS": true
+    },
+    {
+      "name": "OWNER GET /api/v1/roles",
+      "expectation": "note",
+      "status": 200,
+      "body": "{\"data\":[{\"code\":\"ACCOUNTANT\",\"name\":\"Accountant\",\"system\":true,\"permissions\":[\"crm.customer.view\",\"crm.promotion.view\",\"file.upload\",\"file.view\",\"finance.ar.manage\",\"finance.ar.view\",\"finance.coa.manage\",\"finance.coa.vi",
+      "PASS": null
+    },
+    {
+      "name": "OWNER GET /api/v1/permissions",
+      "expectation": "note",
+      "status": 200,
+      "body": "{\"data\":[{\"module\":\"audit\",\"permissions\":[{\"code\":\"audit.log.view\",\"module\":\"audit\",\"description\":\"Read the tenant's audit trail (logins, voids, refunds, role changes, password resets)\"}]},{\"module\":\"branch\",\"permissions",
+      "PASS": null
+    },
+    {
+      "name": "TENANT_ADMIN GET /api/v1/roles",
+      "expectation": "note",
+      "status": 200,
+      "body": "{\"data\":[{\"code\":\"ACCOUNTANT\",\"name\":\"Accountant\",\"system\":true,\"permissions\":[\"crm.customer.view\",\"crm.promotion.view\",\"file.upload\",\"file.view\",\"finance.ar.manage\",\"finance.ar.view\",\"finance.coa.manage\",\"finance.coa.vi",
+      "PASS": null
+    },
+    {
+      "name": "TENANT_ADMIN GET /api/v1/permissions",
+      "expectation": "note",
+      "status": 200,
+      "body": "{\"data\":[{\"module\":\"audit\",\"permissions\":[{\"code\":\"audit.log.view\",\"module\":\"audit\",\"description\":\"Read the tenant's audit trail (logins, voids, refunds, role changes, password resets)\"}]},{\"module\":\"branch\",\"permissions",
+      "PASS": null
+    },
+    {
+      "name": "MANAGER GET /api/v1/roles",
+      "expectation": "note",
+      "status": 403,
+      "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"987dd9dd-5f5a-49cd-a062-0faa26c7f61d\"}}",
+      "PASS": null
+    },
+    {
+      "name": "MANAGER GET /api/v1/permissions",
+      "expectation": "note",
+      "status": 403,
+      "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"03b4b82b-e300-402e-9b5d-1131ee2b85f0\"}}",
+      "PASS": null
+    },
+    {
+      "name": "CASHIER GET /api/v1/roles",
+      "expectation": "note",
+      "status": 403,
+      "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"6f17432d-d311-4fe3-ba14-6370e8ea1bd5\"}}",
+      "PASS": null
+    },
+    {
+      "name": "CASHIER GET /api/v1/permissions",
+      "expectation": "note",
+      "status": 403,
+      "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"f1abac86-0492-49c3-a4cc-47daaa2dd8a9\"}}",
+      "PASS": null
+    }
+  ],
+  "tokens": {
+    "owner": {
+      "roles": [
+        "OWNER"
+      ],
+      "tenant": "d108c2e6-a70d-49c8-acdc-37531fd752d8",
+      "perms": 73
+    },
+    "admin": {
+      "roles": [
+        "TENANT_ADMIN"
+      ],
+      "tenant": "d108c2e6-a70d-49c8-acdc-37531fd752d8",
+      "perms": 72
+    },
+    "cashier": {
+      "roles": [
+        "CASHIER"
+      ],
+      "tenant": "d108c2e6-a70d-49c8-acdc-37531fd752d8",
+      "perms": 14
+    },
+    "manager": {
+      "roles": [
+        "MANAGER"
+      ],
+      "tenant": "d108c2e6-a70d-49c8-acdc-37531fd752d8",
+      "perms": 55
+    },
+    "ctrlOwner": {
+      "roles": [
+        "OWNER"
+      ],
+      "tenant": "5ae760de-850a-4829-9d49-1605280013a2",
+      "perms": 73
+    }
+  },
+  "controlTenantId": "5ae760de-850a-4829-9d49-1605280013a2",
+  "roleCatalogueIdenticalAcrossTenants": true,
+  "finalState": {
+    "waiter": [
+      {
+        "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "roleCode": "WAITER",
+        "primary": true,
+        "approvalLimitPaisa": null
+      }
+    ],
+    "admin": [
+      {
+        "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "roleCode": "TENANT_ADMIN",
+        "primary": true,
+        "approvalLimitPaisa": 100000000
+      }
+    ]
+  }
+}

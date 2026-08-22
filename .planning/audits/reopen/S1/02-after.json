@@ -1,0 +1,144 @@
+{
+  "a": {
+    "puts": [
+      {
+        "m": "PUT",
+        "s": 204,
+        "u": "http://localhost:8080/api/v1/pos/menu/categories/c3d9fa09-d583-4bb3-a552-4c36fe329b56/station?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+      }
+    ],
+    "toasts": [
+      "Mains now fires to Hot line (GRILL)"
+    ]
+  },
+  "b": {
+    "puts": [
+      {
+        "m": "PUT",
+        "s": 200,
+        "u": "http://localhost:8080/api/v1/pos/menu/items/23acb4e9-cb07-434d-87f4-de82b3a65ae5/station?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+      }
+    ],
+    "toasts": [
+      "Mutton Biryani now fires to Main bar (BAR)"
+    ]
+  },
+  "afterA": [
+    {
+      "name": "Chicken Karahi",
+      "eff": "GRILL",
+      "src": "CATEGORY",
+      "destText": "Fires to GRILL · From the category",
+      "value": "",
+      "optText": "Follow category — Hot line (GRILL)"
+    },
+    {
+      "name": "Mutton Biryani",
+      "eff": "GRILL",
+      "src": "CATEGORY",
+      "destText": "Fires to GRILL · From the category",
+      "value": "",
+      "optText": "Follow category — Hot line (GRILL)"
+    }
+  ],
+  "afterB": [
+    {
+      "name": "Chicken Karahi",
+      "eff": "GRILL",
+      "src": "CATEGORY",
+      "destText": "Fires to GRILL · From the category",
+      "value": "",
+      "optText": "Follow category — Hot line (GRILL)"
+    },
+    {
+      "name": "Mutton Biryani",
+      "eff": "BAR",
+      "src": "ITEM",
+      "destText": "Fires to BAR · Set for this item",
+      "value": "789ce266-5808-48ec-a39a-9c7755961b44",
+      "optText": "Main bar (BAR)"
+    }
+  ],
+  "persisted": {
+    "mains": {
+      "name": "Mains",
+      "value": "775962d1-5f0a-451c-acda-a69599351c80",
+      "text": "Hot line (GRILL)",
+      "disabled": false
+    },
+    "karahi": {
+      "name": "Chicken Karahi",
+      "eff": "GRILL",
+      "src": "CATEGORY",
+      "destText": "Fires to GRILL · From the category",
+      "value": "",
+      "optText": "Follow category — Hot line (GRILL)"
+    },
+    "biryani": {
+      "name": "Mutton Biryani",
+      "eff": "BAR",
+      "src": "ITEM",
+      "destText": "Fires to BAR · Set for this item",
+      "value": "789ce266-5808-48ec-a39a-9c7755961b44",
+      "optText": "Main bar (BAR)"
+    }
+  },
+  "wireBiryani": {
+    "itemId": "23acb4e9-cb07-434d-87f4-de82b3a65ae5",
+    "itemName": "Mutton Biryani",
+    "categoryId": "c3d9fa09-d583-4bb3-a552-4c36fe329b56",
+    "categoryName": "Mains",
+    "active": true,
+    "stationId": "789ce266-5808-48ec-a39a-9c7755961b44",
+    "effectiveStationId": "789ce266-5808-48ec-a39a-9c7755961b44",
+    "effectiveStationCode": "BAR",
+    "effectiveStationName": "Main bar",
+    "source": "ITEM"
+  },
+  "wireKarahi": {
+    "itemId": "ac11b4bc-2b9a-4305-8ea2-3afb58f2ed0c",
+    "itemName": "Chicken Karahi",
+    "categoryId": "c3d9fa09-d583-4bb3-a552-4c36fe329b56",
+    "categoryName": "Mains",
+    "active": true,
+    "stationId": null,
+    "effectiveStationId": "775962d1-5f0a-451c-acda-a69599351c80",
+    "effectiveStationCode": "GRILL",
+    "effectiveStationName": "Hot line",
+    "source": "CATEGORY"
+  },
+  "offered": [
+    {
+      "value": "",
+      "text": "Not routed — DEFAULT board"
+    },
+    {
+      "value": "789ce266-5808-48ec-a39a-9c7755961b44",
+      "text": "Main bar (BAR)"
+    },
+    {
+      "value": "775962d1-5f0a-451c-acda-a69599351c80",
+      "text": "Hot line (GRILL)"
+    },
+    {
+      "value": "092b2622-253a-46c9-87b9-52e71334c6ca",
+      "text": "Diag Bar 28334 (DGB28334)"
+    },
+    {
+      "value": "ea8b3cfe-a84b-4af5-a5c5-fed05c0b2911",
+      "text": "Diag Dessert 43431 (DGS43431)"
+    },
+    {
+      "value": "96b4f3b0-ee4c-4fa5-994e-00c13ecdaeda",
+      "text": "Diag Dessert 20334 (DGS20334)"
+    },
+    {
+      "value": "53086ba0-6f16-412f-b409-fb65eb898c76",
+      "text": "Cold prep (PANTRY1)"
+    }
+  ],
+  "findings": [],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  ]
+}

@@ -1,0 +1,27 @@
+
+===== sequence: valid,404,valid,detail,list @ wait=1500ms =====
+  trial 1 (wait 1500ms): refreshes=5 failed=0 diedAtNav=- | /platform/dashboard=OK /platform/health=404 /platform/dashboard=OK /platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8=OK /platform/tenants=OK
+  trial 2 (wait 1500ms): refreshes=5 failed=0 diedAtNav=- | /platform/dashboard=OK /platform/health=404 /platform/dashboard=OK /platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8=OK /platform/tenants=OK
+  trial 3 (wait 1500ms): refreshes=5 failed=1 diedAtNav=5 | /platform/dashboard=OK /platform/health=404 /platform/dashboard=OK /platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8=OK /platform/tenants=LOGGED_OUT
+  trial 4 (wait 1500ms): refreshes=5 failed=0 diedAtNav=- | /platform/dashboard=OK /platform/health=404 /platform/dashboard=OK /platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8=OK /platform/tenants=OK
+  trial 5 (wait 1500ms): refreshes=1 failed=1 diedAtNav=1 | /platform/dashboard=LOGGED_OUT /platform/health=LOGGED_OUT /platform/dashboard=LOGGED_OUT /platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8=LOGGED_OUT /platform/tenants=LOGGED_OUT
+  trial 6 (wait 1500ms): refreshes=1 failed=1 diedAtNav=1 | /platform/dashboard=LOGGED_OUT /platform/health=LOGGED_OUT /platform/dashboard=LOGGED_OUT /platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8=LOGGED_OUT /platform/tenants=LOGGED_OUT
+  >>> LOGGED OUT in 3/6 trials at wait=1500ms
+
+===== sequence: valid,404,valid,detail,list @ wait=2200ms =====
+  trial 1 (wait 2200ms): refreshes=5 failed=0 diedAtNav=- | /platform/dashboard=OK /platform/health=404 /platform/dashboard=OK /platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8=OK /platform/tenants=OK
+  trial 2 (wait 2200ms): refreshes=4 failed=1 diedAtNav=4 | /platform/dashboard=OK /platform/health=404 /platform/dashboard=OK /platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8=LOGGED_OUT /platform/tenants=LOGGED_OUT
+  trial 3 (wait 2200ms): refreshes=0 failed=0 diedAtNav=1 | /platform/dashboard=LOGGED_OUT /platform/health=LOGGED_OUT /platform/dashboard=LOGGED_OUT /platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8=LOGGED_OUT /platform/tenants=LOGGED_OUT
+  trial 4 (wait 2200ms): refreshes=5 failed=0 diedAtNav=- | /platform/dashboard=OK /platform/health=404 /platform/dashboard=OK /platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8=OK /platform/tenants=OK
+  trial 5 (wait 2200ms): refreshes=5 failed=0 diedAtNav=- | /platform/dashboard=OK /platform/health=404 /platform/dashboard=OK /platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8=OK /platform/tenants=OK
+  trial 6 (wait 2200ms): refreshes=2 failed=1 diedAtNav=2 | /platform/dashboard=OK /platform/health=LOGGED_OUT /platform/dashboard=LOGGED_OUT /platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8=LOGGED_OUT /platform/tenants=LOGGED_OUT
+  >>> LOGGED OUT in 3/6 trials at wait=2200ms
+
+===== control: only valid routes @ 1500ms =====
+  trial 1 (wait 1500ms): refreshes=3 failed=1 diedAtNav=3 | /platform/dashboard=OK /platform/tenants=OK /platform/dashboard=LOGGED_OUT /platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8=LOGGED_OUT /platform/tenants=LOGGED_OUT
+  trial 2 (wait 1500ms): refreshes=1 failed=1 diedAtNav=1 | /platform/dashboard=LOGGED_OUT /platform/tenants=LOGGED_OUT /platform/dashboard=LOGGED_OUT /platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8=LOGGED_OUT /platform/tenants=LOGGED_OUT
+  trial 3 (wait 1500ms): refreshes=3 failed=1 diedAtNav=3 | /platform/dashboard=OK /platform/tenants=OK /platform/dashboard=LOGGED_OUT /platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8=LOGGED_OUT /platform/tenants=LOGGED_OUT
+  trial 4 (wait 1500ms): refreshes=0 failed=0 diedAtNav=1 | /platform/dashboard=LOGGED_OUT /platform/tenants=LOGGED_OUT /platform/dashboard=LOGGED_OUT /platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8=LOGGED_OUT /platform/tenants=LOGGED_OUT
+  trial 5 (wait 1500ms): refreshes=1 failed=1 diedAtNav=1 | /platform/dashboard=LOGGED_OUT /platform/tenants=LOGGED_OUT /platform/dashboard=LOGGED_OUT /platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8=LOGGED_OUT /platform/tenants=LOGGED_OUT
+  trial 6 (wait 1500ms): refreshes=0 failed=0 diedAtNav=1 | /platform/dashboard=LOGGED_OUT /platform/tenants=LOGGED_OUT /platform/dashboard=LOGGED_OUT /platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8=LOGGED_OUT /platform/tenants=LOGGED_OUT
+  >>> LOGGED OUT in 6/6 trials (valid routes only)

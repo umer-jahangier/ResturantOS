@@ -1,0 +1,3 @@
+{"at":"2026-08-12T02:45:40.544Z","id":"PRE","sev":"info","what":"manager already had an OPEN till from an earlier run — closing it first"}
+{"at":"2026-08-12T02:47:03.838Z","id":"SHIFT-02","sev":"obs","what":"closing the inherited drawer was refused: \"This till still has open orders. Settle, serve, or void them before closing.\""}
+{"at":"2026-08-12T02:56:08.740Z","id":"SHIFT-LATEADD","sev":"S1","what":"a line rung onto a fired check offered no 'Send New Items' control","evidence":{"drawer":null,"sendNew":null}}

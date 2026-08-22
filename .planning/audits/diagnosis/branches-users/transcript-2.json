@@ -1,0 +1,95 @@
+[
+  {
+    "k": "login",
+    "v": "owner ok"
+  },
+  {
+    "k": "owner-branch-switcher-count",
+    "v": 0
+  },
+  {
+    "k": "owner-header-text",
+    "v": "(no header)"
+  },
+  {
+    "k": "manager-row-found",
+    "v": 1
+  },
+  {
+    "k": "detail-panel-text",
+    "v": "Terrace Manager\nmanager@terrace.local\nActive\nAug 12, 2026\nowner@terrace.local\nowner@terrace.local\n2FA\nActive\nAug 12, 2026\nPhase 19 Probe\nphase19-probe-1786454628872@terrace.local\nDeactivated\nAug 11, 2026\nProbe Nineteen Renamed\nprobe19-1786095561@terrace.local\nPassword reset pending\nActive\nNever signed in\nTerrace Storekeeper\nstorekeeper@terrace.local\nActive\nAug 11, 2026\nTerrace Waiter\nwaiter@terrace.local\nActive\nAug 12, 2026\nTerrace Manager\nEmail\nmanager@terrace.local\nStatus\nActive\nTwo-factor\nNot enrolled\nPassword\nSet by the user\nRoles by branch\nFloating Terrace HQ\nApproves up to Rs 300,000.00\nprimary\nMANAGER\nFloating Terrace — Rooftop\nApproves up to Rs 300,000.00\nMANAGER\nStations\n\nSees every station in every branch they work.\n\nEdit\nAssign role\nReset password\nDeactivate"
+  },
+  {
+    "k": "buttons-after-select",
+    "v": [
+      "Collapse",
+      "",
+      "Search…\n⌘K",
+      "",
+      "",
+      "6",
+      "Add user",
+      "Terrace Admin\nadmin@terrace.local\n2FA\nActive\nAug 12, 2026",
+      "Terrace Cashier\ncashier@terrace.local\nActive\nAug 12, 2026",
+      "Terrace Kitchen\nkitchen@terrace.local\nActive\nAug 12, 2026",
+      "Terrace Manager\nmanager@terrace.local\nActive\nAug 12, 2026",
+      "Terrace Waiter\nwaiter@terrace.local\nActive\nAug 12, 2026",
+      "Edit",
+      "Assign role",
+      "Reset password",
+      "Deactivate",
+      ""
+    ]
+  },
+  {
+    "k": "found-role-button",
+    "v": "Assign role"
+  },
+  {
+    "k": "role-dialog-box",
+    "v": {
+      "x": 526,
+      "y": 376.5,
+      "width": 448,
+      "height": 297
+    }
+  },
+  {
+    "k": "role-dialog-text",
+    "v": "Assign a role to manager@terrace.local\n\nA user holds one role per branch. Assigning a role on a branch they already work at replaces the role they had there.\n\nBranch\nChoose a branch…\nFloating Terrace — Rooftop\nFloating Terrace HQ (HQ)\nRole\nChoose a role…\nAccountant\nCashier\nInventory Manager\nKitchen Staff\nManager\nOwner\nTenant Admin\nWaiter\nCancel\nAssign role\nClose"
+  },
+  {
+    "k": "role-dialog-fields",
+    "v": [
+      {
+        "tag": "SELECT",
+        "name": null,
+        "role": null,
+        "text": "Choose a branch…Floating Terrace — RooftopFloating Terrace HQ (HQ)"
+      },
+      {
+        "tag": "SELECT",
+        "name": null,
+        "role": null,
+        "text": "Choose a role…AccountantCashierInventory ManagerKitchen StaffManagerOwnerTenant "
+      }
+    ]
+  },
+  {
+    "k": "dialog-combobox-count",
+    "v": 0
+  },
+  {
+    "k": "adduser-dialog-box",
+    "v": {
+      "x": 494,
+      "y": 301.5,
+      "width": 512,
+      "height": 447
+    }
+  },
+  {
+    "k": "adduser-dialog-text",
+    "v": "Add a user\n\nThey will sign in with their email address and a temporary password issued here.\n\nEmail address\n\nThis is what they sign in with.\n\nFull name\nBranch\nNo branch yet\nFloating Terrace — Rooftop\nFloating Terrace HQ (HQ)\nRole\nNo role yet — assign later\nAccountant\nCashier\nInventory Manager\nKitchen Staff\nManager\nOwner\nTenant Admin\nWaiter\n\nLeave both blank to create the account now and assign a role later. Until a role is assigned the account exists but cannot sign in.\n\nCancel\nCreate user\nClose"
+  }
+]

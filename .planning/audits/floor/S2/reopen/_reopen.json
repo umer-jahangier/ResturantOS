@@ -1,0 +1,200 @@
+{
+  "usersPageTrouble": {
+    "bad": [],
+    "alerts": []
+  },
+  "branches": {
+    "hq": "Floating Terrace HQ",
+    "rooftop": "Floating Terrace — Rooftop"
+  },
+  "createdSubject": {
+    "status": 201,
+    "id": "b7a26b34-ccee-4699-9255-afc8c1548c2a"
+  },
+  "gotTempPassword": true,
+  "grantedRooftopMANAGER": 200,
+  "subjectFirstSignIn": {
+    "url": "http://localhost:3000/login",
+    "reachedApp": false
+  },
+  "subjectAfterPasswordChange": "http://localhost:3000/app/dashboard",
+  "A_probeBeforeRevoke": {
+    "foundRolesBlock": true,
+    "rolesBlockText": "Roles by branch Floating Terrace HQ No approval authority primary CASHIER Revoke Floating Terrace — Rooftop No approval authority MANAGER Revoke",
+    "buttonsInsideRolesBlock": [
+      "Revoke CASHIER at Floating Terrace HQ",
+      "Revoke MANAGER at Floating Terrace — Rooftop"
+    ],
+    "anyRevokeText": true
+  },
+  "A_dialogText": "Revoke MANAGER at Floating Terrace — Rooftop? S2 Reopen Subject loses every permission that role carries at Floating Terrace — Rooftop, including access to that branch's orders, tills and reports. Their roles at other branches are untouched. If they are signed in right now, it applies the next time their session refreshes. Cancel Revoke role Close",
+  "A_toasts": [
+    "MANAGER revoked at Floating Terrace — Rooftop for s2.reopen.1786519148270@terrace.local."
+  ],
+  "A_probeAfterReload": {
+    "foundRolesBlock": true,
+    "rolesBlockText": "Roles by branch Floating Terrace HQ No approval authority primary CASHIER Revoke",
+    "buttonsInsideRolesBlock": [
+      "Revoke CASHIER at Floating Terrace HQ"
+    ],
+    "anyRevokeText": true
+  },
+  "A_serverAssignments": [
+    "CASHIER@HQ"
+  ],
+  "A_subjectStillSignsIn": {
+    "reachedApp": true,
+    "url": "http://localhost:3000/app/dashboard"
+  },
+  "A_subjectReadsRooftop": {
+    "status": 200,
+    "body": {
+      "data": {
+        "id": "c2d74ade-7ff8-4167-8cd0-131bfbdf4fba",
+        "tenantId": "d108c2e6-a70d-49c8-acdc-37531fd752d8",
+        "name": "Floating Terrace — Rooftop",
+        "isHq": false,
+        "isActive": true,
+        "address": null,
+        "fbrStrn": null,
+        "ntn": null,
+        "phone": null,
+        "email": null,
+        "timezone": "Asia/Karachi",
+        "currencyConfig": null,
+        "receiptConfig": null,
+        "openedOn": null
+      },
+      "meta": null,
+      "warnings": []
+    }
+  },
+  "A_subjectSwitchRooftop": {
+    "status": 403,
+    "body": {
+      "error": {
+        "code": "BRANCH_ACCESS_DENIED",
+        "message": "Branch not assigned to user",
+        "details": [],
+        "traceId": "93150dcb-3ee7-42ad-82b1-879f234bb09a"
+      }
+    }
+  },
+  "A_subjectSeesRooftopOnScreen": false,
+  "F_selfProbe": {
+    "foundRolesBlock": true,
+    "rolesBlockText": "Roles by branch Floating Terrace HQ Approves up to Rs 1,000,000.00 primary OWNER Revoke S4 Reopen Probe 532004 No approval authority OWNER Revoke b136632b-d1f0-40c2-ab4f-ade6e9826cc7 No approval authority OWNER Revoke e983a394-b31b-4b56-bcc9-d70a602c8f25 No approval authority OWNER Revoke ea540e8e-4df1-4197-a473-afd7cc7678c7 No approval authority OWNER Revoke 117d3a7f-e3cc-45b0-b389-4ceb92b4baac No approval authority OWNER Revoke Reopen Branch 51070 — Annexe No approval authority OWNER Revoke 213d1a4f-c17a-4bf8-bff5-ce9806bd96a4 No approval authority OWNER Revoke Reopen Branch 28265 — Annexe No approval authority OWNER Revoke 479959e6-06c9-4299-b69a-a8008957331b No approval authority OWNER Revoke 70fffc3d-6597-4057-bae7-c4788d702d8b No approval authority OWNER Revoke 78ebe5c3-674d-45ac-8a5d-3c7065f2c5de No approval authority OWNER Revoke",
+    "buttonsInsideRolesBlock": [
+      "Revoke OWNER at Floating Terrace HQ",
+      "Revoke OWNER at S4 Reopen Probe 532004",
+      "Revoke OWNER at b136632b-d1f0-40c2-ab4f-ade6e9826cc7",
+      "Revoke OWNER at e983a394-b31b-4b56-bcc9-d70a602c8f25",
+      "Revoke OWNER at ea540e8e-4df1-4197-a473-afd7cc7678c7",
+      "Revoke OWNER at 117d3a7f-e3cc-45b0-b389-4ceb92b4baac",
+      "Revoke OWNER at Reopen Branch 51070 — Annexe",
+      "Revoke OWNER at 213d1a4f-c17a-4bf8-bff5-ce9806bd96a4",
+      "Revoke OWNER at Reopen Branch 28265 — Annexe",
+      "Revoke OWNER at 479959e6-06c9-4299-b69a-a8008957331b",
+      "Revoke OWNER at 70fffc3d-6597-4057-bae7-c4788d702d8b",
+      "Revoke OWNER at 78ebe5c3-674d-45ac-8a5d-3c7065f2c5de"
+    ],
+    "anyRevokeText": true
+  },
+  "B_probeBeforeLastRevoke": {
+    "foundRolesBlock": true,
+    "rolesBlockText": "Roles by branch Floating Terrace HQ No approval authority primary CASHIER Revoke",
+    "buttonsInsideRolesBlock": [
+      "Revoke CASHIER at Floating Terrace HQ"
+    ],
+    "anyRevokeText": true
+  },
+  "B_rowSaysPrimary": true,
+  "B_lastRoleDialogText": "Revoke CASHIER at Floating Terrace HQ? S2 Reopen Subject loses every permission that role carries at Floating Terrace HQ, including access to that branch's orders, tills and reports. It is their only role, so the account will no longer be able to sign in until another role is assigned. If they are signed in right now, it applies the next time their session refreshes. Cancel Revoke role Close",
+  "B_dialogClaimsCannotSignIn": true,
+  "B_afterLastRevoke": {
+    "dialogStillOpen": false,
+    "toasts": [
+      "CASHIER revoked at Floating Terrace HQ for s2.reopen.1786519148270@terrace.local."
+    ]
+  },
+  "B_probeAfterLastRevoke": {
+    "foundRolesBlock": true,
+    "rolesBlockText": "Roles by branch This account holds no role on any branch, so it cannot sign in. Assign a role to finish setting it up.",
+    "buttonsInsideRolesBlock": [],
+    "anyRevokeText": false
+  },
+  "B_serverAssignmentsAfterLast": [],
+  "B_signInAfterLastRoleRevoked": {
+    "reachedApp": false,
+    "url": "http://localhost:3000/login",
+    "alerts": [
+      "Sign-in failedAn unexpected error occurred"
+    ],
+    "snippet": "Sign in to RestaurantOS Enter your email and password to continue Sign-in failed An unexpected error occurred Email Password Use a restaurant identifier instead Sign in"
+  },
+  "D_restoredRooftopMANAGER": 200,
+  "D_manager": {
+    "pageTrouble": {
+      "bad": [
+        "access-denied"
+      ],
+      "alerts": []
+    },
+    "probe": {
+      "reachedRoster": false
+    },
+    "directDelete": {
+      "status": 403,
+      "code": "PERMISSION_DENIED"
+    }
+  },
+  "D_cashier": {
+    "pageTrouble": {
+      "bad": [
+        "access-denied"
+      ],
+      "alerts": []
+    },
+    "probe": {
+      "reachedRoster": false
+    },
+    "directDelete": {
+      "status": 403,
+      "code": "PERMISSION_DENIED"
+    }
+  },
+  "D_assignmentsSurvivedWrongPersonas": [
+    "MANAGER"
+  ],
+  "E_ownerGrantsOWNERatRooftop": 200,
+  "E_adminAssignOWNER": {
+    "status": 403,
+    "code": "ROLE_CEILING_EXCEEDED"
+  },
+  "E_adminRevokeOWNER": {
+    "status": 403,
+    "code": "ROLE_CEILING_EXCEEDED",
+    "message": "You cannot revoke the role OWNER: it grants 1 permission(s) you do not hold yourself. Ask an administrator who holds them.",
+    "messageLength": 122
+  },
+  "E_assignmentsAfterRefusedRevoke": [
+    "OWNER"
+  ],
+  "E_adminUiRefusal": {
+    "controlFound": true,
+    "dialogStillOpen": true,
+    "dialogAlert": "You cannot revoke the role OWNER: it grants 1 permission(s) you do not hold yourself. Ask an administrator who holds them."
+  },
+  "X_otherTenantAdminSignedIn": "http://localhost:3000/app/dashboard",
+  "X_crossTenantReadUser": {
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  "X_crossTenantRevoke": {
+    "status": 403,
+    "code": "ROLE_CEILING_EXCEEDED"
+  },
+  "X_assignmentsAfterCrossTenant": [
+    "OWNER"
+  ]
+}

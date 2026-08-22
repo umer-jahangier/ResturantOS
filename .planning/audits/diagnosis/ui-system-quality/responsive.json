@@ -1,0 +1,748 @@
+{
+  "routes": [
+    {
+      "name": "dashboard",
+      "width": 390,
+      "clean": true,
+      "overflowX": 0,
+      "worst": null,
+      "tap": {
+        "n": 16,
+        "under44": 0,
+        "under24": 0
+      },
+      "tables": {
+        "n": 1,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "pos",
+      "width": 390,
+      "clean": true,
+      "overflowX": 0,
+      "worst": null,
+      "tap": {
+        "n": 13,
+        "under44": 0,
+        "under24": 0
+      },
+      "tables": {
+        "n": 0,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "menu-items",
+      "width": 390,
+      "clean": true,
+      "overflowX": 0,
+      "worst": null,
+      "tap": {
+        "n": 34,
+        "under44": 25,
+        "under24": 1
+      },
+      "tables": {
+        "n": 0,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "inv-ingredients",
+      "width": 390,
+      "clean": true,
+      "overflowX": 0,
+      "worst": {
+        "over": 100,
+        "tag": "a",
+        "cls": "border-b-2 px-1 pb-2 text-sm font-medium border-transparent text-muted-foreground"
+      },
+      "tap": {
+        "n": 33,
+        "under44": 24,
+        "under24": 0
+      },
+      "tables": {
+        "n": 0,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "pur-pos",
+      "width": 390,
+      "clean": true,
+      "overflowX": 0,
+      "worst": {
+        "over": 127,
+        "tag": "a",
+        "cls": "border-b-2 px-1 pb-2 text-sm font-medium border-transparent text-muted-foreground"
+      },
+      "tap": {
+        "n": 45,
+        "under44": 29,
+        "under24": 25
+      },
+      "tables": {
+        "n": 0,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "fin-expenses",
+      "width": 390,
+      "clean": true,
+      "overflowX": 0,
+      "worst": {
+        "over": 459,
+        "tag": "a",
+        "cls": "border-b-2 px-1 pb-2 text-sm font-medium border-transparent text-muted-foreground"
+      },
+      "tap": {
+        "n": 22,
+        "under44": 2,
+        "under24": 0
+      },
+      "tables": {
+        "n": 0,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "hr-employees",
+      "width": 390,
+      "clean": true,
+      "overflowX": 0,
+      "worst": {
+        "over": 163,
+        "tag": "table",
+        "cls": "w-full text-sm"
+      },
+      "tap": {
+        "n": 26,
+        "under44": 12,
+        "under24": 1
+      },
+      "tables": {
+        "n": 1,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "users",
+      "width": 390,
+      "clean": true,
+      "overflowX": 0,
+      "worst": {
+        "over": 136,
+        "tag": "div",
+        "cls": "space-y-4"
+      },
+      "tap": {
+        "n": 31,
+        "under44": 3,
+        "under24": 1
+      },
+      "tables": {
+        "n": 0,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "dashboard",
+      "width": 768,
+      "clean": true,
+      "overflowX": 0,
+      "worst": null,
+      "tap": {
+        "n": 37,
+        "under44": 26,
+        "under24": 0
+      },
+      "tables": {
+        "n": 1,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "pos",
+      "width": 768,
+      "clean": true,
+      "overflowX": 0,
+      "worst": null,
+      "tap": {
+        "n": 34,
+        "under44": 26,
+        "under24": 0
+      },
+      "tables": {
+        "n": 0,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "menu-items",
+      "width": 768,
+      "clean": true,
+      "overflowX": 0,
+      "worst": null,
+      "tap": {
+        "n": 55,
+        "under44": 51,
+        "under24": 1
+      },
+      "tables": {
+        "n": 0,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "inv-ingredients",
+      "width": 768,
+      "clean": true,
+      "overflowX": 0,
+      "worst": {
+        "over": 665,
+        "tag": "table",
+        "cls": "w-full caption-bottom text-small"
+      },
+      "tap": {
+        "n": 100,
+        "under44": 90,
+        "under24": 20
+      },
+      "tables": {
+        "n": 1,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "pur-pos",
+      "width": 768,
+      "clean": true,
+      "overflowX": 0,
+      "worst": {
+        "over": 55,
+        "tag": "table",
+        "cls": "w-full caption-bottom text-small"
+      },
+      "tap": {
+        "n": 45,
+        "under44": 30,
+        "under24": 0
+      },
+      "tables": {
+        "n": 1,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "fin-expenses",
+      "width": 768,
+      "clean": true,
+      "overflowX": 0,
+      "worst": {
+        "over": 337,
+        "tag": "a",
+        "cls": "border-b-2 px-1 pb-2 text-sm font-medium border-transparent text-muted-foreground"
+      },
+      "tap": {
+        "n": 43,
+        "under44": 28,
+        "under24": 0
+      },
+      "tables": {
+        "n": 0,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "hr-employees",
+      "width": 768,
+      "clean": true,
+      "overflowX": 0,
+      "worst": {
+        "over": 41,
+        "tag": "table",
+        "cls": "w-full text-sm"
+      },
+      "tap": {
+        "n": 47,
+        "under44": 43,
+        "under24": 1
+      },
+      "tables": {
+        "n": 1,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "users",
+      "width": 768,
+      "clean": true,
+      "overflowX": 0,
+      "worst": {
+        "over": 154,
+        "tag": "div",
+        "cls": "space-y-4"
+      },
+      "tap": {
+        "n": 52,
+        "under44": 29,
+        "under24": 1
+      },
+      "tables": {
+        "n": 0,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "dashboard",
+      "width": 1440,
+      "clean": true,
+      "overflowX": 0,
+      "worst": null,
+      "tap": {
+        "n": 37,
+        "under44": 26,
+        "under24": 0
+      },
+      "tables": {
+        "n": 1,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "pos",
+      "width": 1440,
+      "clean": true,
+      "overflowX": 0,
+      "worst": null,
+      "tap": {
+        "n": 34,
+        "under44": 26,
+        "under24": 0
+      },
+      "tables": {
+        "n": 0,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "menu-items",
+      "width": 1440,
+      "clean": true,
+      "overflowX": 0,
+      "worst": null,
+      "tap": {
+        "n": 55,
+        "under44": 51,
+        "under24": 1
+      },
+      "tables": {
+        "n": 0,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "inv-ingredients",
+      "width": 1440,
+      "clean": true,
+      "overflowX": 0,
+      "worst": null,
+      "tap": {
+        "n": 100,
+        "under44": 90,
+        "under24": 20
+      },
+      "tables": {
+        "n": 1,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "pur-pos",
+      "width": 1440,
+      "clean": true,
+      "overflowX": 0,
+      "worst": null,
+      "tap": {
+        "n": 45,
+        "under44": 36,
+        "under24": 0
+      },
+      "tables": {
+        "n": 1,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "fin-expenses",
+      "width": 1440,
+      "clean": true,
+      "overflowX": 0,
+      "worst": null,
+      "tap": {
+        "n": 43,
+        "under44": 39,
+        "under24": 0
+      },
+      "tables": {
+        "n": 0,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "hr-employees",
+      "width": 1440,
+      "clean": true,
+      "overflowX": 0,
+      "worst": null,
+      "tap": {
+        "n": 47,
+        "under44": 43,
+        "under24": 1
+      },
+      "tables": {
+        "n": 1,
+        "dataGrids": 0
+      }
+    },
+    {
+      "name": "users",
+      "width": 1440,
+      "clean": true,
+      "overflowX": 0,
+      "worst": null,
+      "tap": {
+        "n": 52,
+        "under44": 29,
+        "under24": 1
+      },
+      "tables": {
+        "n": 0,
+        "dataGrids": 0
+      }
+    }
+  ],
+  "dialogs": [
+    {
+      "name": "tables-add",
+      "width": 390,
+      "open": true,
+      "w": 358,
+      "h": 411,
+      "top": 217,
+      "bottom": 628,
+      "viewportH": 844,
+      "viewportW": 390,
+      "clippedTop": 0,
+      "clippedBottom": 0,
+      "widerThanViewport": 0,
+      "innerScroll": false,
+      "submitVisible": true,
+      "fieldCount": 3
+    },
+    {
+      "name": "ingredient-add",
+      "width": 390,
+      "open": true,
+      "w": 358,
+      "h": 806,
+      "top": 19,
+      "bottom": 825,
+      "viewportH": 844,
+      "viewportW": 390,
+      "clippedTop": 0,
+      "clippedBottom": 0,
+      "widerThanViewport": 0,
+      "innerScroll": false,
+      "submitVisible": true,
+      "fieldCount": 14
+    },
+    {
+      "name": "po-new",
+      "width": 390,
+      "open": true,
+      "w": 358,
+      "h": 622,
+      "top": 111,
+      "bottom": 733,
+      "viewportH": 844,
+      "viewportW": 390,
+      "clippedTop": 0,
+      "clippedBottom": 0,
+      "widerThanViewport": 0,
+      "innerScroll": false,
+      "submitVisible": true,
+      "fieldCount": 6
+    },
+    {
+      "name": "employee-new",
+      "width": 390,
+      "open": true,
+      "w": 358,
+      "h": 760,
+      "top": 42,
+      "bottom": 802,
+      "viewportH": 844,
+      "viewportW": 390,
+      "clippedTop": 0,
+      "clippedBottom": 0,
+      "widerThanViewport": 0,
+      "innerScroll": true,
+      "submitVisible": true,
+      "fieldCount": 10
+    },
+    {
+      "name": "tables-add",
+      "width": 768,
+      "open": true,
+      "w": 448,
+      "h": 371,
+      "top": 327,
+      "bottom": 698,
+      "viewportH": 1024,
+      "viewportW": 768,
+      "clippedTop": 0,
+      "clippedBottom": 0,
+      "widerThanViewport": 0,
+      "innerScroll": false,
+      "submitVisible": true,
+      "fieldCount": 3
+    },
+    {
+      "name": "ingredient-add",
+      "width": 768,
+      "open": true,
+      "w": 672,
+      "h": 843,
+      "top": 91,
+      "bottom": 933,
+      "viewportH": 1024,
+      "viewportW": 768,
+      "clippedTop": 0,
+      "clippedBottom": 0,
+      "widerThanViewport": 0,
+      "innerScroll": false,
+      "submitVisible": true,
+      "fieldCount": 14
+    },
+    {
+      "name": "po-new",
+      "width": 768,
+      "open": true,
+      "w": 768,
+      "h": 464,
+      "top": 280,
+      "bottom": 744,
+      "viewportH": 1024,
+      "viewportW": 768,
+      "clippedTop": 0,
+      "clippedBottom": 0,
+      "widerThanViewport": 0,
+      "innerScroll": false,
+      "submitVisible": true,
+      "fieldCount": 6
+    },
+    {
+      "name": "employee-new",
+      "width": 768,
+      "open": true,
+      "w": 672,
+      "h": 599,
+      "top": 213,
+      "bottom": 812,
+      "viewportH": 1024,
+      "viewportW": 768,
+      "clippedTop": 0,
+      "clippedBottom": 0,
+      "widerThanViewport": 0,
+      "innerScroll": false,
+      "submitVisible": true,
+      "fieldCount": 10
+    },
+    {
+      "name": "tables-add",
+      "width": 1440,
+      "open": true,
+      "w": 448,
+      "h": 371,
+      "top": 265,
+      "bottom": 636,
+      "viewportH": 900,
+      "viewportW": 1440,
+      "clippedTop": 0,
+      "clippedBottom": 0,
+      "widerThanViewport": 0,
+      "innerScroll": false,
+      "submitVisible": true,
+      "fieldCount": 3
+    },
+    {
+      "name": "ingredient-add",
+      "width": 1440,
+      "open": true,
+      "w": 672,
+      "h": 762,
+      "top": 69,
+      "bottom": 831,
+      "viewportH": 900,
+      "viewportW": 1440,
+      "clippedTop": 0,
+      "clippedBottom": 0,
+      "widerThanViewport": 0,
+      "innerScroll": false,
+      "submitVisible": true,
+      "fieldCount": 14
+    },
+    {
+      "name": "po-new",
+      "width": 1440,
+      "open": true,
+      "w": 768,
+      "h": 464,
+      "top": 218,
+      "bottom": 682,
+      "viewportH": 900,
+      "viewportW": 1440,
+      "clippedTop": 0,
+      "clippedBottom": 0,
+      "widerThanViewport": 0,
+      "innerScroll": false,
+      "submitVisible": true,
+      "fieldCount": 6
+    },
+    {
+      "name": "employee-new",
+      "width": 1440,
+      "open": true,
+      "w": 672,
+      "h": 599,
+      "top": 151,
+      "bottom": 750,
+      "viewportH": 900,
+      "viewportW": 1440,
+      "clippedTop": 0,
+      "clippedBottom": 0,
+      "widerThanViewport": 0,
+      "innerScroll": false,
+      "submitVisible": true,
+      "fieldCount": 10
+    }
+  ],
+  "dark": [
+    {
+      "name": "dashboard",
+      "theme": "light",
+      "clean": true,
+      "isDark": false,
+      "bodyBg": "oklch(1 0 195)"
+    },
+    {
+      "name": "pos",
+      "theme": "light",
+      "clean": true,
+      "isDark": false,
+      "bodyBg": "oklch(1 0 195)"
+    },
+    {
+      "name": "menu-items",
+      "theme": "light",
+      "clean": true,
+      "isDark": false,
+      "bodyBg": "oklch(1 0 195)"
+    },
+    {
+      "name": "inv-ingredients",
+      "theme": "light",
+      "clean": true,
+      "isDark": false,
+      "bodyBg": "oklch(1 0 195)"
+    },
+    {
+      "name": "pur-pos",
+      "theme": "light",
+      "clean": true,
+      "isDark": false,
+      "bodyBg": "oklch(1 0 195)"
+    },
+    {
+      "name": "fin-expenses",
+      "theme": "light",
+      "clean": true,
+      "isDark": false,
+      "bodyBg": "oklch(1 0 195)"
+    },
+    {
+      "name": "hr-employees",
+      "theme": "light",
+      "clean": true,
+      "isDark": false,
+      "bodyBg": "oklch(1 0 195)"
+    },
+    {
+      "name": "users",
+      "theme": "light",
+      "clean": true,
+      "isDark": false,
+      "bodyBg": "oklch(1 0 195)"
+    },
+    {
+      "name": "dashboard",
+      "theme": "dark",
+      "clean": true,
+      "isDark": true,
+      "bodyBg": "oklch(0.132 0.006 195)"
+    },
+    {
+      "name": "pos",
+      "theme": "dark",
+      "clean": true,
+      "isDark": true,
+      "bodyBg": "oklch(0.132 0.006 195)"
+    },
+    {
+      "name": "menu-items",
+      "theme": "dark",
+      "clean": true,
+      "isDark": true,
+      "bodyBg": "oklch(0.132 0.006 195)"
+    },
+    {
+      "name": "inv-ingredients",
+      "theme": "dark",
+      "clean": true,
+      "isDark": true,
+      "bodyBg": "oklch(0.132 0.006 195)"
+    },
+    {
+      "name": "pur-pos",
+      "theme": "dark",
+      "clean": true,
+      "isDark": true,
+      "bodyBg": "oklch(0.132 0.006 195)"
+    },
+    {
+      "name": "fin-expenses",
+      "theme": "dark",
+      "clean": true,
+      "isDark": true,
+      "bodyBg": "oklch(0.132 0.006 195)"
+    },
+    {
+      "name": "hr-employees",
+      "theme": "dark",
+      "clean": true,
+      "isDark": true,
+      "bodyBg": "oklch(0.132 0.006 195)"
+    },
+    {
+      "name": "users",
+      "theme": "dark",
+      "clean": true,
+      "isDark": true,
+      "bodyBg": "oklch(0.132 0.006 195)"
+    }
+  ]
+}

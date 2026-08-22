@@ -1,0 +1,178 @@
+login as cashier: true (http://localhost:3000/app/dashboard)
+  till already open
+
+=== A. create (POST /orders) -> 503 ===
+  rang: ["Audit Item 52235","Audit Item 60568"]
+  cart before: ["Audit Item 522351Rs 499.00","Audit Item 605681Rs 499.00"]
+    [route] 503 <- POST /api/v1/pos/orders
+  A surface: {
+ "alerts": [
+  {
+   "text": "Not sent — nothing was savedThis module is temporarily unavailable. Try again in a moment. Your items are still in the cart. Check the connection, then press Send to Kitchen again.",
+   "testid": "send-failure-alert",
+   "visible": true,
+   "rect": {
+    "w": 1136,
+    "h": 67,
+    "top": 198
+   },
+   "bg": "oklab(0.492008 0.178323 0.0920582 / 0.1)",
+   "color": "lab(39.0482 63.3495 48.4033)"
+  }
+ ],
+ "toasts": [
+  "Couldn't send to the kitchen. Your items are still in the cart — try again."
+ ],
+ "sendButton": {
+  "text": "Send to Kitchen",
+  "disabled": false
+ },
+ "cartLineNodes": 0,
+ "bodyHasOrderNo": false,
+ "orderNos": []
+}
+  A cart after: ["Audit Item 522351Rs 499.00","Audit Item 605681Rs 499.00"]
+
+=== A2. RELOAD after a create failure — does the cart survive? ===
+  A2 cart after reload: ["Add items to start an orderTap a menu item to build the cart — nothing is saved until Send to Kitchen or Charge."]
+  A2 surface: {"alerts":[],"toasts":[],"sendButton":{"text":"Send to Kitchen","disabled":true},"cartLineNodes":0,"bodyHasOrderNo":false,"orderNos":[]}
+
+=== B. create OK, fire (send-to-kds) -> 503 ===
+  rang: ["Audit Item 52235","Audit Item 60568"]
+    [route] 503 <- POST /api/v1/pos/orders/e3b8f9ec-220a-49d3-9ce5-cef47b96f973/send-to-kds
+  B surface: {
+ "alerts": [
+  {
+   "text": "Order ORD-20260812-0089 was NOT sent to the kitchenThis module is temporarily unavailable. Try again in a moment. The check is saved as ORD-20260812-0089 and is waiting in Order Management. Press Send to Kitchen again to fire it — do not ring these items a second time.",
+   "testid": "send-failure-alert",
+   "visible": true,
+   "rect": {
+    "w": 1136,
+    "h": 87,
+    "top": 198
+   },
+   "bg": "oklab(0.492008 0.178323 0.0920582 / 0.1)",
+   "color": "lab(39.0482 63.3495 48.4033)"
+  }
+ ],
+ "toasts": [],
+ "sendButton": {
+  "text": "Send to Kitchen",
+  "disabled": false
+ },
+ "cartLineNodes": 0,
+ "bodyHasOrderNo": true,
+ "orderNos": [
+  "ORD-20260812-0089"
+ ]
+}
+  B cart after: ["Audit Item 522351Rs 499.00","Audit Item 605681Rs 499.00"]
+
+=== B2. RELOAD while the check is persisted-but-unfired ===
+  B2 cart after reload: ["Add items to start an orderTap a menu item to build the cart — nothing is saved until Send to Kitchen or Charge."]
+  B2 surface: {"alerts":[],"toasts":[],"sendButton":{"text":"Send to Kitchen","disabled":true},"cartLineNodes":0,"bodyHasOrderNo":false,"orderNos":[]}
+
+=== B3. redo B so we have a live retry target ===
+  rang: ["Audit Item 52235","Audit Item 60568"]
+    [route] 503 <- POST /api/v1/pos/orders/ddcc1891-163d-4027-9c1c-e126e40c5a88/send-to-kds
+  B3 surface alerts: [{"text":"Order ORD-20260812-0093 was NOT sent to the kitchenThis module is temporarily unavailable. Try again in a moment. The check is saved as ORD-20260812-0093 and is waiting in Order Management. Press Send to Kitchen again to fire it — do not ring these items a second time.","testid":"send-failure-alert","visible":true,"rect":{"w":1136,"h":87,"top":198},"bg":"oklab(0.492008 0.178323 0.0920582 / 0.1)","color":"lab(39.0482 63.3495 48.4033)"}]
+  B3 orderNos: ["ORD-20260812-0093"]
+  B3 cart: ["Audit Item 522351Rs 499.00","Audit Item 605681Rs 499.00"]
+
+=== C. restore the network, press Send to Kitchen again ===
+  C surface: {
+ "alerts": [],
+ "toasts": [
+  "Butter Naan is no longer availableIt was removed from the menu — the tile is gone from your grid."
+ ],
+ "sendButton": null,
+ "cartLineNodes": 0,
+ "bodyHasOrderNo": true,
+ "orderNos": [
+  "ORD-20260812-0093"
+ ]
+}
+  C cart: ["Audit Item 52235×1Rs 499.00SentMark ServedCancel","Audit Item 60568×1Rs 499.00SentMark ServedCancel"]
+
+=== E. create OK, FIRST addItem -> 503 (order exists, no orderNo, no lines) ===
+  rang: ["Audit Item 52235","Audit Item 60568"]
+    [route] 503 <- POST /api/v1/pos/orders/afe3942c-beec-407d-a9be-60c2515a6069/items
+  E surface: {
+ "alerts": [
+  {
+   "text": "Order was saved was NOT sent to the kitchenThis module is temporarily unavailable. Try again in a moment. The check is saved and is waiting in Order Management. Press Send to Kitchen again to fire it — do not ring these items a second time.",
+   "testid": "send-failure-alert",
+   "visible": true,
+   "rect": {
+    "w": 1136,
+    "h": 87,
+    "top": 198
+   },
+   "bg": "oklab(0.492008 0.178323 0.0920582 / 0.1)",
+   "color": "lab(39.0482 63.3495 48.4033)"
+  }
+ ],
+ "toasts": [],
+ "sendButton": {
+  "text": "Send to Kitchen",
+  "disabled": false
+ },
+ "cartLineNodes": 0,
+ "bodyHasOrderNo": false,
+ "orderNos": []
+}
+  E cart: ["Audit Item 522351Rs 499.00","Audit Item 605681Rs 499.00"]
+
+=== E2. retry E with the network restored ===
+  E2 surface: {
+ "alerts": [],
+ "toasts": [],
+ "sendButton": null,
+ "cartLineNodes": 0,
+ "bodyHasOrderNo": true,
+ "orderNos": [
+  "ORD-20260812-0094"
+ ]
+}
+
+=== network log (pos orders) ===
+  503 GET http://localhost:8080/api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+  200 GET http://localhost:8080/api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+  503 POST http://localhost:8080/api/v1/pos/orders
+  201 POST http://localhost:8080/api/v1/pos/orders
+  200 POST http://localhost:8080/api/v1/pos/orders/e3b8f9ec-220a-49d3-9ce5-cef47b96f973/items
+  200 POST http://localhost:8080/api/v1/pos/orders/e3b8f9ec-220a-49d3-9ce5-cef47b96f973/items
+  503 POST http://localhost:8080/api/v1/pos/orders/e3b8f9ec-220a-49d3-9ce5-cef47b96f973/send-to-kds
+  201 POST http://localhost:8080/api/v1/pos/orders
+  200 POST http://localhost:8080/api/v1/pos/orders/ddcc1891-163d-4027-9c1c-e126e40c5a88/items
+  200 POST http://localhost:8080/api/v1/pos/orders/ddcc1891-163d-4027-9c1c-e126e40c5a88/items
+  503 POST http://localhost:8080/api/v1/pos/orders/ddcc1891-163d-4027-9c1c-e126e40c5a88/send-to-kds
+  200 POST http://localhost:8080/api/v1/pos/orders/ddcc1891-163d-4027-9c1c-e126e40c5a88/send-to-kds
+  200 GET http://localhost:8080/api/v1/pos/orders/ddcc1891-163d-4027-9c1c-e126e40c5a88/payments
+  200 GET http://localhost:8080/api/v1/pos/orders/ddcc1891-163d-4027-9c1c-e126e40c5a88?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+  201 POST http://localhost:8080/api/v1/pos/orders
+  503 POST http://localhost:8080/api/v1/pos/orders/afe3942c-beec-407d-a9be-60c2515a6069/items
+  200 POST http://localhost:8080/api/v1/pos/orders/afe3942c-beec-407d-a9be-60c2515a6069/items
+  200 POST http://localhost:8080/api/v1/pos/orders/afe3942c-beec-407d-a9be-60c2515a6069/items
+  200 POST http://localhost:8080/api/v1/pos/orders/afe3942c-beec-407d-a9be-60c2515a6069/send-to-kds
+  200 GET http://localhost:8080/api/v1/pos/orders/afe3942c-beec-407d-a9be-60c2515a6069/payments
+  200 GET http://localhost:8080/api/v1/pos/orders/afe3942c-beec-407d-a9be-60c2515a6069?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+
+=== D. Kitchen board as kitchen@terrace.local — count tickets ===
+  kitchen login: true
+  board: {
+ "counts": {},
+ "denied": false,
+ "sample": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nKitchen Display\nCollapse\nApp\nKitchen\nDEFAULT\nFloating Terrace HQ\nSearch…\n⌘K\nD\n\nNo such station\n\nThis branch has no active station with the code \"DEFAULT\", or it is not one of yours. Check the code, or pick a board from all stations.\n\nAll stations"
+}
+
+=== SUMMARY ORDER NUMBERS ===
+  B (first fire failure): ["ORD-20260812-0089"]
+  B3/C (retried, should be fired): ["ORD-20260812-0093"]
+  E/E2: ["ORD-20260812-0094"]
+
+=== F. cashier opens /app/kitchen/DEFAULT ===
+  cashier board: {
+ "alerts": [],
+ "text": "Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse App Kitchen DEFAULT Floating Terrace HQ Search… ⌘K E You do not have permission to access the Kitchen Display."
+}

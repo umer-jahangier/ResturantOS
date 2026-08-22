@@ -1,0 +1,162 @@
+{
+  "scenario": "C-tender-shapes",
+  "startedAt": "2026-08-12T11:05:34.890Z",
+  "checks": [
+    {
+      "name": "an over-tendered check has its bill before the change is handed over",
+      "ok": true,
+      "detail": [
+        {
+          "printJobId": "aa42f470-c143-4b9c-a3e4-7fc2bfeec96c",
+          "documentType": "CUSTOMER_RECEIPT",
+          "targetPrinterId": "audit-receipt",
+          "issueSeq": 1,
+          "status": "PRINTED",
+          "issuedAt": "2026-08-12T11:06:18.746439Z",
+          "originalIssuedAt": null
+        }
+      ]
+    },
+    {
+      "name": "stamped at the tender",
+      "ok": true,
+      "detail": {
+        "paidAt": "2026-08-12T11:06:18.258083Z",
+        "billAt": "2026-08-12T11:06:18.746439Z",
+        "gapMs": 488
+      }
+    },
+    {
+      "name": "change really was due on this tender",
+      "ok": true,
+      "detail": {
+        "method": "CASH",
+        "amountPaisa": 52395,
+        "tenderedPaisa": 150000,
+        "changePaisa": 97605,
+        "recordedAt": "2026-08-12T11:06:18.258083Z"
+      }
+    },
+    {
+      "name": "tendered = applied + change, to the paisa",
+      "ok": true,
+      "detail": {
+        "method": "CASH",
+        "amountPaisa": 52395,
+        "tenderedPaisa": 150000,
+        "changePaisa": 97605,
+        "recordedAt": "2026-08-12T11:06:18.258083Z"
+      }
+    },
+    {
+      "name": "the screen announces the bill",
+      "ok": true,
+      "detail": "Bill issued Aug 12, 2026, 4:06 PM Sent to audit-receipt. Check Settings → Printers if no paper appears — the job is kept and retried, not lost."
+    },
+    {
+      "name": "the CHANGE printed on the bill equals order_payments.change_paisa",
+      "ok": false,
+      "detail": {
+        "printed": null,
+        "persisted": 97605
+      }
+    },
+    {
+      "name": "a CARD tender produces the bill at the tender too",
+      "ok": true,
+      "detail": [
+        {
+          "printJobId": "2dd868c0-957d-4bd7-a522-f5b117b1b94c",
+          "documentType": "CUSTOMER_RECEIPT",
+          "targetPrinterId": "audit-receipt",
+          "issueSeq": 1,
+          "status": "PRINTED",
+          "issuedAt": "2026-08-12T11:07:06.211621Z",
+          "originalIssuedAt": null
+        }
+      ]
+    },
+    {
+      "name": "card: stamped at the tender",
+      "ok": true,
+      "detail": {
+        "paidAt": "2026-08-12T11:07:06.138036Z",
+        "billAt": "2026-08-12T11:07:06.211621Z",
+        "gapMs": 73
+      }
+    },
+    {
+      "name": "card: the screen announces the bill",
+      "ok": true,
+      "detail": "Bill issued Aug 12, 2026, 4:07 PM Sent to audit-receipt. Check Settings → Printers if no paper appears — the job is kept and retried, not lost."
+    }
+  ],
+  "overTenderOrderId": "74b24dbb-9153-47f3-a0dd-dd56944be77c",
+  "overTenderOrderNo": "ORD-20260812-0383",
+  "billRupees": "523.95",
+  "noteRupees": "1500.00",
+  "screenChange": {
+    "changeDue": "97605",
+    "tenderTotal": "52395"
+  },
+  "overTenderPayments": [
+    {
+      "method": "CASH",
+      "amountPaisa": 52395,
+      "tenderedPaisa": 150000,
+      "changePaisa": 97605,
+      "recordedAt": "2026-08-12T11:06:18.258083Z"
+    }
+  ],
+  "overTenderReceipts": [
+    {
+      "printJobId": "aa42f470-c143-4b9c-a3e4-7fc2bfeec96c",
+      "documentType": "CUSTOMER_RECEIPT",
+      "targetPrinterId": "audit-receipt",
+      "issueSeq": 1,
+      "status": "PRINTED",
+      "issuedAt": "2026-08-12T11:06:18.746439Z",
+      "originalIssuedAt": null
+    }
+  ],
+  "stripOverTender": {
+    "text": "Bill issued Aug 12, 2026, 4:06 PM Sent to audit-receipt. Check Settings → Printers if no paper appears — the job is kept and retried, not lost.",
+    "issued": "true"
+  },
+  "overTenderGapMs": 488,
+  "overTenderBill": {
+    "originallyIssued": null,
+    "total": null,
+    "cash": null,
+    "change": null
+  },
+  "cardOrderId": "6bd5806e-2b47-4639-b7bf-23a1af871ef0",
+  "cardOrderNo": "ORD-20260812-0384",
+  "cardPayments": [
+    {
+      "method": "CARD",
+      "amountPaisa": 52395,
+      "recordedAt": "2026-08-12T11:07:06.138036Z"
+    }
+  ],
+  "cardReceipts": [
+    {
+      "printJobId": "2dd868c0-957d-4bd7-a522-f5b117b1b94c",
+      "documentType": "CUSTOMER_RECEIPT",
+      "targetPrinterId": "audit-receipt",
+      "issueSeq": 1,
+      "status": "PRINTED",
+      "issuedAt": "2026-08-12T11:07:06.211621Z",
+      "originalIssuedAt": null
+    }
+  ],
+  "stripCard": {
+    "text": "Bill issued Aug 12, 2026, 4:07 PM Sent to audit-receipt. Check Settings → Printers if no paper appears — the job is kept and retried, not lost.",
+    "issued": "true"
+  },
+  "cardGapMs": 73,
+  "finishedAt": "2026-08-12T11:07:14.393Z",
+  "failed": [
+    "the CHANGE printed on the bill equals order_payments.change_paisa"
+  ]
+}

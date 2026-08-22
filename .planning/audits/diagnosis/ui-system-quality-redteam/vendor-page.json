@@ -1,0 +1,26 @@
+{
+  "requests": [
+    {
+      "url": "/api/v1/purchasing/vendors",
+      "status": 200,
+      "rows": 20,
+      "meta": {
+        "page": {
+          "cursor": "0",
+          "nextCursor": "1",
+          "limit": 20
+        },
+        "totalCount": 29
+      }
+    }
+  ],
+  "ui": {
+    "visibleRows": 0,
+    "pagerControls": [],
+    "countText": [
+      "6\nVendors"
+    ],
+    "hasRT": false,
+    "textTail": "ve Vendor p36-1786469957 OWNER\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786473907 MANAGER\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786473907 OWNER\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786474157 MANAGER\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786474157 OWNER\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786474959 MANAGER\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786474959 OWNER\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786475519 MANAGER\nNET30\nManage catalog →\nEdit"
+  }
+}

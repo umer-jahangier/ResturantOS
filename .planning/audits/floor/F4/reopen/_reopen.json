@@ -1,0 +1,641 @@
+{
+  "1_ownerSidebarMatches": [
+    {
+      "t": "Audit log",
+      "h": "/app/settings/audit"
+    }
+  ],
+  "1_urlAfterClick": "http://localhost:3000/app/settings/audit",
+  "1_trouble": {
+    "bad": [],
+    "alerts": []
+  },
+  "1_screen": {
+    "h1": "Audit log",
+    "zoneNote": "Times are shown in Asia/Karachi — this branch's time zone. Dates you pick above are whole days in that zone.",
+    "summary": "Showing 1–50 of 5,119 events",
+    "headers": [
+      "When",
+      "Event",
+      "Who",
+      "What",
+      "Reason",
+      ""
+    ],
+    "rowCount": 50,
+    "prevDisabled": true,
+    "nextDisabled": false
+  },
+  "1_firstThreeRows": [
+    [
+      "12 Aug 2026, 11:42:29 am",
+      "User login failed USER_LOGIN_FAILED",
+      "owner@terrace.local",
+      "USER",
+      "—",
+      "Details"
+    ],
+    [
+      "12 Aug 2026, 11:42:28 am",
+      "User login succeeded USER_LOGIN_SUCCEEDED",
+      "Terrace Manager",
+      "USER",
+      "—",
+      "Details"
+    ],
+    [
+      "12 Aug 2026, 11:42:25 am",
+      "User login succeeded USER_LOGIN_SUCCEEDED",
+      "Terrace Cashier",
+      "USER",
+      "—",
+      "Details"
+    ]
+  ],
+  "2_afterReload": {
+    "url": "http://localhost:3000/app/settings/audit",
+    "h1": "Audit log",
+    "summary": "Showing 1–50 of 5,121 events",
+    "rowCount": 50,
+    "zoneNote": "Times are shown in Asia/Karachi — this branch's time zone. Dates you pick above are whole days in that zone.",
+    "trouble": {
+      "bad": [],
+      "alerts": []
+    }
+  },
+  "3_zoneCheck": {
+    "browserZone": "America/New_York",
+    "storedUtc": "2026-08-12T06:42:37.882715Z",
+    "utcHhmm": "06:42:37",
+    "karachiHhmm": "11:42:37",
+    "newYorkHhmm": "02:42:37",
+    "renderedTopCell": "12 Aug 2026, 11:42:37 am"
+  },
+  "3_branchZoneFromApi": null,
+  "3_topRowActorNameFromApi": {
+    "userId": "eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1",
+    "userName": "Terrace Cashier",
+    "action": "USER_LOGIN_SUCCEEDED"
+  },
+  "4_facetOptions": {
+    "actions": [
+      "ADMIN_PASSWORD_RESET",
+      "AP_PAYMENT_PROCESSED",
+      "JOURNAL_POSTED",
+      "KDS_STALE_TICKETS_CLEARED",
+      "ORDER_REFUNDED",
+      "ORDER_VOIDED",
+      "PASSWORD_CHANGED",
+      "PASSWORD_RESET_REQUESTED",
+      "PAYROLL_RUN_APPROVED",
+      "PAYROLL_RUN_PAID",
+      "PERIOD_CLOSED",
+      "PO_APPROVED",
+      "PO_CLOSED",
+      "ROLE_GRANTED",
+      "ROLE_REVOKED",
+      "TENANT_PROVISIONED",
+      "TILL_CLOSED",
+      "TILL_OPENED",
+      "TILL_REVIEWED",
+      "USER_CREATED",
+      "USER_DEACTIVATED",
+      "USER_LOGIN_FAILED",
+      "USER_LOGIN_SUCCEEDED",
+      "USER_REACTIVATED",
+      "USER_UPDATED",
+      "VENDOR_INVOICE_MATCHED"
+    ],
+    "resources": [
+      "ADMIN",
+      "AP",
+      "JOURNAL",
+      "KDS",
+      "ORDER",
+      "PASSWORD",
+      "PAYROLL",
+      "PERIOD",
+      "PO",
+      "ROLE",
+      "TENANT",
+      "TILL",
+      "USER",
+      "VENDOR"
+    ]
+  },
+  "4_actionOrderVoided": {
+    "summary": "Showing 1–50 of 123 events",
+    "rowCount": 50,
+    "distinctEvent": [
+      "Order voided ORDER_VOIDED"
+    ],
+    "allMatch": true
+  },
+  "4_resourceOrder": {
+    "summary": "Showing 1–50 of 141 events",
+    "rowCount": 50,
+    "distinctWhat": [
+      "ORDER 01698e52-79f2-49ed-ad6c-377a39a4a132",
+      "ORDER c4701762-897f-4b34-83d8-f55e46435358",
+      "ORDER 346e7f68-11c0-4449-adf6-7daf4ea115f5",
+      "ORDER f6f45b21-b577-4d8b-9a9d-a50590a2af32",
+      "ORDER b290b3e4-0060-4be4-a54a-5735e87ea192",
+      "ORDER cea3d90b-ad0c-49df-ad9c-9027bbfddacb",
+      "ORDER 545d0b72-bc6c-4933-9a0e-0e312f4615ed",
+      "ORDER 827e9b7a-7bf0-40b6-add9-874a59c0670e",
+      "ORDER a6903734-11ff-492e-90fb-19431c1f486a",
+      "ORDER d71d67c0-b0b0-4bc1-9aff-3d775118117f",
+      "ORDER e88f4d91-b0b7-437e-bdca-bfc6f3d61c8d",
+      "ORDER c4e72660-407a-4c3d-b76c-17530cdf611f",
+      "ORDER 3b59bb7d-2d58-42c8-9d0a-1556a957d2c6",
+      "ORDER 15466787-2b79-4079-9714-61ffe33a916a",
+      "ORDER cc60ddc1-e457-4809-aead-1e4c751699a7",
+      "ORDER 1846b8e5-8392-4cb2-a302-d5ca4430c22c",
+      "ORDER 63a1d8ed-10bc-4ce4-8b26-c80a6c244b86",
+      "ORDER 0f363be5-0c20-4eca-9eb3-3bfcd16e70c5",
+      "ORDER ea73e096-205b-4634-a11e-d4db3330fd94",
+      "ORDER b4825109-49ef-4a4d-8843-32fa02412c62",
+      "ORDER b096b0d7-5dd0-4c64-be5a-3f9d8368813c",
+      "ORDER 107ba858-7d28-4c56-9b14-bc4d93b0dd8f",
+      "ORDER 997ace1a-d53b-4659-966f-5402450ab0ee",
+      "ORDER a1a3b8fd-e9c9-49c0-a0da-91e15ab58161",
+      "ORDER b5e8e8df-343a-4e4e-a542-80509dddeb55",
+      "ORDER 271426fa-64ec-49fd-9cbf-e20f5fa61453",
+      "ORDER bcb1de6b-7b4c-4a51-8a29-eb612cff2fd1",
+      "ORDER 87f53504-c19b-461a-97c3-f3b146f76d97",
+      "ORDER cf60d0f3-4a5b-496d-ba02-77f86a6377e7",
+      "ORDER cb2900c7-6f4a-45f0-ab43-42f3814520cd",
+      "ORDER 2b6d6cce-6cd9-49cc-852e-5b1917e1673b",
+      "ORDER 4f7356f5-5e27-4bc5-b3e4-3395136a2611",
+      "ORDER 501a374e-374d-4b51-9f32-62667d4b948a",
+      "ORDER 2997f9c6-718d-41f0-8216-988d435025c0",
+      "ORDER d5171194-456e-47fe-85ad-a76baefec237",
+      "ORDER aaabff1b-b7ca-4bf5-bf6f-145eb781ce04",
+      "ORDER 4b3542ce-d5ae-4eeb-b629-09fdcb6c922e",
+      "ORDER 3b7f926c-80e0-4378-b569-2e32e1706fac",
+      "ORDER eab09264-b276-4717-b996-b26eaf356c39",
+      "ORDER f14a4dc7-94cd-4296-b30d-2b815d6a80ba",
+      "ORDER 10533dec-aa98-4853-9f19-e3be621c8f6e",
+      "ORDER 0581eb44-346a-49b9-af56-77d09619f4ea",
+      "ORDER b50340ac-4f07-4961-9677-39bdfa53eb87",
+      "ORDER 7f4e0219-23fa-43c5-971e-99f14bbc76a2",
+      "ORDER 46ebe729-73b8-4664-a24b-c57de46e59b9",
+      "ORDER 564eb04b-18a5-4698-9c32-a37134c27ca7",
+      "ORDER 392831c6-0d63-4b08-81e8-49f2f299a449",
+      "ORDER 66497dbe-41cd-40c0-ab45-c3827a6b18cd",
+      "ORDER 0a66f06d-4726-4f24-8292-bb555f3cd91c",
+      "ORDER 0098cbe6-61da-4279-b2c5-c8bd80ccdabf"
+    ],
+    "anyUserLogin": false,
+    "allOrder": true
+  },
+  "4_contradictoryCombo": {
+    "action": "USER_CREATED",
+    "resource": "ORDER",
+    "summary": "0 events",
+    "rowCount": 0,
+    "bodyMentionsEmpty": false,
+    "trouble": {
+      "bad": [],
+      "alerts": []
+    }
+  },
+  "5_paging": {
+    "p1": {
+      "summary": "Showing 1–50 of 5,126 events",
+      "page": "Page 1",
+      "first": "12 Aug 2026, 11:43:15 am",
+      "prevDisabled": true
+    },
+    "p2": {
+      "summary": "Showing 51–100 of 5,126 events",
+      "page": "Page 2",
+      "first": "12 Aug 2026, 11:38:02 am",
+      "prevDisabled": false
+    },
+    "p3": {
+      "summary": "Showing 101–150 of 5,126 events",
+      "page": "Page 3",
+      "first": "12 Aug 2026, 11:34:22 am"
+    },
+    "allThreeDistinct": true
+  },
+  "5_backToPage1": "Page 1",
+  "6_backwardsRange": {
+    "alert": "From is 2026-08-12, which is after To (2026-08-01). No day can be in both, so this range has not been applied — the list below still shows the last range that could match. Move one of the two dates.",
+    "role": "alert",
+    "fromInvalid": "true",
+    "toInvalid": "true",
+    "rowsStillOnScreen": 50,
+    "clearButton": true
+  },
+  "7_dayBoundaryProbe": {
+    "note": "no row in the 19:00-24:00Z band on the newest 200",
+    "scanned": 200
+  },
+  "8_apiProbes": {
+    "bogusZone": {
+      "status": 422,
+      "code": "INVALID_TIME_ZONE",
+      "msg": "{\"error\":{\"code\":\"INVALID_TIME_ZONE\",\"message\":\"\\\"Mars/Olympus\\\" is not a time zone this server recognises. Use an IANA zone id such as Asia/Karachi.\",\"details\":[{\"field\":\"zone\",\"issue\":\"\\\"Mars/Olympus\\\" is not a time zone this server recog"
+    },
+    "hugeSize": {
+      "status": 200,
+      "returned": 200,
+      "pageSize": null
+    },
+    "unknownResource": {
+      "status": 200,
+      "rows": 0,
+      "total": 0
+    },
+    "tenantInjection": {
+      "status": 200,
+      "rows": 3,
+      "total": 5130
+    },
+    "facets": {
+      "status": 200,
+      "actions": 26,
+      "resourceTypes": [
+        "ADMIN",
+        "AP",
+        "JOURNAL",
+        "KDS",
+        "ORDER",
+        "PASSWORD",
+        "PAYROLL",
+        "PERIOD",
+        "PO",
+        "ROLE",
+        "TENANT",
+        "TILL",
+        "USER",
+        "VENDOR"
+      ]
+    }
+  },
+  "8_endOfList": {
+    "total": 5130,
+    "lastPage": 25,
+    "lastPageRows": 130,
+    "lastPageNextCursor": null,
+    "beyondRows": 0,
+    "beyondStatus": 200
+  },
+  "1_ownerConsoleErrors": [
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)"
+  ],
+  "1_ownerAuditApiCalls": [
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?page=1&size=50&zone=Asia%2FKarachi"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?page=2&size=50&zone=Asia%2FKarachi"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/facets?from=2026-08-12&zone=Asia%2FKarachi"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?page=0&size=50&from=2026-08-12&zone=Asia%2FKarachi"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?page=0&size=50&zone=Asia%2FKarachi"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/facets?zone=Asia%2FKarachi"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?page=0&size=200"
+    },
+    {
+      "s": 422,
+      "u": "/api/v1/audit/events?zone=Mars/Olympus&size=5"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?size=99999"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?resourceType=NOT_A_THING&size=5"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?tenantId=00000000-0000-0000-0000-000000000000&size=3"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/facets"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?size=200&page=25"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?size=200&page=30"
+    }
+  ],
+  "P_manager": {
+    "navEntries": [],
+    "h1": "You cannot read the audit log",
+    "namesThePermission": true,
+    "saysEmptyLog": false,
+    "tableRows": 0,
+    "apiStatus": 403,
+    "apiRows": null,
+    "facetsStatus": 403,
+    "facetsLeaked": null,
+    "trouble": {
+      "bad": [
+        "access-denied"
+      ],
+      "alerts": []
+    }
+  },
+  "P_cashier": {
+    "navEntries": [],
+    "h1": "You cannot read the audit log",
+    "namesThePermission": true,
+    "saysEmptyLog": false,
+    "tableRows": 0,
+    "apiStatus": 403,
+    "apiRows": null,
+    "facetsStatus": 403,
+    "facetsLeaked": null,
+    "trouble": {
+      "bad": [
+        "access-denied"
+      ],
+      "alerts": []
+    }
+  },
+  "P_accountant": {
+    "navEntries": [],
+    "h1": "You cannot read the audit log",
+    "namesThePermission": true,
+    "saysEmptyLog": false,
+    "tableRows": 0,
+    "apiStatus": 403,
+    "apiRows": null,
+    "facetsStatus": 403,
+    "facetsLeaked": null,
+    "trouble": {
+      "bad": [
+        "access-denied"
+      ],
+      "alerts": []
+    }
+  },
+  "P_tenantAdmin": {
+    "navEntries": [
+      {
+        "t": "Audit log",
+        "h": "/app/settings/audit"
+      }
+    ],
+    "h1": "Audit log",
+    "namesThePermission": false,
+    "saysEmptyLog": false,
+    "tableRows": 50,
+    "apiStatus": 401,
+    "apiRows": null,
+    "facetsStatus": 401,
+    "facetsLeaked": null,
+    "trouble": {
+      "bad": [],
+      "alerts": []
+    }
+  },
+  "X_controlBistro": {
+    "trouble": {
+      "bad": [],
+      "alerts": []
+    },
+    "h1": "Sign in to RestaurantOS",
+    "summary": null,
+    "zoneNote": null,
+    "rowCount": 0,
+    "apiStatus": 200,
+    "apiTotal": 283,
+    "rowsReturned": 200,
+    "anyFloatingTerraceOrderRow": 0,
+    "distinctActorNames": [
+      "owner@control.local",
+      "Control Cashier",
+      "Control Manager",
+      "Control Accountant",
+      "Control Kitchen",
+      "Control Waiter",
+      "Control Storekeeper",
+      "Control Admin"
+    ],
+    "anyTerraceLocalActor": []
+  },
+  "V_voidByManager": {
+    "no": "ORD-20260812-0322",
+    "outcome": {
+      "err": null,
+      "alerts": [],
+      "body": true
+    },
+    "reason": "F4 RE-OPEN independent check 06:47:52 nlml7"
+  },
+  "V_ownerScreenTrouble": {
+    "bad": [],
+    "alerts": []
+  },
+  "V_rowOnScreen": {
+    "found": true,
+    "cells": [
+      "12 Aug 2026, 11:48:46 am",
+      "Order voided ORDER_VOIDED",
+      "Terrace Manager",
+      "ORDER 18a1a87a-93a6-4b1a-b416-59fb6e8f050b",
+      "F4 RE-OPEN independent check 06:47:52 nlml7",
+      "Details"
+    ],
+    "summary": "Showing 1–50 of 124 events",
+    "searchedRows": 50
+  },
+  "V_apiRow": {
+    "id": 10635,
+    "action": "ORDER_VOIDED",
+    "resourceType": "ORDER",
+    "resourceId": "18a1a87a-93a6-4b1a-b416-59fb6e8f050b",
+    "userId": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+    "userName": "Terrace Manager"
+  },
+  "V_zoneMath": {
+    "browserZone": "America/New_York",
+    "storedUtc": "2026-08-12T06:48:46.176903Z",
+    "utc": "06:48:46",
+    "karachi": "11:48:46",
+    "newYork": "02:48:46",
+    "renderedOnScreen": "12 Aug 2026, 11:48:46 am"
+  },
+  "V_detailPanel": "Order voided 12 Aug 2026, 11:48:46 am · by Terrace Manager (fefd7187-dbe2-4c12-a532-3c1cc8f3d322) Close reason F4 RE-OPEN independent check 06:47:52 nlml7 orderId 18a1a87a-93a6-4b1a-b416-59fb6e8f050b voidedBy fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+  "V_totalNow": "Showing 1–50 of 124 events",
+  "V_ownerConsoleErrors": [
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  ],
+  "D_scan": {
+    "rowsScanned": 5216,
+    "rowsInThe19to24UtcBand": 1263
+  },
+  "D_result": {
+    "probeRowId": 7664,
+    "storedUtc": "2026-08-11T23:42:48.965318Z",
+    "utcDay": "2026-08-11",
+    "karachiDay": "2026-08-12",
+    "inKarachiDay_cutInKarachi": false,
+    "inKarachiDay_cutInUtc": false,
+    "inUtcDay_cutInUtc": true,
+    "totals": {
+      "karachiCut": 4206,
+      "utcCutSameLabel": 2968
+    },
+    "theTwoCutsDiffer": true
+  },
+  "D_onScreen": {
+    "karachiDay": "2026-08-12",
+    "summary": "Showing 1–50 of 4,206 events",
+    "rowCount": 50,
+    "lastQuerySent": "/api/v1/audit/events?page=0&size=50&from=2026-08-12&to=2026-08-12&zone=Asia%2FKarachi",
+    "everyRowIsThatKarachiDay": true,
+    "firstRow": "12 Aug 2026, 11:50:20 am",
+    "lastRow": "12 Aug 2026, 11:46:38 am"
+  },
+  "D2_arithmetic": {
+    "cutoffInstant": "2026-08-12T06:51:26.525Z",
+    "serverTotal_zoneKarachi": 4222,
+    "rowsReturned_zoneKarachi": 4222,
+    "computedFromRawInstants_KarachiWindow": 4222,
+    "serverTotal_zoneUtc": 2984,
+    "rowsReturned_zoneUtc": 2984,
+    "computedFromRawInstants_UtcWindow": 2984,
+    "karachiMatchesKarachiWindow": true,
+    "utcMatchesUtcWindow": true
+  },
+  "D2_membership": {
+    "eveningRow": {
+      "id": 7664,
+      "at": "2026-08-11T23:42:48.965318Z"
+    },
+    "eveningRow_isInKarachiDay": true,
+    "eveningRow_isInUtcDay": false,
+    "lateRowAfter19zOnThe12th": "none yet (it is still morning in UTC)",
+    "lateRow_isInKarachiDay": null,
+    "lateRow_isInUtcDay": null
+  },
+  "D2_totalIsHonest": {
+    "statedKarachi": 4222,
+    "actuallyPaged": 4222,
+    "agreesWithin": 0
+  },
+  "B_controlNav": {
+    "nav": [
+      {
+        "t": "Audit log",
+        "h": "/app/settings/audit"
+      }
+    ],
+    "urlAfterDashboard": "http://localhost:3000/app/dashboard"
+  },
+  "B_controlScreen": {
+    "url": "http://localhost:3000/app/settings/audit",
+    "h1": "Audit log",
+    "zoneNote": "Times are shown in Asia/Karachi — this branch's time zone. Dates you pick above are whole days in that zone.",
+    "summary": "Showing 1–50 of 288 events",
+    "rowCount": 50,
+    "firstRow": [
+      "12 Aug 2026, 11:59:38 am",
+      "User login succeeded USER_LOGIN_SUCCEEDED",
+      "owner@control.local",
+      "USER",
+      "—",
+      "Details"
+    ],
+    "trouble": {
+      "bad": [],
+      "alerts": []
+    },
+    "apiTotal": 288,
+    "actorsAllControl": true,
+    "distinctActors": [
+      "owner@control.local",
+      "Control Manager",
+      "Control Cashier",
+      "Control Accountant",
+      "Control Kitchen",
+      "Control Waiter",
+      "Control Storekeeper",
+      "Control Admin"
+    ]
+  },
+  "B_layout_390_light": {
+    "bodyScrollW": 390,
+    "viewportW": 390,
+    "tablesVisible": 0,
+    "rowsOrCards": 50,
+    "summary": "Showing 1–50 of 5,346 events",
+    "bg": "oklch(1 0 195)",
+    "h1": "Audit log",
+    "noHorizontalOverflow": true
+  },
+  "B_layout_390_dark": {
+    "bodyScrollW": 390,
+    "viewportW": 390,
+    "tablesVisible": 0,
+    "rowsOrCards": 50,
+    "summary": "Showing 1–50 of 5,354 events",
+    "bg": "oklch(0.132 0.006 195)",
+    "h1": "Audit log",
+    "noHorizontalOverflow": true
+  },
+  "B_layout_1440_light": {
+    "bodyScrollW": 1440,
+    "viewportW": 1440,
+    "tablesVisible": 1,
+    "rowsOrCards": 50,
+    "summary": "Showing 1–50 of 5,360 events",
+    "bg": "oklch(1 0 195)",
+    "h1": "Audit log",
+    "noHorizontalOverflow": true
+  },
+  "B_layout_1440_dark": {
+    "bodyScrollW": 1440,
+    "viewportW": 1440,
+    "tablesVisible": 1,
+    "rowsOrCards": 50,
+    "summary": "Showing 1–50 of 5,369 events",
+    "bg": "oklch(0.132 0.006 195)",
+    "h1": "Audit log",
+    "noHorizontalOverflow": true
+  },
+  "O_outage": {
+    "h1": "Audit log",
+    "summary": null,
+    "rowCount": 0,
+    "saysCouldNotLoad": true,
+    "saysNothingRecorded": false,
+    "saysZeroEvents": false,
+    "alerts": [
+      "The audit log is unavailable right now.The part of RestaurantOS that handles the audit log is not answering. This is not something you did, and nothing you have entered has been lost. The till, the kitchen board and the rest of the product are unaffected — only this record is unreadable right now.Tr"
+    ]
+  },
+  "O_recovered": {
+    "h1": "Audit log",
+    "summary": "Showing 1–50 of 5,393 events",
+    "rowCount": 50
+  }
+}

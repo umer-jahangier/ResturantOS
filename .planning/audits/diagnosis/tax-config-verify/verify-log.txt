@@ -1,0 +1,29 @@
+tax-config verification 2026-08-11T22:39:59.497Z
+signed in as owner@terrace.local, url = http://localhost:3000/app/dashboard
+in-page storage keys: ["__next_debug_channel:1ejLx4aUKx_OtL6LKEih8"]
+(token is httpOnly-cookie held; roles asserted separately via gateway login)
+
+[1] NAV  state=OK
+  all hrefs: ["/app/crm","/app/dashboard","/app/dashboard/realtime","/app/finance/accounts","/app/finance/ap-aging","/app/finance/expenses","/app/finance/gl","/app/finance/guide","/app/finance/journal-entries","/app/finance/periods","/app/finance/takings","/app/hr","/app/inventory","/app/kitchen","/app/menu/items","/app/nlq","/app/pos","/app/pos/orders","/app/pos/tills","/app/purchasing","/app/reports","/app/settings","/app/stations","/app/tables","/app/terminals","/app/users","/settings/appearance"]
+  tax/fiscal/fbr hrefs: []
+    shot -> 01-nav-owner.png
+
+[2] /app/settings  state=OK
+  tax-ish lines: ["Sales tax registration (STRN)","National tax number (NTN)","Read-only here. The branch update API has no field for either, so an editable box would accept your change and discard it. Tax registration is set during onboarding."]
+  editable controls: [{"name":"name","type":"text","ro":false},{"name":"address","type":"text","ro":false},{"name":"phone","type":"text","ro":false},{"name":"email","type":"email","ro":false},{"name":"timezone","type":"text","ro":false},{"name":"openedOn","type":"date","ro":false}]
+    shot -> 02-settings.png
+
+[3] /app/menu/items  state=OK
+  tax-ish lines in list: []
+    shot -> 03-menu-items.png
+  no Edit menuitem found
+
+[4] /app/reports/fbr  state=OK
+  body head: "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nCollapse\nApp\nReports\nFBR\nFloating Terrace HQ\nSearch…\n⌘K\n6\n← All reports\nFBR Tax Summary\n\nOutput tax vs input tax vs net payable — internal bookkeeping figures, not an FBR/IRIS e-filing submission.\n\nFrom\nTo\nFloating Terrace HQ\n\nBranch tax registration unavailable — figures below are unaffected.\n\n2026-07-31 to 2026-08-30\n\nTaxable sales\n\nRs 24,153.00\n\nOutput tax: Rs 3,239.60\n\n12 orders\n\nTaxable purchases\n\nRs 381,035.00\n\nInput tax: Rs 4,565.00\n\n25 invoices\n\nRefundable input-tax credit\n\nRs 1,325.40\n\nInput tax exceeded output tax for this per"
+    shot -> 05-reports-fbr.png
+
+[5] /app/hr/settings/tax  state=OK
+  body head: "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nCollapse\nHR\nSettings\nTax\nFloating Terrace HQ\nSearch…\n⌘K\n6\nEmployees\nPayroll\nSchedule\nAttendance & Leave\nSettings\nDepartments\nJob titles\nTax & EOBI\nTax & EOBI\n\nThe income-tax bands and EOBI rates payroll applies. Payroll refuses to run for a fiscal year that has none — it will not fall back to last year's rates, because a wrong payslip is wo"
+    shot -> 06-hr-tax.png
+
+DONE -> /Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/diagnosis/tax-config-verify

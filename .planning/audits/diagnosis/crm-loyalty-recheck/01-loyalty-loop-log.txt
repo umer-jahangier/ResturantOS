@@ -1,0 +1,35 @@
+=== RECHECK: full loyalty loop WITH Mark Served ===
+phone: 03007549142 name: Recheck Loyalty 9142
+login cashier@terrace.local: true -> http://localhost:3000/app/dashboard
+   !! attempt 1: alert=1 failed=false — RETRYING
+   !! attempt 2: alert=1 failed=false — RETRYING
+   !! attempt 3: alert=1 failed=false — RETRYING
+   !! http://localhost:3000/app/pos still in an error state after 3 attempts
+   shot: 01-cart.png
+   'Add customer' present: 1
+   shot: 02-customer-attached.png
+   cart shows phone: true | shows pts: true
+   sent to kitchen
+   shot: 03-sent-to-kitchen.png
+   BUTTONS after send: ["Collapse","Search…⌘K","E","Close Till","POS Terminal","Floor View","Order Management","All","Recheck Cat 186597","Diag Cat 785508","Starters","Diag Cat 683566","Mains","Soft Drinks","Drinks","Audit Item 52235Rs 499.00","Audit Item 60568Rs 499.00","Butter NaanRs 80.00","Chicken KarahiRs 1,450.00","Chicken SamosaRs 250.00","Fresh LimeRs 220.00","Mutton BiryaniRs 1,250.00","Photo Dish 50585Rs 725.00","PinacoladaRs 700.00","Recheck Dish 186597Rs 911.00","Seekh KebabRs 450.00","Remove","1 revision","+ Add note","Mark Served","Cancel","CHARGE NOW","Void","Clear / New Order"]
+   'Mark Served' buttons visible: 1
+   lines marked served: 1
+   shot: 04-after-mark-served.png
+   AFTER SERVE >>> Floating Terrace |  | OVERVIEW |  | Dashboard |  | ORDERS |  | POS |  | PEOPLE |  | Customers | Collapse | App | POS | Floating Terrace HQ | Search… | ⌘K | E | Point of sale | Till OPEN | Float: Rs 5,000.00 | Cash: Rs 42,944.80 | Orders: 49 | Close Till | POS Terminal | Floor View | Order Management | Live | All | Recheck Cat 186597 | Diag Cat 785508 | Starters | Diag Cat 683566 | Mains | Soft Drinks | Drinks | Audit Item 52235 | Rs 499.00 | Audit Item 60568 | Rs 499.00 | Butter Naan | Rs 80.00 | Chicken Karahi | Rs 1,450.00 | Chicken Samosa | Rs 250.00 | Fresh Lime | Rs 220.00 | Mutton Biryani | Rs 1,250.00 | Photo Dish 50585 | Rs 725.00 | Pinacolada | Rs 700.00 | Recheck Dish 186597 | Rs 911.00 | Seekh Kebab | Rs 450.00 | Recheck Loyalty 9142 | 03007549142 · 0 pts | Remove | ORD-20260812-0025 | Served |  | 1 cover(s) |  | 1 revision | + Add note |  | Chicken Karahi |  | ×1 | Rs 1,682.0
+   charge url: http://localhost:3000/app/pos/orders/924baa8e-7f8c-4a33-aeb2-6c209c28ab69/charge
+   CHARGE SCREEN >>> Floating Terrace |  | OVERVIEW |  | Dashboard |  | ORDERS |  | POS |  | PEOPLE |  | Customers | Collapse | Orders | Order | Charge | Floating Terrace HQ | Search… | ⌘K | E | Back | Order #ORD-20260812-0025 | Served | Unpaid |  | Dine-in · Customer: 09c95cba · Cashier: eb2ee67e · Aug 12, 2026, 3:43 AM |  | Items |  | Chicken Karahi |  | ×1 | Rs 1,682.00 | Served | Bill | Subtotal | Rs 1,450.00 | Discounts | Rs 0.00 | Service charge | Rs 0.00 | Taxes | Rs 232.00 | Total | Rs 1,682.00 | Amount paid | Rs 0.00 | Remaining balance | Rs 1,682.00 | Payment History |  | No payments yet |  | Take Payment | CASH | CARD | BANK TRANSFER | VOUCHER | Full amount | + Add tender | Tender total | Rs 0.00 | Record Payment
+   redemption control on charge screen? false
+   CHARGE BUTTONS: ["Collapse","Search…⌘K","E","Back","Full amount","+ Add tender","Record Payment"]
+   shot: 05-charge.png
+   settle buttons: ["Record Payment"]
+   shot: 06-after-payment.png
+   AFTER PAY >>> Floating Terrace |  | OVERVIEW |  | Dashboard |  | ORDERS |  | POS |  | PEOPLE |  | Customers | Collapse | Orders | Order | Charge | Floating Terrace HQ | Search… | ⌘K | E | Back | Order #ORD-20260812-0025 | Served | Partial |  | Dine-in · Customer: 09c95cba · Cashier: eb2ee67e · Aug 12, 2026, 3:43 AM |  | Items |  | Chicken Karahi |  | ×1 | Rs 1,682.00 | Served | Bill | Subtotal | Rs 1,450.00 | Discounts | Rs 0.00 | Service charge | Rs 0.00 | Taxes | Rs 232.00 | Total | Rs 1,682.00 | Amount paid | Rs 50.00 | Remaining balance | Rs 1,632.00 | Print bill | Payment History | CASH | Aug 12, 2026, 3:43 AM | Rs 50.00 | Take Payment | CASH | CARD | BANK TRANSFER | VOUCHER | Full amount | + Add tender | Tender total | Rs 0.00 | Record Payment
+   !! attempt 1: alert=1 failed=false — RETRYING
+   !! attempt 2: alert=1 failed=false — RETRYING
+   !! attempt 3: alert=1 failed=false — RETRYING
+   !! http://localhost:3000/app/crm still in an error state after 3 attempts
+   shot: 07-crm-after.png
+   CRM >>> Floating Terrace |  | OVERVIEW |  | Dashboard |  | ORDERS |  | POS |  | PEOPLE |  | Customers | Collapse | App | Customers | Floating Terrace HQ | Search… | ⌘K | E | Customers |  | Find a customer, see their loyalty standing, and review the points they have earned. |  | Recheck Loyalty 9142 | 03007549142 | BRONZE | 0 pts | Rs 0.00 | Select a customer to see their loyalty standing.
+   shot: 08-crm-detail.png
+   CRM DETAIL >>> Floating Terrace |  | OVERVIEW |  | Dashboard |  | ORDERS |  | POS |  | PEOPLE |  | Customers | Collapse | App | Customers | Floating Terrace HQ | Search… | ⌘K | E | Customers |  | Find a customer, see their loyalty standing, and review the points they have earned. |  | Recheck Loyalty 9142 | 03007549142 | BRONZE | 0 pts | Rs 0.00 | Recheck Loyalty 9142 |  | 03007549142 |  | Tier | BRONZE | Points | 0 | Lifetime spend | Rs 0.00
+PHONE_USED=03007549142

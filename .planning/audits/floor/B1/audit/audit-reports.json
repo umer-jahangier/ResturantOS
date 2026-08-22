@@ -1,0 +1,74 @@
+{
+  "reportsTrouble": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/reports"
+  },
+  "catalog": [
+    "Floating Terrace",
+    "Floating Terrace HQ",
+    "OVERVIEW",
+    "Dashboard",
+    "ORDERS",
+    "POS",
+    "Kitchen Display",
+    "Till Review",
+    "MENU",
+    "Inventory",
+    "Menu Items",
+    "Tables",
+    "Stations",
+    "Station Routing",
+    "POS Terminals",
+    "Printers",
+    "Service Charge",
+    "FINANCE",
+    "Guide",
+    "Takings",
+    "PURCHASING",
+    "Purchasing",
+    "PEOPLE",
+    "Customers",
+    "REPORTING",
+    "Reports",
+    "Realtime Dashboard",
+    "Ask (NLQ)",
+    "Collapse",
+    "App",
+    "Reports",
+    "Floating Terrace HQ",
+    "Search…",
+    "⌘K",
+    "F",
+    "Reports",
+    "Named reports backed by real sales, cash and purchasing data.",
+    "FBR Tax Summary →",
+    "SALES",
+    "Sales by Day"
+  ],
+  "salesByDayTrouble": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/reports/sales-by-day?from=2026-08-11&to=2026-08-12"
+  },
+  "dateInputs": 2,
+  "salesByDay": {
+    "rows": [
+      "Business Date | Order Count | Subtotal Paisa | Discount Paisa | Tax Paisa | Total Paisa",
+      "2026-08-10T19:00:00.000Z | 34 | Rs 43,849.00 | Rs 950.00 | Rs 3,566.40 | Rs 46,465.40",
+      "2026-08-11T19:00:00.000Z | 35 | Rs 48,354.00 | Rs 230.50 | Rs 5,343.00 | Rs 53,742.50"
+    ],
+    "text": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Service Charge FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse App Reports Sales By Day Floating Terrace HQ Search… ⌘K F ← All reports Sales by Day From To Business Date Order Count Subtotal Paisa Discount Paisa Tax Paisa Total Paisa 2026-08-10T19:00:00.000Z 34 Rs 43,849.00 Rs 950.00 Rs 3,566.40 Rs 46,465.40 2026-08-11T19:00:00.000Z 35 Rs 48,354.00 Rs 230.50 Rs 5,343.00 Rs 53,742.50",
+    "alerts": []
+  },
+  "takings_2026-08-11": {
+    "dateBox": "2026-08-11",
+    "orderLine": "10 orders closed on this trading day",
+    "gross": "Rs 17,949.00"
+  },
+  "takings_2026-08-12": {
+    "dateBox": "2026-08-12",
+    "orderLine": "59 orders closed on this trading day",
+    "gross": "Rs 74,254.00"
+  }
+}

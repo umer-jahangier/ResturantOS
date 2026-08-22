@@ -1,0 +1,79 @@
+hr-tax + fbr-report 2026-08-11T22:48:06.199Z
+signed in as OWNER
+
+[A] /app/hr/settings/tax
+  page text:
+    HR
+    Settings
+    Tax
+    Floating Terrace HQ
+    Search…
+    ⌘K
+    6
+    Employees
+    Payroll
+    Schedule
+    Attendance & Leave
+    Settings
+    Departments
+    Job titles
+    Tax & EOBI
+    Tax & EOBI
+    The income-tax bands and EOBI rates payroll applies. Payroll refuses to run for a fiscal year that has none — it will not fall back to last year's rates, because a wrong payslip is worse than a refused run.
+    Fiscal year
+    FY2028
+    FY2027 (current)
+    Effective from
+    Effective to
+    Optional
+    Income bands
+    Bands must start at 0 and run without gaps or overlaps, and the highest band must have no upper limit — leave its “up to” blank.
+    Add band
+    From (Rs)	Up to (Rs)	Fixed tax (Rs)	Rate %
+    Band 1 starts at
+    Band 1 ends at
+    Band 1 fixed tax
+    Band 1 rate
+    Remove
+    Band 2 starts at
+    Band 2 ends at
+    Band 2 fixed tax
+    Band 2 rate
+    Remove
+    Band 3 starts at
+    Band 3 ends at
+    Band 3 fixed tax
+    Band 3 rate
+    Remove
+    Band 4 starts at
+    Band 4 ends at
+    Band 4 fixed tax
+  buttons: ["Collapse","Search…\n⌘K","","6","Add band","Remove","Remove","Remove","Remove","Remove","Remove","Save FY2027",""]
+  inputs: ["fiscal-year","effectiveFrom","effectiveTo","slabs.0.minRupees","slabs.0.maxRupees","slabs.0.baseTaxRupees","slabs.0.ratePct","slabs.1.minRupees","slabs.1.maxRupees","slabs.1.baseTaxRupees","slabs.1.ratePct","slabs.2.minRupees","slabs.2.maxRupees","slabs.2.baseTaxRupees","slabs.2.ratePct","slabs.3.minRupees","slabs.3.maxRupees","slabs.3.baseTaxRupees","slabs.3.ratePct","slabs.4.minRupees","slabs.4.maxRupees","slabs.4.baseTaxRupees","slabs.4.ratePct","slabs.5.minRupees","slabs.5.maxRupees","slabs.5.baseTaxRupees","slabs.5.ratePct","surchargeThresholdRupees","surchargeRatePct","eobiEmployerRatePct","eobiEmployeeRatePct","eobiWageBaseRupees","active"]
+  table rows: 6
+
+[B] /app/reports — is the FBR report reachable by CLICKING?
+  report links on the index: ["FBR Tax Summary → -> /app/reports/fbr","Sales by Day6 columns -> /app/reports/sales-by-day","Sales by Item6 columns -> /app/reports/sales-by-item","Sales by Hour (Peak Hours)3 columns -> /app/reports/sales-by-hour","Sales by Order Type3 columns -> /app/reports/sales-by-order-type","Discount Summary3 columns -> /app/reports/discount-summary","Till Sessions7 columns -> /app/reports/till-sessions","Purchases by Purchase Order5 columns -> /app/reports/purchases-by-po"]
+  direct FBR link present? true
+  after click, url = http://localhost:3000/app/reports/fbr
+  FBR report content:
+    FBR Tax Summary
+    Output tax vs input tax vs net payable — internal bookkeeping figures, not an FBR/IRIS e-filing submission.
+    From
+    To
+    Floating Terrace HQ
+    Branch tax registration unavailable — figures below are unaffected.
+    2026-07-31 to 2026-08-30
+    Taxable sales
+    Rs 27,552.00
+    Output tax: Rs 3,703.60
+    15 orders
+    Taxable purchases
+    Rs 381,035.00
+    Input tax: Rs 4,565.00
+    25 invoices
+    Refundable input-tax credit
+    Rs 861.40
+    Input tax exceeded output tax for this period — this is a credit, not an amount owed.
+
+DONE

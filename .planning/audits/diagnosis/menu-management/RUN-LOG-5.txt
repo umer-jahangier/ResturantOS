@@ -1,0 +1,4 @@
+ZZPAGE probes visible at the till: 10 of 15 created -> ["ZZPAGE Probe 1","ZZPAGE Probe 10","ZZPAGE Probe 11","ZZPAGE Probe 12","ZZPAGE Probe 13","ZZPAGE Probe 14","ZZPAGE Probe 15","ZZPAGE Probe 2","ZZPAGE Probe 3","ZZPAGE Probe 4"]
+price labels rendered on the grid ≈ 22
+grid shows 'Seekh Kebab' (alphabetically last real dish) = true
+shot: 50-pos-truncated-menu.png

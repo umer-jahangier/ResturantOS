@@ -1,0 +1,524 @@
+[
+  {
+    "key": "po",
+    "route": "/app/purchasing/purchase-orders",
+    "trigger": "New Purchase Order",
+    "nav": {
+      "attempt": 1,
+      "url": "http://localhost:3000/app/purchasing/purchase-orders",
+      "refused": false,
+      "failed": false,
+      "ok": true
+    },
+    "opened": true,
+    "geom": {
+      "w": 768,
+      "h": 464,
+      "radius": "11.2px",
+      "padding": "16px",
+      "ariaModal": "true",
+      "role": "dialog",
+      "scrollable": false,
+      "fields": [
+        {
+          "name": "vendorId",
+          "tag": "select",
+          "type": "select-one",
+          "label": "Vendor",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        },
+        {
+          "name": "expectedDeliveryDate",
+          "tag": "input",
+          "type": "date",
+          "label": "Expected delivery date",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        },
+        {
+          "name": "notes",
+          "tag": "input",
+          "type": "text",
+          "label": "Notes",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        },
+        {
+          "name": "lines.0.uom",
+          "tag": "select",
+          "type": "select-one",
+          "label": "Unit",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": null,
+          "describedBy": false
+        },
+        {
+          "name": "lines.0.qty",
+          "tag": "input",
+          "type": "text",
+          "label": "Qty",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        },
+        {
+          "name": "lines.0.unitPriceRupees",
+          "tag": "input",
+          "type": "text",
+          "label": "Unit price (PKR)",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        }
+      ],
+      "focusables": 10
+    },
+    "focusOnOpen": {
+      "inside": true,
+      "el": "select#vendorId"
+    },
+    "focusTrap": {
+      "inside": true,
+      "el": "select"
+    },
+    "typedValue": "REDTEAM-DIRTY-po",
+    "escape": {
+      "dialogsOpen": 0,
+      "confirmShown": false
+    },
+    "reopenValue": "",
+    "dataLost": true,
+    "outsideClick": {
+      "dialogsOpen": 0,
+      "confirmShown": false
+    },
+    "focusAfterClose": "button:New Purchase Order"
+  },
+  {
+    "key": "expense",
+    "route": "/app/finance/expenses",
+    "trigger": "New expense",
+    "nav": {
+      "attempt": 1,
+      "url": "http://localhost:3000/app/finance/expenses",
+      "refused": false,
+      "failed": false,
+      "ok": true
+    },
+    "opened": true,
+    "geom": {
+      "w": 512,
+      "h": 445,
+      "radius": "11.2px",
+      "padding": "16px",
+      "ariaModal": "true",
+      "role": "dialog",
+      "scrollable": false,
+      "fields": [
+        {
+          "name": "expenseAccountCode",
+          "tag": "select",
+          "type": "select-one",
+          "label": "Expense account",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        },
+        {
+          "name": "expenseDate",
+          "tag": "input",
+          "type": "date",
+          "label": "Expense date",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        },
+        {
+          "name": "amountRupees",
+          "tag": "input",
+          "type": "text",
+          "label": "Amount (PKR)",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        },
+        {
+          "name": "description",
+          "tag": "input",
+          "type": "text",
+          "label": "Description",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        }
+      ],
+      "focusables": 7
+    },
+    "focusOnOpen": {
+      "inside": true,
+      "el": "select#expenseAccountCode"
+    },
+    "focusTrap": {
+      "inside": true,
+      "el": "select"
+    },
+    "typedValue": "REDTEAM-DIRTY-expense",
+    "escape": {
+      "dialogsOpen": 0,
+      "confirmShown": false
+    },
+    "reopenValue": "",
+    "dataLost": true,
+    "outsideClick": {
+      "dialogsOpen": 0,
+      "confirmShown": false
+    },
+    "focusAfterClose": "button:New expense"
+  },
+  {
+    "key": "employee",
+    "route": "/app/hr/employees",
+    "trigger": "New employee",
+    "nav": {
+      "attempt": 1,
+      "url": "http://localhost:3000/app/hr/employees",
+      "refused": false,
+      "failed": false,
+      "ok": true
+    },
+    "opened": true,
+    "geom": {
+      "w": 672,
+      "h": 599,
+      "radius": "11.2px",
+      "padding": "16px",
+      "ariaModal": "true",
+      "role": "dialog",
+      "scrollable": false,
+      "fields": [
+        {
+          "name": "employeeNo",
+          "tag": "input",
+          "type": "text",
+          "label": "Employee number",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        },
+        {
+          "name": "fullName",
+          "tag": "input",
+          "type": "text",
+          "label": "Full name",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        },
+        {
+          "name": "departmentId",
+          "tag": "select",
+          "type": "select-one",
+          "label": "Department",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        },
+        {
+          "name": "designationId",
+          "tag": "select",
+          "type": "select-one",
+          "label": "Job title",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        },
+        {
+          "name": "employmentType",
+          "tag": "select",
+          "type": "select-one",
+          "label": "Employment type",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        },
+        {
+          "name": "joinDate",
+          "tag": "input",
+          "type": "date",
+          "label": "Join date",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        },
+        {
+          "name": "basicSalaryRupees",
+          "tag": "input",
+          "type": "text",
+          "label": "Basic salary",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        },
+        {
+          "name": "deviceUserRef",
+          "tag": "input",
+          "type": "text",
+          "label": "Device PIN",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        },
+        {
+          "name": "cnic",
+          "tag": "input",
+          "type": "text",
+          "label": "CNIC",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        },
+        {
+          "name": "bankAccountNo",
+          "tag": "input",
+          "type": "text",
+          "label": "Bank account",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        }
+      ],
+      "focusables": 13
+    },
+    "focusOnOpen": {
+      "inside": true,
+      "el": "input#employeeNo"
+    },
+    "focusTrap": {
+      "inside": true,
+      "el": "input"
+    },
+    "typedValue": "REDTEAM-DIRTY-employee",
+    "escape": {
+      "dialogsOpen": 0,
+      "confirmShown": false
+    },
+    "reopenValue": "",
+    "dataLost": true,
+    "outsideClick": {
+      "dialogsOpen": 0,
+      "confirmShown": false
+    },
+    "focusAfterClose": "body:Floating TerraceOverviewDashbo"
+  },
+  {
+    "key": "user",
+    "route": "/app/users",
+    "trigger": "Add user",
+    "nav": {
+      "attempt": 1,
+      "url": "http://localhost:3000/app/users",
+      "refused": false,
+      "failed": false,
+      "ok": true
+    },
+    "opened": true,
+    "geom": {
+      "w": 512,
+      "h": 447,
+      "radius": "11.2px",
+      "padding": "16px",
+      "ariaModal": "true",
+      "role": "dialog",
+      "scrollable": false,
+      "fields": [
+        {
+          "name": "email",
+          "tag": "input",
+          "type": "email",
+          "label": "Email address",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        },
+        {
+          "name": "fullName",
+          "tag": "input",
+          "type": "text",
+          "label": "Full name",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        },
+        {
+          "name": "branchId",
+          "tag": "select",
+          "type": "select-one",
+          "label": "Branch",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        },
+        {
+          "name": "create-user-role",
+          "tag": "select",
+          "type": "select-one",
+          "label": "Role",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": null,
+          "describedBy": false
+        }
+      ],
+      "focusables": 7
+    },
+    "focusOnOpen": {
+      "inside": true,
+      "el": "input#email"
+    },
+    "focusTrap": {
+      "inside": true,
+      "el": "select"
+    },
+    "typedValue": "REDTEAM-DIRTY-user",
+    "escape": {
+      "dialogsOpen": 0,
+      "confirmShown": false
+    },
+    "reopenValue": "",
+    "dataLost": true,
+    "outsideClick": {
+      "dialogsOpen": 0,
+      "confirmShown": false
+    },
+    "focusAfterClose": "body:Floating TerraceOverviewDashbo"
+  },
+  {
+    "key": "station",
+    "route": "/app/stations",
+    "trigger": "Add station",
+    "nav": {
+      "attempt": 1,
+      "url": "http://localhost:3000/app/stations",
+      "refused": false,
+      "failed": false,
+      "ok": true
+    },
+    "opened": true,
+    "geom": {
+      "w": 448,
+      "h": 409,
+      "radius": "11.2px",
+      "padding": "16px",
+      "ariaModal": "true",
+      "role": "dialog",
+      "scrollable": false,
+      "fields": [
+        {
+          "name": "code",
+          "tag": "input",
+          "type": "text",
+          "label": "Code",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        },
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "label": "Name",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": "false",
+          "describedBy": true
+        },
+        {
+          "name": "station-type",
+          "tag": "select",
+          "type": "select-one",
+          "label": "",
+          "labelMarksRequired": false,
+          "htmlRequired": false,
+          "ariaRequired": null,
+          "ariaInvalid": null,
+          "describedBy": false
+        }
+      ],
+      "focusables": 9
+    },
+    "focusOnOpen": {
+      "inside": true,
+      "el": "button"
+    },
+    "focusTrap": {
+      "inside": true,
+      "el": "input"
+    },
+    "typedValue": "REDTEAM-DIRTY-station",
+    "escape": {
+      "dialogsOpen": 0,
+      "confirmShown": false
+    },
+    "reopenValue": "",
+    "dataLost": true,
+    "outsideClick": {
+      "dialogsOpen": 0,
+      "confirmShown": false
+    },
+    "focusAfterClose": "body:Floating TerraceOverviewDashbo"
+  }
+]

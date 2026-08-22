@@ -1,0 +1,20 @@
+login: http://localhost:3000/app/dashboard
+
+--- Cashier goes to the charge screen for an open order ---
+  charge screen: Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse Orders Order Charge Floating Terrace HQ Search… ⌘K E Back Order #ORD-20260812-0004 In Progress Unpaid Dine-in · Customer: — · Cashier: eb2ee67e · Aug 12, 2026, 1:06 AM Items Chicken Karahi Note: no chilli ×1 Rs 1,682.00 Sent Bill Subtotal Rs 1,450.00 Discounts Rs 0.00 Service charge Rs 0.00 Taxes Rs 232.00 Total Rs 1,682.00 Amount paid Rs 0.00 Remaining balance Rs 1,682.00 Payment History No payments yet Take Payment CASH CARD BANK TRANSFER VOUCHER Full amount + Add tender Tender total Rs 0.00 Record Payment
+  shot: d-charge-screen.png
+  selected CASH
+  'Full amount' buttons: 1
+  shot: d-charge-after-cash.png
+  after cash click: Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse Orders Order Charge Floating Terrace HQ Search… ⌘K E Back Order #ORD-20260812-0004 In Progress Unpaid Dine-in · Customer: — · Cashier: eb2ee67e · Aug 12, 2026, 1:06 AM Items Chicken Karahi Note: no chilli ×1 Rs 1,682.00 Sent Bill Subtotal Rs 1,450.00 Discounts Rs 0.00 Service charge Rs 0.00 Taxes Rs 232.00 Total Rs 1,682.00 Amount paid Rs 0.00 Remaining balance Rs 1,682.00 Payment History No payments yet Take Payment CASH CARD BANK TRANSFER VOUCHER Full amount + Add tender Tender total Rs 1,682.00 Record Payment
+  settle buttons: 1
+    [0] "Record Payment" disabled=false
+  url after settle attempt: http://localhost:3000/app/pos/orders/43857ea9-c11d-4642-9fea-ad732957a2d1/charge
+  post-settle: Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse Orders Order Charge Floating Terrace HQ Search… ⌘K E Back Order #ORD-20260812-0004 In Progress Paid Dine-in · Customer: — · Cashier: eb2ee67e · Aug 12, 2026, 1:06 AM Items Chicken Karahi Note: no chilli ×1 Rs 1,682.00 Sent Bill Subtotal Rs 1,450.00 Discounts Rs 0.00 Service charge Rs 0.00 Taxes Rs 232.00 Total Rs 1,682.00 Amount paid Rs 1,682.00 Remaining balance Rs 0.00 Print bill Payment History CASH Aug 12, 2026, 3:11 AM Rs 1,682.00 Take Payment This order is fully paid — no further tenders can be recorded.
+  shot: d-after-settle.png
+  >>> window.print() calls so far = 0
+
+  network (print/payment):
+    GET http://localhost:8080/api/v1/pos/orders/43857ea9-c11d-4642-9fea-ad732957a2d1/payments
+    POST http://localhost:8080/api/v1/pos/orders/43857ea9-c11d-4642-9fea-ad732957a2d1/payments
+  browser ever called the local agent on :7654? false

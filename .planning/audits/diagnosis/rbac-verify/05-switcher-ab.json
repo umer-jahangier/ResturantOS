@@ -1,0 +1,70 @@
+{
+  "probe": "branch-switcher-AB",
+  "steps": [
+    {
+      "k": "state-A-one-branch",
+      "v": {
+        "sidebarCollapsedBefore": "false",
+        "sidebarCollapsedAfter": "false",
+        "switcherByRole": 0,
+        "switcherByAria": 0,
+        "stillSkeleton": 0,
+        "branchesFromApi": [
+          "Floating Terrace HQ=WAITER"
+        ],
+        "jwt": {
+          "branch": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "roles": [
+            "WAITER"
+          ],
+          "perms": 7
+        },
+        "sidebarHead": "RestaurantOS OVERVIEW Dashboard ORDERS POS Kitchen Display Collapse"
+      }
+    },
+    {
+      "k": "tills-A-one-branch",
+      "v": {
+        "denied": true,
+        "body": "Floating Terrace OVERVIEW Dashboard ORDERS POS Kitchen Display Collapse App POS Tills Floating Terrace HQ Search… ⌘K 6 You do not have permission to review tills."
+      }
+    },
+    {
+      "k": "grant-cashier-on-rooftop",
+      "v": {
+        "status": 200,
+        "body": "{\"data\":{\"id\":\"6f61fbc7-6564-4f51-95af-7606886a8227\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"userId\":\"666aefca-b5a2-4b07-a690-4ea3da88ff5d\",\"branchId\":\"c2d74ade-7ff8-4167-8cd0-131bfbdf4fba\",\"roleCode\":\"CASHIER\",\"approvalLimitPaisa\":null,\"active\":true,\"primary\":false,\"displacedRoleCode\":null},\"meta\":null,\"warnings\":[]}"
+      }
+    },
+    {
+      "k": "state-B-two-branches",
+      "v": {
+        "sidebarCollapsedBefore": "false",
+        "sidebarCollapsedAfter": "false",
+        "switcherByRole": 1,
+        "switcherByAria": 1,
+        "stillSkeleton": 0,
+        "branchesFromApi": [
+          "Floating Terrace HQ=WAITER",
+          "Floating Terrace — Rooftop=CASHIER"
+        ],
+        "jwt": {
+          "branch": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "roles": [
+            "WAITER"
+          ],
+          "perms": 7
+        },
+        "sidebarHead": "RestaurantOS Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Collapse"
+      }
+    },
+    {
+      "k": "tills-B-two-branches",
+      "v": {
+        "denied": false,
+        "body": "Sign in to RestaurantOS Enter your email and password to continue Your session expired. Please sign in again. Email Password Use a restaurant identifier instead Sign in"
+      }
+    }
+  ],
+  "fatal": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: /switch branch/i }).first()\n"
+}

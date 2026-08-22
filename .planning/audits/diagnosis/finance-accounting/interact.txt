@@ -1,0 +1,155 @@
+signed in as accountant@terrace.local
+
+===== 1. DRILL-THROUGH from the transaction register =====
+void rows on page: 2
+opening void row: 8/12/2026, 12:33:56 AM	Void	ORD-20260812-0003	—	-Rs 499.00	Rs 499.00	Open
+after click url = http://localhost:3000/app/finance/transactions
+---- drill-through panel text ----
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+FINANCE
+
+Guide
+Takings
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+
+PURCHASING
+
+Purchasing
+
+PEOPLE
+
+Customers
+
+REPORTING
+
+Reports
+Realtime Dashboard
+Ask (NLQ)
+Collapse
+App
+Finance
+Transactions
+Floating Terrace HQ
+Search…
+⌘K
+9
+Takings
+Transactions
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+House Accounts
+AR Aging
+Guide
+Transactions
+
+Every payment, refund and void. Open any row to see the order behind it and the accounting entries it produced.
+
+From
+To
+Tender
+Any
+Cash
+Card
+Wallet
+Show
+Payments
+Refunds
+Voids
+
+Taken in
+
+Rs 64,542.00
+
+Refunded
+
+Rs 0.00
+
+Voided
+
+Rs 591.80
+
+Net
+
+Rs 63,950.20
+
+Totals cover the whole filtered range (44 events), not just this page.
+
+When	Type	Order	Tender	Amount	Order total	Trace
+8/12/2026, 3:05:17 AM	Payment	ORD-20260812-0007	CASH	Rs 1,662.00	Rs 1,682.00	Open
+8/12/2026, 3:04:11 AM	Payment	ORD-20260812-0007	CASH	Rs 20.00	Rs 1,682.00	Open
+8/12/2026, 2:14:03 AM	Payment	ORD-20260812-0006	CASH	Rs 955.20	Rs 955.20	Open
+8/12/2026, 12:33:56 AM	Void	ORD-20260812-0003	—	-Rs 499.00	Rs 499.00	Hide
+
+Order ORD-20260812-0003 · status VOIDED · reason cleanup: 37-13 open-till rule probe, not a real sale
+Order totals — subtotal Rs 499.00 · discount Rs 0.00 · tax Rs 0.00 · service Rs 0.00 · total Rs 499.00
+
+This order produced no accounting entries.
+
+
+8/12/2026, 12:33:53 AM	Payment	ORD-20260812-0001	CASH	Rs 3,364.00	Rs 3,364.00	Open
+8/12/2026, 12:33:17 AM	Payment	ORD-20260812-0003	CASH	Rs 1.00	Rs 499.00	Open
+8/11/2026, 6:16:33 PM	Payment	ORD-20260811-0004	CASH	Rs 3,364.00	Rs 3,364.00	Open
+8/11/2026, 5:55:21 PM	Payment	ORD-20260811-0003	CASH	Rs 72.00	Rs 72.00	Open
+8/11/2026, 5:55:07 PM	Payment	ORD-20260811-0002	CASH	Rs 2,400.00	Rs 2,400.00	Open
+8/11/2026, 5:52:40 PM	Payment	ORD-20260811-0001	CASH	Rs 3,364.00	Rs 3,364.00	Open
+8/9/2026, 12:34:41 AM	Void	ORD-20260807-0027	—	-Rs 92.80	Rs 92.80	Open
+8/9/2026, 12:33:45 AM	Payment	ORD-20260807-0025	CASH	Rs 2,486.00	Rs 2,486.00	Open
+8/9/2026, 12:33:26 AM	Payment	ORD-20260809-0003	CASH	Rs 4,350.00	Rs 4,350.00	Open
+8/9/2026, 12:33:12 AM	Payment	ORD-20260807-0027	CASH	Rs 92.80	Rs 92.80	Open
+8/9/2026, 12:33:00 AM	Payment	ORD-20260807-0028	CASH	Rs 92.80	Rs 185.60	Open
+8/9/2026, 12:27:56 AM	Payment	ORD-20260809-0002	CARD	Rs 1,497.00	Rs 1,497.00	Open
+8/9/2026, 12:22:12 AM	Payment	ORD-20260809-0001	CARD	Rs 1,996.00	Rs 1,996.00	Open
+8/7/2026, 8:00:54 AM	Payment	ORD-20260807-0030	CASH	Rs 1,682.00	Rs 1,682.00	Open
+8/7/2026, 7:40:34 AM	Payment	ORD-20260807-0029	CASH	Rs 3,364.00	Rs 3,364.00	Open
+8/7/2026, 7:28:02 AM	Payment	ORD-20260807-0028	CASH	Rs 92.80	Rs 185.60	Open
+8/7/2026, 6:39:29 AM	Payment	ORD-20260807-0024	CARD	Rs 835.20	Rs 835.20	Open
+8/7/2026, 6:39:29 AM	Payment	ORD-20260807-0023	CASH	Rs 92.80	Rs 92.80	Open
+8/7/2026, 6:39:29 AM	Payment	ORD-20260807-0022	CASH	Rs 1,635.60	Rs 1,635.60	Open
+8/7/2026, 6:39:29 AM	Payment	ORD-20260807-0021	CARD	Rs 1,682.00	Rs 1,682.00	Open
+8/7/2026, 6:39:29 AM	Payment	ORD-20260807-0020	CASH	Rs 3,886.00	Rs 3,886.00	Open
+8/7/2026, 6:39:28 AM	Payment	ORD-20260807-0019	CASH	Rs 290.00	Rs 290.00	Open
+8/7/2026, 6:39:28 AM	Payment	ORD-20260807-0018	CARD	Rs 835.20	Rs 835.20	Open
+8/7/2026, 6:39:28 AM	Payment	ORD-20260807-0017	CASH	Rs 92.80	Rs 92.80	Open
+8/7/2026, 6:39:28 AM	Payment	ORD-20260807-0016	CASH	Rs 1,635.60	Rs 1,635.60	Open
+8/7/2026, 6:39:28 AM	Payment	ORD-20260807-0015	CARD	Rs 1,682.00	Rs 1,682.00	Open
+8/7/2026, 6:39:28 AM	Payment	ORD-20260807-0014	CASH	Rs 3,886.00	Rs 
+
+===== 2. DRILL-THROUGH on a normal payment =====
+
+===== 3. CREATE A JOURNAL ENTRY =====
+date label on load: <none>
+controls: ["INPUT[email]","INPUT[password]","BUTTON[Use a restaurant identifier in]","BUTTON[Sign in]"]
+
+===== 4. CLOSE A PERIOD =====
+Close Period buttons: 0
+
+===== 5. NEW EXPENSE =====
+
+===== 6. EXPORT / DOWNLOAD CONTROLS =====
+/app/finance/takings -> export controls: NONE
+/app/finance/transactions -> export controls: NONE
+/app/finance/gl -> export controls: NONE
+/app/finance/accounts -> export controls: NONE
+/app/finance/journal-entries -> export controls: NONE
+/app/finance/ap-aging -> export controls: NONE
+/app/finance/ar-aging -> export controls: NONE
+/app/finance/expenses -> export controls: NONE
+/app/finance/periods -> export controls: NONE

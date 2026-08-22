@@ -1,0 +1,29 @@
+[
+  {
+    "k": "waiter-before",
+    "v": "Roles by branch\nFloating Terrace HQ\nNo approval authority\nprimary\nWAITER\nStations\n\nSees every station in every branch they work.\n\nEdit\nAssign role\nReset password\nDeactivate"
+  },
+  {
+    "k": "assign-dialog-selects",
+    "v": 2
+  },
+  {
+    "k": "assign-response",
+    "v": {
+      "status": 200,
+      "body": "{\"data\":{\"id\":\"6f61fbc7-6564-4f51-95af-7606886a8227\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"userId\":\"666aefca-b5a2-4b07-a690-4ea3da88ff5d\",\"branchId\":\"c2d74ade-7ff8-4167-8cd0-131bfbdf4fba\",\"roleCode\":\"CASHIER\",\"approvalLimitPaisa\":null,\"active\":true,\"primary\":false,\"displacedRoleCode\":null},\"meta\":null,\"warnings\":[]}"
+    }
+  },
+  {
+    "k": "waiter-after",
+    "v": "Roles by branch\nFloating Terrace HQ\nNo approval authority\nprimary\nWAITER\nFloating Terrace — Rooftop\nNo approval authority\nCASHIER\nStations\n\nSees every station in every branch they work.\n\nEdit\nAssign role\nReset password\nDeactivate\nCASHIER assigned. It applies the next time that user signs in or their session refreshes."
+  },
+  {
+    "k": "revoke-affordances",
+    "v": []
+  },
+  {
+    "k": "switcher-count-after-self-assign",
+    "v": 0
+  }
+]

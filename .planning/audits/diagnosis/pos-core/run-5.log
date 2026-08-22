@@ -1,0 +1,326 @@
+CHARGE URL: http://localhost:3000/app/pos/orders/dd304880-022c-4bcf-a343-6741a34c2bbb/charge
+BILL BEFORE: Bill | Subtotal | Rs 80.00 | Discounts | Rs 0.00 | Service charge | Rs 0.00 | Taxes | Rs 12.80 | Total | Rs 92.80 | Amount paid | Rs 0.00 | Remaining balance | Rs 92.80 | Payment History |  | No payments yet |  | Take Payment | CASH | CARD | BANK TRANSFER | VOUCHER | Full amount | + Add tender | Tender total | Rs 0.00 | Record Payment
+clicked Full amount
+AMOUNT FIELD VALUE AFTER 'Full amount': "9280"
+  shot: 40-charge-prefilled
+  shot: 41-after-record-payment
+AFTER PAYMENT >>>
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+PEOPLE
+
+Customers
+Collapse
+Orders
+Order
+Charge
+Floating Terrace HQ
+Search…
+⌘K
+E
+Back
+Order #ORD-20260812-0011
+In Progress
+Paid
+
+Dine-in · Customer: — · Cashier: eb2ee67e · Aug 12, 2026, 3:08 AM
+
+Items
+
+Butter Naan
+
+×1
+Rs 92.80
+Sent
+Bill
+Subtotal
+Rs 80.00
+Discounts
+Rs 0.00
+Service charge
+Rs 0.00
+Taxes
+Rs 12.80
+Total
+Rs 92.80
+Amount paid
+Rs 92.80
+Remaining balance
+Rs 0.00
+Print bill
+Payment History
+CASH
+Aug 12, 2026, 3:08 AM
+Rs 92.80
+Take Payment
+
+This order is fully paid — no further tenders can be recorded.
+<<<
+BUTTONS AFTER PAYMENT: ["Collapse","Toggle mobile menu","Search…\n⌘K","Search","Switch to light mode","E","Back","Print bill"]
+  shot: 42-receipt
+RECEIPT URL: http://localhost:3000/app/pos/orders/dd304880-022c-4bcf-a343-6741a34c2bbb/receipt
+RECEIPT >>>
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+PEOPLE
+
+Customers
+Collapse
+Orders
+Order
+Receipt
+Floating Terrace HQ
+Search…
+⌘K
+E
+Back
+Print
+Floating Terrace HQ
++92 21 4628872
+Order
+ORD-20260812-0011
+Issued
+2026-08-11T22:08:39.057Z
+1 x Butter Naan
+Rs 92.80
+Subtotal
+Rs 80.00
+Discount
+Rs 0.00
+Service charge
+Rs 0.00
+Tax (16.00%) [OTHER]
+Rs 12.80
+Tax
+Rs 12.80
+TOTAL
+Rs 92.80
+CASH
+Rs 92.80
+No printer configured for this branch - browser bill
+<<<
+  shot: 43-drawer-in-progress
+  shot: 44-void-dialog
+VOID DIALOG: {
+ "w": 1520,
+ "h": 920,
+ "text": "Order #ORD-20260812-0011\nIn Progress\n\nDINE IN · 1 cover(s)\n\n1 revision\n\nButter Naan\n\n×1\nRs 92.80\nSent\nMark Served\nCancel\n+ Add note\nQuick Add\nFull Menu\nCHARGE NOW\nVoid Order\n\nOrder #ORD-20260812-0011 · Dine-in\n\nOrder total\nRs 92.80\n\nThis will cancel order #ORD-20260812-0011. This action cannot be undone.\n\nReason *\n\nResulting state: order will be marked VOIDED and removed from active settlement.\n\nCancel\nConfirm Void",
+ "fields": [
+  {
+   "t": "INPUT",
+   "ph": "Search menu…",
+   "lbl": "Search menu"
+  },
+  {
+   "t": "TEXTAREA",
+   "ph": "e.g. Customer left without ordering",
+   "lbl": ""
+  }
+ ],
+ "buttons": [
+  "1 revision",
+  "",
+  "",
+  "Mark Served",
+  "Cancel",
+  "+ Add note",
+  "Full Menu",
+  "CHARGE NOW",
+  "Cancel",
+  "Confirm Void"
+ ]
+}
+  shot: 50-menu-items
+MENU ITEMS PAGE >>>
+Floating Terrace
+Floating Terrace HQ
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+Kitchen Display
+Till Review
+
+MENU
+
+Inventory
+Menu Items
+Tables
+Stations
+POS Terminals
+
+FINANCE
+
+Guide
+Takings
+
+PURCHASING
+
+Purchasing
+
+PEOPLE
+
+Customers
+
+REPORTING
+
+Reports
+Realtime Dashboard
+Ask (NLQ)
+Collapse
+App
+Menu
+Items
+Floating Terrace HQ
+Search…
+⌘K
+F
+Menu Items
+
+What's sellable, organized into categories — write a recipe for an item under Inventory › Recipes once it's here.
+
+Add category
+Add item
+Show inactive
+Diag Cat 683566
+Add item
+
+No items in this category yet.
+
+Diag Cat 785508
+Add item
+
+No items in this category yet.
+
+Starters
+Add item
+Audit Item 52235
+Rs 499.00
+Audit Item 60568
+Rs 499.00
+Chicken Samosa
+Rs 250.00
+Photo Dish 50585
+Rs 725.00
+Seekh Kebab
+Rs 450.00
+Mains
+Add item
+Butter Naan
+Rs 80.00
+Chicken Karahi
+Rs 1,450.00
+Mutton Biryani
+Rs 1,250.00
+Drinks
+Add item
+Fresh Lime
+Rs 220.00
+Pinacolada
+Rs 700.00
+Soft Drinks
+Add item
+
+No items in this category yet.
+<<<
+MENU ADMIN IMAGES: {
+ "imgCount": 1,
+ "srcs": [
+  "blob:http://localhost:3000/5099189a-018a-4e9d-8548-06d809b6d964"
+ ],
+ "naturalOk": [
+  true
+ ]
+}
+MENU BUTTONS: ["Floating Terrace HQ","Collapse","Toggle mobile menu","Search…\n⌘K","Search","Switch to light mode","F","Add category","Add item","Add item","Actions for Diag Cat 683566","Add item","Actions for Diag Cat 785508","Add item","Actions for Starters","Actions for Audit Item 52235","Actions for Audit Item 60568","Actions for Chicken Samosa","Actions for Photo Dish 50585","Actions for Seekh Kebab","Add item","Actions for Mains","Actions for Butter Naan","Actions for Chicken Karahi","Actions for Mutton Biryani","Add item","Actions for Drinks","Actions for Fresh Lime","Actions for Pinacolada","Add item","Actions for Soft Drinks"]
+FATAL locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator('table tbody tr').first()
+
+    at main (/Users/muhammadumer/Documents/Projects/ResturantOS/frontend/e2e/diag/pos-menu-pay.mjs:105:18)
+
+=== NET ===
+[cashier] 200 POST /api/v1/auth/login
+[cashier] 200 GET /api/v1/feature-flags
+[cashier] 200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+[cashier] 200 GET /api/v1/branches/mine
+[cashier] 200 GET /api/v1/pos/tills?cashierId=eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1&status=OPEN
+[cashier] 200 GET /api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[cashier] 200 POST /api/v1/auth/refresh
+[cashier] 200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+[cashier] 200 GET /api/v1/feature-flags
+[cashier] 200 GET /api/v1/pos/tills?cashierId=eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1&status=OPEN
+[cashier] 200 GET /api/v1/branches/mine
+[cashier] 200 GET /api/v1/pos/menu/categories
+[cashier] 200 GET /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[cashier] 200 GET /api/v1/pos/menu/items?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[cashier] 200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+[cashier] 201 POST /api/v1/pos/orders
+[cashier] 200 POST /api/v1/pos/orders/dd304880-022c-4bcf-a343-6741a34c2bbb/items
+[cashier] 200 GET /api/v1/pos/orders/dd304880-022c-4bcf-a343-6741a34c2bbb/payments
+[cashier] 200 GET /api/v1/pos/orders/dd304880-022c-4bcf-a343-6741a34c2bbb?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[cashier] 200 POST /api/v1/pos/orders/dd304880-022c-4bcf-a343-6741a34c2bbb/payments
+[cashier] 200 GET /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[cashier] 200 GET /api/v1/pos/orders/dd304880-022c-4bcf-a343-6741a34c2bbb/payments
+[cashier] 200 GET /api/v1/pos/orders/dd304880-022c-4bcf-a343-6741a34c2bbb?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[cashier] 200 GET /api/v1/pos/orders/dd304880-022c-4bcf-a343-6741a34c2bbb/payments
+[cashier] 200 GET /api/v1/pos/orders/dd304880-022c-4bcf-a343-6741a34c2bbb?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[cashier] 200 GET /api/v1/pos/orders/dd304880-022c-4bcf-a343-6741a34c2bbb/payments
+[cashier] 200 POST /api/v1/pos/orders/dd304880-022c-4bcf-a343-6741a34c2bbb/send-to-kds
+[cashier] 200 GET /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[cashier] 200 GET /api/v1/pos/orders/dd304880-022c-4bcf-a343-6741a34c2bbb/payments
+[cashier] 200 GET /api/v1/pos/orders/dd304880-022c-4bcf-a343-6741a34c2bbb?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[cashier] 200 GET /api/v1/pos/orders/dd304880-022c-4bcf-a343-6741a34c2bbb/payments
+[cashier] 200 GET /api/v1/pos/orders/dd304880-022c-4bcf-a343-6741a34c2bbb?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[cashier] 201 POST /api/v1/pos/orders/dd304880-022c-4bcf-a343-6741a34c2bbb/print-jobs?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[cashier] 200 POST /api/v1/auth/refresh
+[cashier] 200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+[cashier] 200 GET /api/v1/feature-flags
+[cashier] 200 GET /api/v1/pos/tills?cashierId=eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1&status=OPEN
+[cashier] 200 GET /api/v1/branches/mine
+[cashier] 200 GET /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[cashier] 200 GET /api/v1/pos/menu/categories
+[cashier] 200 GET /api/v1/pos/menu/items?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[cashier] 200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+[cashier] 200 GET /api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[cashier] 200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+[cashier] 200 GET /api/v1/pos/orders/dd304880-022c-4bcf-a343-6741a34c2bbb?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[manager] 200 POST /api/v1/auth/login
+[manager] 200 GET /api/v1/feature-flags
+[manager] 200 GET /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[manager] 200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+[manager] 200 GET /api/v1/branches/mine
+[manager] 200 GET /api/v1/pos/tills?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&page=0&size=20
+[manager] 200 GET /api/v1/pos/menu/items/admin
+[manager] 200 GET /api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[manager] 200 GET /api/v1/kitchen/kds/stations?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[manager] 200 GET /api/v1/kitchen/kds/tickets?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&status=PENDING,COOKING,READY&size=500
+[manager] 200 POST /api/v1/auth/refresh
+[manager] 200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+[manager] 200 GET /api/v1/feature-flags
+[manager] 200 GET /api/v1/pos/menu/categories/admin
+[manager] 200 GET /api/v1/pos/menu/categories
+[manager] 200 GET /api/v1/pos/menu/items/admin
+[manager] 200 GET /api/v1/branches/mine
+[manager] 200 GET /api/v1/files/10271e3a-ab12-476c-aba1-909c67a767b7/download
+[manager] 200 GET /api/v1/files/10271e3a-ab12-476c-aba1-909c67a767b7/download

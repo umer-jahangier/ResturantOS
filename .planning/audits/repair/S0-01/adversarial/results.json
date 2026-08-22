@@ -1,0 +1,123 @@
+{
+  "steps": [],
+  "failures": [],
+  "A_paymentsAfterCharge": {
+    "data": [
+      {
+        "id": "80bce605-b1a9-467a-82c8-df7871be98a9",
+        "method": "CASH",
+        "amountPaisa": 49900,
+        "tenderedPaisa": 49900,
+        "changePaisa": 0,
+        "referenceNo": null,
+        "recordedAt": "2026-08-12T01:46:41.032782Z",
+        "kind": "PAYMENT"
+      }
+    ],
+    "meta": null,
+    "warnings": []
+  },
+  "A_statusAfterCharge": "SENT_TO_KDS",
+  "A_probe": {
+    "voidPresent": false,
+    "voidEnabled": false,
+    "refundPresent": true,
+    "refundEnabled": true,
+    "notice": "Paid — void unavailable. Use Refund."
+  },
+  "A_directVoid": {
+    "status": 409,
+    "body": {
+      "detail": "Order ORD-20260812-0140 has 49900 paisa recorded against it and cannot be voided. Use Refund — a void leaves the payment in place with no reversing entry.",
+      "instance": "/api/v1/pos/orders/96cb6884-7e8c-45ca-8cb8-7e909581b106/void",
+      "status": 409,
+      "title": "ORDER_HAS_PAYMENTS",
+      "type": "urn:restaurantos:pos:order-has-payments"
+    }
+  },
+  "A_paymentsAfterRefund": {
+    "data": [
+      {
+        "id": "80bce605-b1a9-467a-82c8-df7871be98a9",
+        "method": "CASH",
+        "amountPaisa": 49900,
+        "tenderedPaisa": 49900,
+        "changePaisa": 0,
+        "referenceNo": null,
+        "recordedAt": "2026-08-12T01:46:41.032782Z",
+        "kind": "PAYMENT"
+      },
+      {
+        "id": "030f7ace-2966-47ca-aa57-c2d116addf38",
+        "method": "CASH",
+        "amountPaisa": -49900,
+        "tenderedPaisa": -49900,
+        "changePaisa": 0,
+        "referenceNo": "adversarial recheck — guest left, cash returned",
+        "recordedAt": "2026-08-12T01:47:09.199356Z",
+        "kind": "REFUND"
+      }
+    ],
+    "meta": null,
+    "warnings": []
+  },
+  "A_statusAfterRefund": "REFUNDED",
+  "A_persistMentionsRefunded": true,
+  "A_probeAfterRefund": {
+    "voidPresent": false,
+    "voidEnabled": false,
+    "refundPresent": false,
+    "refundEnabled": false,
+    "notice": null
+  },
+  "A_doubleRefund": {
+    "status": 409,
+    "body": {
+      "detail": "Cannot refund an order in status REFUNDED. A refund reverses a recorded payment; this order can hold none.",
+      "instance": "/api/v1/pos/orders/96cb6884-7e8c-45ca-8cb8-7e909581b106/refund",
+      "status": 409,
+      "title": "STATE_INVALID",
+      "type": "urn:restaurantos:pos:state-invalid"
+    }
+  },
+  "B_payments": {
+    "data": [
+      {
+        "id": "e7b2db41-fccb-49af-8d6f-2bb73385f68f",
+        "method": "CASH",
+        "amountPaisa": 10000,
+        "tenderedPaisa": 10000,
+        "changePaisa": 0,
+        "referenceNo": null,
+        "recordedAt": "2026-08-12T01:47:52.851948Z",
+        "kind": "PAYMENT"
+      }
+    ],
+    "meta": null,
+    "warnings": []
+  },
+  "B_probe": {
+    "voidPresent": false,
+    "voidEnabled": false,
+    "refundPresent": true,
+    "refundEnabled": true,
+    "notice": "Paid — void unavailable. Use Refund."
+  },
+  "B_directVoid": {
+    "status": 409,
+    "body": {
+      "detail": "Order ORD-20260812-0142 has 10000 paisa recorded against it and cannot be voided. Use Refund — a void leaves the payment in place with no reversing entry.",
+      "instance": "/api/v1/pos/orders/cd01de40-53d3-4889-b048-5e15dd1e02ab/void",
+      "status": 409,
+      "title": "ORDER_HAS_PAYMENTS",
+      "type": "urn:restaurantos:pos:order-has-payments"
+    }
+  },
+  "C_probe": {
+    "voidPresent": true,
+    "voidEnabled": true,
+    "refundPresent": false,
+    "refundEnabled": false,
+    "notice": null
+  }
+}

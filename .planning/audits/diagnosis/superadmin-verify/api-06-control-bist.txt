@@ -1,0 +1,17 @@
+200 POST /api/v1/auth/login
+200 GET /api/v1/auth/tenants/5ae760de-850a-4829-9d49-1605280013a2
+200 GET /api/v1/feature-flags
+200 GET /api/v1/branches/mine
+200 GET /api/v1/pos/tills?branchId=99aa0e36-6c4c-4019-98b4-2a87e21a7a2b&page=0&size=20
+200 GET /api/v1/pos/tables?branchId=99aa0e36-6c4c-4019-98b4-2a87e21a7a2b
+200 GET /api/v1/pos/menu/items/admin
+200 GET /api/v1/pos/orders?branchId=99aa0e36-6c4c-4019-98b4-2a87e21a7a2b
+200 GET /api/v1/kitchen/kds/stations?branchId=99aa0e36-6c4c-4019-98b4-2a87e21a7a2b
+200 GET /api/v1/kitchen/kds/tickets?branchId=99aa0e36-6c4c-4019-98b4-2a87e21a7a2b&status=PENDING,COOKING,READY&size=500
+404 GET http://localhost:3000/api/v1/feature-flags
+200 GET /api/v1/reporting/reports
+404 GET http://localhost:3000/api/v1/crm/customers
+404 GET http://localhost:3000/api/v1/crm/loyalty/tiers
+404 GET http://localhost:3000/api/v1/nlq/query
+404 GET http://localhost:3000/api/v1/branches
+404 GET http://localhost:3000/api/v1/reports

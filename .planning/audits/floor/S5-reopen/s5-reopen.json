@@ -1,0 +1,252 @@
+[
+  {
+    "step": "A1 owner: sidebar links to /app/branches",
+    "detail": 1
+  },
+  {
+    "step": "A2 owner: page trouble on arrival",
+    "detail": []
+  },
+  {
+    "step": "A3 owner: rows on arrival",
+    "detail": [
+      "Floating Terrace HQ",
+      "Floating Terrace — Rooftop",
+      "Reopen Branch 28265 — Annexe",
+      "S4 Reopen Probe 532004"
+    ]
+  },
+  {
+    "step": "A4 owner: POST /branches",
+    "detail": [
+      {
+        "status": 201,
+        "body": "{\"data\":{\"id\":\"1dd7022c-db6a-4ea2-a686-338bf87890f9\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"name\":\"Reopen Branch 51070\",\"isHq\":false,\"isActive\":true,\"address\":\"12 Khayaban-e-Iqbal, Karachi"
+      }
+    ]
+  },
+  {
+    "step": "A5 owner: rows after create",
+    "detail": [
+      "Floating Terrace HQ",
+      "Floating Terrace — Rooftop",
+      "Reopen Branch 28265 — Annexe",
+      "Reopen Branch 51070",
+      "S4 Reopen Probe 532004"
+    ]
+  },
+  {
+    "step": "A6 owner: rows after RELOAD",
+    "detail": [
+      "Floating Terrace HQ",
+      "Floating Terrace — Rooftop",
+      "Reopen Branch 28265 — Annexe",
+      "Reopen Branch 51070",
+      "S4 Reopen Probe 532004"
+    ]
+  },
+  {
+    "step": "A7 owner: rows after rename + RELOAD",
+    "detail": [
+      "Floating Terrace HQ",
+      "Floating Terrace — Rooftop",
+      "Reopen Branch 28265 — Annexe",
+      "Reopen Branch 51070 — Annexe",
+      "S4 Reopen Probe 532004"
+    ]
+  },
+  {
+    "step": "A8 owner: switcher before switch",
+    "detail": {
+      "present": true,
+      "label": "Floating Terrace HQ",
+      "options": [
+        "Floating Terrace HQ",
+        "Reopen Branch 28265 — Annexe",
+        "Reopen Branch 51070 — Annexe",
+        "S4 Reopen Probe 532004"
+      ]
+    }
+  },
+  {
+    "step": "A9 owner: live token branch_id before switch",
+    "detail": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+  },
+  {
+    "step": "A10 owner: switcher label after switch",
+    "detail": "Reopen Branch 51070 — Annexe"
+  },
+  {
+    "step": "A11 owner: live token branch_id after switch",
+    "detail": "1dd7022c-db6a-4ea2-a686-338bf87890f9"
+  },
+  {
+    "step": "A12 owner: switcher label after RELOAD",
+    "detail": "Reopen Branch 51070 — Annexe"
+  },
+  {
+    "step": "A13 owner: live token branch_id after RELOAD",
+    "detail": "1dd7022c-db6a-4ea2-a686-338bf87890f9"
+  },
+  {
+    "step": "A14 owner: order management trouble on new branch",
+    "detail": []
+  },
+  {
+    "step": "A15 owner: order calls on the wire",
+    "detail": []
+  },
+  {
+    "step": "A16 owner: what the orders screen says",
+    "detail": "Sign in to RestaurantOS | Enter your email and password to continue | Your session expired. Please sign in again. | Email | Password | Use a restaurant identifier instead | Sign in"
+  },
+  {
+    "step": "B0 admin: holds rbac.manage?",
+    "detail": false
+  },
+  {
+    "step": "B1 admin: sidebar links to /app/branches",
+    "detail": 1
+  },
+  {
+    "step": "B2 admin: branches page trouble",
+    "detail": []
+  },
+  {
+    "step": "B3 admin: rows",
+    "detail": [
+      "Floating Terrace HQ",
+      "Floating Terrace — Rooftop",
+      "Reopen Branch 28265 — Annexe",
+      "Reopen Branch 51070 — Annexe",
+      "S4 Reopen Probe 532004"
+    ]
+  },
+  {
+    "step": "B4 admin: Add branch button visible",
+    "detail": 1
+  },
+  {
+    "step": "B5 admin: POST /branches",
+    "detail": [
+      {
+        "status": 201,
+        "body": "{\"data\":{\"id\":\"bf2b9f72-2d99-4f88-9c17-b6ff753be1d4\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"name\":\"Admin Branch 51070\",\"isHq\":false,\"isActive\":true,\"address\":null,\"fbrStrn\":null,\"ntn\":null,\"phone\":null,\"email\":null,\"timezone\":\"Asia/Karachi\",\"currencyConfig\":null,\"receiptConfig\":null,\"ope"
+      }
+    ]
+  },
+  {
+    "step": "B6 admin: anything shouting on screen",
+    "detail": []
+  },
+  {
+    "step": "B7 admin: rows after create + RELOAD",
+    "detail": [
+      "Floating Terrace HQ",
+      "Admin Branch 51070",
+      "Floating Terrace — Rooftop",
+      "Reopen Branch 28265 — Annexe",
+      "Reopen Branch 51070 — Annexe",
+      "S4 Reopen Probe 532004"
+    ]
+  },
+  {
+    "step": "B8 admin: switcher after create",
+    "detail": {
+      "present": true,
+      "label": "Floating Terrace HQ",
+      "options": [
+        "Floating Terrace HQ",
+        "Admin Branch 51070"
+      ]
+    }
+  },
+  {
+    "step": "C1 manager: sidebar links to /app/branches",
+    "detail": 0
+  },
+  {
+    "step": "C2 manager: what /app/branches shows",
+    "detail": [
+      "access-denied"
+    ]
+  },
+  {
+    "step": "C3 manager: body head",
+    "detail": "Floating Terrace | Floating Terrace HQ | OVERVIEW | Dashboard | ORDERS | POS | Kitchen Display | Till Review | MENU | Inventory | Menu Items | Tables | Stations | Station Routing | POS Terminals | Printers | Service Char"
+  },
+  {
+    "step": "C4 manager: POST /api/v1/branches",
+    "detail": {
+      "status": 401,
+      "code": "UNAUTHENTICATED"
+    }
+  },
+  {
+    "step": "C5 cashier: what /app/branches shows",
+    "detail": [
+      "access-denied"
+    ]
+  },
+  {
+    "step": "C6 cashier: POST /api/v1/branches",
+    "detail": {
+      "status": 403,
+      "code": "PERMISSION_DENIED"
+    }
+  },
+  {
+    "step": "D1 control tenant branches",
+    "detail": [
+      {
+        "id": "99aa0e36-6c4c-4019-98b4-2a87e21a7a2b",
+        "name": "Control Bistro (isolation test tenant) HQ"
+      }
+    ]
+  },
+  {
+    "step": "D2 control owner: branches page trouble",
+    "detail": []
+  },
+  {
+    "step": "D3 control owner: rows on screen",
+    "detail": [
+      "Control Bistro (isolation test tenant) HQ"
+    ]
+  },
+  {
+    "step": "D4 terrace owner sees branches",
+    "detail": [
+      "Floating Terrace — Rooftop",
+      "S4 Reopen Probe 532004",
+      "Floating Terrace HQ",
+      "Reopen Branch 28265 — Annexe",
+      "Reopen Branch 51070 — Annexe",
+      "Admin Branch 51070"
+    ]
+  },
+  {
+    "step": "D5 any control branch leaked into terrace list",
+    "detail": []
+  },
+  {
+    "step": "D6 terrace owner GET other tenant branch",
+    "detail": {
+      "status": 404
+    }
+  },
+  {
+    "step": "D7 terrace owner PUT other tenant branch",
+    "detail": {
+      "status": 404,
+      "code": "NOT_FOUND"
+    }
+  },
+  {
+    "step": "D8 control owner re-reads its own branch name",
+    "detail": {
+      "status": 200,
+      "name": "Control Bistro (isolation test tenant) HQ"
+    }
+  }
+]

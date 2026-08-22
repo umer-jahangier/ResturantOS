@@ -1,0 +1,42 @@
+
+===== attempt 1 =====
+button found=1 visible=true enabled=true
+DOM after click: {
+ "dialog": 0,
+ "alertdialog": 0,
+ "radixPortal": 0,
+ "dataState": [],
+ "modalish": []
+}
+network: 200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+errors: none
+url now: http://localhost:3000/app/pos
+body mentions count/declare/denomination: true
+
+===== attempt 2 =====
+button found=1 visible=true enabled=true
+DOM after click: {
+ "dialog": 0,
+ "alertdialog": 0,
+ "radixPortal": 0,
+ "dataState": [],
+ "modalish": []
+}
+network: 200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+errors: none
+url now: http://localhost:3000/app/pos
+body mentions count/declare/denomination: true
+
+===== attempt 3 =====
+button found=1 visible=true enabled=true
+DOM after click: {
+ "dialog": 0,
+ "alertdialog": 0,
+ "radixPortal": 0,
+ "dataState": [],
+ "modalish": []
+}
+network: 200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+errors: none
+url now: http://localhost:3000/app/pos
+body mentions count/declare/denomination: true

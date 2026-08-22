@@ -1,0 +1,1357 @@
+
+
+========== /app/finance [ok] attempt=1 finalUrl=http://localhost:3000/app/finance/takings
+--- api failures: 403 GET http://localhost:8080/api/v1/users?page=0&size=200 | 403 GET http://localhost:8080/api/v1/users?page=0&size=200
+--- alerts: ["Takings"]
+--- shot: /Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/diagnosis/finance-accounting/accountant_app_finance.png
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+FINANCE
+
+Guide
+Takings
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+
+PURCHASING
+
+Purchasing
+
+PEOPLE
+
+Customers
+
+REPORTING
+
+Reports
+Realtime Dashboard
+Ask (NLQ)
+Collapse
+App
+Finance
+Takings
+Floating Terrace HQ
+Search…
+⌘K
+9
+Takings
+Transactions
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+House Accounts
+AR Aging
+Guide
+Takings
+
+The day's money, reconciled against what each till counted. Where a figure cannot be worked out, this screen says so and says why — it will not show you a zero it does not mean.
+
+Business date
+
+5 orders closed on this trading day
+
+The day's money
+
+GROSS SALES
+
+Rs 11,650.00
+
+Full menu price of everything sold, before any discount.
+
+DISCOUNTS
+
+Rs 950.00
+
+Given away. Shown here rather than netted into a smaller sales figure.
+
+COMPS
+
+Not known
+Comps are not recorded separately from discounts. orders.discount_paisa is one column, and a full comp appears in it as a discount equal to the subtotal. Splitting them would require a field POS does not capture.
+
+TAX
+
+Rs 1,864.00
+
+SERVICE CHARGE
+
+Rs 0.00
+
+NET SALES
+
+Rs 12,564.00
+
+What the bills actually came to. Stated by the server, not worked out here.
+
+How it came in
+TENDER	PAYMENTS	AMOUNT
+Cash	5	Rs 12,564.00
+What each till counted
+
+Every till is listed on its own. Variances are never added together — two drawers out by opposite amounts is two problems, and one total of zero would hide both.
+
+Cash variance for the day: not known
+
+Cash was taken on this day but no till was closed and counted, so there is nothing to compare the expected drawer against. This is NOT a zero variance.
+
+TILL	STATE	OPENING FLOAT	EXPECTED CASH	COUNTED CASH	VARIANCE
+
+Cashier fefd7187
+Opened 8/11/26, 5:52 PM · not closed
+	Still open	Rs 5,000.00	
+Not known
+	
+Not known
+	
+Not known
+
+
+========== /app/finance/takings [ok] attempt=1 finalUrl=http://localhost:3000/app/finance/takings
+--- api failures: 403 GET http://localhost:8080/api/v1/users?page=0&size=200 | 403 GET http://localhost:8080/api/v1/users?page=0&size=200
+--- alerts: [""]
+--- shot: /Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/diagnosis/finance-accounting/accountant_app_finance_takings.png
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+FINANCE
+
+Guide
+Takings
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+
+PURCHASING
+
+Purchasing
+
+PEOPLE
+
+Customers
+
+REPORTING
+
+Reports
+Realtime Dashboard
+Ask (NLQ)
+Collapse
+App
+Finance
+Takings
+Floating Terrace HQ
+Search…
+⌘K
+9
+Takings
+Transactions
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+House Accounts
+AR Aging
+Guide
+Takings
+
+The day's money, reconciled against what each till counted. Where a figure cannot be worked out, this screen says so and says why — it will not show you a zero it does not mean.
+
+Business date
+
+5 orders closed on this trading day
+
+The day's money
+
+GROSS SALES
+
+Rs 11,650.00
+
+Full menu price of everything sold, before any discount.
+
+DISCOUNTS
+
+Rs 950.00
+
+Given away. Shown here rather than netted into a smaller sales figure.
+
+COMPS
+
+Not known
+Comps are not recorded separately from discounts. orders.discount_paisa is one column, and a full comp appears in it as a discount equal to the subtotal. Splitting them would require a field POS does not capture.
+
+TAX
+
+Rs 1,864.00
+
+SERVICE CHARGE
+
+Rs 0.00
+
+NET SALES
+
+Rs 12,564.00
+
+What the bills actually came to. Stated by the server, not worked out here.
+
+How it came in
+TENDER	PAYMENTS	AMOUNT
+Cash	5	Rs 12,564.00
+What each till counted
+
+Every till is listed on its own. Variances are never added together — two drawers out by opposite amounts is two problems, and one total of zero would hide both.
+
+Cash variance for the day: not known
+
+Cash was taken on this day but no till was closed and counted, so there is nothing to compare the expected drawer against. This is NOT a zero variance.
+
+TILL	STATE	OPENING FLOAT	EXPECTED CASH	COUNTED CASH	VARIANCE
+
+Cashier fefd7187
+Opened 8/11/26, 5:52 PM · not closed
+	Still open	Rs 5,000.00	
+Not known
+	
+Not known
+	
+Not known
+
+
+========== /app/finance/transactions [ok] attempt=1 finalUrl=http://localhost:3000/app/finance/transactions
+--- api failures: none
+--- alerts: [""]
+--- shot: /Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/diagnosis/finance-accounting/accountant_app_finance_transactions.png
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+FINANCE
+
+Guide
+Takings
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+
+PURCHASING
+
+Purchasing
+
+PEOPLE
+
+Customers
+
+REPORTING
+
+Reports
+Realtime Dashboard
+Ask (NLQ)
+Collapse
+App
+Finance
+Transactions
+Floating Terrace HQ
+Search…
+⌘K
+9
+Takings
+Transactions
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+House Accounts
+AR Aging
+Guide
+Transactions
+
+Every payment, refund and void. Open any row to see the order behind it and the accounting entries it produced.
+
+From
+To
+Tender
+Any
+Cash
+Card
+Wallet
+Show
+Payments
+Refunds
+Voids
+
+Taken in
+
+Rs 62,860.00
+
+Refunded
+
+Rs 0.00
+
+Voided
+
+Rs 591.80
+
+Net
+
+Rs 62,268.20
+
+Totals cover the whole filtered range (42 events), not just this page.
+
+When	Type	Order	Tender	Amount	Order total	Trace
+8/12/2026, 2:14:03 AM	Payment	ORD-20260812-0006	CASH	Rs 955.20	Rs 955.20	Open
+8/12/2026, 12:33:56 AM	Void	ORD-20260812-0003	—	-Rs 499.00	Rs 499.00	Open
+8/12/2026, 12:33:53 AM	Payment	ORD-20260812-0001	CASH	Rs 3,364.00	Rs 3,364.00	Open
+8/12/2026, 12:33:17 AM	Payment	ORD-20260812-0003	CASH	Rs 1.00	Rs 499.00	Open
+8/11/2026, 6:16:33 PM	Payment	ORD-20260811-0004	CASH	Rs 3,364.00	Rs 3,364.00	Open
+8/11/2026, 5:55:21 PM	Payment	ORD-20260811-0003	CASH	Rs 72.00	Rs 72.00	Open
+8/11/2026, 5:55:07 PM	Payment	ORD-20260811-0002	CASH	Rs 2,400.00	Rs 2,400.00	Open
+8/11/2026, 5:52:40 PM	Payment	ORD-20260811-0001	CASH	Rs 3,364.00	Rs 3,364.00	Open
+8/9/2026, 12:34:41 AM	Void	ORD-20260807-0027	—	-Rs 92.80	Rs 92.80	Open
+8/9/2026, 12:33:45 AM	Payment	ORD-20260807-0025	CASH	Rs 2,486.00	Rs 2,486.00	Open
+8/9/2026, 12:33:26 AM	Payment	ORD-20260809-0003	CASH	Rs 4,350.00	Rs 4,350.00	Open
+8/9/2026, 12:33:12 AM	Payment	ORD-20260807-0027	CASH	Rs 92.80	Rs 92.80	Open
+8/9/2026, 12:33:00 AM	Payment	ORD-20260807-0028	CASH	Rs 92.80	Rs 185.60	Open
+8/9/2026, 12:27:56 AM	Payment	ORD-20260809-0002	CARD	Rs 1,497.00	Rs 1,497.00	Open
+8/9/2026, 12:22:12 AM	Payment	ORD-20260809-0001	CARD	Rs 1,996.00	Rs 1,996.00	Open
+8/7/2026, 8:00:54 AM	Payment	ORD-20260807-0030	CASH	Rs 1,682.00	Rs 1,682.00	Open
+8/7/2026, 7:40:34 AM	Payment	ORD-20260807-0029	CASH	Rs 3,364.00	Rs 3,364.00	Open
+8/7/2026, 7:28:02 AM	Payment	ORD-20260807-0028	CASH	Rs 92.80	Rs 185.60	Open
+8/7/2026, 6:39:29 AM	Payment	ORD-20260807-0024	CARD	Rs 835.20	Rs 835.20	Open
+8/7/2026, 6:39:29 AM	Payment	ORD-20260807-0023	CASH	Rs 92.80	Rs 92.80	Open
+8/7/2026, 6:39:29 AM	Payment	ORD-20260807-0022	CASH	Rs 1,635.60	Rs 1,635.60	Open
+8/7/2026, 6:39:29 AM	Payment	ORD-20260807-0021	CARD	Rs 1,682.00	Rs 1,682.00	Open
+8/7/2026, 6:39:29 AM	Payment	ORD-20260807-0020	CASH	Rs 3,886.00	Rs 3,886.00	Open
+8/7/2026, 6:39:28 AM	Payment	ORD-20260807-0019	CASH	Rs 290.00	Rs 290.00	Open
+8/7/2026, 6:39:28 AM	Payment	ORD-20260807-0018	CARD	Rs 835.20	Rs 835.20	Open
+8/7/2026, 6:39:28 AM	Payment	ORD-20260807-0017	CASH	Rs 92.80	Rs 92.80	Open
+8/7/2026, 6:39:28 AM	Payment	ORD-20260807-0016	CASH	Rs 1,635.60	Rs 1,635.60	Open
+8/7/2026, 6:39:28 AM	Payment	ORD-20260807-0015	CARD	Rs 1,682.00	Rs 1,682.00	Open
+8/7/2026, 6:39:28 AM	Payment	ORD-20260807-0014	CASH	Rs 3,886.00	Rs 3,886.00	Open
+8/7/2026, 6:39:28 AM	Payment	ORD-20260807-0013	CASH	Rs 290.00	Rs 290.00	Open
+8/7/2026, 6:39:28 AM	Payment	ORD-20260807-0012	CARD	Rs 835.20	Rs 835.20	Open
+8/7/2026, 6:39:27 AM	Payment	ORD-20260807-0011	CASH	Rs 92.80	Rs 92.80	Open
+8/7/2026, 6:39:27 AM	Payment	ORD-20260807-0010	CASH	Rs 1,635.60	Rs 1,635.60	Open
+8/7/2026, 6:39:27 AM	Payment	ORD-20260807-0009	CARD	Rs 1,682.00	Rs 1,682.00	Open
+8/7/2026, 6:39:27 AM	Payment	ORD-20260807-0008	CASH	Rs 3,886.00	Rs 3,886.00	Open
+8/7/2026, 6:39:27 AM	Payment	ORD-20260807-0007	CASH	Rs 290.00	Rs 290.00	Open
+8/7/2026, 6:39:27 AM	Payment	ORD-20260807-0006	CARD	Rs 835.20	Rs 835.20	Open
+8/7/2026, 6:39:27 AM	Payment	ORD-20260807-0005	CASH	Rs 92.80	Rs 92.80	Open
+8/7/2026, 6:39:27 AM	Payment	ORD-20260807-0004	CASH	Rs 1,635.60	Rs 1,635.60	Open
+8/7/2026, 6:39:27 AM	Payment	ORD-20260807-0003	CARD	Rs 1,682.00	Rs 1,682.00	Open
+8/7/2026, 6:39:26 AM	Payment	ORD-20260807-0002	CASH	Rs 3,886.00	Rs 3,886.00	Open
+8/7/2026, 6:39:26 AM	Payment	ORD-20260807-0001	CASH	Rs 290.00	Rs 290.00	Open
+
+
+========== /app/finance/accounts [ok] attempt=1 finalUrl=http://localhost:3000/app/finance/accounts
+--- api failures: none
+--- alerts: [""]
+--- shot: /Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/diagnosis/finance-accounting/accountant_app_finance_accounts.png
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+FINANCE
+
+Guide
+Takings
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+
+PURCHASING
+
+Purchasing
+
+PEOPLE
+
+Customers
+
+REPORTING
+
+Reports
+Realtime Dashboard
+Ask (NLQ)
+Collapse
+App
+Finance
+Accounts
+Floating Terrace HQ
+Search…
+⌘K
+9
+Takings
+Transactions
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+House Accounts
+AR Aging
+Guide
+Chart of Accounts
+
+Pakistan Restaurant Standard COA · 72 accounts
+
+Filter by type
+All Types
+Asset
+Liability
+Equity
+Revenue
+Expense
+Code	Name	Type	Status	Tag
+2100	Accounts Payable	LIABILITY	Active	AP
+2110	Payable - Food Suppliers	LIABILITY	Active	—
+2120	Payable - Utilities	LIABILITY	Active	—
+2200	Output Tax (Sales Tax Payable)	LIABILITY	Active	OUTPUT_TAX
+2300	Wages Payable	LIABILITY	Active	WAGES_PAYABLE
+2310	Income Tax Withheld Payable	LIABILITY	Active	PAYE_PAYABLE
+2320	EOBI Payable	LIABILITY	Active	EOBI_PAYABLE
+2400	Accrued Liabilities	LIABILITY	Active	—
+2410	Loyalty Points Liability	LIABILITY	Active	LOYALTY_LIABILITY
+2420	Customer Vouchers Outstanding	LIABILITY	Active	VOUCHER_LIABILITY
+2500	Loans Payable	LIABILITY	Active	—
+2600	Customer Advances	LIABILITY	Active	—
+3000	Equity	EQUITY	Active	—
+3100	Owner's Capital	EQUITY	Active	—
+3200	Retained Earnings	EQUITY	Active	—
+3900	Current Year Earnings	EQUITY	Active	—
+4000	Revenue	REVENUE	Active	—
+4100	Food Sales	REVENUE	Active	REVENUE
+4200	Beverage Sales	REVENUE	Active	—
+4300	Delivery Sales	REVENUE	Active	—
+4400	Catering Revenue	REVENUE	Active	—
+4900	Other Revenue	REVENUE	Active	—
+4910	Service Charges	REVENUE	Active	SERVICE_CHARGE
+4920	Discounts Given	REVENUE	Active	DISCOUNT
+4930	Sales Refunds	REVENUE	Active	SALES_REFUND
+5000	Cost of Goods Sold	COGS	Active	—
+5100	Food Cost	COGS	Active	COGS
+1000	Assets	ASSET	Active	—
+1010	Cash in Hand	ASSET	Active	CASH
+1020	Petty Cash	ASSET	Active	PETTY_CASH
+1100	Bank Accounts	ASSET	Active	—
+1110	Bank - Main Account	ASSET	Active	BANK
+1120	Bank - Payroll Account	ASSET	Active	—
+1200	Accounts Receivable	ASSET	Active	AR
+1210	Receivable - Dine-In	ASSET	Active	—
+1220	Receivable - Delivery	ASSET	Active	—
+1300	Inventory	ASSET	Active	INVENTORY
+1310	Raw Materials	ASSET	Active	INVENTORY_RAW
+1320	Goods in Transit	ASSET	Active	INVENTORY_TRANSIT
+1330	Packaging Materials	ASSET	Active	—
+1400	Prepaid Expenses	ASSET	Active	—
+1410	Prepaid Rent	ASSET	Active	—
+1420	Prepaid Insurance	ASSET	Active	—
+1500	Fixed Assets	ASSET	Active	—
+1510	Kitchen Equipment	ASSET	Active	—
+1520	Furniture & Fixtures	ASSET	Active	—
+1530	Leasehold Improvements	ASSET	Active	—
+1600	Accumulated Depreciation	ASSET	Active	—
+1700	GR/IR Clearing	ASSET	Active	GR_IR
+1710	Input Tax (Sales Tax Receivable)	ASSET	Active	INPUT_TAX
+
+
+========== /app/finance/journal-entries [ok] attempt=1 finalUrl=http://localhost:3000/app/finance/journal-entries
+--- api failures: none
+--- alerts: [""]
+--- shot: /Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/diagnosis/finance-accounting/accountant_app_finance_journal-entries.png
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+FINANCE
+
+Guide
+Takings
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+
+PURCHASING
+
+Purchasing
+
+PEOPLE
+
+Customers
+
+REPORTING
+
+Reports
+Realtime Dashboard
+Ask (NLQ)
+Collapse
+App
+Finance
+Journal Entries
+Floating Terrace HQ
+Search…
+⌘K
+9
+Takings
+Transactions
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+House Accounts
+AR Aging
+Guide
+Journal Entries
+
+Tab to navigate rows, Enter to open
+
+New Entry
+Entry No	Date	Description	Status	Debit	Credit
+JE-2027-000001	2026-08-06	Order revenue 5e98e671-908c-4829-b2d0-4e6865c4c3b7	POSTED	Rs 290.00	Rs 290.00
+JE-2027-000002	2026-08-06	Order revenue b64e3cdd-6e00-4d45-88d6-7e8afdaff0fb	POSTED	Rs 3,886.00	Rs 3,886.00
+JE-2027-000003	2026-08-06	Order revenue 7689d9c7-7152-42d4-826e-be025ded14c6	POSTED	Rs 1,682.00	Rs 1,682.00
+JE-2027-000004	2026-08-06	Order revenue 23182fc4-81dc-4440-9316-841daa104b88	POSTED	Rs 1,635.60	Rs 1,635.60
+JE-2027-000005	2026-08-06	Order revenue bcfa87e4-2521-492d-b025-2af643e07d42	POSTED	Rs 92.80	Rs 92.80
+JE-2027-000006	2026-08-06	Order revenue d7246747-2340-4f3d-85ac-3a72f83bff09	POSTED	Rs 835.20	Rs 835.20
+JE-2027-000007	2026-08-06	Order revenue af8ed5f0-aa8e-42b2-9102-59ef3c91b5ae	POSTED	Rs 290.00	Rs 290.00
+JE-2027-000008	2026-08-06	Order revenue 18ac9b46-97b8-4a9e-a945-7e5776235c3c	POSTED	Rs 3,886.00	Rs 3,886.00
+JE-2027-000009	2026-08-06	Order revenue a48a843a-c32c-4af5-b9f4-f7b43f1200e2	POSTED	Rs 1,682.00	Rs 1,682.00
+JE-2027-000010	2026-08-06	Order revenue ab560222-3adc-41a1-ad87-bac969068f3e	POSTED	Rs 1,635.60	Rs 1,635.60
+JE-2027-000011	2026-08-06	Order revenue af9d8e48-263a-4eda-b4b3-e0c59ab553a2	POSTED	Rs 92.80	Rs 92.80
+JE-2027-000012	2026-08-06	Order revenue 5d2cc805-5f8d-4b32-98db-4cc926cfc487	POSTED	Rs 835.20	Rs 835.20
+JE-2027-000013	2026-08-06	Order revenue da1b759e-f8f9-4ca2-8c5c-1286a80a5505	POSTED	Rs 290.00	Rs 290.00
+JE-2027-000014	2026-08-06	Order revenue 95fdc901-fd26-48e6-8ffa-3fa8e7f1ad72	POSTED	Rs 3,886.00	Rs 3,886.00
+JE-2027-000015	2026-08-06	Order revenue d3abdd68-1fc0-4248-8537-bee9bf06f52c	POSTED	Rs 1,682.00	Rs 1,682.00
+JE-2027-000016	2026-08-06	Order revenue 3d0ebd11-8e33-4e62-af51-1ffa3aefc2ca	POSTED	Rs 1,635.60	Rs 1,635.60
+JE-2027-000017	2026-08-06	Order revenue 8c6fb649-a965-4074-81b2-dd79d0cf3085	POSTED	Rs 92.80	Rs 92.80
+JE-2027-000018	2026-08-06	Order revenue b576ff5a-074a-4854-ae88-e110709bf401	POSTED	Rs 835.20	Rs 835.20
+JE-2027-000043	2026-08-11	Stock receipt 85b0ea6b-4a03-4fbd-b0b3-dad4c3d6e3ec	POSTED	Rs 125,000.00	Rs 125,000.00
+JE-2027-000019	2026-08-06	Order revenue 336c318e-f8d1-45de-9970-cc3a5a9a6b4c	POSTED	Rs 290.00	Rs 290.00
+JE-2027-000020	2026-08-06	Order revenue ea79a68d-8c51-43b1-9bf5-f8c2a1a21c70	POSTED	Rs 3,886.00	Rs 3,886.00
+JE-2027-000021	2026-08-06	Order revenue aaa82124-57ae-4686-9c88-d52ab4bca06e	POSTED	Rs 1,682.00	Rs 1,682.00
+JE-2027-000022	2026-08-06	Order revenue acb32492-38f5-4afe-9658-8894dfabc601	POSTED	Rs 1,635.60	Rs 1,635.60
+JE-2027-000023	2026-08-06	Order revenue 7de103ae-0b38-40d7-8bf1-558438255911	POSTED	Rs 92.80	Rs 92.80
+JE-2027-000024	2026-08-06	Order revenue bb10498e-2de0-4158-8e96-a2e866f1214a	POSTED	Rs 835.20	Rs 835.20
+JE-2027-000025	2026-08-06	Order revenue 42a03578-2af8-44ad-aa6a-85a57438d06c	POSTED	Rs 3,364.00	Rs 3,364.00
+JE-2027-000027	2026-08-06	Order revenue c3eb84b6-c023-488e-93be-5086610d1b4f	POSTED	Rs 1,682.00	Rs 1,682.00
+JE-2027-000028	2026-08-08	Order revenue cb4cc840-0496-49c3-95c6-d043e8651dcf	POSTED	Rs 1,497.00	Rs 1,497.00
+JE-2027-000029	2026-08-08	Order revenue ca744465-506c-47cb-b28b-13e3ae472b1a	POSTED	Rs 4,350.00	Rs 4,350.00
+JE-2027-000030	2026-08-08	Order revenue b552803a-2edf-4ea1-99fe-a804859f0f88	POSTED	Rs 1,996.00	Rs 1,996.00
+JE-2027-000031	2026-08-08	Order revenue 70d99cac-4e1b-4e00-b96a-90ae43e55331	POSTED	Rs 185.60	Rs 185.60
+JE-2027-000032	2026-08-08	Order revenue cc69fb6e-9fa9-41fc-872d-aa0b33273309	POSTED	Rs 2,486.00	Rs 2,486.00
+JE-2027-000033	2026-08-08	Order refund cc69fb6e-9fa9-41fc-872d-aa0b33273309	POSTED	Rs 2,486.00	Rs 2,486.00
+JE-2027-000034	2026-08-08	Stock receipt c65a26ed-9c79-4753-8f6f-03c19029f5b1	POSTED	Rs 5,000.00	Rs 5,000.00
+JE-2027-000035	2026-08-08	Stock receipt 03629ddc-7e84-4383-bb6a-3448b29692fd	POSTED	Rs 90,000.00	Rs 90,000.00
+JE-2027-000036	2026-08-11	Stock receipt d8bda5bc-89d3-4baa-b6a7-e0ec29a13eb0	POSTED	Rs 25,000.00	Rs 25,000.00
+JE-2027-000037	2026-08-11	Vendor invoice PH22-1786452575	POSTED	Rs 29,250.00	Rs 29,250.00
+JE-2027-000038	2026-08-11	AP payment a9ef2cd8-6c0f-4821-940f-834c27c2e801	POSTED	Rs 29,250.00	Rs 29,250.00
+JE-2027-000039	2026-08-11	Order revenue fffecf0a-edc8-4304-b6cb-90eafd828e2e	POSTED	Rs 3,364.00	Rs 3,364.00
+JE-2027-000040	2026-08-11	Order COGS fffecf0a-edc8-4304-b6cb-90eafd828e2e	POSTED	Rs 125,000.00	Rs 125,000.00
+JE-2027-000044	2026-08-11	Order revenue 0dc09465-9999-4476-b901-1205cc6b89dd	POSTED	Rs 3,364.00	Rs 3,364.00
+JE-2027-000045	2026-08-11	Order COGS 0dc09465-9999-4476-b901-1205cc6b89dd	POSTED	Rs 125.00	Rs 125.00
+JE-2027-000057	2026-08-11	Stock receipt 3d23f513-6570-4289-afcc-e9ada2e698d3	POSTED	Rs 7,000.00	Rs 7,000.00
+JE-2027-000058	2026-08-11	Stock receipt ef545240-5e8a-49bb-a2af-286e8c60e9ac	POSTED	Rs 208.00	Rs 208.00
+JE-2027-000060	2026-08-11	Stock receipt 45e41a33-ab9d-4a0a-a873-c5f1420872ee	POSTED	Rs 12,400.00	Rs 12,400.00
+JE-2027-000061	2026-08-11	Stock receipt f585b29d-8f81-4676-bf62-cdeb82c40099	POSTED	Rs 37,500.00	Rs 37,500.00
+JE-2027-000062	2026-08-11	Vendor invoice INV-p36-1786468766	POSTED	Rs 12,400.00	Rs 12,400.00
+JE-2027-000063	2026-08-11	AP payment 06457cc4-cc20-439c-9b7f-08f7e4a6826b	POSTED	Rs 12,400.00	Rs 12,400.00
+JE-2027-000064	2026-08-11	Stock receipt 1c07538f-9d7d-47fa-8cde-b1fc12db48e6	POSTED	Rs 12,400.00	Rs 12,400.00
+JE-2027-000065	2026-08-11	Stock receipt 0962d397-0576-4fc4-b30c-183edd237c1c	POSTED	Rs 37,500.00	Rs 37,500.00
+
+
+========== /app/finance/journal-entries/new [ok] attempt=1 finalUrl=http://localhost:3000/app/finance/journal-entries/new
+--- api failures: none
+--- alerts: [""]
+--- shot: /Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/diagnosis/finance-accounting/accountant_app_finance_journal-entries_new.png
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+FINANCE
+
+Guide
+Takings
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+
+PURCHASING
+
+Purchasing
+
+PEOPLE
+
+Customers
+
+REPORTING
+
+Reports
+Realtime Dashboard
+Ask (NLQ)
+Collapse
+Finance
+Journal Entries
+New
+Floating Terrace HQ
+Search…
+⌘K
+9
+Takings
+Transactions
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+House Accounts
+AR Aging
+Guide
+New Journal Entry
+
+Debits must equal credits before saving.
+
+Entry Date (open periods only)
+August 2026
+Su
+Mo
+Tu
+We
+Th
+Fr
+Sa
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+
+Selected: 2025-08-01
+
+Description
+Account
+Description
+Debit (paisa)
+Credit (paisa)
+×
+×
++ Add line
+Total DR: 0
+Total CR: 0
+Not balanced
+Save as Draft
+Cancel
+
+
+========== /app/finance/gl [ok] attempt=1 finalUrl=http://localhost:3000/app/finance/gl
+--- api failures: none
+--- alerts: [""]
+--- shot: /Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/diagnosis/finance-accounting/accountant_app_finance_gl.png
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+FINANCE
+
+Guide
+Takings
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+
+PURCHASING
+
+Purchasing
+
+PEOPLE
+
+Customers
+
+REPORTING
+
+Reports
+Realtime Dashboard
+Ask (NLQ)
+Collapse
+App
+Finance
+General Ledger
+Floating Terrace HQ
+Search…
+⌘K
+9
+Takings
+Transactions
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+House Accounts
+AR Aging
+Guide
+General Ledger
+
+Account balances by period. Click a row to drill into transactions.
+
+Period
+P1: 2026-07-01 – 2026-07-31 (OPEN)
+P2: 2026-08-01 – 2026-08-31 (OPEN)
+P3: 2026-09-01 – 2026-09-30 (OPEN)
+P4: 2026-10-01 – 2026-10-31 (OPEN)
+P5: 2026-11-01 – 2026-11-30 (OPEN)
+P6: 2026-12-01 – 2026-12-31 (OPEN)
+P7: 2027-01-01 – 2027-01-31 (OPEN)
+P8: 2027-02-01 – 2027-02-28 (OPEN)
+P9: 2027-03-01 – 2027-03-31 (OPEN)
+P10: 2027-04-01 – 2027-04-30 (OPEN)
+P11: 2027-05-01 – 2027-05-31 (OPEN)
+P12: 2027-06-01 – 2027-06-30 (OPEN)
+Code	Account Name	Debit Total	Credit Total	Net Balance
+1700	GR/IR Clearing	Rs 195,000.00	Rs 0.00	Rs 195,000.00
+1710	Input Tax (Sales Tax Receivable)	Rs 495.00	Rs 0.00	Rs 495.00
+2100	Accounts Payable	Rs 100.00	Rs 195,495.00	Rs 195,395.00 Cr
+2120	Payable - Utilities	Rs 0.00	Rs 100.00	Rs 100.00 Cr
+
+
+========== /app/finance/periods [ok] attempt=1 finalUrl=http://localhost:3000/app/finance/periods
+--- api failures: none
+--- alerts: [""]
+--- shot: /Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/diagnosis/finance-accounting/accountant_app_finance_periods.png
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+FINANCE
+
+Guide
+Takings
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+
+PURCHASING
+
+Purchasing
+
+PEOPLE
+
+Customers
+
+REPORTING
+
+Reports
+Realtime Dashboard
+Ask (NLQ)
+Collapse
+App
+Finance
+Periods
+Floating Terrace HQ
+Search…
+⌘K
+9
+Takings
+Transactions
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+House Accounts
+AR Aging
+Guide
+Accounting Periods
+
+FY 2026–2027 (Jul – Jun)
+
+FY 2026–2027 (Jul – Jun)
+Provision Periods
+Period	Start Date	End Date	Status	Locked By	
+Period 1	2026-07-01	2026-07-31	OPEN	—	Close Period
+Period 2	2026-08-01	2026-08-31	OPEN	—	Close Period
+Period 3	2026-09-01	2026-09-30	OPEN	—	Close Period
+Period 4	2026-10-01	2026-10-31	OPEN	—	Close Period
+Period 5	2026-11-01	2026-11-30	OPEN	—	Close Period
+Period 6	2026-12-01	2026-12-31	OPEN	—	Close Period
+Period 7	2027-01-01	2027-01-31	OPEN	—	Close Period
+Period 8	2027-02-01	2027-02-28	OPEN	—	Close Period
+Period 9	2027-03-01	2027-03-31	OPEN	—	Close Period
+Period 10	2027-04-01	2027-04-30	OPEN	—	Close Period
+Period 11	2027-05-01	2027-05-31	OPEN	—	Close Period
+Period 12	2027-06-01	2027-06-30	OPEN	—	Close Period
+
+
+========== /app/finance/expenses [ok] attempt=1 finalUrl=http://localhost:3000/app/finance/expenses
+--- api failures: none
+--- alerts: [""]
+--- shot: /Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/diagnosis/finance-accounting/accountant_app_finance_expenses.png
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+FINANCE
+
+Guide
+Takings
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+
+PURCHASING
+
+Purchasing
+
+PEOPLE
+
+Customers
+
+REPORTING
+
+Reports
+Realtime Dashboard
+Ask (NLQ)
+Collapse
+App
+Finance
+Expenses
+Floating Terrace HQ
+Search…
+⌘K
+9
+Takings
+Transactions
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+House Accounts
+AR Aging
+Guide
+Expenses
+
+Create, approve and reject expenses. Approvals respect your OPA approval limit.
+
+Pending approval
+Approved
+Rejected
+All statuses
+New expense
+
+No expenses
+
+Use "New expense" to submit the first expense for approval.
+
+
+========== /app/finance/ap-aging [ok] attempt=1 finalUrl=http://localhost:3000/app/finance/ap-aging
+--- api failures: none
+--- alerts: [""]
+--- shot: /Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/diagnosis/finance-accounting/accountant_app_finance_ap-aging.png
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+FINANCE
+
+Guide
+Takings
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+
+PURCHASING
+
+Purchasing
+
+PEOPLE
+
+Customers
+
+REPORTING
+
+Reports
+Realtime Dashboard
+Ask (NLQ)
+Collapse
+App
+Finance
+AP Aging
+Floating Terrace HQ
+Search…
+⌘K
+9
+Takings
+Transactions
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+House Accounts
+AR Aging
+Guide
+AP Aging
+
+Outstanding payables bucketed by how overdue they are.
+
+Bucket	Days	Amount
+Current	0-30 days	Rs 665,595.00
+31-60 days	31-60 days	Rs 0.00
+61-90 days	61-90 days	Rs 0.00
+Over 90 days	91+ days	Rs 0.00
+Total payables	Rs 665,595.00
+
+
+========== /app/finance/house-accounts [ok] attempt=1 finalUrl=http://localhost:3000/app/finance/house-accounts
+--- api failures: none
+--- alerts: [""]
+--- shot: /Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/diagnosis/finance-accounting/accountant_app_finance_house-accounts.png
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+FINANCE
+
+Guide
+Takings
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+
+PURCHASING
+
+Purchasing
+
+PEOPLE
+
+Customers
+
+REPORTING
+
+Reports
+Realtime Dashboard
+Ask (NLQ)
+Collapse
+App
+Finance
+House Accounts
+Floating Terrace HQ
+Search…
+⌘K
+9
+Takings
+Transactions
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+House Accounts
+AR Aging
+Guide
+House Accounts
+
+Corporate clients and regulars billed on account — catering invoices, phone orders, month-end billing, settled later.
+
+New house account
+
+No house accounts yet
+
+Create one to bill a corporate client on account.
+
+
+========== /app/finance/ar-aging [ok] attempt=1 finalUrl=http://localhost:3000/app/finance/ar-aging
+--- api failures: none
+--- alerts: [""]
+--- shot: /Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/diagnosis/finance-accounting/accountant_app_finance_ar-aging.png
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+FINANCE
+
+Guide
+Takings
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+
+PURCHASING
+
+Purchasing
+
+PEOPLE
+
+Customers
+
+REPORTING
+
+Reports
+Realtime Dashboard
+Ask (NLQ)
+Collapse
+App
+Finance
+AR Aging
+Floating Terrace HQ
+Search…
+⌘K
+9
+Takings
+Transactions
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+House Accounts
+AR Aging
+Guide
+AR Aging
+
+Outstanding house-account charges bucketed by how overdue they are.
+
+No outstanding receivables
+
+AR aging buckets will appear here once a house account is charged.
+
+
+========== /app/finance/guide [ok] attempt=1 finalUrl=http://localhost:3000/app/finance/guide
+--- api failures: none
+--- alerts: [""]
+--- shot: /Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/diagnosis/finance-accounting/accountant_app_finance_guide.png
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+FINANCE
+
+Guide
+Takings
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+
+PURCHASING
+
+Purchasing
+
+PEOPLE
+
+Customers
+
+REPORTING
+
+Reports
+Realtime Dashboard
+Ask (NLQ)
+Collapse
+App
+Finance
+Guide
+Floating Terrace HQ
+Search…
+⌘K
+9
+Takings
+Transactions
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+House Accounts
+AR Aging
+Guide
+How Finance works
+
+Every tab in this module, explained for someone who runs a restaurant rather than someone who keeps books. Each section answers the same four questions, and the boxed rules are the ones that most often come as a surprise — why cash needs an open till and card does not, why a closed month refuses a back-dated entry, what a discount really does to your sales figure, and why a few actions ask for a code.
+
+Every boxed rule here is tied to a test in this codebase. If the product stopped behaving the way a rule describes, that test would fail before anyone read the wrong sentence.
+
+JUMP TO
+
+Takings
+Transactions
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+House Accounts
+AR Aging
+Guide
+Takings
+
+What you took today, and whether the drawers agree.
+
+WHAT IT IS
+The end-of-day picture of your money: what you sold, what you gave away, what the tax came to, what the bills actually added up to, how it was paid, and what each till counted at the end of the shift.
+WHEN YOU USE IT
+Every evening, when the last table has gone and the cashier is counting the drawer. It is the first screen Finance opens on, because it is the one question you ask every single day.
+WHAT A TYPICAL ENTRY LOOKS LIKE
+A Thursday: 26 bills, Rs 33,390 of food at menu price, Rs 5,342.40 of tax, Rs 38,732.40 taken in total — Rs 10,068.80 of it on card across 8 payments and Rs 28,663.60 in cash across 18. One till counted Rs 43,567 against an expected Rs 6,836.05, so it shows as Over by Rs 36,730.95, on that till and nowhere else. A second till was still open at the time, so it shows as still open rather than as an empty drawer.
+WHAT IT AFFECTS ELSEWHERE
+Nothing on this screen is typed in — every figure is the sum of orders that were closed in POS, so it changes when a bill is settled, refunded or voided. Each of those individual events is listed on Transactions, and the entries they wrote in your books are on Journal Entries and General Ledger. If a figure here looks wrong, Transactions is where you go to find out which bill caused it.
+RULES WORTH KNOWING BEFORE YOU HIT THEM
+
+Where the takings screen cannot work a figure out, it tells you why instead of showing you a zero.
+
+A zero on a cash-up screen is a statement: it says the drawer matched, or that nothing was given away today. If the system does not actually know, printing a zero is not a blank — it is a lie you will act on. So a figure the system cannot compute shows the reason in the place the number would have been. Comps are the standing example: a fully comped bill is recorded in the same column as a discount, so the two genuinely cannot be told apart, and the screen says exactly that rather than guessing a split.
+
+Checked by 2 tests in this codebase. If the product stopped behaving this way, they would fail.
+
+Each till is shown on its own, and a shortfall on one is never cancelled out by an overage on another.
+
+If one drawer is Rs 900 short and another is Rs 900 over, that is two things to look into, not nothing. Added together they would come to zero and you would never hear about either. So the cash-up screen lists every till separately with its own expected amount, counted amount and difference, and there is no combined figure anywhere on it to hide behind.
+
+Checked by 2 tests in this codebase. If the product stopped behaving this way, they would fail.
+
+A till still open and a till closed without anyone counting the drawer are shown as two different things.
+
+Both leave the difference blank, and they mean opposite things. A till still open is a shift in progress and there is nothing to reconcile yet — a normal Tuesday evening. A till closed with no count means the shift ended and nobody counted the money, so nobody knows whether it matched. Showing both as the same dash would make the second one invisible, which is precisely the situation you would want to be told about.
+
+Checked by 2 tests in this codebase. If the product stopped behaving this way, they would fail.
+
+Settling in cash needs an open till; settling by card does not.
+
+Cash physically enters a drawer, so the system insists on knowing which drawer — that is what makes an end-of-shift count meaningful. A card payment never touches a drawer, so it needs no till. If a cashier tries to settle a bill in cash before opening a till, the payment is refused with NO_OPEN_TILL and nothing at all is recorded against the order; open the till and the same settlement goes through. Waiting staff are a separate matter — they are not permitted to take payments at all, so they are turned away earlier and for a different reason. Handing the bill to a cashier is the designed table-service flow, not a fault.
+
+Checked by 2 tests in this codebase. If the product stopped behaving this way, they would fail.
+
+A discount lowers what the customer pays, not what your books call sales: the full menu price is still credited to sales, and the discount is recorded separately against it.
+
+If a Rs 800 dish goes out at Rs 680, the books credit the whole Rs 800 to Food Sales (4100) and put the Rs 120 on Discounts Given (4920), which sits against sales rather than inside it. You can therefore answer 'what did we give away this month?' — a question a netted figure cannot answer at all, because the discount has already vanished into a smaller sales number. It also keeps the entry balanced: netting sales AND recording the discount would count the same Rs 120 twice.
+
+Checked by 2 tests in this codebase. If the product stopped behaving this way, they would fail.
+
+Transactions
+
+Every payment, refund and void — and wh
+
+
+========== /app/pos/tills [DENIED] attempt=1 finalUrl=http://localhost:3000/app/pos/tills
+--- api failures: 429 GET http://localhost:8080/api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+--- alerts: [""]
+--- shot: /Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/diagnosis/finance-accounting/accountant_app_pos_tills.png
+RestaurantOS
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+FINANCE
+
+Guide
+Takings
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+
+PURCHASING
+
+Purchasing
+
+PEOPLE
+
+Customers
+
+REPORTING
+
+Reports
+Realtime Dashboard
+Ask (NLQ)
+Collapse
+App
+POS
+Tills
+Floating Terrace HQ
+Search…
+⌘K
+9
+You do not have permission to review tills.
+
+
+========== /app/reports [ok] attempt=1 finalUrl=http://localhost:3000/login?reason=session_expired
+--- api failures: 429 POST http://localhost:8080/api/v1/auth/refresh
+--- alerts: [""]
+--- shot: /Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/diagnosis/finance-accounting/accountant_app_reports.png
+Sign in to RestaurantOS
+
+Enter your email and password to continue
+
+Your session expired. Please sign in again.
+
+Email
+Password
+Use a restaurant identifier instead
+Sign in

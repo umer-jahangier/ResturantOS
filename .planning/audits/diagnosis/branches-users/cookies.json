@@ -1,0 +1,22 @@
+[
+  {
+    "name": "refresh_token",
+    "value": "G4LL-ZmrxicyaK14n-61ugMVbWD7pglpkj7PsDgh1nw",
+    "domain": "localhost",
+    "path": "/api/v1/auth",
+    "expires": 1787090444.271549,
+    "httpOnly": true,
+    "secure": false,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "has_session",
+    "value": "1",
+    "domain": "localhost",
+    "path": "/",
+    "expires": 1789077644.27265,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Strict"
+  }
+]

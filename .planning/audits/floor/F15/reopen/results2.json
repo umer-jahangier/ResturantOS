@@ -1,0 +1,72 @@
+[
+  {
+    "n": "real code sales-by-order-type",
+    "p": true,
+    "d": "h1=[\"Sales by Order Type\"] dateInputs=2 headers=3 rows=2 alerts=[] runPosts=[200]"
+  },
+  {
+    "n": "real code discount-summary",
+    "p": true,
+    "d": "h1=[\"Discount Summary\"] dateInputs=2 headers=10 rows=4 alerts=[] runPosts=[200]"
+  },
+  {
+    "n": "real code till-sessions",
+    "p": true,
+    "d": "h1=[\"Till Sessions\"] dateInputs=2 headers=7 rows=5 alerts=[] runPosts=[200]"
+  },
+  {
+    "n": "real code purchases-by-po",
+    "p": true,
+    "d": "h1=[\"Purchases by Purchase Order\"] dateInputs=2 headers=5 rows=25 alerts=[] runPosts=[200]"
+  },
+  {
+    "n": "uppercase real code honest",
+    "p": true,
+    "d": "notFound=true h1=[\"Report not found\"] dateInputs=0 alerts=[] runPosts=[]"
+  },
+  {
+    "n": "hostile segment: not-found, nothing injected",
+    "p": true,
+    "d": "notFound=true injected=false h1=[\"Report not found\"] scrollW=1440/1440"
+  },
+  {
+    "n": "near-miss \"sales-by-day2\"",
+    "p": true,
+    "d": "notFound=true dateInputs=0 runPosts=[] h1=[\"Report not found\"]"
+  },
+  {
+    "n": "near-miss \"sales_by_day\"",
+    "p": true,
+    "d": "notFound=true dateInputs=0 runPosts=[] h1=[\"Report not found\"]"
+  },
+  {
+    "n": "near-miss \"salesbyday\"",
+    "p": true,
+    "d": "notFound=true dateInputs=0 runPosts=[] h1=[\"Report not found\"]"
+  },
+  {
+    "n": "near-miss \"%20\"",
+    "p": true,
+    "d": "notFound=true dateInputs=0 runPosts=[] h1=[\"Report not found\"]"
+  },
+  {
+    "n": "near-miss \"..\"",
+    "p": false,
+    "d": "notFound=false dateInputs=0 runPosts=[] h1=[\"This page doesn't exist\"]"
+  },
+  {
+    "n": "near-miss \"null\"",
+    "p": true,
+    "d": "notFound=true dateInputs=0 runPosts=[] h1=[\"Report not found\"]"
+  },
+  {
+    "n": "near-miss \"undefined\"",
+    "p": true,
+    "d": "notFound=true dateInputs=0 runPosts=[] h1=[\"Report not found\"]"
+  },
+  {
+    "n": "sales-by-day still runs at the end",
+    "p": true,
+    "d": "h1=[\"Sales by Day\"] rows=3 headers=[\"Business Date\",\"Order Count\",\"Subtotal Paisa\",\"Discount Paisa\",\"Tax Paisa\",\"Total Paisa\"] runPosts=[200]"
+  }
+]

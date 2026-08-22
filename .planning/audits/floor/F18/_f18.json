@@ -1,0 +1,61 @@
+{
+  "orderNo": "ORD-20260812-0266",
+  "orderId": "664e5140-8a28-44f4-b269-288ba2c60afb",
+  "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+  "tickets": [
+    {
+      "id": "dfa4c857-ae4d-4755-a13e-4472d10df3d6",
+      "orderId": "664e5140-8a28-44f4-b269-288ba2c60afb",
+      "orderNo": "ORD-20260812-0266",
+      "orderNotes": null,
+      "tableNumber": null,
+      "orderType": "DINE_IN",
+      "stationCode": "PANTRY1",
+      "status": "PENDING",
+      "priority": false,
+      "receivedAt": "2026-08-12T05:40:39.021572Z",
+      "startedAt": null,
+      "readyAt": null,
+      "items": [
+        {
+          "id": "e2aa8ef7-dfd0-4e99-a075-5e9b162052d6",
+          "orderItemId": "1f9d4605-3b3e-4380-bd6b-f7e9fd3cd74c",
+          "name": "Audit Item 52235",
+          "qty": 1,
+          "modifiers": [],
+          "notes": null,
+          "status": "PENDING",
+          "revisionNo": 1,
+          "firedAt": "2026-08-12T05:40:39.021576Z"
+        }
+      ]
+    },
+    {
+      "id": "2b653355-3f6f-4b95-8aae-779d892c2d34",
+      "orderId": "664e5140-8a28-44f4-b269-288ba2c60afb",
+      "orderNo": "ORD-20260812-0266",
+      "orderNotes": null,
+      "tableNumber": null,
+      "orderType": "DINE_IN",
+      "stationCode": "GRILL",
+      "status": "PENDING",
+      "priority": false,
+      "receivedAt": "2026-08-12T05:40:39.030901Z",
+      "startedAt": null,
+      "readyAt": null,
+      "items": [
+        {
+          "id": "e94fa832-1e99-4790-aec9-173658d252fd",
+          "orderItemId": "cf37d841-439f-483a-8a64-759d19ce57f2",
+          "name": "Butter Naan",
+          "qty": 1,
+          "modifiers": [],
+          "notes": null,
+          "status": "PENDING",
+          "revisionNo": 1,
+          "firedAt": "2026-08-12T05:40:39.030905Z"
+        }
+      ]
+    }
+  ]
+}

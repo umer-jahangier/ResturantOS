@@ -1,0 +1,142 @@
+[
+  {
+    "k": "login-form",
+    "v": {
+      "inputs": [
+        {
+          "name": "email",
+          "type": "email",
+          "ph": "you@example.com"
+        },
+        {
+          "name": "password",
+          "type": "password",
+          "ph": "••••••••"
+        }
+      ],
+      "buttons": [
+        "Use a restaurant identifier instead",
+        "Sign in"
+      ]
+    }
+  },
+  {
+    "k": "login-response",
+    "v": {
+      "s": 200,
+      "req": "{\"email\":\"superadmin@softxlogic.com\",\"password\":\"Test@123!\"}",
+      "b": "{\"data\":{\"accessToken\":\"eyJraWQiOiJkZXYta2V5LTEiLCJhbGciOiJSUzI1NiJ9.eyJqdGkiOiJkZWU2OTZiMy1lMDg2LTQzMzItODU4Mi1lZTQwOTI4ODlmMWYiLCJzdWIiOiJlY2E2YmJmMi1jZTYyLTVkMTYtOGY0Yy1kMDUyNTIxZDE2YWQiLCJyb2xlcyI6WyJTVVBFUl9BRE1JTiJdLCJwZXJtaXNzaW9ucyI6WyJTVVBFU"
+    }
+  },
+  {
+    "k": "url",
+    "v": "http://localhost:3000/platform/dashboard"
+  },
+  {
+    "k": "post-login-body",
+    "v": "RestaurantOS PLATFORM Overview Tenants Sign out Platform Dashboard Every action taken here affects a whole restaurant group, not one branch. Tenants 14 Excluding purged Active 14 Suspended 0 Provisioning failed 0 By tier STARTER 3 GROWTH 9 ENTERPRISE 2 CUSTOM 0 Manage tenants →"
+  },
+  {
+    "k": "platform-route",
+    "v": {
+      "route": "dashboard",
+      "url": "http://localhost:3000/platform/dashboard",
+      "is404": false,
+      "denied": false,
+      "alerts": [],
+      "branchWord": [
+        "Every action taken here affects a whole restaurant group, not one branch."
+      ],
+      "rooftop": false,
+      "buttons": [
+        "RestaurantOS",
+        "Overview",
+        "Tenants",
+        "Sign out",
+        "Manage tenants →"
+      ]
+    }
+  },
+  {
+    "k": "platform-route",
+    "v": {
+      "route": "tenants",
+      "url": "http://localhost:3000/platform/tenants",
+      "is404": false,
+      "denied": false,
+      "alerts": [],
+      "branchWord": [
+        "Tenant\tStatus\tTier\tBranches\tUsers\tStorage\tCreated"
+      ],
+      "rooftop": false,
+      "buttons": [
+        "RestaurantOS",
+        "Overview",
+        "Tenants",
+        "Sign out",
+        "Create tenant",
+        "Lume",
+        "Saffron Grill",
+        "Zaitoon Kitchen",
+        "Marina Bay Dining",
+        "Floating Terrace",
+        "Gap Audit Bistro",
+        "Demo Restaurant",
+        "Diag Bistro 953661",
+        "GA008 Verify Bistro",
+        "GA008 Browser Bistro",
+        "GA008 Browser Two",
+        "Control Bistro (isolation test tenant)",
+        "Recheck Grill 689187",
+        "Lockout Cafe 027231",
+        "Show 7 purged tenants"
+      ]
+    }
+  },
+  {
+    "k": "platform-route",
+    "v": {
+      "route": "tenant-detail",
+      "url": "http://localhost:3000/platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8",
+      "is404": false,
+      "denied": false,
+      "alerts": [],
+      "branchWord": [
+        "Branch limit",
+        "Branches",
+        "2 / 50 branches"
+      ],
+      "rooftop": false,
+      "buttons": [
+        "RestaurantOS",
+        "Overview",
+        "Tenants",
+        "Sign out",
+        "All tenants",
+        "Suspend",
+        "Edit",
+        "Move to ENTERPRISE",
+        "Disable",
+        "Disable",
+        "Disable",
+        "Disable",
+        "Disable",
+        "Disable",
+        "Disable",
+        "Disable",
+        "Disable",
+        "Disable",
+        "Disable",
+        "Disable",
+        "Disable",
+        "Disable",
+        "Disable",
+        "Disable",
+        "Disable",
+        "Disable",
+        "Disable",
+        "Disable"
+      ]
+    }
+  }
+]

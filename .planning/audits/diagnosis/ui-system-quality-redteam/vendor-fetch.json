@@ -1,0 +1,37 @@
+{
+  "name": "RTFETCH772108",
+  "created": {
+    "data": {
+      "id": "ec9b9dd2-e32c-41d9-ab57-ac12081f7c47",
+      "name": "RTFETCH772108",
+      "contactPerson": null,
+      "phone": null,
+      "email": "x564@vendor.pk",
+      "address": null,
+      "paymentTerms": "NET30",
+      "ntn": null,
+      "strn": null,
+      "leadTimeDays": null,
+      "bankAccountLast4": null,
+      "notes": null,
+      "active": true
+    },
+    "meta": null,
+    "warnings": []
+  },
+  "listUrl": "http://localhost:8080/api/v1/purchasing/vendors",
+  "id": "ec9b9dd2-e32c-41d9-ab57-ac12081f7c47",
+  "byId": [
+    {
+      "u": "/api/v1/purchasing/vendors/ec9b9dd2-e32c-41d9-ab57-ac12081f7c47",
+      "status": 404,
+      "body": "<!DOCTYPE html><html lang=\"en\" class=\"geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variable h-full antialiased\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"stylesheet\" href=\"/_next/static/chunks/%5Broot-of-the-server%5D__0cbk-n2._.css\" data-precedence=\"next_static/chunks/[root-of-the-server]__0cbk-n2._."
+    },
+    {
+      "u": "http://localhost:8080/api/v1/purchasing/vendors/ec9b9dd2-e32c-41d9-ab57-ac12081f7c47",
+      "status": 401,
+      "body": "{\"error\":{\"code\":\"UNAUTHENTICATED\",\"message\":\"Authentication required\"}}"
+    }
+  ],
+  "listAgain": null
+}

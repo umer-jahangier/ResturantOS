@@ -1,0 +1,132 @@
+[
+  {
+    "name": "catalog lists reports",
+    "pass": true,
+    "detail": "8 links: /app/reports/fbr /app/reports/sales-by-day /app/reports/sales-by-item /app/reports/sales-by-hour /app/reports/sales-by-order-type /app/reports/discount-summary /app/reports/till-sessions /app/reports/purchases-by-po"
+  },
+  {
+    "name": "unknown code: not-found panel",
+    "pass": true,
+    "detail": "notFound=true h1=[\"Report not found\"]"
+  },
+  {
+    "name": "unknown code: no date form",
+    "pass": true,
+    "detail": "dateInputs=0"
+  },
+  {
+    "name": "unknown code: no doomed run POST",
+    "pass": true,
+    "detail": "[]"
+  },
+  {
+    "name": "unknown code: back link present",
+    "pass": true,
+    "detail": "backLink=true"
+  },
+  {
+    "name": "unknown code: h1 is not the slug",
+    "pass": true,
+    "detail": "[\"Report not found\"]"
+  },
+  {
+    "name": "unknown code PERSISTS across reload",
+    "pass": true,
+    "detail": "notFound=true dateInputs=0 h1=[\"Report not found\"]"
+  },
+  {
+    "name": "Back to all reports navigates",
+    "pass": true,
+    "detail": "http://localhost:3000/app/reports"
+  },
+  {
+    "name": "/app/reports/audit not-found",
+    "pass": true,
+    "detail": "notFound=true dateInputs=0"
+  },
+  {
+    "name": "real code fbr",
+    "pass": true,
+    "detail": "h1=[\"FBR Tax Summary\"] dateInputs=2 headers=0 rows=0 alerts=[] runPosts=[]"
+  },
+  {
+    "name": "real code sales-by-day",
+    "pass": true,
+    "detail": "h1=[\"Sales by Day\"] dateInputs=2 headers=6 rows=3 alerts=[] runPosts=[200]"
+  },
+  {
+    "name": "real code sales-by-item",
+    "pass": true,
+    "detail": "h1=[\"Sales by Item\"] dateInputs=2 headers=6 rows=13 alerts=[] runPosts=[200]"
+  },
+  {
+    "name": "real code sales-by-hour",
+    "pass": true,
+    "detail": "h1=[\"Sales by Hour (Peak Hours)\"] dateInputs=2 headers=3 rows=11 alerts=[] runPosts=[200]"
+  },
+  {
+    "name": "real code sales-by-order-type",
+    "pass": false,
+    "detail": "h1=[\"Sign in to RestaurantOS\"] dateInputs=0 headers=0 rows=0 alerts=[] runPosts=[]"
+  },
+  {
+    "name": "real code discount-summary",
+    "pass": false,
+    "detail": "h1=[\"Sign in to RestaurantOS\"] dateInputs=0 headers=0 rows=0 alerts=[] runPosts=[]"
+  },
+  {
+    "name": "real code till-sessions",
+    "pass": false,
+    "detail": "h1=[\"Sign in to RestaurantOS\"] dateInputs=0 headers=0 rows=0 alerts=[] runPosts=[]"
+  },
+  {
+    "name": "real code purchases-by-po",
+    "pass": false,
+    "detail": "h1=[\"Sign in to RestaurantOS\"] dateInputs=0 headers=0 rows=0 alerts=[] runPosts=[]"
+  },
+  {
+    "name": "uppercase real code handled honestly",
+    "pass": false,
+    "detail": "notFound=false h1=[\"Sign in to RestaurantOS\"] dateInputs=0 alerts=[] runPosts=[]"
+  },
+  {
+    "name": "hostile code does not inject markup",
+    "pass": false,
+    "detail": "img[onerror]=false notFound=false"
+  },
+  {
+    "name": "hostile code no overflow",
+    "pass": true,
+    "detail": "scrollW=1440 innerW=1440"
+  },
+  {
+    "name": "300-char code no horizontal overflow",
+    "pass": true,
+    "detail": "scrollW=1440 innerW=1440 notFound=false"
+  },
+  {
+    "name": "fbr sibling route renders something honest",
+    "pass": true,
+    "detail": "notFound=false h1=[\"Sign in to RestaurantOS\"] alerts=[] text=\"Sign in to RestaurantOS\\n\\nEnter your email and password to continue\\n\\nEmail\\nPassword\\nUse a restaurant identifier instead\\nSign in\""
+  },
+  {
+    "name": "CASHIER unknown code → access denied, not report-not-found",
+    "pass": true,
+    "detail": "accessDenied=true notFound=false h1=[\"Access denied\"] text=\"Floating Terrace\\n\\nOVERVIEW\\n\\nDashboard\\n\\nORDERS\\n\\nPOS\\n\\nMENU\\n\\nService Charge\\n\\nPEOPLE\\n\\nCustomers\\nCollapse\\nApp\\nReports\\nDefinitely Not A Report\\nFloating Terrace HQ\\nSearch…\\n⌘K\\nE\\nAccess denied\\n\\nYou do not have\""
+  },
+  {
+    "name": "CASHIER real report still denied",
+    "pass": true,
+    "detail": "accessDenied=true dateInputs=0 rows=0"
+  },
+  {
+    "name": "TENANT B unknown code honest",
+    "pass": true,
+    "detail": "notFound=true accessDenied=false h1=[\"Report not found\"]"
+  },
+  {
+    "name": "TENANT B real report shows only its own data",
+    "pass": true,
+    "detail": "h1=[\"Sales by Day\"] rows=0 accessDenied=false text=\"Control Bistro (isolation test tenant)\\n\\nOVERVIEW\\n\\nDashboard\\n\\nORDERS\\n\\nPOS\\nKitchen Display\\nTill Review\\n\\nMENU\\n\\nInventory\\nMenu Items\\nTables\\nStations\\nStation Routing\\nPOS Terminals\\nPrinters\\nService Charge\\n\\nFINANCE\\n\\nGuide\\nTakings\\n\\nPURCHASING\\n\\nPurchasing\\n\\nREPORTING\\n\\nReports\\nRealtime Dashboard\\nCollapse\\nApp\\nR\""
+  }
+]

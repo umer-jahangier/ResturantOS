@@ -1,0 +1,791 @@
+{
+  "rung": {
+    "dineInAtTable": {
+      "orderNo": "ORD-20260812-0298",
+      "tableName": "F2-7382"
+    },
+    "dineInNoTable": {
+      "orderNo": "ORD-20260812-0299",
+      "tableName": null
+    },
+    "takeaway": {
+      "orderNo": "ORD-20260812-0300",
+      "tableName": null
+    }
+  },
+  "verdicts": [
+    {
+      "name": "a FRESHLY RUNG dine-in AT A TABLE reads Dine-in and still shows its table",
+      "pass": true,
+      "detail": "\"ORD-20260812-0298 | Dine-in · F2-7382\" (picked table F2-7382)"
+    },
+    {
+      "name": "a freshly rung dine-in with NO table reads Dine-in, not Takeaway",
+      "pass": true,
+      "detail": "\"ORD-20260812-0299 | Dine-in\""
+    },
+    {
+      "name": "a real takeaway still reads Takeaway (positive control)",
+      "pass": true,
+      "detail": "\"ORD-20260812-0300 | Takeaway\""
+    },
+    {
+      "name": "Server/Cashier prints a name on every Active row, never an 8-char hex fragment",
+      "pass": true,
+      "detail": "20 rows, 0 hex; names: [\"Terrace Manager\",\"Terrace Cashier\"]"
+    },
+    {
+      "name": "the Items cell states one count, or two clearly distinct labels",
+      "pass": true,
+      "detail": "[\"3 items / 2 lines\",\"3 items / 2 lines\",\"3 items / 2 lines\"]"
+    },
+    {
+      "name": "the CLOSED chip (a separate server query) also prints names, never hex",
+      "pass": true,
+      "detail": "20 closed rows; names: [\"Terrace Cashier\",\"Shift Cashier 984155\",\"Terrace Manager\"]"
+    },
+    {
+      "name": "no CLOSED row offers Cancel or Continue",
+      "pass": true,
+      "detail": "[\"Open\"]"
+    },
+    {
+      "name": "a SEARCH result (third query path) carries the type and the cashier's name",
+      "pass": true,
+      "detail": "\"ORD-20260812-0300 | Takeaway\" cashier=\"Terrace Manager\""
+    },
+    {
+      "name": "the whole void reason reached the server unclipped",
+      "pass": true,
+      "detail": "244 chars asked, 244 stored"
+    },
+    {
+      "name": "the voided row still reads Dine-in (a void does not turn a check into a takeaway)",
+      "pass": true,
+      "detail": "\"ORD-20260812-0298 | Dine-in · F2-7382\""
+    },
+    {
+      "name": "the voided row offers neither Cancel nor Continue",
+      "pass": true,
+      "detail": "[\"Open\"]"
+    },
+    {
+      "name": "Server/Cashier prints the same string the Voided column prints for that actor",
+      "pass": true,
+      "detail": "Server/Cashier=\"Terrace Manager\"  settlement.byName=\"Terrace Manager\"  cashierName=\"Terrace Manager\""
+    },
+    {
+      "name": "the long reason opens IN FULL from the KEYBOARD (Enter), wrapped, not clipped",
+      "pass": true,
+      "detail": "popover carries all 244 chars=true, whiteSpace=normal, clipped=false"
+    },
+    {
+      "name": "the CASHIER persona also sees names, never hex, and a real type on every row",
+      "pass": true,
+      "detail": "20 rows as cashier; names: [\"Terrace Cashier\"]"
+    }
+  ],
+  "longReason": "F2 independent re-verification — the party of six disputed the cover charge, the duty manager agreed it had been applied twice by mistake, and since nothing had left the pass the whole check comes off rather than being part-refunded at the till",
+  "freshTable": "F2-7382",
+  "serverRows": [
+    {
+      "orderNo": "ORD-20260812-0298",
+      "type": "DINE_IN",
+      "tableName": "F2-7382",
+      "cashierId": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+      "cashierName": "Terrace Manager",
+      "itemQuantity": 3,
+      "distinctItemCount": 2
+    },
+    {
+      "orderNo": "ORD-20260812-0299",
+      "type": "DINE_IN",
+      "tableName": null,
+      "cashierId": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+      "cashierName": "Terrace Manager",
+      "itemQuantity": 3,
+      "distinctItemCount": 2
+    },
+    {
+      "orderNo": "ORD-20260812-0300",
+      "type": "TAKEAWAY",
+      "tableName": null,
+      "cashierId": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+      "cashierName": "Terrace Manager",
+      "itemQuantity": 3,
+      "distinctItemCount": 2
+    }
+  ],
+  "headers": [
+    "Order / Type",
+    "Status",
+    "Payment",
+    "Server/Cashier",
+    "Items",
+    "Total",
+    "Age",
+    ""
+  ],
+  "activeSeen": {
+    "ORD-20260812-0300": {
+      "orderCell": "ORD-20260812-0300 | Takeaway",
+      "cashier": "Terrace Manager",
+      "items": "3 items / 2 lines",
+      "actionButtons": [
+        "Assign Table",
+        "Open"
+      ]
+    },
+    "ORD-20260812-0299": {
+      "orderCell": "ORD-20260812-0299 | Dine-in",
+      "cashier": "Terrace Manager",
+      "items": "3 items / 2 lines",
+      "actionButtons": [
+        "Assign Table",
+        "Open"
+      ]
+    },
+    "ORD-20260812-0298": {
+      "orderCell": "ORD-20260812-0298 | Dine-in · F2-7382",
+      "cashier": "Terrace Manager",
+      "items": "3 items / 2 lines",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0295": {
+      "orderCell": "ORD-20260812-0295 | Takeaway",
+      "cashier": "Terrace Manager",
+      "items": "3 items / 2 lines",
+      "actionButtons": [
+        "Assign Table",
+        "Open"
+      ]
+    },
+    "ORD-20260812-0294": {
+      "orderCell": "ORD-20260812-0294 | Dine-in",
+      "cashier": "Terrace Cashier",
+      "items": "1 item",
+      "actionButtons": [
+        "Assign Table",
+        "Open"
+      ]
+    },
+    "ORD-20260812-0293": {
+      "orderCell": "ORD-20260812-0293 | Dine-in · F2-9467",
+      "cashier": "Terrace Manager",
+      "items": "3 items / 2 lines",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0292": {
+      "orderCell": "ORD-20260812-0292 | Dine-in",
+      "cashier": "Terrace Cashier",
+      "items": "1 item",
+      "actionButtons": [
+        "Assign Table",
+        "Open"
+      ]
+    },
+    "ORD-20260812-0290": {
+      "orderCell": "ORD-20260812-0290 | Takeaway",
+      "cashier": "Terrace Manager",
+      "items": "3 items / 2 lines",
+      "actionButtons": [
+        "Assign Table",
+        "Open"
+      ]
+    },
+    "ORD-20260812-0285": {
+      "orderCell": "ORD-20260812-0285 | Dine-in",
+      "cashier": "Terrace Cashier",
+      "items": "1 item",
+      "actionButtons": [
+        "Assign Table",
+        "Open"
+      ]
+    },
+    "ORD-20260812-0284": {
+      "orderCell": "ORD-20260812-0284 | Dine-in",
+      "cashier": "Terrace Manager",
+      "items": "3 items / 2 lines",
+      "actionButtons": [
+        "Assign Table",
+        "Open"
+      ]
+    },
+    "ORD-20260812-0283": {
+      "orderCell": "ORD-20260812-0283 | Dine-in · F2-2766",
+      "cashier": "Terrace Manager",
+      "items": "3 items / 2 lines",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0282": {
+      "orderCell": "ORD-20260812-0282 | Dine-in · F2-6132",
+      "cashier": "Terrace Cashier",
+      "items": "2 items",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0279": {
+      "orderCell": "ORD-20260812-0279 | Dine-in",
+      "cashier": "Terrace Cashier",
+      "items": "4 items / 3 lines",
+      "actionButtons": [
+        "Assign Table",
+        "Open"
+      ]
+    },
+    "ORD-20260812-0278": {
+      "orderCell": "ORD-20260812-0278 | Dine-in",
+      "cashier": "Terrace Cashier",
+      "items": "4 items / 3 lines",
+      "actionButtons": [
+        "Assign Table",
+        "Open"
+      ]
+    },
+    "ORD-20260812-0277": {
+      "orderCell": "ORD-20260812-0277 | Dine-in · F2-7124",
+      "cashier": "Terrace Cashier",
+      "items": "2 items",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0276": {
+      "orderCell": "ORD-20260812-0276 | Dine-in",
+      "cashier": "Terrace Cashier",
+      "items": "2 items",
+      "actionButtons": [
+        "Assign Table",
+        "Open"
+      ]
+    },
+    "ORD-20260812-0275": {
+      "orderCell": "ORD-20260812-0275 | Dine-in · F2-8782",
+      "cashier": "Terrace Cashier",
+      "items": "2 items",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0274": {
+      "orderCell": "ORD-20260812-0274 | Dine-in · F2-4250",
+      "cashier": "Terrace Manager",
+      "items": "3 items / 2 lines",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0273": {
+      "orderCell": "ORD-20260812-0273 | Dine-in",
+      "cashier": "Terrace Cashier",
+      "items": "3 items",
+      "actionButtons": [
+        "Assign Table",
+        "Open"
+      ]
+    },
+    "ORD-20260812-0272": {
+      "orderCell": "ORD-20260812-0272 | Takeaway",
+      "cashier": "Terrace Manager",
+      "items": "3 items / 2 lines",
+      "actionButtons": [
+        "Assign Table",
+        "Open"
+      ]
+    }
+  },
+  "closedSeen": {
+    "ORD-20260812-0297": {
+      "orderCell": "ORD-20260812-0297 | Dine-in",
+      "cashier": "Terrace Cashier",
+      "items": "1 item",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0296": {
+      "orderCell": "ORD-20260812-0296 | Dine-in",
+      "cashier": "Terrace Cashier",
+      "items": "2 items / 1 line",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0291": {
+      "orderCell": "ORD-20260812-0291 | Takeaway",
+      "cashier": "Shift Cashier 984155",
+      "items": "1 item",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0289": {
+      "orderCell": "ORD-20260812-0289 | Dine-in",
+      "cashier": "Terrace Cashier",
+      "items": "1 item",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0288": {
+      "orderCell": "ORD-20260812-0288 | Takeaway",
+      "cashier": "Shift Cashier 984155",
+      "items": "1 item",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0287": {
+      "orderCell": "ORD-20260812-0287 | Dine-in",
+      "cashier": "Terrace Cashier",
+      "items": "2 items / 1 line",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0281": {
+      "orderCell": "ORD-20260812-0281 | Dine-in",
+      "cashier": "Terrace Cashier",
+      "items": "4 items / 3 lines",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0280": {
+      "orderCell": "ORD-20260812-0280 | Dine-in",
+      "cashier": "Terrace Cashier",
+      "items": "4 items / 3 lines",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0254": {
+      "orderCell": "ORD-20260812-0254 | Takeaway",
+      "cashier": "Terrace Cashier",
+      "items": "2 items",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0252": {
+      "orderCell": "ORD-20260812-0252 | Takeaway",
+      "cashier": "Terrace Cashier",
+      "items": "2 items",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260811-0018": {
+      "orderCell": "ORD-20260811-0018 | Takeaway",
+      "cashier": "Terrace Manager",
+      "items": "1 item",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0210": {
+      "orderCell": "ORD-20260812-0210 | Takeaway",
+      "cashier": "Terrace Cashier",
+      "items": "2 items",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0204": {
+      "orderCell": "ORD-20260812-0204 | Takeaway",
+      "cashier": "Terrace Cashier",
+      "items": "1 item",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0203": {
+      "orderCell": "ORD-20260812-0203 | Takeaway",
+      "cashier": "Terrace Cashier",
+      "items": "3 items",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0202": {
+      "orderCell": "ORD-20260812-0202 | Takeaway",
+      "cashier": "Terrace Manager",
+      "items": "2 items",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0201": {
+      "orderCell": "ORD-20260812-0201 | Takeaway",
+      "cashier": "Terrace Cashier",
+      "items": "2 items",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0200": {
+      "orderCell": "ORD-20260812-0200 | Dine-in · B3-161",
+      "cashier": "Terrace Cashier",
+      "items": "2 items",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0199": {
+      "orderCell": "ORD-20260812-0199 | Takeaway",
+      "cashier": "Terrace Cashier",
+      "items": "1 item",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0197": {
+      "orderCell": "ORD-20260812-0197 | Dine-in · B3-161",
+      "cashier": "Terrace Cashier",
+      "items": "2 items",
+      "actionButtons": [
+        "Open"
+      ]
+    },
+    "ORD-20260812-0193": {
+      "orderCell": "ORD-20260812-0193 | Takeaway",
+      "cashier": "Terrace Cashier",
+      "items": "2 items",
+      "actionButtons": [
+        "Open"
+      ]
+    }
+  },
+  "closedCells": [
+    {
+      "no": "ORD-20260812-0297",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0297 | Dine-in",
+      "actions": [
+        "Open"
+      ]
+    },
+    {
+      "no": "ORD-20260812-0296",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0296 | Dine-in",
+      "actions": [
+        "Open"
+      ]
+    },
+    {
+      "no": "ORD-20260812-0291",
+      "cashier": "Shift Cashier 984155",
+      "cell": "ORD-20260812-0291 | Takeaway",
+      "actions": [
+        "Open"
+      ]
+    },
+    {
+      "no": "ORD-20260812-0289",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0289 | Dine-in",
+      "actions": [
+        "Open"
+      ]
+    },
+    {
+      "no": "ORD-20260812-0288",
+      "cashier": "Shift Cashier 984155",
+      "cell": "ORD-20260812-0288 | Takeaway",
+      "actions": [
+        "Open"
+      ]
+    },
+    {
+      "no": "ORD-20260812-0287",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0287 | Dine-in",
+      "actions": [
+        "Open"
+      ]
+    },
+    {
+      "no": "ORD-20260812-0281",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0281 | Dine-in",
+      "actions": [
+        "Open"
+      ]
+    },
+    {
+      "no": "ORD-20260812-0280",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0280 | Dine-in",
+      "actions": [
+        "Open"
+      ]
+    },
+    {
+      "no": "ORD-20260812-0254",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0254 | Takeaway",
+      "actions": [
+        "Open"
+      ]
+    },
+    {
+      "no": "ORD-20260812-0252",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0252 | Takeaway",
+      "actions": [
+        "Open"
+      ]
+    },
+    {
+      "no": "ORD-20260811-0018",
+      "cashier": "Terrace Manager",
+      "cell": "ORD-20260811-0018 | Takeaway",
+      "actions": [
+        "Open"
+      ]
+    },
+    {
+      "no": "ORD-20260812-0210",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0210 | Takeaway",
+      "actions": [
+        "Open"
+      ]
+    },
+    {
+      "no": "ORD-20260812-0204",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0204 | Takeaway",
+      "actions": [
+        "Open"
+      ]
+    },
+    {
+      "no": "ORD-20260812-0203",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0203 | Takeaway",
+      "actions": [
+        "Open"
+      ]
+    },
+    {
+      "no": "ORD-20260812-0202",
+      "cashier": "Terrace Manager",
+      "cell": "ORD-20260812-0202 | Takeaway",
+      "actions": [
+        "Open"
+      ]
+    },
+    {
+      "no": "ORD-20260812-0201",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0201 | Takeaway",
+      "actions": [
+        "Open"
+      ]
+    },
+    {
+      "no": "ORD-20260812-0200",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0200 | Dine-in · B3-161",
+      "actions": [
+        "Open"
+      ]
+    },
+    {
+      "no": "ORD-20260812-0199",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0199 | Takeaway",
+      "actions": [
+        "Open"
+      ]
+    },
+    {
+      "no": "ORD-20260812-0197",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0197 | Dine-in · B3-161",
+      "actions": [
+        "Open"
+      ]
+    },
+    {
+      "no": "ORD-20260812-0193",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0193 | Takeaway",
+      "actions": [
+        "Open"
+      ]
+    }
+  ],
+  "searchSeen": {
+    "ORD-20260812-0300": {
+      "orderCell": "ORD-20260812-0300 | Takeaway",
+      "cashier": "Terrace Manager",
+      "items": "3 items / 2 lines",
+      "actionButtons": [
+        "Assign Table",
+        "Open"
+      ]
+    }
+  },
+  "voidTarget": "ORD-20260812-0298",
+  "devOverlayAtVoid": ":host {\n  all: initial;\n\n  /* the direction property is not reset by 'all' */\n  direction: ltr;\n}\n\n/*!\n * Bootstrap Reboot v4.4.1 (https://getbootstrap.com/)\n * Copyright 2011-2019 The Bootstrap Authors\n * Copyright 2011-2019 Twitter, Inc.\n * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)\n * Forked from Normalize.css, licensed MIT (https://github.com/necolas/normalize.css/blob/master/LICENSE.md)\n */\n*,\n*::before,\n*::after {\n  box-sizing: border-box;\n}\n\n:host {\n  font-family: sans-serif;\n  line-height: 1.15;\n  -webkit-text-size-adjust: 100%;\n  -webkit-tap-highlight-c",
+  "voidedHeaders": [
+    "Order / Type",
+    "Status",
+    "Payment",
+    "Server/Cashier",
+    "Items",
+    "Total",
+    "Voided",
+    "Age",
+    ""
+  ],
+  "voidedRow": {
+    "orderCell": "ORD-20260812-0298 | Dine-in · F2-7382",
+    "cashier": "Terrace Manager",
+    "items": "3 items / 2 lines",
+    "actionButtons": [
+      "Open"
+    ]
+  },
+  "serverVoidedRow": {
+    "orderNo": "ORD-20260812-0298",
+    "type": "DINE_IN",
+    "tableName": "F2-7382",
+    "settlementStatus": "VOIDED",
+    "cashierName": "Terrace Manager",
+    "settlement": {
+      "reason": "F2 independent re-verification — the party of six disputed the cover charge, the duty manager agreed it had been applied twice by mistake, and since nothing had left the pass the whole check comes off rather than being part-refunded at the till",
+      "byUserId": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+      "byName": "Terrace Manager",
+      "at": "2026-08-12T06:33:05.506812Z"
+    }
+  },
+  "reasonControl": {
+    "text": "F2 independent re-verification — the party of six disputed the cover charge, the duty manager agreed it had been applied twice by mistake, and since nothing had left the pass the whole check comes off rather than being part-refunded at the till",
+    "scrollWidth": 1556,
+    "clientWidth": 352,
+    "whiteSpace": "nowrap",
+    "title": "F2 independent re-verification — the party of six disputed the cover charge, the duty manager agreed it had been applied twice by mistake, and since nothing had left the pass the whole check comes off rather than being part-refunded at the till",
+    "tag": "BUTTON"
+  },
+  "reasonPopover": {
+    "text": "F2 independent re-verification — the party of six disputed the cover charge, the duty manager agreed it had been applied twice by mistake, and since nothing had left the pass the whole check comes off rather than being part-refunded at the till\n\nby Terrace Manager · Aug 12, 11:33 AM",
+    "whiteSpace": "normal",
+    "clipped": false
+  },
+  "managerConsoleErrors": [],
+  "cashierCells": [
+    {
+      "no": "ORD-20260812-0301",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0301 | Dine-in"
+    },
+    {
+      "no": "ORD-20260812-0294",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0294 | Dine-in"
+    },
+    {
+      "no": "ORD-20260812-0292",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0292 | Dine-in"
+    },
+    {
+      "no": "ORD-20260812-0285",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0285 | Dine-in"
+    },
+    {
+      "no": "ORD-20260812-0282",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0282 | Dine-in · F2-6132"
+    },
+    {
+      "no": "ORD-20260812-0279",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0279 | Dine-in"
+    },
+    {
+      "no": "ORD-20260812-0278",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0278 | Dine-in"
+    },
+    {
+      "no": "ORD-20260812-0277",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0277 | Dine-in · F2-7124"
+    },
+    {
+      "no": "ORD-20260812-0276",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0276 | Dine-in"
+    },
+    {
+      "no": "ORD-20260812-0275",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0275 | Dine-in · F2-8782"
+    },
+    {
+      "no": "ORD-20260812-0273",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0273 | Dine-in"
+    },
+    {
+      "no": "ORD-20260812-0266",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0266 | Dine-in"
+    },
+    {
+      "no": "ORD-20260812-0262",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0262 | Dine-in"
+    },
+    {
+      "no": "ORD-20260812-0261",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0261 | Dine-in"
+    },
+    {
+      "no": "ORD-20260812-0260",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0260 | Dine-in"
+    },
+    {
+      "no": "ORD-20260812-0259",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0259 | Dine-in"
+    },
+    {
+      "no": "ORD-20260812-0258",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0258 | Dine-in"
+    },
+    {
+      "no": "ORD-20260812-0253",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0253 | Takeaway"
+    },
+    {
+      "no": "ORD-20260812-0251",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0251 | Takeaway"
+    },
+    {
+      "no": "ORD-20260812-0250",
+      "cashier": "Terrace Cashier",
+      "cell": "ORD-20260812-0250 | Takeaway"
+    }
+  ],
+  "cashierConsoleErrors": [],
+  "finishedAt": "2026-08-12T06-33-43-938Z"
+}

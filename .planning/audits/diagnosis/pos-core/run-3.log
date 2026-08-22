@@ -1,0 +1,92 @@
+T1 option present? 1
+TABLE CONTROL NOW SHOWS: "T1"
+COVER-COUNT CONTROLS: []
+SERVER-ASSIGN CONTROLS: []
+  shot: 20-cart-with-table
+PANEL: Add customer | Dine-in | Takeaway | Pickup | T1 |  | Chicken Karahi |  | 1 | Rs 1,450.00 |  | Butter Naan |  | 1 | Rs 80.00 | Subtotal | Rs 1,530.00 | Tax (est.) | Rs 244.80 | Total (est.) | Rs 1,774.80 |  | Estimated — final tax & any discounts confirmed on the order. |  | Send to Kitchen | Save as Draft | Charge Now
+send attempt 1 toasts: []
+send attempt 1 -> panel: Add customer | ORD-20260812-0008 | In Progress |  | 1 cover(s) |  | 1 revision | + Add note |  | Chicken Karahi |  | ×1 | Rs 1,682.00 | Sent | Mark Served | Cancel |  | Butter Naan |  | ×1 | Rs 92.80 | Sent | Mark Served | Cancel | Subtotal | Rs 1,530.00 | Tax | Rs 244.80 | Total | Rs 1,774.80 | CHARGE NOW | Void | Clear / New Order
+  shot: 21-after-send-retry
+SENT? true
+PANEL AFTER SEND: Add customer
+ORD-20260812-0008
+In Progress
+
+1 cover(s)
+
+1 revision
++ Add note
+
+Chicken Karahi
+
+×1
+Rs 1,682.00
+Sent
+Mark Served
+Cancel
+
+Butter Naan
+
+×1
+Rs 92.80
+Sent
+Mark Served
+Cancel
+Subtotal
+Rs 1,530.00
+Tax
+Rs 244.80
+Total
+Rs 1,774.80
+CHARGE NOW
+Void
+Clear / New Order
+PANEL BUTTONS AFTER SEND: ["Add customer","1 revision","+ Add note","Edit note for Chicken Karahi","Mark Served","Cancel","Edit note for Butter Naan","Mark Served","Cancel","CHARGE NOW","Void","Clear / New Order"]
+  shot: 22-order-mgmt
+ORDER ROWS: 4
+  shot: 23-order-detail-drawer
+DRAWER: {
+ "w": 1520,
+ "h": 920,
+ "text": "Order #ORD-20260812-0008\nIn Progress\n\nTable T1 · 1 cover(s)\n\n1 revision\n\nChicken Karahi\n\n×1\nRs 1,682.00\nSent\nMark Served\nCancel\n\nButter Naan\n\n×1\nRs 92.80\nSent\nMark Served\nCancel\n+ Add note\nQuick Add\nFull Menu\nCHARGE NOW\nVoid",
+ "buttons": [
+  "1 revision",
+  "Refresh order details",
+  "Close order details",
+  "Mark Served",
+  "Cancel",
+  "Mark Served",
+  "Cancel",
+  "+ Add note",
+  "Full Menu",
+  "CHARGE NOW",
+  "Void"
+ ]
+}
+
+=== NET ===
+200 POST /api/v1/auth/login
+200 GET /api/v1/feature-flags
+200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+200 GET /api/v1/pos/tills?cashierId=eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1&status=OPEN
+200 GET /api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/branches/mine
+200 POST /api/v1/auth/refresh
+200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+200 GET /api/v1/feature-flags
+200 GET /api/v1/branches/mine
+200 GET /api/v1/pos/tills?cashierId=eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1&status=OPEN
+200 GET /api/v1/pos/menu/categories
+200 GET /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/menu/items?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+201 POST /api/v1/pos/orders
+200 POST /api/v1/pos/orders/d5171194-456e-47fe-85ad-a76baefec237/items
+200 POST /api/v1/pos/orders/d5171194-456e-47fe-85ad-a76baefec237/items
+200 GET /api/v1/pos/orders/d5171194-456e-47fe-85ad-a76baefec237?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 POST /api/v1/pos/orders/d5171194-456e-47fe-85ad-a76baefec237/send-to-kds
+200 GET /api/v1/pos/orders/d5171194-456e-47fe-85ad-a76baefec237?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/orders/d5171194-456e-47fe-85ad-a76baefec237?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+200 GET /api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation

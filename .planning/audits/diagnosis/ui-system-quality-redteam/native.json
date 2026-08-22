@@ -1,0 +1,186 @@
+[
+  {
+    "key": "user",
+    "route": "/app/users",
+    "trigger": "Add user",
+    "field": "email",
+    "bad": "zzz",
+    "submitName": {},
+    "probe": {
+      "open": true,
+      "formFound": true,
+      "formNoValidate": false,
+      "submitFormNoValidate": false,
+      "inputs": [
+        {
+          "name": "email",
+          "type": "email",
+          "value": "zzz",
+          "willValidate": true,
+          "valid": false,
+          "typeMismatch": true,
+          "valueMissing": false,
+          "nativeMessage": "Please include an '@' in the email address. 'zzz' is missing an '@'."
+        },
+        {
+          "name": "fullName",
+          "type": "text",
+          "value": "",
+          "willValidate": true,
+          "valid": true,
+          "typeMismatch": false,
+          "valueMissing": false,
+          "nativeMessage": null
+        },
+        {
+          "name": "branchId",
+          "type": "select-one",
+          "value": "",
+          "willValidate": true,
+          "valid": true,
+          "typeMismatch": false,
+          "valueMissing": false,
+          "nativeMessage": null
+        },
+        {
+          "name": "create-user-role",
+          "type": "select-one",
+          "value": "",
+          "willValidate": true,
+          "valid": true,
+          "typeMismatch": false,
+          "valueMissing": false,
+          "nativeMessage": null
+        }
+      ],
+      "formCheckValidity": false
+    }
+  },
+  {
+    "key": "vendor",
+    "route": "/app/purchasing/vendors",
+    "trigger": "Add vendor",
+    "field": "email",
+    "bad": "not-an-email",
+    "submitName": {},
+    "probe": {
+      "open": true,
+      "formFound": true,
+      "formNoValidate": true,
+      "submitFormNoValidate": true,
+      "inputs": [
+        {
+          "name": "name",
+          "type": "text",
+          "value": "",
+          "willValidate": true,
+          "valid": true,
+          "typeMismatch": false,
+          "valueMissing": false,
+          "nativeMessage": null
+        },
+        {
+          "name": "paymentTerms",
+          "type": "select-one",
+          "value": "NET30",
+          "willValidate": true,
+          "valid": true,
+          "typeMismatch": false,
+          "valueMissing": false,
+          "nativeMessage": null
+        },
+        {
+          "name": "leadTimeDays",
+          "type": "text",
+          "value": "",
+          "willValidate": true,
+          "valid": true,
+          "typeMismatch": false,
+          "valueMissing": false,
+          "nativeMessage": null
+        },
+        {
+          "name": "contactPerson",
+          "type": "text",
+          "value": "",
+          "willValidate": true,
+          "valid": true,
+          "typeMismatch": false,
+          "valueMissing": false,
+          "nativeMessage": null
+        },
+        {
+          "name": "phone",
+          "type": "text",
+          "value": "",
+          "willValidate": true,
+          "valid": true,
+          "typeMismatch": false,
+          "valueMissing": false,
+          "nativeMessage": null
+        },
+        {
+          "name": "email",
+          "type": "email",
+          "value": "not-an-email",
+          "willValidate": true,
+          "valid": false,
+          "typeMismatch": true,
+          "valueMissing": false,
+          "nativeMessage": "Please include an '@' in the email address. 'not-an-email' is missing an '@'."
+        },
+        {
+          "name": "address",
+          "type": "text",
+          "value": "",
+          "willValidate": true,
+          "valid": true,
+          "typeMismatch": false,
+          "valueMissing": false,
+          "nativeMessage": null
+        },
+        {
+          "name": "ntn",
+          "type": "text",
+          "value": "",
+          "willValidate": true,
+          "valid": true,
+          "typeMismatch": false,
+          "valueMissing": false,
+          "nativeMessage": null
+        },
+        {
+          "name": "strn",
+          "type": "text",
+          "value": "",
+          "willValidate": true,
+          "valid": true,
+          "typeMismatch": false,
+          "valueMissing": false,
+          "nativeMessage": null
+        },
+        {
+          "name": "bankAccountNo",
+          "type": "text",
+          "value": "",
+          "willValidate": true,
+          "valid": true,
+          "typeMismatch": false,
+          "valueMissing": false,
+          "nativeMessage": null
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "value": "",
+          "willValidate": true,
+          "valid": true,
+          "typeMismatch": false,
+          "valueMissing": false,
+          "nativeMessage": null
+        }
+      ],
+      "formCheckValidity": false
+    }
+  }
+]

@@ -1,0 +1,120 @@
+{
+  "probe": "branch-switch-actually-grants",
+  "steps": [
+    {
+      "t": 8693,
+      "k": "jwt-at-HQ",
+      "v": {
+        "branch": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "roles": [
+          "WAITER"
+        ],
+        "perms": 7,
+        "exp": 1786488348,
+        "iat": 1786487448,
+        "ttlSec": 900
+      }
+    },
+    {
+      "t": 8695,
+      "k": "switcher-present",
+      "v": 1
+    },
+    {
+      "t": 10246,
+      "k": "menu-items",
+      "v": [
+        "Floating Terrace HQ",
+        "Floating Terrace — Rooftop"
+      ]
+    },
+    {
+      "t": 10265,
+      "k": "rooftop-option-present",
+      "v": 1
+    },
+    {
+      "t": 19293,
+      "k": "url-after-switch",
+      "v": "http://localhost:3000/app/dashboard"
+    },
+    {
+      "t": 19329,
+      "k": "jwt-after-switch",
+      "v": {
+        "branch": "c2d74ade-7ff8-4167-8cd0-131bfbdf4fba",
+        "roles": [
+          "CASHIER"
+        ],
+        "perms": 14,
+        "hasTillOpen": true,
+        "hasTillReview": false,
+        "hasCrmView": true,
+        "hasOrderClose": true
+      }
+    },
+    {
+      "t": 19331,
+      "k": "page-after-switch",
+      "v": "Floating Terrace Floating Terrace — Rooftop OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse App Dashboard Floating Terrace — Rooftop Search… ⌘K 6 Where is my till, and what is still open? This shift MY TILL — You have no open till. Open one from the POS before taking payment. MY OPEN ORDERS "
+    },
+    {
+      "t": 19331,
+      "k": "sidebar-after-switch",
+      "v": "Floating Terrace Floating Terrace — Rooftop OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse"
+    },
+    {
+      "t": 25440,
+      "k": "crm-at-rooftop",
+      "v": {
+        "denied": true,
+        "head": "RestaurantOS Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Collapse App Customers Floating Terrace HQ Search… ⌘K 6 Access denied You do not have permission to view this page. Back to dashboard"
+      }
+    },
+    {
+      "t": 31559,
+      "k": "profile-perm-count-at-rooftop",
+      "v": "7"
+    },
+    {
+      "t": 31559,
+      "k": "profile-roles-line",
+      "v": "Roles WAITER Active branch Floating Terrace HQ Permissions 7 Where you work The branc"
+    },
+    {
+      "t": 37667,
+      "k": "pos-at-rooftop",
+      "v": {
+        "denied": false,
+        "alerts": []
+      }
+    },
+    {
+      "t": 37667,
+      "k": "login-redirects-observed",
+      "v": [
+        {
+          "t": 341,
+          "url": "http://localhost:3000/login?tenant=floating-terrace"
+        },
+        {
+          "t": 501,
+          "url": "http://localhost:3000/login?tenant=floating-terrace"
+        }
+      ]
+    },
+    {
+      "t": 38526,
+      "k": "RESTORE-delete",
+      "v": {
+        "status": 204,
+        "body": ""
+      }
+    },
+    {
+      "t": 38537,
+      "k": "RESTORE-assignments",
+      "v": "[{\"branchId\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"roleCode\":\"WAITER\",\"primary\":true,\"approvalLimitPaisa\":null}]"
+    }
+  ]
+}

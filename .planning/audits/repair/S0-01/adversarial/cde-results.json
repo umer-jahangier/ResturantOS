@@ -1,0 +1,36 @@
+{
+  "failures": [],
+  "C_probe": {
+    "voidPresent": true,
+    "voidEnabled": true,
+    "refundPresent": false,
+    "refundEnabled": false,
+    "notice": null
+  },
+  "C_status": "VOIDED",
+  "D_payOnVoided": {
+    "status": 409,
+    "body": "{\"detail\":\"Cannot record payment for order in status: VOIDED\",\"instance\":\"/api/v1/pos/orders/dd83ceef-4d72-4b79-8d40-9b0cedc1ed13/payments\",\"status\":409,\"title\":\"STATE_INVALID\",\"type\":\"urn:restauranto"
+  },
+  "E_cashierVoidRefundPerms": [
+    "pos.order.void.own"
+  ],
+  "E_net": 49900,
+  "E_probe": {
+    "voidPresent": false,
+    "voidEnabled": false,
+    "refundPresent": false,
+    "refundEnabled": false,
+    "notice": "Paid — void unavailable. Use Refund."
+  },
+  "E_directVoid": {
+    "status": 409,
+    "body": "{\"detail\":\"Order ORD-20260812-0152 has 49900 paisa recorded against it and cannot be voided. Use Refund — a void leaves the payment in place with no reversing entry.\",\"instance\":\"/api/v1/pos/orders/7e30bb23-2fe3-40a2-9060-99d0943e49f6/void\""
+  },
+  "E_statusAfter": "SENT_TO_KDS",
+  "E_directRefund": {
+    "status": 403,
+    "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"1f2be2f1-83aa-47e3-9cd5-0189dfaa2ff7\"}}"
+  },
+  "E_statusAfterRefundAttempt": "SENT_TO_KDS"
+}

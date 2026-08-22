@@ -1,0 +1,146 @@
+[
+  {
+    "k": "login",
+    "v": "signed in as manager@terrace.local → http://localhost:3000/app/dashboard"
+  },
+  {
+    "k": "nav",
+    "v": "sidebar mentions \"Ask\"/\"NLQ\"? true"
+  },
+  {
+    "k": "nav",
+    "v": "sidebar mentions Reports? true"
+  },
+  {
+    "k": "nav-dump",
+    "v": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse | OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) | App Dashboard | DashboardOrdersMenu"
+  },
+  {
+    "k": "nlq-url",
+    "v": "http://localhost:3000/app/nlq"
+  },
+  {
+    "k": "nlq-errorish",
+    "v": "false"
+  },
+  {
+    "k": "nlq-body",
+    "v": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse App Ask (NLQ) Floating Terrace HQ Search… ⌘K F Ask a question Ask about your restaurant's data in plain English — see the answer, and the exact SQL that ran to produce it. Ask a question about your restaurant's data What was revenue last week? Which items sold most yesterday? What was our average order value this month? Ask"
+  },
+  {
+    "k": "nlq-chart-elements",
+    "v": "charts/canvas on the NLQ page before asking: 0"
+  },
+  {
+    "k": "nlq-answer-body",
+    "v": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse App Ask (NLQ) Floating Terrace HQ Search… ⌘K F Ask a question Ask about your restaurant's data in plain English — see the answer, and the exact SQL that ran to produce it. Ask a question about your restaurant's data What was revenue last week? Which items sold most yesterday? What was our average order value this month? Ask That question couldn't be answered Something prevented us from answering that question safely. Try rephrasing it or asking something more specific."
+  },
+  {
+    "k": "nlq-answer-alerts",
+    "v": "[\"That question couldn't be answered\\nSomething prevented us from answering that question safely. Try rephrasing it or asking something more specific.\",\"\",\"\"]"
+  },
+  {
+    "k": "nlq-render",
+    "v": "after asking: charts=0 tables=0"
+  },
+  {
+    "k": "ai-settings:settings",
+    "v": "url=http://localhost:3000/app/settings errorish=true mentionsProviderOrModel=false"
+  },
+  {
+    "k": "settings-body",
+    "v": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse App Settings Floating Terrace HQ Search… ⌘K F Access denied You do not have permission to view this page. Back to dashboard"
+  },
+  {
+    "k": "ai-settings:settings-ai",
+    "v": "url=http://localhost:3000/app/settings/ai errorish=false mentionsProviderOrModel=false"
+  },
+  {
+    "k": "ai-settings:settings-nlq",
+    "v": "url=http://localhost:3000/app/settings/nlq errorish=false mentionsProviderOrModel=false"
+  },
+  {
+    "k": "ai-settings:nlq-settings",
+    "v": "url=http://localhost:3000/app/nlq/settings errorish=false mentionsProviderOrModel=false"
+  },
+  {
+    "k": "reports-url",
+    "v": "http://localhost:3000/app/reports"
+  },
+  {
+    "k": "reports-errorish",
+    "v": "false"
+  },
+  {
+    "k": "reports-body",
+    "v": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse App Reports Floating Terrace HQ Search… ⌘K F Reports Named reports backed by real sales, cash and purchasing data. FBR Tax Summary → SALES Sales by Day 6 columns Sales by Item 6 columns Sales by Hour (Peak Hours) 3 columns Sales by Order Type 3 columns Discount Summary 3 columns CASH Till Sessions 7 columns PURCHASING Purchases by Purchase Order 5 columns"
+  },
+  {
+    "k": "reports-charts",
+    "v": "chart elements on the reports index: 0"
+  },
+  {
+    "k": "reports-links",
+    "v": "report links on the index: 8"
+  },
+  {
+    "k": "reports-first-href",
+    "v": "/app/reports/fbr"
+  },
+  {
+    "k": "report-detail-url",
+    "v": "http://localhost:3000/app/reports/fbr"
+  },
+  {
+    "k": "report-detail",
+    "v": "charts=0 tables=0 bodyRows=0"
+  },
+  {
+    "k": "report-detail-body",
+    "v": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse App Reports FBR Floating Terrace HQ Search… ⌘K F ← All reports FBR Tax Summary Output tax vs input tax vs net payable — internal bookkeeping figures, not an FBR/IRIS e-filing submission. From To Floating Terrace HQ Branch tax registration unavailable — figures below are unaffected. 2026-07-31 to 2026-08-30 Taxable sales Rs 21,253.00 Output tax: Rs 2,775.60 10 orders Taxable purchases Rs 381,035.00 Input tax: Rs 4,565.00 25 invoices Refundable input-tax credit Rs 1,789.40 Input tax exceeded output tax for this period — this is a credit, not an amount owed."
+  },
+  {
+    "k": "report-export-controls",
+    "v": "export/CSV/download controls: 0"
+  },
+  {
+    "k": "dash:dashboard",
+    "v": "url=http://localhost:3000/app/dashboard errorish=false charts=0 tables=0 exportControls=0"
+  },
+  {
+    "k": "dash-body:dashboard",
+    "v": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse App Dashboard Floating Terrace HQ Search… ⌘K F What needs me in the next five minutes? Today, live OPEN ORDERS 19 19 orders in view LATE TICKETS 33 34 on the board now TILL VARIANCE TODAY — No till has been counted yet today. TABLES OCCUPIED 2 / 5 3 free right now LIVE ORDERS ORD-20260812-0008 T1 · in progress Rs 1,774.80 ORD-20260812-0007 No table · draft Rs 1,682.00 ORD-20260812-0006 G1 · in progress Rs 955.20 ORD-20260812-0005 No table · in progress Rs 3,364.00 ORD-20260812-0004 No table · in progress Rs 1,682.00 ORD-202608"
+  },
+  {
+    "k": "dash:dashboard-realtime",
+    "v": "url=http://localhost:3000/app/dashboard/realtime errorish=false charts=0 tables=0 exportControls=0"
+  },
+  {
+    "k": "dash-body:dashboard-realtime",
+    "v": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse App Dashboard Realtime Floating Terrace HQ Search… ⌘K F Realtime Dashboard Updates automatically when an order or till closes. Live Today's Revenue Rs 12,564.00 updated 5s ago Today's Orders 5 updated 5s ago Today's Tax Rs 1,864.00 updated 5s ago Average Order Value Rs 2,512.80 updated 5s ago"
+  },
+  {
+    "k": "dash:fbr",
+    "v": "url=http://localhost:3000/app/reports/fbr errorish=false charts=0 tables=0 exportControls=0"
+  },
+  {
+    "k": "dash-body:fbr",
+    "v": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse App Reports FBR Floating Terrace HQ Search… ⌘K F ← All reports FBR Tax Summary Output tax vs input tax vs net payable — internal bookkeeping figures, not an FBR/IRIS e-filing submission. From To Floating Terrace HQ Branch tax registration unavailable — figures below are unaffected. 2026-07-31 to 2026-08-30 Taxable sales Rs 21,253.00 Output tax: Rs 2,775.60 10 orders Taxable purchases Rs 381,035.00 Input tax: Rs 4,565.00 25 invoices Refundable input-tax credit Rs 1,789.40 Input tax exceeded output tax for this period — this is "
+  },
+  {
+    "k": "dash:purchasing-analytics",
+    "v": "url=http://localhost:3000/app/purchasing/analytics errorish=false charts=0 tables=2 exportControls=0"
+  },
+  {
+    "k": "dash-body:purchasing-analytics",
+    "v": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse App Purchasing Analytics Floating Terrace HQ Search… ⌘K F Vendors Suggested Orders Purchase Orders Invoices Payments Analytics Vendor analytics Spend by vendor and category, 2026-07-31 to 2026-08-30, vs the prior period. Period This month Last month Last 90 days This quarter Custom Vendor Floating Terrace Supplies Drive Vendor p36-1786468439 MANAGER Drive Vendor p36-1786468439 OWNER Drive Vendor p36-1786468624 MANAGER Drive Vendor p36-1786468624 OWNER Drive Vendor p36-1786468766 MANAGER Drive Vendor p36-1786468766 OWNER Drive "
+  },
+  {
+    "k": "console-errors",
+    "v": "[\"Failed to load resource: the server responded with a status of 503 (Service Unavailable)\",\"Failed to load resource: the server responded with a status of 404 (Not Found)\",\"Failed to load resource: the server responded with a status of 404 (Not Found)\",\"Failed to load resource: the server responded with a status of 404 (Not Found)\"]"
+  },
+  {
+    "k": "failed-api-calls",
+    "v": "[\"503 POST http://localhost:8080/api/v1/nlq/query\"]"
+  }
+]

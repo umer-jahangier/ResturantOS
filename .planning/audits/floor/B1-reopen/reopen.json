@@ -1,0 +1,132 @@
+{
+  "clock": {
+    "utc": "2026-08-12T10:58:32.889Z",
+    "karachi": "12/08/2026, 15:58:32"
+  },
+  "takingsDefaultTrouble": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/takings"
+  },
+  "takingsDefault_before": {
+    "dateBox": "2026-08-12",
+    "orderLine": "72 orders closed on this trading day",
+    "gross": "Gross sales less discounts. Tax and service charge are NOT in this figure — this is the revenue line. TAX Rs 6,623.00",
+    "net": "Net sales + tax + service charge = total billed. How it came in Dated by when the money arrived, not by when its bill",
+    "cash": "Cash 128 Rs 119,414.31 Rs 39,043.70(58) Rs 39,043.70 of today's cash is against 55 orders that are not closed yet (Rs 4",
+    "card": "Card 11 Rs 11,003.90 Rs 1,289.40(1) Cash 128 Rs 119,414.31 Rs 39,043.70(58) Rs 39,043.70 of today's cash is against 55",
+    "tills": [
+      "bc0d9897",
+      "bc0d9897",
+      "eb2ee67e",
+      "4b9941f7",
+      "4fdc85ef",
+      "bc0d9897",
+      "d2c99d25",
+      "bc0d9897"
+    ],
+    "emptyState": false,
+    "alerts": [],
+    "main": "Takings Guide Takings The day's money, reconciled against what each till counted. Where a figure cannot be worked out, this screen says so and says why — it will not show you a zero it does not mean. Business date 72 orders closed on this trading day The day's money GROSS SALES Rs 83,353.00 Full menu price of everything sold, before any discount. DISCOUNTS Rs 417.30 Given away. Shown here rather than netted into a smaller sales figure. COMPS Not known Comps are not recorded separately from discounts. orders.discount_paisa is one column, and a full comp appears in it as a discount equal to the subtotal. Splitting them would require a field POS does not capture. NET SALES Rs 82,935.70 Gross sales less discounts. Tax and service charge are NOT in this figure — this is the revenue line. TAX Rs 6,623.00 Charged on top of net sales and owed onward to the tax authority. Not revenue, and not inside net sales. SERVICE CHARGE Rs 526.41 Added to the bill on top of net sales. Shown on its own, not folded into it. TOTAL BILLED Rs 90,085.11 What the bills actually came to: net sales plus tax plus service charge. This is the figure the tender split below reconciles against. Gross sales − discounts = net sales. Net sales + tax + service charge = total billed. How it came in Dated by when the money arrived, not by when its bill was finalised — so this is what the drawers and the card terminals took today, whether or not those orders are closed. TENDER PAYMENTS AMOUNT OF WHICH ON OPEN ORDERS Card 11 Rs 11,003.90 Rs 1,289.40(1) Cash 128 Rs 119,414.31 Rs 39,043.70(58) Rs 39,043.70 of today's cash is against 55 orders that are not closed yet (Rs 40,333.10 across all tenders). This money is part of the tender split above and is already in the drawer, so expect the count to include it. It is NOT in gross, net sales or total billed: a bill becomes a sale when it is closed, which may be tomorrow. Close those orders and the figures move — the cash does not get counted twice. What each till counted Every till is listed on its own. Variances are never added together — two drawers out by opposite amounts is two problems, and one total of zero would hide both. TILL STATE OPENING FLOAT EXPECTED CASH COUNTED CASH VARIANCE Cashier bc0d9897 Opened 8/12/26, 7:50 AM · closed 8/12/26, 8:16 AM Matched Rs 5,000.00 Rs 6,682.60 Rs 6,682.60 Rs 0.00 Cashier bc0d9897 Opened 8/12/26, 9:02 AM · closed 8/12/26, 9:03 AM Short Rs 5,000.00 Rs 5,499.00 Rs 5,299.00 -Rs 200.00 Cashier eb2ee67e Opened 8/12/26"
+  },
+  "api_takings_default": {
+    "status": 200,
+    "businessDate": "2026-08-12",
+    "orderCount": 72,
+    "byTender": [
+      "undefined:undefined:1100390",
+      "undefined:undefined:11941431"
+    ],
+    "tills": [
+      "f6b61863",
+      "d0a238df",
+      "ae93ba15",
+      "4191dc24",
+      "7d01d1ff",
+      "b17269cb",
+      "2633e288",
+      "61ab4a24"
+    ]
+  },
+  "takings0811Trouble": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/takings?date=2026-08-11"
+  },
+  "takings_0811": {
+    "dateBox": "2026-08-11",
+    "orderLine": "10 orders closed on this trading day",
+    "gross": "Gross sales less discounts. Tax and service charge are NOT in this figure — this is the revenue line. TAX Rs 2,792.00",
+    "net": "Net sales + tax + service charge = total billed. How it came in Dated by when the money arrived, not by when its bill",
+    "cash": "Cash 13 Rs 20,746.20 Rs 955.20(1) Rs 955.20 of today's cash is against 1 order that is not closed yet. This money is p",
+    "card": null,
+    "tills": [
+      "fefd7187"
+    ],
+    "emptyState": false,
+    "alerts": [],
+    "main": "Takings Guide Takings The day's money, reconciled against what each till counted. Where a figure cannot be worked out, this screen says so and says why — it will not show you a zero it does not mean. Business date 10 orders closed on this trading day The day's money GROSS SALES Rs 17,949.00 Full menu price of everything sold, before any discount. DISCOUNTS Rs 950.00 Given away. Shown here rather than netted into a smaller sales figure. COMPS Not known Comps are not recorded separately from discounts. orders.discount_paisa is one column, and a full comp appears in it as a discount equal to the subtotal. Splitting them would require a field POS does not capture. NET SALES Rs 16,999.00 Gross sales less discounts. Tax and service charge are NOT in this figure — this is the revenue line. TAX Rs 2,792.00 Charged on top of net sales and owed onward to the tax authority. Not revenue, and not inside net sales. SERVICE CHARGE Rs 0.00 Added to the bill on top of net sales. Shown on its own, not folded into it. TOTAL BILLED Rs 19,791.00 What the bills actually came to: net sales plus tax plus service charge. This is the figure the tender split below reconciles against. Gross sales − discounts = net sales. Net sales + tax + service charge = total billed. How it came in Dated by when the money arrived, not by when its bill was finalised — so this is what the drawers and the card terminals took today, whether or not those orders are closed. TENDER PAYMENTS AMOUNT OF WHICH ON OPEN ORDERS Cash 13 Rs 20,746.20 Rs 955.20(1) Rs 955.20 of today's cash is against 1 order that is not closed yet. This money is part of the tender split above and is already in the drawer, so expect the count to include it. It is NOT in gross, net sales or total billed: a bill becomes a sale when it is closed, which may be tomorrow. Close those orders and the figures move — the cash does not get counted twice. What each till counted Every till is listed on its own. Variances are never added together — two drawers out by opposite amounts is two problems, and one total of zero would hide both. Cash variance for the day: not known Cash was taken on this day but no till was closed and counted, so there is nothing to compare the expected drawer against. This is NOT a zero variance. TILL STATE OPENING FLOAT EXPECTED CASH COUNTED CASH VARIANCE Cashier fefd7187 Opened 8/11/26, 5:52 PM · not closed Still open Rs 5,000.00 Not known Not known Not known"
+  },
+  "api_takings_0811": {
+    "status": 200,
+    "businessDate": "2026-08-11",
+    "orderCount": 10,
+    "byTender": [
+      "undefined:undefined:2074620"
+    ],
+    "tills": [
+      "f92481a2"
+    ]
+  },
+  "takings_0812": {
+    "dateBox": "2026-08-12",
+    "orderLine": "72 orders closed on this trading day",
+    "gross": "Gross sales less discounts. Tax and service charge are NOT in this figure — this is the revenue line. TAX Rs 6,623.00",
+    "net": "Net sales + tax + service charge = total billed. How it came in Dated by when the money arrived, not by when its bill",
+    "cash": "Cash 128 Rs 119,414.31 Rs 39,043.70(58) Rs 39,043.70 of today's cash is against 55 orders that are not closed yet (Rs 4",
+    "card": "Card 11 Rs 11,003.90 Rs 1,289.40(1) Cash 128 Rs 119,414.31 Rs 39,043.70(58) Rs 39,043.70 of today's cash is against 55",
+    "tills": [
+      "bc0d9897",
+      "bc0d9897",
+      "eb2ee67e",
+      "4b9941f7",
+      "4fdc85ef",
+      "bc0d9897",
+      "d2c99d25",
+      "bc0d9897"
+    ],
+    "emptyState": false,
+    "alerts": [],
+    "main": "Takings Guide Takings The day's money, reconciled against what each till counted. Where a figure cannot be worked out, this screen says so and says why — it will not show you a zero it does not mean. Business date 72 orders closed on this trading day The day's money GROSS SALES Rs 83,353.00 Full menu price of everything sold, before any discount. DISCOUNTS Rs 417.30 Given away. Shown here rather than netted into a smaller sales figure. COMPS Not known Comps are not recorded separately from discounts. orders.discount_paisa is one column, and a full comp appears in it as a discount equal to the subtotal. Splitting them would require a field POS does not capture. NET SALES Rs 82,935.70 Gross sales less discounts. Tax and service charge are NOT in this figure — this is the revenue line. TAX Rs 6,623.00 Charged on top of net sales and owed onward to the tax authority. Not revenue, and not inside net sales. SERVICE CHARGE Rs 526.41 Added to the bill on top of net sales. Shown on its own, not folded into it. TOTAL BILLED Rs 90,085.11 What the bills actually came to: net sales plus tax plus service charge. This is the figure the tender split below reconciles against. Gross sales − discounts = net sales. Net sales + tax + service charge = total billed. How it came in Dated by when the money arrived, not by when its bill was finalised — so this is what the drawers and the card terminals took today, whether or not those orders are closed. TENDER PAYMENTS AMOUNT OF WHICH ON OPEN ORDERS Card 11 Rs 11,003.90 Rs 1,289.40(1) Cash 128 Rs 119,414.31 Rs 39,043.70(58) Rs 39,043.70 of today's cash is against 55 orders that are not closed yet (Rs 40,333.10 across all tenders). This money is part of the tender split above and is already in the drawer, so expect the count to include it. It is NOT in gross, net sales or total billed: a bill becomes a sale when it is closed, which may be tomorrow. Close those orders and the figures move — the cash does not get counted twice. What each till counted Every till is listed on its own. Variances are never added together — two drawers out by opposite amounts is two problems, and one total of zero would hide both. TILL STATE OPENING FLOAT EXPECTED CASH COUNTED CASH VARIANCE Cashier bc0d9897 Opened 8/12/26, 7:50 AM · closed 8/12/26, 8:16 AM Matched Rs 5,000.00 Rs 6,682.60 Rs 6,682.60 Rs 0.00 Cashier bc0d9897 Opened 8/12/26, 9:02 AM · closed 8/12/26, 9:03 AM Short Rs 5,000.00 Rs 5,499.00 Rs 5,299.00 -Rs 200.00 Cashier eb2ee67e Opened 8/12/26"
+  },
+  "api_takings_0812": {
+    "status": 200,
+    "businessDate": "2026-08-12",
+    "orderCount": 72,
+    "byTender": [
+      "undefined:undefined:1100390",
+      "undefined:undefined:11941431"
+    ],
+    "tills": [
+      "f6b61863",
+      "d0a238df",
+      "ae93ba15",
+      "4191dc24",
+      "7d01d1ff",
+      "b17269cb",
+      "2633e288",
+      "61ab4a24"
+    ]
+  },
+  "posTrouble": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/pos"
+  },
+  "rung": {
+    "orderNos": [],
+    "alerts": [
+      "Not sent — nothing was saved\nThis module is temporarily unavailable. Try again in a moment. Your items are still in the cart. Check the connection, then press Send to Kitchen again."
+    ]
+  }
+}

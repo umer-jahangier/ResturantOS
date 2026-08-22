@@ -1,0 +1,40 @@
+PUBLIC /register -> http=404 landed=http://localhost:3000/register
+PUBLIC /join -> http=404 landed=http://localhost:3000/join
+PUBLIC /loyalty -> http=404 landed=http://localhost:3000/loyalty
+PUBLIC /signup -> http=404 landed=http://localhost:3000/signup
+PUBLIC /enroll -> http=404 landed=http://localhost:3000/enroll
+PUBLIC /r/floating-terrace -> http=404 landed=http://localhost:3000/r/floating-terrace
+PUBLIC /public/loyalty -> http=404 landed=http://localhost:3000/public/loyalty
+PUBLIC /app/crm -> http=200 landed=http://localhost:3000/login
+   shot: public-register-attempt.png
+MANAGER login ok=true url=http://localhost:3000/app/dashboard
+   !! /app/dashboard showed an error/alert state — RETRYING
+-- manager-dashboard /app/dashboard :: url=http://localhost:3000/app/dashboard alerts=1 denied=false failed=false (after retry)
+   TEXT >>> Floating Terrace | Floating Terrace HQ | OVERVIEW | Dashboard | ORDERS | POS | Kitchen Display | Till Review | MENU | Inventory | Menu Items | Tables | Stations | POS Terminals | FINANCE | Guide | Takings | PURCHASING | Purchasing | PEOPLE | Customers | REPORTING | Reports | Realtime Dashboard | Ask (NLQ) | Collapse | App | Dashboard | Floating Terrace HQ | Search… | ⌘K | F | What needs me in the next five minutes? | Today, live | OPEN ORDERS | 17 | 17 orders in view | LATE TICKETS | 33 | 33 on the board now | TILL VARIANCE TODAY | — | No till has been counted yet today. | TABLES OCCUPIED | 1 / 5 | 4 free right now | LIVE ORDERS | ORD-20260812-0006 | G1 · in progress | Rs 955.20 | ORD-20260812-0005 | No table · in progress | Rs 3,364.00 | ORD-20260812-0004 | No table · in progress | Rs 1,682.00 | ORD-20260812-0002 | No table · draft | Rs 499.00 | ORD-20260811-0017 | No table · in progres
+   shot: manager-dashboard.png
+SIDEBAR >>> Floating Terrace | Floating Terrace HQ |  | OVERVIEW |  | Dashboard |  | ORDERS |  | POS | Kitchen Display | Till Review |  | MENU |  | Inventory | Menu Items | Tables | Stations | POS Terminals |  | FINANCE |  | Guide | Takings |  | PURCHASING |  | Purchasing |  | PEOPLE |  | Customers |  | REPORTING |  | Reports | Realtime Dashboard | Ask (NLQ) | Collapse
+   !! /app/crm showed an error/alert state — RETRYING
+-- manager-crm /app/crm :: url=http://localhost:3000/app/crm alerts=1 denied=false failed=false (after retry)
+   TEXT >>> RestaurantOS | Floating Terrace HQ | OVERVIEW | Dashboard | ORDERS | POS | Kitchen Display | Till Review | MENU | Inventory | Menu Items | Tables | Stations | POS Terminals | FINANCE | Guide | Takings | PURCHASING | Purchasing | PEOPLE | Customers | REPORTING | Reports | Realtime Dashboard | Ask (NLQ) | Collapse | App | Customers | Floating Terrace HQ | Search… | ⌘K | F | Customers | Find a customer, see their loyalty standing, and review the points they have earned. | No customers found | Add your first customer to start tracking loyalty. | Select a customer to see their loyalty standing.
+   shot: manager-crm.png
+CRM CONTROLS >>> ["BUTTON:Switch branch","A:Dashboard","A:POS","A:Kitchen Display","A:Till Review","A:Inventory","A:Menu Items","A:Tables","A:Stations","A:POS Terminals","A:Guide","A:Takings","A:Purchasing","A:Customers","A:Reports","A:Realtime Dashboard","A:Ask (NLQ)","BUTTON:Collapse sidebar","BUTTON:Toggle mobile menu","BUTTON:Open command palette","BUTTON:Search","BUTTON:Switch to light mode","BUTTON:Open profile menu","INPUT:Search customers","A:Dashboard","A:Orders","A:Menu"]
+   shot: manager-crm-search-03.png
+SEARCH RESULT >>> RestaurantOS | Floating Terrace HQ |  | OVERVIEW |  | Dashboard |  | ORDERS |  | POS | Kitchen Display | Till Review |  | MENU |  | Inventory | Menu Items | Tables | Stations | POS Terminals |  | FINANCE |  | Guide | Takings |  | PURCHASING |  | Purchasing |  | PEOPLE |  | Customers |  | REPORTING |  | Reports | Realtime Dashboard | Ask (NLQ) | Collapse | App | Customers | Floating Terrace HQ | Search… | ⌘K | F | Customers |  | Find a customer, see their loyalty standing, and review the points they have earned. |  | No customers found |  | Nothing matches "03". Try a different phone or name. |  | Select a customer to see their loyalty standing.
+   !! /app/settings showed an error/alert state — RETRYING
+-- manager-settings /app/settings :: url=http://localhost:3000/app/settings alerts=1 denied=true failed=false (after retry)
+   TEXT >>> Floating Terrace | Floating Terrace HQ | OVERVIEW | Dashboard | ORDERS | POS | Kitchen Display | Till Review | MENU | Inventory | Menu Items | Tables | Stations | POS Terminals | FINANCE | Guide | Takings | PURCHASING | Purchasing | PEOPLE | Customers | REPORTING | Reports | Realtime Dashboard | Ask (NLQ) | Collapse | App | Settings | Floating Terrace HQ | Search… | ⌘K | F | Access denied | You do not have permission to view this page. | Back to dashboard
+   shot: manager-settings.png
+SETTINGS mentions loyalty/points/rewards? false
+CASHIER login ok=true url=http://localhost:3000/app/dashboard
+   !! /app/pos showed an error/alert state — RETRYING
+-- cashier-pos /app/pos :: url=http://localhost:3000/app/pos alerts=1 denied=false failed=false (after retry)
+   TEXT >>> Floating Terrace | OVERVIEW | Dashboard | ORDERS | POS | PEOPLE | Customers | Collapse | App | POS | Floating Terrace HQ | Search… | ⌘K | E | Point of sale | Till OPEN | Float: Rs 5,000.00 | Cash: Rs 37,307.00 | Orders: 33 | Close Till | POS Terminal | Floor View | Order Management | Live | All | Diag Cat 683566 | Starters | Mains | Drinks | Soft Drinks | Audit Item 52235 | Rs 499.00 | Audit Item 60568 | Rs 499.00 | Butter Naan | Rs 80.00 | Chicken Karahi | Rs 1,450.00 | Chicken Samosa | Rs 250.00 | Fresh Lime | Rs 220.00 | Mutton Biryani | Rs 1,250.00 | Photo Dish 50585 | Rs 725.00 | Pinacolada | Rs 700.00 | Seekh Kebab | Rs 450.00 | Add customer | Dine-in | Takeaway | Pickup | No table (optional) | Add items to start an order | Tap a menu item to build the cart — nothing is saved until Send to Kitchen or Charge. | Send to Kitchen | Save as Draft | Charge Now
+   shot: cashier-pos.png
+POS menu tiles found: 11
+   shot: cashier-pos-cart.png
+POS "Add customer" button present: 1
+   shot: cashier-pos-customer-search.png
+PICKER >>> Floating Terrace |  | OVERVIEW |  | Dashboard |  | ORDERS |  | POS |  | PEOPLE |  | Customers | Collapse | App | POS | Floating Terrace HQ | Search… | ⌘K | E | Point of sale | Till OPEN | Float: Rs 5,000.00 | Cash: Rs 37,307.00 | Orders: 33 | Close Till | POS Terminal | Floor View | Order Management | Live | All | Diag Cat 683566 | Starters | Mains | Drinks | Soft Drinks | No items available |  | No customer matches “0300”. |  | Type a full phone number to enrol a new customer. |  | Dine-in | Takeaway | Pickup | No table (optional) |  | Add items to start an order |  | Tap a menu item to build the cart — nothing is saved until Send to Kitchen or Charge. |  | Send to Kitchen | Save as Draft | Charge Now
+!! no customer matched 0300 in the picker
+   TOTP challenge shown; entering True
+ADMIN login ok=false url=http://localhost:3000/login

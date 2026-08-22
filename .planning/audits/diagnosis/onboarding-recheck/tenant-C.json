@@ -1,0 +1,8 @@
+{
+  "brand": "Lockout Cafe 027231",
+  "email": "owner@lockout-cafe-027231.local",
+  "password": "Lockout#Owner1",
+  "temp": "rrJdaw&%JmsTCCG5",
+  "lockedOutText": "Sign in to RestaurantOS Enter your email and password to continue Email Password Authenticator code Enter your authenticator code to finish signing in. Use a restaurant identifier instead Sign in",
+  "rebootstrap": "400 {\"error\":{\"code\":\"VALIDATION_FAILED\",\"message\":\"Request validation failed\",\"details\":[{\"field\":\"tenantSlug\",\"issue\":\"must not be blank\"}],\"traceId\":\"unknown\"}}"
+}

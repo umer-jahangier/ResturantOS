@@ -1,0 +1,9 @@
+{
+  "text": "Floating Terrace\nOVERVIEW\nDashboard\nORDERS\nPOS\nMENU\nService Charge\nPEOPLE\nCustomers\nCollapse\nOrders\nOrder\nReceipt\nFloating Terrace HQ\nSearch…\n⌘K\nE\nBack\nPrint a browser copy\nPrinting on audit-receipt…\nF8 live agent is connected and collecting this bill now. This notice will confirm when the agent reports it delivered.\n*** REPRINT #3 ***\nOriginally issued 2026-08-12T11:06:18.746Z\nFloating Terrace HQ\n12 Khayaban-e-Iqbal, F-7 Markaz, Islamabad\n+92 21 4628872\nOrder\nORD-20260812-0383\nIssued\n2026-08-12T11:07:58.878Z\n1 x Audit Item 60568\nRs 499.00\nSubtotal\nRs 499.00\nDiscount\nRs 0.00\nService charge (5.00%)\nRs 24.95\nTax\nRs 0.00\nTOTAL\nRs 523.95\nCASH\nRs 523.95\nTendered\nRs 1,500.00\nChange\nRs 976.05",
+  "reprint": "*** REPRINT #3 ***",
+  "originallyIssued": "Originally issued 2026-08-12T11:06:18.746Z",
+  "total": "Rs 523.95",
+  "cash": "Rs 523.95",
+  "tendered": "Rs 1,500.00",
+  "change": "Rs 976.05"
+}

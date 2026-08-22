@@ -1,0 +1,28 @@
+login=true
+rows: 1
+
+===== CHARGE =====
+dialog: 1 box={"x":576,"y":364.5,"width":448,"height":371}
+dialog text: Charge DIAG Verify Corp 47144 |  | Posts DR Accounts Receivable / CR revenue. Rejected if it would exceed the credit limit. |  | Amount (PKR) | Date | Reference | Cancel | Post charge | Close
+fields: [{"name":"amountRupees","type":"text","ph":"40000"},{"name":"txnDate","type":"date","ph":""},{"name":"reference","type":"text","ph":"INV-1042"}]
+dialog still open: 0
+alerts: []
+
+===== AR AGING after the charge =====
+AR aging: AR Aging | Floating Terrace HQ | Search… | ⌘K | 9 | Takings | Transactions | Accounts | Journal Entries | General Ledger | Periods | Expenses | AP Aging | House Accounts | AR Aging | Guide | AR Aging |  | Outstanding house-account charges bucketed by how overdue they are. |  | Bucket	Days	Amount | Current	0-30 days	Rs 100.00 | 31-60 days	31-60 days	Rs 0.00 | 61-90 days	61-90 days	Rs 0.00 | Over 90 days	91+ days	Rs 0.00 | Total receivables	Rs 100.00
+
+--- non-GET network ---
+401 POST /api/v1/auth/login :: {"error":{"code":"TOTP_REQUIRED","message":"TOTP code required","details":[],"traceId":"unknown"}}
+200 POST /api/v1/auth/login :: {"data":{"accessToken":"eyJraWQiOiJkZXYta2V5LTEiLCJhbGciOiJSUzI1NiJ9.eyJqdGkiOiIyZmI3MjdhNy0xZDdhLTRhNDMtYmExMy00ZTM4ODg2ZjgwNGMiLCJzdWIiOiI5ZTExZWYwNi00YmZhLTRmYzItYWY0Zi1iMjA2M2IyOTc2NjIiLCJ0ZW5hbnR
+200 POST /api/v1/reporting/reports/sales-by-day/run :: {"data":{"code":"sales-by-day","title":"Sales by Day","columns":["business_date","order_count","subtotal_paisa","discount_paisa","tax_paisa","total_paisa"],"rows":[],"rowCount":0,"durationMs":35,"data
+200 POST /api/v1/reporting/reports/sales-by-day/run :: {"data":{"code":"sales-by-day","title":"Sales by Day","columns":["business_date","order_count","subtotal_paisa","discount_paisa","tax_paisa","total_paisa"],"rows":[{"business_date":"2026-08-07T19:00:0
+200 POST /api/v1/reporting/reports/sales-by-item/run :: {"data":{"code":"sales-by-item","title":"Sales by Item","columns":["menu_item_id","item_name","qty","gross_revenue_paisa","cogs_paisa","gross_margin_paisa"],"rows":[{"menu_item_id":"ac11b4bc-2b9a-4305
+200 POST /api/v1/auth/refresh :: {"data":{"accessToken":"eyJraWQiOiJkZXYta2V5LTEiLCJhbGciOiJSUzI1NiJ9.eyJqdGkiOiI0ZmQ4NjllMS00YjdhLTRjNDgtYTgyMS0xYWM1YzJlMjFjMjYiLCJzdWIiOiI5ZTExZWYwNi00YmZhLTRmYzItYWY0Zi1iMjA2M2IyOTc2NjIiLCJ0ZW5hbnR
+200 POST /api/v1/finance/ar/charges :: {"data":{"id":"da5abb18-7c97-4495-b6f0-ea42d62d42aa","customerAccountId":"d75eb287-636e-4ab0-ad0e-537cc8014863","txnType":"CHARGE","txnDate":"2026-08-12","dueDate":"2026-09-11","amountPaisa":10000,"so
+429 POST /api/v1/auth/refresh :: 
+401 POST /api/v1/auth/login :: {"error":{"code":"TOTP_REQUIRED","message":"TOTP code required","details":[],"traceId":"unknown"}}
+200 POST /api/v1/auth/login :: {"data":{"accessToken":"eyJraWQiOiJkZXYta2V5LTEiLCJhbGciOiJSUzI1NiJ9.eyJqdGkiOiJiYjRlNTE4Mi1mM2M0LTQ5NDItYWJkZi1jZmYxNDhjNTFlMjMiLCJzdWIiOiI5ZTExZWYwNi00YmZhLTRmYzItYWY0Zi1iMjA2M2IyOTc2NjIiLCJ0ZW5hbnR
+200 POST /api/v1/reporting/reports/sales-by-day/run :: {"data":{"code":"sales-by-day","title":"Sales by Day","columns":["business_date","order_count","subtotal_paisa","discount_paisa","tax_paisa","total_paisa"],"rows":[],"rowCount":0,"durationMs":18,"data
+200 POST /api/v1/reporting/reports/sales-by-item/run :: {"data":{"code":"sales-by-item","title":"Sales by Item","columns":["menu_item_id","item_name","qty","gross_revenue_paisa","cogs_paisa","gross_margin_paisa"],"rows":[{"menu_item_id":"ac11b4bc-2b9a-4305
+200 POST /api/v1/reporting/reports/sales-by-day/run :: {"data":{"code":"sales-by-day","title":"Sales by Day","columns":["business_date","order_count","subtotal_paisa","discount_paisa","tax_paisa","total_paisa"],"rows":[{"business_date":"2026-08-07T19:00:0
+200 POST /api/v1/auth/refresh :: {"data":{"accessToken":"eyJraWQiOiJkZXYta2V5LTEiLCJhbGciOiJSUzI1NiJ9.eyJqdGkiOiI3MDc0YTc1MC1hNDBmLTQ1MWUtOTZhYy04NmFiMjhiMTZlY2UiLCJzdWIiOiI5ZTExZWYwNi00YmZhLTRmYzItYWY0Zi1iMjA2M2IyOTc2NjIiLCJ0ZW5hbnR

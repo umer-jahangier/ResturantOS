@@ -1,0 +1,27 @@
+== S0-03 PROOF — manager@terrace.local, Floating Terrace ==
+signed in at: http://localhost:3000/app/dashboard
+seed state  : taxRatePct=17 taxRateCode="SR-STD-17"
+PASS  seed taxRateCode: got "SR-STD-17", expected "SR-STD-17"
+PASS  seed taxRatePct: got 17, expected 17
+menu page   : h1="Menu Items" denied=false failed=false
+dialog labels: ["Category","Name","Description","Price (Rs)","Tax rate (%)","Tax code","Picture"]
+PASS  tax rate field value: got "17", expected "17"
+PASS  tax code field value: got "SR-STD-17", expected "SR-STD-17"
+typed description: Seekh Kebab — typo fixed 918714
+PUT #1 body : {"categoryId":"5258fa35-679b-40c4-b1ec-f1d66f848d1a","name":"Seekh Kebab","description":"Seekh Kebab — typo fixed 918714","basePricePaisa":45000,"taxRatePct":17,"taxRateCode":"SR-STD-17","imageFileId":null}
+PASS  after reload, description: got "Seekh Kebab — typo fixed 918714", expected "Seekh Kebab — typo fixed 918714"
+PASS  after reload, tax code field: got "SR-STD-17", expected "SR-STD-17"
+PASS  after reload, tax rate field: got "17", expected "17"
+GET after edit: taxRatePct=17 taxRateCode="SR-STD-17" description="Seekh Kebab — typo fixed 918714"
+PASS  GET taxRateCode survived: got "SR-STD-17", expected "SR-STD-17"
+PASS  GET taxRatePct survived: got 17, expected 17
+PASS  GET description changed: got "Seekh Kebab — typo fixed 918714", expected "Seekh Kebab — typo fixed 918714"
+PUT #2 body : {"categoryId":"5258fa35-679b-40c4-b1ec-f1d66f848d1a","name":"Seekh Kebab","description":"Seekh Kebab — typo fixed 918714","basePricePaisa":45000,"taxRatePct":17,"taxRateCode":null,"imageFileId":null}
+GET after clear: taxRatePct=17 taxRateCode=null
+PASS  deliberate removal cleared the code: got null, expected null
+PASS  deliberate removal left the rate alone: got 17, expected 17
+PASS  cleared code reads back empty in the dialog: got "", expected ""
+GET after restore: taxRatePct=17 taxRateCode="SR-STD-17"
+PASS  re-classified through the UI: got "SR-STD-17", expected "SR-STD-17"
+
+ALL CHECKS PASSED

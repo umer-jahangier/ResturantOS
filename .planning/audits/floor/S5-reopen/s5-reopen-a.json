@@ -1,0 +1,333 @@
+{
+  "stamp": "19374",
+  "name": "Reopen Terrace 19374",
+  "renamed": "Reopen Terrace 19374 — Annexe",
+  "steps": [
+    {
+      "step": "sidebar links to /app/branches",
+      "detail": 1
+    },
+    {
+      "step": "page trouble on arrival",
+      "detail": []
+    },
+    {
+      "step": "rows on arrival",
+      "detail": [
+        "Floating Terrace HQ",
+        "Admin Branch 51070",
+        "Floating Terrace — Rooftop",
+        "Reopen Branch 28265 — Annexe",
+        "Reopen Branch 51070 — Annexe",
+        "S4 Reopen Probe 532004"
+      ]
+    },
+    {
+      "step": "writes seen so far",
+      "detail": [
+        {
+          "m": "POST",
+          "s": 201,
+          "u": "/api/v1/branches",
+          "body": "{\"data\":{\"id\":\"d77b159f-ec80-4193-83a4-6bd4e8da3489\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"name\":\"Reopen Terrace 19374\",\"isHq\":false,\"isActive\":true,\"address\":\"9 Zamzama Boulevard, Clifton, Karachi\",\"fbrStrn\":null,\"ntn\":null,\"p"
+        },
+        {
+          "m": "PUT",
+          "s": 200,
+          "u": "/api/v1/branches/d77b159f-ec80-4193-83a4-6bd4e8da3489",
+          "body": "{\"data\":{\"id\":\"d77b159f-ec80-4193-83a4-6bd4e8da3489\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"name\":\"Reopen Terrace 19374 — Annexe\",\"isHq\":false,\"isActive\":true,\"address\":\"9 Zamzama Boulevard, Clifton, Karachi\",\"fbrStrn\":null,\"ntn"
+        },
+        {
+          "m": "PUT",
+          "s": 200,
+          "u": "/api/v1/branches/d77b159f-ec80-4193-83a4-6bd4e8da3489",
+          "body": "{\"data\":{\"id\":\"d77b159f-ec80-4193-83a4-6bd4e8da3489\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"name\":\"Reopen Terrace 19374 — Annexe\",\"isHq\":false,\"isActive\":false,\"address\":\"9 Zamzama Boulevard, Clifton, Karachi\",\"fbrStrn\":null,\"nt"
+        }
+      ]
+    },
+    {
+      "step": "alerts on screen after submit",
+      "detail": []
+    },
+    {
+      "step": "row after reload",
+      "detail": {
+        "name": "Reopen Terrace 19374",
+        "text": "Reopen Terrace 193749 Zamzama Boulevard, Clifton, KarachiAsia/Dubai",
+        "active": "true"
+      }
+    },
+    {
+      "step": "renamed row after reload",
+      "detail": {
+        "name": "Reopen Terrace 19374 — Annexe",
+        "text": "Reopen Terrace 19374 — Annexe9 Zamzama Boulevard, Clifton, KarachiAsia/Dubai",
+        "active": "true"
+      }
+    },
+    {
+      "step": "switcher before switching",
+      "detail": {
+        "present": true,
+        "label": "Floating Terrace HQ",
+        "options": [
+          "Floating Terrace HQ",
+          "Reopen Branch 28265 — Annexe",
+          "Reopen Branch 51070 — Annexe",
+          "Reopen Terrace 19374 — Annexe",
+          "S4 Reopen Probe 532004"
+        ]
+      }
+    },
+    {
+      "step": "live token BEFORE switch",
+      "detail": {
+        "branch_id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "tenant_id": "d108c2e6-a70d-49c8-acdc-37531fd752d8",
+        "sub": "61334688-6b5c-4926-ac82-e93208ba5324"
+      }
+    },
+    {
+      "step": "switcher AFTER switch",
+      "detail": {
+        "present": true,
+        "label": "Reopen Terrace 19374 — Annexe",
+        "options": [
+          "Floating Terrace HQ",
+          "Reopen Branch 28265 — Annexe",
+          "Reopen Branch 51070 — Annexe",
+          "Reopen Terrace 19374 — Annexe",
+          "S4 Reopen Probe 532004"
+        ]
+      }
+    },
+    {
+      "step": "live token AFTER switch",
+      "detail": {
+        "branch_id": "d77b159f-ec80-4193-83a4-6bd4e8da3489",
+        "tenant_id": "d108c2e6-a70d-49c8-acdc-37531fd752d8",
+        "sub": "61334688-6b5c-4926-ac82-e93208ba5324"
+      }
+    },
+    {
+      "step": "switcher AFTER RELOAD",
+      "detail": {
+        "present": true,
+        "label": "Reopen Terrace 19374 — Annexe",
+        "options": [
+          "Floating Terrace HQ",
+          "Reopen Branch 28265 — Annexe",
+          "Reopen Branch 51070 — Annexe",
+          "Reopen Terrace 19374 — Annexe",
+          "S4 Reopen Probe 532004"
+        ]
+      }
+    },
+    {
+      "step": "live token AFTER RELOAD",
+      "detail": {
+        "branch_id": "d77b159f-ec80-4193-83a4-6bd4e8da3489",
+        "tenant_id": "d108c2e6-a70d-49c8-acdc-37531fd752d8",
+        "sub": "61334688-6b5c-4926-ac82-e93208ba5324"
+      }
+    },
+    {
+      "step": "data screen orders ON NEW BRANCH",
+      "detail": {
+        "trouble": [
+          "404"
+        ],
+        "head": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+      }
+    },
+    {
+      "step": "data screen takings ON NEW BRANCH",
+      "detail": {
+        "trouble": [],
+        "head": "RestaurantOS\nReopen Terrace 19374 — Annexe\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nStation Routing\nPOS Terminals\nPrinters\nSales Tax\nService Charge\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entrie"
+      }
+    },
+    {
+      "step": "live token after switching BACK to HQ",
+      "detail": {
+        "branch_id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "tenant_id": "d108c2e6-a70d-49c8-acdc-37531fd752d8",
+        "sub": "61334688-6b5c-4926-ac82-e93208ba5324"
+      }
+    },
+    {
+      "step": "data screen orders ON HQ",
+      "detail": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+    },
+    {
+      "step": "data screen takings ON HQ",
+      "detail": "Floating Terrace\nFloating Terrace HQ\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nStation Routing\nPOS Terminals\nPrinters\nSales Tax\nService Charge\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGene"
+    },
+    {
+      "step": "writes after deactivate",
+      "detail": [
+        {
+          "m": "POST",
+          "s": 201,
+          "u": "/api/v1/branches",
+          "body": "{\"data\":{\"id\":\"d77b159f-ec80-4193-83a4-6bd4e8da3489\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"name\":\"Reopen Terrace 19374\",\"isHq\":false,\"isActive\":true,\"address\":\"9 Zamzama Boulevard, Clifton, Karachi\",\"fbrStrn\":null,\"ntn\":null,\"p"
+        },
+        {
+          "m": "PUT",
+          "s": 200,
+          "u": "/api/v1/branches/d77b159f-ec80-4193-83a4-6bd4e8da3489",
+          "body": "{\"data\":{\"id\":\"d77b159f-ec80-4193-83a4-6bd4e8da3489\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"name\":\"Reopen Terrace 19374 — Annexe\",\"isHq\":false,\"isActive\":true,\"address\":\"9 Zamzama Boulevard, Clifton, Karachi\",\"fbrStrn\":null,\"ntn"
+        },
+        {
+          "m": "PUT",
+          "s": 200,
+          "u": "/api/v1/branches/d77b159f-ec80-4193-83a4-6bd4e8da3489",
+          "body": "{\"data\":{\"id\":\"d77b159f-ec80-4193-83a4-6bd4e8da3489\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"name\":\"Reopen Terrace 19374 — Annexe\",\"isHq\":false,\"isActive\":false,\"address\":\"9 Zamzama Boulevard, Clifton, Karachi\",\"fbrStrn\":null,\"nt"
+        }
+      ]
+    },
+    {
+      "step": "rows after deactivate + reload",
+      "detail": [
+        "Floating Terrace HQ",
+        "Admin Branch 51070",
+        "Floating Terrace — Rooftop",
+        "Reopen Branch 28265 — Annexe",
+        "Reopen Branch 51070 — Annexe",
+        "S4 Reopen Probe 532004"
+      ]
+    },
+    {
+      "step": "switcher after deactivate",
+      "detail": {
+        "present": true,
+        "label": "Floating Terrace HQ",
+        "options": [
+          "Floating Terrace HQ",
+          "Reopen Branch 28265 — Annexe",
+          "Reopen Branch 51070 — Annexe",
+          "S4 Reopen Probe 532004"
+        ]
+      }
+    },
+    {
+      "step": "rows with 'show deactivated'",
+      "detail": [
+        "Floating Terrace HQ[true]",
+        "Admin Branch 51070[true]",
+        "Floating Terrace — Rooftop[true]",
+        "Reopen Branch 28265 — Annexe[true]",
+        "Reopen Branch 51070 — Annexe[true]",
+        "Reopen Terrace 19374 — Annexe[false]",
+        "S4 Reopen Probe 532004[true]"
+      ]
+    }
+  ],
+  "persistedAfterCreate": true,
+  "rowTextAfterCreate": "Reopen Terrace 193749 Zamzama Boulevard, Clifton, KarachiAsia/Dubai",
+  "renamePersisted": true,
+  "switcherBefore": {
+    "present": true,
+    "label": "Floating Terrace HQ",
+    "options": [
+      "Floating Terrace HQ",
+      "Reopen Branch 28265 — Annexe",
+      "Reopen Branch 51070 — Annexe",
+      "Reopen Terrace 19374 — Annexe",
+      "S4 Reopen Probe 532004"
+    ]
+  },
+  "claimBefore": {
+    "branch_id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+    "tenant_id": "d108c2e6-a70d-49c8-acdc-37531fd752d8",
+    "sub": "61334688-6b5c-4926-ac82-e93208ba5324"
+  },
+  "switchable": true,
+  "switcherAfter": {
+    "present": true,
+    "label": "Reopen Terrace 19374 — Annexe",
+    "options": [
+      "Floating Terrace HQ",
+      "Reopen Branch 28265 — Annexe",
+      "Reopen Branch 51070 — Annexe",
+      "Reopen Terrace 19374 — Annexe",
+      "S4 Reopen Probe 532004"
+    ]
+  },
+  "claimAfterSwitch": {
+    "branch_id": "d77b159f-ec80-4193-83a4-6bd4e8da3489",
+    "tenant_id": "d108c2e6-a70d-49c8-acdc-37531fd752d8",
+    "sub": "61334688-6b5c-4926-ac82-e93208ba5324"
+  },
+  "switcherAfterReload": {
+    "present": true,
+    "label": "Reopen Terrace 19374 — Annexe",
+    "options": [
+      "Floating Terrace HQ",
+      "Reopen Branch 28265 — Annexe",
+      "Reopen Branch 51070 — Annexe",
+      "Reopen Terrace 19374 — Annexe",
+      "S4 Reopen Probe 532004"
+    ]
+  },
+  "claimAfterReload": {
+    "branch_id": "d77b159f-ec80-4193-83a4-6bd4e8da3489",
+    "tenant_id": "d108c2e6-a70d-49c8-acdc-37531fd752d8",
+    "sub": "61334688-6b5c-4926-ac82-e93208ba5324"
+  },
+  "data_orders_new": {
+    "trouble": [
+      "404"
+    ],
+    "body": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+  },
+  "data_takings_new": {
+    "trouble": [],
+    "body": "RestaurantOS\nReopen Terrace 19374 — Annexe\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nStation Routing\nPOS Terminals\nPrinters\nSales Tax\nService Charge\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nBranches\nAppearance\nUsers\nRoles\nAudit log\nService health\nCollapse\nApp\nReports\nSales\nReopen Terrace 19374 — Annexe\nSearch…\n⌘K\n6\n← All reports\nReport not found\n\nThis report doesn't exist\n\nNo report is registered under the code \"sales\". The link may be out of date, or the code mistyped"
+  },
+  "data_orders_hq": {
+    "body": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+  },
+  "data_takings_hq": {
+    "body": "Floating Terrace\nFloating Terrace HQ\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nStation Routing\nPOS Terminals\nPrinters\nSales Tax\nService Charge\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nBranches\nAppearance\nUsers\nRoles\nAudit log\nService health\nCollapse\nApp\nReports\nSales\nFloating Terrace HQ\nSearch…\n⌘K\n6\n← All reports\nReport not found\n\nThis report doesn't exist\n\nNo report is registered under the code \"sales\". The link may be out of date, or the code mistyped — nothing has g"
+  },
+  "rowsAfterDeactivate": [
+    "Floating Terrace HQ",
+    "Admin Branch 51070",
+    "Floating Terrace — Rooftop",
+    "Reopen Branch 28265 — Annexe",
+    "Reopen Branch 51070 — Annexe",
+    "S4 Reopen Probe 532004"
+  ],
+  "switcherAfterDeactivate": {
+    "present": true,
+    "label": "Floating Terrace HQ",
+    "options": [
+      "Floating Terrace HQ",
+      "Reopen Branch 28265 — Annexe",
+      "Reopen Branch 51070 — Annexe",
+      "S4 Reopen Probe 532004"
+    ]
+  },
+  "goneFromSwitcher": true,
+  "allWrites": [
+    {
+      "m": "POST",
+      "s": 201,
+      "u": "/api/v1/branches",
+      "body": "{\"data\":{\"id\":\"d77b159f-ec80-4193-83a4-6bd4e8da3489\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"name\":\"Reopen Terrace 19374\",\"isHq\":false,\"isActive\":true,\"address\":\"9 Zamzama Boulevard, Clifton, Karachi\",\"fbrStrn\":null,\"ntn\":null,\"p"
+    },
+    {
+      "m": "PUT",
+      "s": 200,
+      "u": "/api/v1/branches/d77b159f-ec80-4193-83a4-6bd4e8da3489",
+      "body": "{\"data\":{\"id\":\"d77b159f-ec80-4193-83a4-6bd4e8da3489\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"name\":\"Reopen Terrace 19374 — Annexe\",\"isHq\":false,\"isActive\":true,\"address\":\"9 Zamzama Boulevard, Clifton, Karachi\",\"fbrStrn\":null,\"ntn"
+    },
+    {
+      "m": "PUT",
+      "s": 200,
+      "u": "/api/v1/branches/d77b159f-ec80-4193-83a4-6bd4e8da3489",
+      "body": "{\"data\":{\"id\":\"d77b159f-ec80-4193-83a4-6bd4e8da3489\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"name\":\"Reopen Terrace 19374 — Annexe\",\"isHq\":false,\"isActive\":false,\"address\":\"9 Zamzama Boulevard, Clifton, Karachi\",\"fbrStrn\":null,\"nt"
+    }
+  ]
+}

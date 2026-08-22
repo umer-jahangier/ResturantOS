@@ -1,0 +1,37 @@
+RestaurantOS
+PLATFORM
+Overview
+Tenants
+Sign out
+Platform Dashboard
+
+Every action taken here affects a whole restaurant group, not one branch.
+
+Tenants
+
+12
+
+Excluding purged
+
+Active
+
+12
+
+Suspended
+
+0
+
+Provisioning failed
+
+0
+
+By tier
+STARTER
+2
+GROWTH
+8
+ENTERPRISE
+2
+CUSTOM
+0
+Manage tenants →

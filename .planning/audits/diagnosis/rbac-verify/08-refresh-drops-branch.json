@@ -1,0 +1,95 @@
+{
+  "probe": "refresh-drops-the-switched-branch",
+  "steps": [
+    {
+      "k": "grant",
+      "v": {
+        "status": 200,
+        "body": "{\"data\":{\"id\":\"6f61fbc7-6564-4f51-95af-7606886a8227\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"userId\":\"666aefca-b5a2-4b07-a690-4ea3da88ff5d\",\"branchId\":\"c2d74ade-7ff8-4167-8cd0-131bfbdf4fba\",\"roleCode\":\"CASHIER\",\"approvalLimitPaisa\":null,\"active\":true,\"primary\":false,\"displacedRoleCode\":null},\"meta\":null,\"warnings\":[]}"
+      }
+    },
+    {
+      "k": "1-login",
+      "v": {
+        "branch": "HQ",
+        "roles": [
+          "WAITER"
+        ],
+        "perms": 7,
+        "cookieNames": [
+          "refresh_token"
+        ]
+      }
+    },
+    {
+      "k": "2-raw",
+      "v": {
+        "status": 200,
+        "body": "{\"data\":{\"accessToken\":\"eyJraWQiOiJkZXYta2V5LTEiLCJhbGciOiJSUzI1NiJ9.eyJqdGkiOiI3YTVjNDRhMC05OGMyLTRmNWMtYmU3YS1lNWE2YTkzNzNmMWUiLCJzdWIiOiI2NjZhZWZjYS1iNWEyLTRiMDctYTY5MC00ZWEzZGE4OGZmNWQiLCJ0ZW5hbnRfaWQiOiJkMTA4YzJlNi1hNzBkLTQ5YzgtYWNkYy0zNzUzMWZkNzUyZDgiLCJicmFuY2hfaWQiOiJjMmQ3NGFkZS03ZmY4LTQxNjc"
+      }
+    },
+    {
+      "k": "2-switch-branch",
+      "v": {
+        "status": 200,
+        "branch": "ROOFTOP",
+        "roles": [
+          "CASHIER"
+        ],
+        "perms": 14,
+        "didItReissueTheRefreshCookie": "NO Set-Cookie on the switch response"
+      }
+    },
+    {
+      "k": "3-raw",
+      "v": {
+        "status": 200,
+        "body": "{\"data\":{\"accessToken\":\"eyJraWQiOiJkZXYta2V5LTEiLCJhbGciOiJSUzI1NiJ9.eyJqdGkiOiIzNWRmODk3OS02NmNjLTRlYTQtOGQ0Ny1iYTUzYzEzMzlkMDgiLCJzdWIiOiI2NjZhZWZjYS1iNWEyLTRiMDctYTY5MC00ZWEzZGE4OGZmNWQiLCJ0ZW5hbnRfaWQiOiJkMTA4YzJlNi1hNzBkLTQ5YzgtYWNkYy0zNzUzMWZkNzUyZDgiLCJicmFuY2hfaWQiOiIzNGNkNmY2Mi02YjhmLTRlYmY"
+      }
+    },
+    {
+      "k": "3-refresh-after-switch",
+      "v": {
+        "status": 200,
+        "branch": "HQ",
+        "roles": [
+          "WAITER"
+        ],
+        "perms": 7,
+        "VERDICT": "BRANCH SILENTLY REVERTED TO THE PRIMARY BRANCH"
+      }
+    },
+    {
+      "k": "4-crm-with-reverted-token",
+      "v": {
+        "status": 403,
+        "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"c887c319-2b57-40b2-8aa1-01f80dc3670c\"}}"
+      }
+    },
+    {
+      "k": "4-crm-with-switched-token",
+      "v": {
+        "status": 200,
+        "body": "{\"data\":{\"content\":[{\"id\":\"3a4ee2e0-0d60-47e0-bbb7-35c68370ed69\",\"phone\":\"03009824573\",\"name\":\"Diag Loyalty 24573\",\"email\":null,\"birthday\":null,\"tier\":\"BRONZE\",\"pointsBalance\":0,\"lifetimeSpendPaisa\":0}],\"empty\":false,\"first\":true,\"last\":true,\"number\":0,\"numberOfElements\":1,\"pageable\":{\"offset\":0,\"pageNumber\":0,\"pageSize\":1,\"paged\":true,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"unpaged\":false},\"size\":1,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"totalElements\":1,\"totalPages\""
+      }
+    },
+    {
+      "k": "5-second-refresh-same-cookie",
+      "v": {
+        "status": 200,
+        "body": "{\"data\":{\"accessToken\":\"eyJraWQiOiJkZXYta2V5LTEiLCJhbGciOiJSUzI1NiJ9.eyJqdGkiOiIyZjJiNmQ3Yy01OGJhLTQ2NzUtYWY2Yi1kZWNkOWFiMjE1MDQiLCJzdWIiOiI2NjZhZWZjYS1iNWEyLTRiMDctYTY5MC00ZWEzZGE4OGZmNWQiLCJ0ZW5hbnR"
+      }
+    },
+    {
+      "k": "RESTORE-delete",
+      "v": {
+        "status": 204,
+        "body": ""
+      }
+    },
+    {
+      "k": "RESTORE-assignments",
+      "v": "[{\"branchId\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"roleCode\":\"WAITER\",\"primary\":true,\"approvalLimitPaisa\":null}]"
+    }
+  ]
+}

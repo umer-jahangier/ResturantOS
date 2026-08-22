@@ -1,0 +1,52 @@
+{
+  "probe": "feature-gate-api-and-latency",
+  "steps": [
+    {
+      "k": "sniffed-manager-token",
+      "v": "eyJraWQiOiJkZXYta2V5LTEi… (len 2314)"
+    },
+    {
+      "k": "crm-API-BEFORE",
+      "v": {
+        "status": 200,
+        "body": "{\"data\":{\"content\":[{\"id\":\"3a4ee2e0-0d60-47e0-bbb7-35c68370ed69\",\"phone\":\"03009824573\",\"name\":\"Diag Loyalty 24573\",\"email\":null,\"birthday\":null,\"tier\":\"BRONZE\",\"pointsBalance\":0,\"lifetimeSpendPaisa\":0}],\"empty\":false,\"first\":true,\"last\":true,\"number\":0,\"numberOfElements\":1,\"pageable\":{\"offset\":0,\"pageNumber\":0,\"pageSize\":5,\"paged\":true,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"unpaged\":false},\"size\":5,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"totalElements\":1,\"totalPages\""
+      }
+    },
+    {
+      "k": "row-before",
+      "v": "FEATURE_CRM On Included in tier Disable"
+    },
+    {
+      "k": "clicked-disable-at",
+      "v": "2026-08-11T22:23:53.462Z"
+    },
+    {
+      "k": "API-FLIPPED",
+      "v": {
+        "afterMs": 3090,
+        "status": 403,
+        "body": "{\"error\":{\"code\":\"FEATURE_DISABLED\",\"message\":\"Upgrade to enable this feature\"}}"
+      }
+    },
+    {
+      "k": "row-after-revert",
+      "v": "FEATURE_CRM On Included in tier Disable"
+    },
+    {
+      "k": "crm-API-restored-after-s",
+      "v": 0
+    }
+  ],
+  "poll": [
+    {
+      "ms": 82,
+      "status": 200,
+      "code": null
+    },
+    {
+      "ms": 3090,
+      "status": 403,
+      "code": "FEATURE_DISABLED"
+    }
+  ]
+}

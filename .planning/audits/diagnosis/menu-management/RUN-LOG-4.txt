@@ -1,0 +1,118 @@
+A) cashier POS open. grid contains "Butter Naan" BEFORE 86 = true
+  shot: 40-cashier-before-86.png
+  owner deactivated Butter Naan — toast: []
+  shot: 41-owner-86ed.png
+  cashier grid still shows "Butter Naan" after ~5s (no reload) = true
+  cashier grid still shows "Butter Naan" after ~10s (no reload) = true
+  cashier grid still shows "Butter Naan" after ~20s (no reload) = true
+  shot: 42-cashier-after-86-noreload.png
+  cashier grid shows "Butter Naan" AFTER a manual reload = false
+  shot: 43-cashier-after-86-reloaded.png
+  restored Butter Naan
+B) EDIT dialog for an item WITH a picture:
+    Edit menu item
+    
+    Changes apply the next time this item is ordered — orders already in progress keep their original price.
+    
+    Category
+    Select a category…
+    Diag Cat 683566
+    Diag Cat 785508
+    Starters
+    Mains
+    Drinks
+    Soft Drinks
+    Name
+    Description
+    Price (Rs)
+    Picture
+    Replace
+    Remove
+    
+    JPEG, PNG or WebP · up to 2 MB
+    
+    Cancel
+    Save changes
+    Close
+  shows Replace/Remove (picture round-tripped) = true
+  <img> preview inside the edit dialog = 1
+  shot: 44-edit-dialog-with-picture.png
+  shot: 45-recipes-page.png
+C) recipes page mentions plate cost / food cost % / margin = {"plateCost":true,"foodCostPct":false,"margin":false,"coverage":true}
+  recipe detail URL: http://localhost:3000/app/inventory/recipes/ac11b4bc-2b9a-4305-8ea2-3afb58f2ed0c
+  shot: 46-recipe-detail.png
+  RECIPE DETAIL:
+    Users
+    Collapse
+    Inventory
+    Recipes
+    Recipe
+    Floating Terrace HQ
+    Search…
+    ⌘K
+    6
+    Ingredients
+    Categories
+    Recipes
+    Coverage
+    Stock
+    Setup
+    ← Recipes
+    Chicken Karahi
+    
+    View ingredient lines version by version and author a new revision.
+    
+    Create new revision
+    v1 · current
+    
+    v1 · active since 8/11/2026
+    
+    Ingredient	Qty	Unit	Yield %	Share of plate cost
+    Basmati Rice	0.25	KG	100	
+    100%
+    
+    Plate cost · Chicken Karahi
+    
+    Batch cost
+    
+    Rs 1,130.06
+    
+    Cost per portion
+    
+    Rs 1,130.06
+    
+    Food cost %
+    
+    77.9%
+    
+    Estimated from current ingredient cost — actual cost is set at depletion time.
+D) POS terminals URL tried: http://localhost:3000/app/terminals
+  shot: 47-pos-terminals.png
+  terminals body:
+    General
+    Appearance
+    Users
+    Collapse
+    App
+    Terminals
+    Floating Terrace HQ
+    Search…
+    ⌘K
+    6
+    POS Terminals
+    
+    Named tills. Each one decides which part of the menu it offers and which stations its orders fire to.
+    
+    Add terminal
+    Show retired
+    BAR21428
+    Bar till
+    Counter
+    
+    Offers Drinks, Soft Drinks · fires to Main bar
+    
+    DIAGTERM76539
+    Diag Bar Till 76539
+    Counter
+    
+    Offers Drinks · fires to Main bar

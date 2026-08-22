@@ -1,0 +1,22 @@
+== login ==
+    NET 200 POST GW/api/v1/auth/login 
+    NET 200 GET FE/platform/dashboard?_rsc=qYT2Wy2QR8kXuUU6 
+    NET 200 GET GW/api/v1/platform/tenants?page=0&size=200 
+  landed http://localhost:3000/platform/dashboard
+  cookies: ["refresh_token=wrNb15J--sRvT3...","has_session=1..."]
+  -- goto /platform/dashboard
+    NET 200 GET FE/platform/dashboard 
+    NET 200 POST GW/api/v1/auth/refresh 
+    NET 200 GET GW/api/v1/platform/tenants?page=0&size=200 
+     state: OK RestaurantOS PLATFORM Overview Tenants Sign out Pl
+  -- goto /platform/health
+    NET 404 GET FE/platform/health <!DOCTYPE html><html lang="en" class="geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variable h-full antialiased"><head><meta charSet="utf-8"/><meta na
+    NET 200 POST GW/api/v1/auth/refresh 
+     state: 404
+  cookies after 404: ["refresh_token=MemXwA576cqgzl...","has_session=1..."]
+  -- goto /platform/dashboard
+    NET 200 GET FE/platform/dashboard 
+    NET 200 POST GW/api/v1/auth/refresh 
+    NET 200 GET GW/api/v1/platform/tenants?page=0&size=200 
+     state: OK RestaurantOS PLATFORM Overview Tenants Sign out Pl
+  cookies at end: ["refresh_token=jLTlnX8uMleWFm...","has_session=1..."]

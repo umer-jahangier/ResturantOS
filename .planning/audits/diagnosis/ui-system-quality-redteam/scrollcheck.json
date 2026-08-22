@@ -1,0 +1,79 @@
+{
+  "scrollers": {
+    "dialogBox": {
+      "top": 69,
+      "bottom": 831,
+      "h": 762
+    },
+    "dialogMaxHeight": "none",
+    "dialogOverflowY": "visible",
+    "vh": 900,
+    "scrollers": [
+      {
+        "tag": "form",
+        "cls": "grid max-h-[65vh] gap-6 overflow-y-auto",
+        "overflowY": "auto",
+        "maxHeight": "585px",
+        "scrollH": 1016,
+        "clientH": 585,
+        "canScroll": true
+      },
+      {
+        "tag": "span",
+        "cls": "sr-only",
+        "overflowY": "hidden",
+        "maxHeight": "none",
+        "scrollH": 20,
+        "clientH": 1,
+        "canScroll": true
+      }
+    ]
+  },
+  "before": {
+    "submit": {
+      "top": 783,
+      "bottom": 815,
+      "inView": true
+    },
+    "allergenGluten": {
+      "top": 1115,
+      "bottom": 1145,
+      "inView": false
+    },
+    "storageLocation": {
+      "top": 909,
+      "bottom": 941,
+      "inView": false
+    },
+    "shelfLife": {
+      "top": 921,
+      "bottom": 953,
+      "inView": false
+    },
+    "vh": 900
+  },
+  "afterWheel": {
+    "dialogTop": 69,
+    "winY": 0,
+    "dialogScrollTop": 0,
+    "submitTop": 783,
+    "glutenTop": 684,
+    "glutenInView": true
+  },
+  "tabReachedGluten": true,
+  "afterTab": {
+    "focused": "Gluten",
+    "glutenTop": 720,
+    "glutenInView": true,
+    "dialogTop": 69,
+    "winY": 0,
+    "dialogScrollTop": 0
+  },
+  "glutenExists": true,
+  "afterScrollIntoView": {
+    "glutenTop": 720,
+    "inView": true,
+    "winY": 0,
+    "dialogScrollTop": 0
+  }
+}

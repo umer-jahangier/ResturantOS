@@ -1,0 +1,38 @@
+== PART 1: single fresh session, 8 sequential valid navigations, 3s waits ==
+  -- trial 1: login -> http://localhost:3000/platform/dashboard
+      [T1] refresh -> 200 
+      [T1] refresh -> 200 
+      [T1] refresh -> 200 
+      [T1] refresh -> 200 
+      [T1] refresh -> 200 
+      [T1] refresh -> 200 
+      [T1] refresh -> 200 
+      [T1] refresh -> 200 
+     OK OK OK OK OK OK OK OK
+  -- trial 2: login -> http://localhost:3000/platform/dashboard
+      [T2] refresh -> 200 
+      [T2] refresh -> 200 
+      [T2] refresh -> 200 
+      [T2] refresh -> 200 
+      [T2] refresh -> 200 
+      [T2] refresh -> 200 
+      [T2] refresh -> 200 
+      [T2] refresh -> 200 
+     OK OK OK OK OK OK OK OK
+  -- trial 3: login -> http://localhost:3000/platform/dashboard
+      [T3] refresh -> 401 {"error":{"code":"UNAUTHENTICATED","message":"Invalid refresh session","details":[],"traceId":"unknown"}}
+     LOGGED_OUT(expired) LOGGED_OUT LOGGED_OUT LOGGED_OUT LOGGED_OUT LOGGED_OUT LOGGED_OUT LOGGED_OUT
+
+== PART 2: same session, but navigating by CLICKING the nav (SPA) ==
+  login -> http://localhost:3000/platform/dashboard
+  Tenants=OK Overview=OK Tenants=OK Overview=OK Tenants=OK Overview=OK Tenants=OK Overview=OK
+
+== PART 3: TWO TABS, same context (what an operator actually does) ==
+  tab1 login -> http://localhost:3000/platform/dashboard
+      [tab2] refresh -> 200 
+  tab2 opened /platform/tenants -> OK
+      [tab1] refresh -> 200 
+  tab1 after reload -> OK
+      [tab1] refresh -> 200 
+      [tab2] refresh -> 401 {"error":{"code":"UNAUTHENTICATED","message":"Invalid refresh session","details":[],"traceId":"unknown"}}
+  after simultaneous nav: tab1 = OK | tab2 = LOGGED_OUT(expired)

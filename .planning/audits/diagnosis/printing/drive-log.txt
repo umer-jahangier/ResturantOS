@@ -1,0 +1,62 @@
+=== PERSONA: CASHIER ===
+login cashier@terrace.local: OK -> http://localhost:3000/app/dashboard
+
+--- (a) Is there a printer SETTINGS screen? Hunt every plausible route ---
+  /app/settings: failure state on attempt 1, RETRYING
+  /app/settings -> url=http://localhost:3000/app/settings 404=false denied=true alertEls=1
+    text[0:260]: Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse App Settings Floating Terrace HQ Search… ⌘K E Access denied You do not have permission to view this page. Back to dashboard
+  shot: a-settings-root.png
+  console.error: Failed to load resource: the server responded with a status of 404 (Not Found)
+  /app/settings/printers: failure state on attempt 1, RETRYING
+  console.error: Failed to load resource: the server responded with a status of 404 (Not Found)
+  /app/settings/printers -> url=http://localhost:3000/app/settings/printers 404=true denied=false alertEls=1
+    text[0:260]: 404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data. Back to dashboard
+  shot: a-settings-printers.png
+  console.error: Failed to load resource: the server responded with a status of 404 (Not Found)
+  console.error: Failed to load resource: the server responded with a status of 429 (Too Many Requests)
+  /app/settings/printing: failure state on attempt 1, RETRYING
+  /app/settings/printing -> url=http://localhost:3000/login 404=false denied=false alertEls=1
+    text[0:260]: Sign in to RestaurantOS Enter your email and password to continue Email Password Use a restaurant identifier instead Sign in
+  shot: a-settings-printing.png
+  /app/settings/receipt: failure state on attempt 1, RETRYING
+  /app/settings/receipt -> url=http://localhost:3000/login 404=false denied=false alertEls=1
+    text[0:260]: Sign in to RestaurantOS Enter your email and password to continue Email Password Use a restaurant identifier instead Sign in
+  shot: a-settings-receipt.png
+  /app/settings/devices: failure state on attempt 1, RETRYING
+  /app/settings/devices -> url=http://localhost:3000/login 404=false denied=false alertEls=1
+    text[0:260]: Sign in to RestaurantOS Enter your email and password to continue Email Password Use a restaurant identifier instead Sign in
+  shot: a-settings-devices.png
+  /app/pos/settings: failure state on attempt 1, RETRYING
+  /app/pos/settings -> url=http://localhost:3000/login 404=false denied=false alertEls=1
+    text[0:260]: Sign in to RestaurantOS Enter your email and password to continue Email Password Use a restaurant identifier instead Sign in
+  shot: a-pos-settings.png
+  /app/pos/printers: failure state on attempt 1, RETRYING
+  /app/pos/printers -> url=http://localhost:3000/login 404=false denied=false alertEls=1
+    text[0:260]: Sign in to RestaurantOS Enter your email and password to continue Email Password Use a restaurant identifier instead Sign in
+  shot: a-pos-printers.png
+  /app/printers: failure state on attempt 1, RETRYING
+  /app/printers -> url=http://localhost:3000/login 404=false denied=false alertEls=1
+    text[0:260]: Sign in to RestaurantOS Enter your email and password to continue Email Password Use a restaurant identifier instead Sign in
+  shot: a-app-printers.png
+
+--- (a2) Sidebar / global search: does the word 'printer' appear anywhere in nav? ---
+  nav text: 
+  nav mentions printer? false
+  shot: a2-nav.png
+
+--- (c) Cashier prints a bill: does window.print() fire? ---
+  receipt page text[0:400]: Sign in to RestaurantOS Enter your email and password to continue Email Password Use a restaurant identifier instead Sign in
+  >>> window.print() call count = 0
+  shot: c-receipt-auto-print.png
+  manual Print button NOT FOUND
+  shot: c-receipt-after-click.png
+
+--- (d) Any request to a local print agent (127.0.0.1:7654) from the browser? ---
+  print/receipt-ish requests observed:
+    GET http://localhost:3000/app/settings/printers
+    GET http://localhost:3000/app/settings/printing
+    GET http://localhost:3000/app/settings/receipt
+    GET http://localhost:3000/app/pos/printers
+    GET http://localhost:3000/app/printers
+    GET http://localhost:3000/app/pos/orders/2997f9c6-718d-41f0-8216-988d435025c0/receipt
+  any agent call (7654)? false

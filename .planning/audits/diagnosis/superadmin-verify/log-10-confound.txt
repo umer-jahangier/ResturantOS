@@ -1,0 +1,15 @@
+A signed in -> http://localhost:3000/platform/dashboard
+      [A] refresh 200
+A on tenants: OK
+B signed in -> http://localhost:3000/platform/dashboard OK
+      [A] refresh 200
+A nav#1 after B logged in -> OK
+      [A] refresh 200
+A nav#2 after B logged in -> OK
+      [A] refresh 200
+A nav#3 after B logged in -> OK
+B still ok? -> OK
+
+-- ALONE: one context, 10 hard navigations, nothing else touching the account --
+  OK OK OK OK OK OK OK OK OK OK
+  failed refreshes: 0

@@ -1,0 +1,115 @@
+
+===== 3. CREATE A JOURNAL ENTRY (accountant) =====
+date label: Selected: 2025-08-01
+controls: ["BUTTON<button>[Collapse sidebar]","BUTTON<button>[Toggle mobile menu]","BUTTON<button>[Open command palette]","BUTTON<button>[Search]","BUTTON<button>[Switch to light mode]","BUTTON<button>[radix-_R_i5ekndlb_]","BUTTON<button>[Previous month]","BUTTON<button>[Next month]","BUTTON<button>[1]","BUTTON<button>[2]","BUTTON<button>[3]","BUTTON<button>[4]","BUTTON<button>[5]","BUTTON<button>[6]","BUTTON<button>[7]","BUTTON<button>[8]","BUTTON<button>[9]","BUTTON<button>[10]","BUTTON<button>[11]","BUTTON<button>[12]","BUTTON<button>[13]","BUTTON<button>[14]","BUTTON<button>[15]","BUTTON<button>[16]","BUTTON<button>[17]","BUTTON<button>[18]","BUTTON<button>[19]","BUTTON<button>[20]","BUTTON<button>[21]","BUTTON<button>[22]","BUTTON<button>[23]","BUTTON<button>[24]","BUTTON<button>[25]","BUTTON<button>[26]","BUTTON<button>[27]","BUTTON<button>[28]","BUTTON<button>[29]","BUTTON<button>[30]","BUTTON<button>[31]","INPUT<>[description]","INPUT<>[Search account code or name]","INPUT<>[Line description]","INPUT<number>[0]","INPUT<number>[0]","BUTTON<button>[Remove line]","INPUT<>[Search account code or name]","INPUT<>[Line description]","INPUT<number>[0]","INPUT<number>[0]","BUTTON<button>[Remove line]","BUTTON<button>[+ Add line]","BUTTON<submit>[Save as Draft]","BUTTON<button>[Cancel]"]
+selects on form: 0
+numeric inputs: 4
+balance indicator: Total DR: 10,000 Total CR: 10,000 Balanced
+"Not balanced" still shown: false
+buttons: ["Collapse","","Search…⌘K","","","9","","","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","×","×","+ Add line","Save as Draft","Cancel"]
+has a POST/approve control: false
+
+===== 4. CLOSE A PERIOD (accountant holds finance.period.close) =====
+Close Period buttons: 12
+dialog count: 1
+dialog box: {"x":0,"y":0,"width":1500,"height":1100}
+dialog text: Close Accounting Period |  | 2026-07-01 – 2026-07-31 |  | Warning: Closing a period locks it permanently. No new journal entries can be posted to a locked period. | Close Period | Cancel
+dialog buttons: ["Close Period","Cancel"]
+period API calls: none
+alerts: [""]
+page mentions TOTP/step-up: false
+
+===== 5. NEW EXPENSE =====
+New expense buttons: 1
+dialog count: 1
+dialog box: {"x":494,"y":327.5,"width":512,"height":445}
+dialog text:
+New expense
+
+Submitted expenses start PENDING_APPROVAL until an approver acts on them.
+
+Expense account
+Select an account
+6000 — Operating Expenses
+6100 — Rent Expense
+6200 — Salaries & Wages
+6300 — Utilities Expense
+6400 — Marketing Expense
+6500 — Depreciation Expense
+6600 — Repair & Maintenance
+6700 — Insurance Expense
+6800 — Miscellaneous Expense
+7000 — Non-Operating
+7100 — Finance Charges
+7200 — Penalty & Fines
+Expense date
+Amount (PKR)
+Description
+Cancel
+Submit expense
+Close
+dialog controls: ["SELECT<>[expenseAccountCode]","INPUT<date>[expenseDate]","INPUT<>[amountRupees]","INPUT<>[description]","BUTTON<button>[Cancel]","BUTTON<submit>[Submit expense]","BUTTON<button>[Close]"]
+has receipt/attachment field: false
+has vendor field: false
+
+===== 7. TILL / CASH-UP as manager@terrace.local =====
+url=http://localhost:3000/app/pos/tills denied=false errored=false
+Floating Terrace
+Floating Terrace HQ
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+Kitchen Display
+Till Review
+
+MENU
+
+Inventory
+Menu Items
+Tables
+Stations
+POS Terminals
+
+FINANCE
+
+Guide
+Takings
+
+PURCHASING
+
+Purchasing
+
+PEOPLE
+
+Customers
+
+REPORTING
+
+Reports
+Realtime Dashboard
+Ask (NLQ)
+Collapse
+App
+POS
+Tills
+Floating Terrace HQ
+Search…
+⌘K
+F
+Till Review
+Refresh
+OPENED	CLOSED	CASHIER	STATUS	REVIEW	FLOAT	EXPECTED	DECLARED	VARIANCE	ACTIONS	
+8/11/2026, 5:52:40 PM	—	fefd7187	OPEN	PENDING REVIEW	Rs 5,000.00	—	—	—	—	Details
+8/8/2026, 11:47:44 PM	—	9b1d4c3a	OPEN	PENDING REVIEW	Rs 1,000.00	—	—	—	—	Details
+8/7/2026, 6:56:36 AM	8/9/2026, 12:35:18 AM	61334688	CLOSED	FLAGGED	Rs 0.05	Rs 6,836.05	Rs 43,567.00	Rs 36,730.95	
+Change status
+	Details
+8/7/2026, 6:39:26 AM	—	eb2ee67e	OPEN	PENDING REVIEW	Rs 5,000.00	—	—	—	—	Details
+Page 1 · 4 sessions total
+Previous
+Next

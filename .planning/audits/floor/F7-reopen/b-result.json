@@ -1,0 +1,193 @@
+{
+  "scenario": "B-adjacent",
+  "startedAt": "2026-08-12T11:01:14.427Z",
+  "checks": [
+    {
+      "name": "a HALF-paid check produces no bill",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "the screen says so too (no bill yet, on a check with money on it)",
+      "ok": true,
+      "detail": "No bill has been produced for this order yet. Print bill makes one."
+    },
+    {
+      "name": "a real balance is still outstanding",
+      "ok": true,
+      "detail": "31037"
+    },
+    {
+      "name": "the settling tender produces exactly one bill",
+      "ok": true,
+      "detail": {
+        "count": 1
+      }
+    },
+    {
+      "name": "it is the original",
+      "ok": true,
+      "detail": {
+        "printJobId": "e76aedf6-8ce0-4c25-bbb3-1ece77755e13",
+        "documentType": "CUSTOMER_RECEIPT",
+        "targetPrinterId": "audit-receipt",
+        "issueSeq": 1,
+        "status": "QUEUED",
+        "issuedAt": "2026-08-12T11:02:09.218113Z",
+        "originalIssuedAt": null
+      }
+    },
+    {
+      "name": "stamped at the SETTLING tender, not the first one",
+      "ok": true,
+      "detail": {
+        "firstPaymentAt": "2026-08-12T11:01:58.131163Z",
+        "settlingAt": "2026-08-12T11:02:08.743009Z",
+        "billAt": "2026-08-12T11:02:09.218113Z",
+        "gapMs": 475
+      }
+    },
+    {
+      "name": "the check is still open — no close has happened",
+      "ok": true,
+      "detail": "Mark served & close order"
+    },
+    {
+      "name": "the bill TOTAL equals the sum of order_payments, to the paisa",
+      "ok": true,
+      "detail": {
+        "billTotalPaisa": 62075,
+        "paidPaisa": 62075
+      }
+    },
+    {
+      "name": "the bill is a reprint of the tender-time original",
+      "ok": true,
+      "detail": {
+        "orig": "2026-08-12T11:02:09.218113Z",
+        "banner": "Originally issued 2026-08-12T11:02:09.218Z"
+      }
+    },
+    {
+      "name": "KITCHEN_STAFF (2 permissions) is refused the bill history",
+      "ok": true,
+      "detail": {
+        "status": 403,
+        "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"f73cb3b2-2683-4621-b118-073ba7e861e0\"}}"
+      }
+    },
+    {
+      "name": "another tenant gets NO rows for a Floating Terrace order",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "body": "{\"data\":[],\"meta\":null,\"warnings\":[]}"
+      }
+    }
+  ],
+  "table": "AUD6687 Available",
+  "orderId": "f83a87d1-ad21-4944-b787-685ac61f2879",
+  "orderNo": "ORD-20260812-0372",
+  "fullRupees": "620.75",
+  "halfRupees": "310.38",
+  "afterHalf": {
+    "strip": "No bill has been produced for this order yet. Print bill makes one.",
+    "billIssued": "false",
+    "remaining": "31037",
+    "errors": []
+  },
+  "receiptsAfterHalf": [],
+  "balanceRupees": "310.37",
+  "afterSettle": {
+    "strip": "Bill issued Aug 12, 2026, 4:02 PM Sent to audit-receipt. Check Settings → Printers if no paper appears — the job is kept and retried, not lost.",
+    "billIssued": "true",
+    "billIssuedAt": "2026-08-12T11:02:09.218113Z",
+    "remaining": "0",
+    "totalPaisa": [
+      {
+        "id": null,
+        "p": "57900"
+      },
+      {
+        "id": null,
+        "p": "0"
+      },
+      {
+        "id": null,
+        "p": "2895"
+      },
+      {
+        "id": null,
+        "p": "1280"
+      },
+      {
+        "id": null,
+        "p": "62075"
+      },
+      {
+        "id": null,
+        "p": "62075"
+      },
+      {
+        "id": "remaining-balance-value",
+        "p": "0"
+      }
+    ],
+    "closeCta": "Mark served & close order",
+    "errors": []
+  },
+  "payments": [
+    {
+      "method": "CASH",
+      "amountPaisa": 31038,
+      "tenderedPaisa": 31038,
+      "changePaisa": 0,
+      "recordedAt": "2026-08-12T11:01:58.131163Z"
+    },
+    {
+      "method": "CASH",
+      "amountPaisa": 31037,
+      "tenderedPaisa": 31037,
+      "changePaisa": 0,
+      "recordedAt": "2026-08-12T11:02:08.743009Z"
+    }
+  ],
+  "receiptsAfterSettle": [
+    {
+      "printJobId": "e76aedf6-8ce0-4c25-bbb3-1ece77755e13",
+      "documentType": "CUSTOMER_RECEIPT",
+      "targetPrinterId": "audit-receipt",
+      "issueSeq": 1,
+      "status": "QUEUED",
+      "issuedAt": "2026-08-12T11:02:09.218113Z",
+      "originalIssuedAt": null
+    }
+  ],
+  "settleGapMs": 475,
+  "bill": {
+    "reprint": "*** REPRINT #2 ***",
+    "originallyIssued": "Originally issued 2026-08-12T11:02:09.218Z",
+    "total": "Rs 620.75",
+    "cashLines": [
+      "CASH Rs 310.38",
+      "CASH Rs 310.37"
+    ],
+    "change": null
+  },
+  "paidPaisa": 62075,
+  "billTotalPaisa": 62075,
+  "kitchenRead": {
+    "status": 403,
+    "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"f73cb3b2-2683-4621-b118-073ba7e861e0\"}}"
+  },
+  "waiterRead": {
+    "status": 200,
+    "rows": 4
+  },
+  "crossTenantRead": {
+    "status": 200,
+    "body": "{\"data\":[],\"meta\":null,\"warnings\":[]}"
+  },
+  "finishedAt": "2026-08-12T11:02:55.538Z",
+  "failed": []
+}

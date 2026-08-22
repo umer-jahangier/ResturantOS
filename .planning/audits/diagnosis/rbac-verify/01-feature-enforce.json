@@ -1,0 +1,114 @@
+{
+  "probe": "feature-disable-enforcement",
+  "steps": [
+    {
+      "k": "manager-token",
+      "v": {}
+    },
+    {
+      "k": "crm-page-BEFORE",
+      "v": {
+        "url": "http://localhost:3000/app/crm",
+        "denied": false,
+        "notFound": false,
+        "failed": false,
+        "alerts": [],
+        "head": "RestaurantOS Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard A"
+      }
+    },
+    {
+      "k": "crm-API-BEFORE",
+      "v": {
+        "status": 401,
+        "body": "{\"error\":{\"code\":\"UNAUTHENTICATED\",\"message\":\"Authentication required\"}}"
+      }
+    },
+    {
+      "k": "tenant-detail-url",
+      "v": "http://localhost:3000/platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8"
+    },
+    {
+      "k": "feature-rows",
+      "v": 20
+    },
+    {
+      "k": "crm-row-text-BEFORE",
+      "v": "FEATURE_CRM On Included in tier Disable"
+    },
+    {
+      "k": "confirm-dialog",
+      "v": {
+        "width": 384,
+        "height": 365,
+        "text": "Disable FEATURE_CRM? Every user of Floating Terrace loses access to this module immediately — its screens stop loading and its API calls are refused on the next request. Nothing is deleted. All of the module's existing records are kept and re-enabling restores them exactly. This tenant's tier includes this module, so disabling it records a deliberate override that will survive future tier changes. Type Floating Terrace to confirm Cancel Disable module Close"
+      }
+    },
+    {
+      "k": "crm-row-text-AFTER",
+      "v": "FEATURE_CRM Off Revoked despite tier Tier default: on — this override survives a tier change Revert Enable"
+    },
+    {
+      "k": "crm-API-AFTER-same-token",
+      "v": {
+        "elapsedMs": 2585,
+        "status": 401,
+        "body": "{\"error\":{\"code\":\"UNAUTHENTICATED\",\"message\":\"Authentication required\"}}"
+      }
+    },
+    {
+      "k": "crm-page-AFTER-existing-session",
+      "v": {
+        "url": "http://localhost:3000/app/crm",
+        "denied": true,
+        "notFound": false,
+        "failed": false,
+        "alerts": [],
+        "head": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purchasing REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse App Customers Floating Terrace HQ Search… ⌘K F Access denied You do not have permission to view this page. Back to dashboard"
+      }
+    },
+    {
+      "k": "sidebar-contains-CRM-after-disable",
+      "v": false
+    },
+    {
+      "k": "crm-API-AFTER-fresh-token",
+      "v": {
+        "status": 401,
+        "body": "{\"error\":{\"code\":\"UNAUTHENTICATED\",\"message\":\"Authentication required\"}}"
+      }
+    },
+    {
+      "k": "crm-page-AFTER-fresh-login",
+      "v": {
+        "denied": true,
+        "failed": false,
+        "alerts": [],
+        "head": "RestaurantOS Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purchasing REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse App Customers Floating Terrace HQ Search… ⌘K F Access denied You do not have permission to view this page. Back to dashboard"
+      }
+    },
+    {
+      "k": "fresh-sidebar-contains-CRM",
+      "v": false
+    },
+    {
+      "k": "pos-page-AFTER-crm-disabled",
+      "v": {
+        "denied": false,
+        "failed": false,
+        "alerts": []
+      }
+    },
+    {
+      "k": "crm-row-text-REVERTED",
+      "v": "FEATURE_CRM On Included in tier Disable"
+    },
+    {
+      "k": "crm-API-AFTER-revert",
+      "v": {
+        "status": 401,
+        "body": "{\"error\":{\"code\":\"UNAUTHENTICATED\",\"message\":\"Authentication required\"}}"
+      }
+    }
+  ],
+  "tenantId": "d108c2e6-a70d-49c8-acdc-37531fd752d8"
+}

@@ -1,0 +1,56 @@
+[
+  {
+    "k": "label-right-after-switch",
+    "v": "Floating Terrace — Rooftop"
+  },
+  {
+    "k": "label-after-clientside-nav",
+    "v": "Floating Terrace — Rooftop"
+  },
+  {
+    "k": "tables-calls-after-clientside-nav",
+    "v": [
+      {
+        "url": "/api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&includeInactive=true",
+        "tok": "HQ"
+      }
+    ]
+  },
+  {
+    "k": "tables-content-clientside",
+    "v": "Add table\nShow retired\n\nNo tables yet\n\nAdd your dining tables and they become selectable on the order screen straight away.\n\nAdd table"
+  },
+  {
+    "k": "label-after-F5",
+    "v": "Floating Terrace HQ"
+  },
+  {
+    "k": "tables-calls-after-F5",
+    "v": [
+      {
+        "url": "/api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&includeInactive=true",
+        "tok": "HQ"
+      }
+    ]
+  },
+  {
+    "k": "tables-content-after-F5",
+    "v": "Add table\nShow retired\nGarden\n2 tables · 14 seats\nG1\n8 seats\nOccupied\nT3\n6 seats\nAvailable\nRooftop\n2 tables · 6 seats\nT1\n4 seats\nOccupied\nT2\n2 seats\nAvailable\nOther tables\n1 table · 4 seats\nH1\n4 seats\nAvailable"
+  },
+  {
+    "k": "route/app/stations",
+    "v": {
+      "denied": false,
+      "is404": false,
+      "content": "\nF\nStations\n\nWhere tickets go. A station's type decides which screen it appears on, and staff can be put on specific stations from the Users screen.\n\nAdd station\nShow retired\nKitchen screen\n1 station\nGRILL\nHot line\nKitchen\nBar screen\n2 stations\nBAR\nMain bar\nBar\nDGB28334\nDiag Bar 28334\nBar"
+    }
+  },
+  {
+    "k": "route/app/terminals",
+    "v": {
+      "denied": false,
+      "is404": false,
+      "content": "\nF\nPOS Terminals\n\nNamed tills. Each one decides which part of the menu it offers and which stations its orders fire to.\n\nAdd terminal\nShow retired\nBAR21428\nBar till\nCounter\n\nOffers Drinks, Soft Drinks · fires to Main bar\n\nDIAGTERM76539\nDiag Bar Till 76539\nCounter\n\nOffers Drinks · fires to Main bar"
+    }
+  }
+]

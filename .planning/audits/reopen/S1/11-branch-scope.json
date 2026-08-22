@@ -1,0 +1,45 @@
+{
+  "mine": {
+    "status": 200,
+    "body": {
+      "data": [
+        {
+          "id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "name": "Floating Terrace HQ",
+          "isHq": true,
+          "roleCode": "OWNER"
+        },
+        {
+          "id": "852a242c-b110-4b28-be25-ad46c9a3149a",
+          "name": "S4 Reopen Probe 532004",
+          "isHq": false,
+          "roleCode": "OWNER"
+        }
+      ],
+      "meta": null,
+      "warnings": []
+    }
+  },
+  "allBranches": [
+    {
+      "id": "c2d74ade-7ff8-4167-8cd0-131bfbdf4fba",
+      "name": "Floating Terrace — Rooftop"
+    },
+    {
+      "id": "852a242c-b110-4b28-be25-ad46c9a3149a",
+      "name": "S4 Reopen Probe 532004"
+    },
+    {
+      "id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "name": "Floating Terrace HQ"
+    }
+  ],
+  "otherBranchRouting": {
+    "branch": {
+      "id": "c2d74ade-7ff8-4167-8cd0-131bfbdf4fba",
+      "name": "Floating Terrace — Rooftop"
+    },
+    "status": 403,
+    "body": "{\"detail\":\"Cannot read station routing for a different branch\",\"instance\":\"/api/v1/pos/menu/routing\",\"status\":403,\"title\":\"FORBIDDEN\",\"type\":\"urn:restaurantos:pos:forbidden\"}"
+  }
+}

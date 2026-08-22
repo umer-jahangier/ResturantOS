@@ -1,0 +1,151 @@
+{
+  "DATE": "2026-08-12",
+  "days": [
+    "2026-08-12",
+    "2026-08-11",
+    "2026-08-08",
+    "2026-08-07"
+  ],
+  "first": {
+    "g": 7302600,
+    "d": 23050,
+    "n": 7279550,
+    "x": 611740,
+    "s": 21460,
+    "b": 7912750
+  },
+  "second": {
+    "g": 7302600,
+    "d": 23050,
+    "n": 7279550,
+    "x": 611740,
+    "s": 21460,
+    "b": 7912750
+  },
+  "api": {
+    "businessDate": "2026-08-12",
+    "branchId": null,
+    "grossSalesPaisa": 7302600,
+    "discountsPaisa": 23050,
+    "netSalesPaisa": 7279550,
+    "taxPaisa": 611740,
+    "serviceChargePaisa": 21460,
+    "totalBilledPaisa": 7912750,
+    "orderCount": 58,
+    "byTender": [
+      {
+        "method": "CARD",
+        "amountPaisa": 962170,
+        "paymentCount": 9,
+        "unclosedAmountPaisa": 0,
+        "unclosedPaymentCount": 0
+      },
+      {
+        "method": "CASH",
+        "amountPaisa": 9795920,
+        "paymentCount": 100,
+        "unclosedAmountPaisa": 2845340,
+        "unclosedPaymentCount": 43
+      }
+    ],
+    "tills": [
+      {
+        "tillSessionId": "f6b61863-0f47-4d17-923a-faa95ccb75ad",
+        "cashierId": "bc0d9897-e0ef-40de-b404-89ce044ab2cb",
+        "status": "CLOSED",
+        "openingFloatPaisa": 500000,
+        "expectedClosingPaisa": 668260,
+        "declaredClosingPaisa": 668260,
+        "variancePaisa": 0,
+        "openedAt": "2026-08-12T02:50:32.562264Z",
+        "closedAt": "2026-08-12T03:16:27.929650Z",
+        "reconciliationState": "MATCHED"
+      },
+      {
+        "tillSessionId": "d0a238df-6afb-479e-86ee-a841fa02bd14",
+        "cashierId": "bc0d9897-e0ef-40de-b404-89ce044ab2cb",
+        "status": "CLOSED",
+        "openingFloatPaisa": 500000,
+        "expectedClosingPaisa": 549900,
+        "declaredClosingPaisa": 529900,
+        "variancePaisa": -20000,
+        "openedAt": "2026-08-12T04:02:07.564887Z",
+        "closedAt": "2026-08-12T04:03:13.418783Z",
+        "reconciliationState": "SHORT"
+      },
+      {
+        "tillSessionId": "ae93ba15-bcc8-4c7a-b955-c30c5673b558",
+        "cashierId": "eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1",
+        "status": "OPEN",
+        "openingFloatPaisa": 500000,
+        "expectedClosingPaisa": null,
+        "declaredClosingPaisa": null,
+        "variancePaisa": null,
+        "openedAt": "2026-08-12T05:00:59.399392Z",
+        "closedAt": null,
+        "reconciliationState": "OPEN"
+      },
+      {
+        "tillSessionId": "4191dc24-5741-49a1-b803-e8bde5f921d0",
+        "cashierId": "4b9941f7-ae70-431a-8c63-ec61032f7a30",
+        "status": "OPEN",
+        "openingFloatPaisa": 500000,
+        "expectedClosingPaisa": null,
+        "declaredClosingPaisa": null,
+        "variancePaisa": null,
+        "openedAt": "2026-08-12T05:01:10.173706Z",
+        "closedAt": null,
+        "reconciliationState": "OPEN"
+      },
+      {
+        "tillSessionId": "7d01d1ff-6a1c-4d18-9530-8979ddd0e6a1",
+        "cashierId": "4fdc85ef-b1fc-4276-aedd-c998230e9786",
+        "status": "OPEN",
+        "openingFloatPaisa": 500000,
+        "expectedClosingPaisa": null,
+        "declaredClosingPaisa": null,
+        "variancePaisa": null,
+        "openedAt": "2026-08-12T05:31:56.209541Z",
+        "closedAt": null,
+        "reconciliationState": "OPEN"
+      },
+      {
+        "tillSessionId": "b17269cb-a019-43d4-8738-afc4f12bdd11",
+        "cashierId": "bc0d9897-e0ef-40de-b404-89ce044ab2cb",
+        "status": "CLOSED",
+        "openingFloatPaisa": 300000,
+        "expectedClosingPaisa": 354900,
+        "declaredClosingPaisa": 334900,
+        "variancePaisa": -20000,
+        "openedAt": "2026-08-12T06:23:04.322823Z",
+        "closedAt": "2026-08-12T06:30:41.515571Z",
+        "reconciliationState": "SHORT"
+      }
+    ],
+    "unclosed": {
+      "cashPaisa": 2845340,
+      "totalPaisa": 2845340,
+      "orderCount": 41,
+      "paymentCount": 43
+    },
+    "unknowns": [
+      {
+        "figure": "comps",
+        "reason": "Comps are not recorded separately from discounts. orders.discount_paisa is one column, and a full comp appears in it as a discount equal to the subtotal. Splitting them would require a field POS does not capture."
+      }
+    ]
+  },
+  "dash": {
+    "tiles": [
+      "NET SALES |  | Rs 109,433.10 |  | 73 orders in 30 days |  | No comparable prior period",
+      "NET SALES",
+      "Net sales divided by orders",
+      "Net sales | Orders | Aug 8 | Aug 11 | Aug 12 | Net sales — solid | Orders — dashed | Net sales and Orders by period | Period\tNet sales\tOrders | Aug 8\tRs 10,515\t5 | Aug 11\tRs 46,465\t34 | Aug 12\tRs 52,453\t34 | Net sales: Rs 52,453 latest | Orders: 34 latest"
+    ],
+    "body": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nStation Routing\nPOS Terminals\nPrinters\nSales Tax\nService Charge\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nBranches\n"
+  },
+  "problems": [],
+  "notes": [
+    "tender(Rs 107,580.90) − unclosed(Rs 28,453.40) = Rs 79,127.50 vs billed Rs 79,127.50"
+  ]
+}

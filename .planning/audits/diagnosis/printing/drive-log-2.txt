@@ -1,0 +1,52 @@
+
+=== PERSONA: cashier ===
+login cashier@terrace.local: OK -> http://localhost:3000/app/dashboard
+
+--- (c) Cashier opens the printable bill ---
+  receipt text: Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse Orders Order Receipt Floating Terrace HQ Search… ⌘K E Back Print Floating Terrace HQ +92 21 4628872 Order ORD-20260812-0005 Issued 2026-08-11T22:03:19.066Z 2 x Chicken Karahi Rs 3,364.00 no chilli Subtotal Rs 2,900.00 Discount Rs 0.00 Service charge Rs 0.00 Tax (16.00%) [OTHER] Rs 464.00 Tax Rs 464.00 TOTAL Rs 3,364.00 No printer configured for this branch - browser bill
+  >>> window.print() AUTO-call count = 1
+  shot: c-receipt-cashier.png
+  manual Print button count = 1
+  >>> window.print() count AFTER clicking Print = 2
+  any browser->local-agent (7654/localhost:765x) call? false
+  non-app / print requests:
+    POST http://localhost:8080/api/v1/auth/login
+    GET http://localhost:8080/api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+    GET http://localhost:8080/api/v1/branches/mine
+    GET http://localhost:8080/api/v1/feature-flags
+    GET http://localhost:8080/api/v1/pos/tills?cashierId=eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1&status=OPEN
+    GET http://localhost:8080/api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+    GET http://localhost:3000/app/pos/orders/2997f9c6-718d-41f0-8216-988d435025c0/receipt
+    GET http://localhost:3000/_next/static/chunks/components_print_receipt-print_0owwlaa.css
+    GET http://localhost:3000/_next/static/chunks/app_(tenant)_app_pos_orders_%5BorderId%5D_receipt_page_tsx_1f0oeks._.js
+    POST http://localhost:8080/api/v1/auth/refresh
+    POST http://localhost:8080/api/v1/pos/orders/2997f9c6-718d-41f0-8216-988d435025c0/print-jobs?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+
+--- POS screen: is there a Printers / print-settings control? ---
+  /app/pos -> 404=false denied=false | Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse App POS Floating Terrace HQ Search… ⌘K E Point of sale Till OPEN Float: Rs 5,000.00 Cash: Rs 37,307.00 Orders: 36 Close Till POS Terminal Floor Vie
+  shot: c-pos-screen.png
+
+=== PERSONA: manager ===
+login manager@terrace.local: OK -> http://localhost:3000/app/dashboard
+
+--- (a) manager: printer settings hunt ---
+  /app/settings -> 404=false denied=true | Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTIN
+  shot: a-manager-settings.png
+  /app/settings/printers -> 404=true denied=false | 404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data. Back to dashboard
+  shot: a-manager-printers.png
+  manager nav mentions print? false
+  manager nav: 
+  manager /app/settings body mentions 'printer'? false
+
+=== PERSONA: owner ===
+  TOTP challenge -> code 838524
+login owner@terrace.local: OK -> http://localhost:3000/app/dashboard
+
+--- (a) owner: printer settings hunt ---
+  /app/settings -> 404=false denied=false | Floating Terrace OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging P
+  shot: a-owner-settings.png
+  /app/settings/printers -> 404=true denied=false | 404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data. Back to dashboard
+  shot: a-owner-printers.png
+  owner nav mentions print? false
+  owner nav: 
+  owner /app/settings body mentions 'printer'? false

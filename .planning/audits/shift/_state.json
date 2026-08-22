@@ -1,0 +1,1945 @@
+{
+  "ownerNav": [
+    "/app/dashboard",
+    "/app/pos",
+    "/app/kitchen",
+    "/app/pos/tills",
+    "/app/inventory",
+    "/app/menu/items",
+    "/app/tables",
+    "/app/stations",
+    "/app/menu/routing",
+    "/app/terminals",
+    "/app/settings/printers",
+    "/app/finance/guide",
+    "/app/finance/takings",
+    "/app/finance/accounts",
+    "/app/finance/journal-entries",
+    "/app/finance/gl",
+    "/app/finance/periods",
+    "/app/finance/expenses",
+    "/app/finance/ap-aging",
+    "/app/purchasing",
+    "/app/hr",
+    "/app/crm",
+    "/app/reports",
+    "/app/dashboard/realtime",
+    "/app/nlq",
+    "/app/settings",
+    "/settings/appearance",
+    "/app/users",
+    "/app/settings/health",
+    "/app/dashboard",
+    "/app/pos",
+    "/app/inventory",
+    "/app/finance/accounts",
+    "/app/settings"
+  ],
+  "managerTill": {
+    "detail": "Invalid UUID string: active",
+    "instance": "/api/v1/pos/tills/active",
+    "status": 422,
+    "title": "VALIDATION_FAILED",
+    "type": "urn:restaurantos:pos:validation-failed"
+  },
+  "cashierTill": {
+    "detail": "Invalid UUID string: active",
+    "instance": "/api/v1/pos/tills/active",
+    "status": 422,
+    "title": "VALIDATION_FAILED",
+    "type": "urn:restaurantos:pos:validation-failed"
+  },
+  "openedAt": "2026-08-12T02:45:51.276Z",
+  "shiftTill": null,
+  "shiftTillId": null,
+  "newCashier": {
+    "slug": "floating-terrace",
+    "email": "shift.cashier.984155@terrace.local",
+    "fullName": "Shift Cashier 984155",
+    "newPassword": "Shift#Cashier1"
+  },
+  "tempPassword": "3**4XarA*NyGwB@B",
+  "freshDrawerStrip": "Till OPEN Float: Rs 5,000.00 Cash: Rs 5,000.00 Orders: 0 Close Till",
+  "tableOptions": [
+    {
+      "id": "table-option-G1",
+      "t": "G1 Occupied"
+    },
+    {
+      "id": "table-option-H1",
+      "t": "H1 Available"
+    },
+    {
+      "id": "table-option-T1",
+      "t": "T1 Occupied"
+    },
+    {
+      "id": "table-option-T2",
+      "t": "T2 Occupied"
+    },
+    {
+      "id": "table-option-T3",
+      "t": "T3 Occupied"
+    },
+    {
+      "id": "table-option-UIQ3028",
+      "t": "UIQ3028 Occupied"
+    }
+  ],
+  "order1Table": "H1 Available",
+  "order1": null,
+  "kitchenStations": [
+    "/app/kitchen"
+  ],
+  "order1No": "ORD-20260812-0164",
+  "kdsBoardFirstLook": {
+    "hasMine": true,
+    "pageInfo": null,
+    "heads": [
+      "DEFAULT",
+      "New",
+      "Started",
+      "Preparing",
+      "Ready"
+    ],
+    "first600": "Floating Terrace OVERVIEW Dashboard ORDERS Kitchen Display Collapse App Kitchen DEFAULT Floating Terrace HQ Search… ⌘K D DEFAULT 112 tickets Diag Dessert 43431 Diag Dessert 20334 Cold prep DEFAULT Main bar Hot line Diag Bar 28334 1 / 12 READY COLUMN All stations LIVE NEW 77 1 ORD-20260812-0164 00:15 DINE-IN Table H1 1× Butter Naan Butter Naan → Started 2 ORD-20260812-0155 45:14 LATE DINE-IN No table 1× Butter Naan Butter Naan → Started 3 ORD-20260812-0146 1:02:43 LATE DINE-IN No table 2× Chicken Karahi 1× Butter Naan Chicken Karahi → Started Butter Naan → Started +74 on other pages STARTED 18 "
+  },
+  "stationCodes": [
+    {
+      "code": "DGS43431",
+      "text": "Diag Dessert 43431 DGS43431 0 0 tickets 0 items Clear 0 NEW 0 STARTED 0 PREPARING 0 READY"
+    },
+    {
+      "code": "DGS20334",
+      "text": "Diag Dessert 20334 DGS20334 0 0 tickets 0 items Clear 0 NEW 0 STARTED 0 PREPARING 0 READY"
+    },
+    {
+      "code": "PANTRY1",
+      "text": "Cold prep PANTRY1 19 19 tickets 14 items Oldest 1h 15m 14 NEW 0 STARTED 0 PREPARING 0 READY"
+    },
+    {
+      "code": "DEFAULT",
+      "text": "DEFAULT DEFAULT 120 120 tickets 135 items Oldest 121h 14m 98 NEW 20 STARTED 10 PREPARING 7 READY"
+    },
+    {
+      "code": "BAR",
+      "text": "Main bar BAR 4 4 tickets 4 items Oldest 3h 31m 4 NEW 0 STARTED 0 PREPARING 0 READY"
+    },
+    {
+      "code": "GRILL",
+      "text": "Hot line GRILL 6 6 tickets 5 items Oldest 120h 32m 5 NEW 0 STARTED 0 PREPARING 0 READY"
+    },
+    {
+      "code": "DGB28334",
+      "text": "Diag Bar 28334 DGB28334 0 0 tickets 0 items Clear 0 NEW 0 STARTED 0 PREPARING 0 READY"
+    }
+  ],
+  "order1BoardScan": {
+    "DGS43431": {
+      "present": false,
+      "count": 0,
+      "snippet": null,
+      "boardCount": "0 tickets",
+      "pages": null
+    },
+    "DGS20334": {
+      "present": false,
+      "count": 0,
+      "snippet": null,
+      "boardCount": "0 tickets",
+      "pages": null
+    },
+    "PANTRY1": {
+      "present": true,
+      "count": 1,
+      "snippet": "ORD-20260812-0164 01:45 DINE-IN Table H1 2× Audit Item 52235 1× Audit Item 60568 Audit Item 52235 → Started Audit Item 60568 → Started 2 ORD-20260812-0162 20:09 LATE DINE-IN No table 1× Audit Item 52235 Audit Item 52235 ",
+      "boardCount": "13 tickets",
+      "pages": "1 / 2"
+    },
+    "DEFAULT": {
+      "present": true,
+      "count": 1,
+      "snippet": "ORD-20260812-0164 01:51 DINE-IN Table H1 1× Butter Naan Butter Naan → Started 2 ORD-20260812-0155 46:49 LATE DINE-IN No table 1× Butter Naan Butter Naan → Started 3 ORD-20260812-0146 1:04:19 LATE DINE-IN No table 2× Chic",
+      "boardCount": "112 tickets",
+      "pages": "1 / 12"
+    },
+    "BAR": {
+      "present": false,
+      "count": 0,
+      "snippet": null,
+      "boardCount": "4 tickets",
+      "pages": null
+    },
+    "GRILL": {
+      "present": false,
+      "count": 0,
+      "snippet": null,
+      "boardCount": "5 tickets",
+      "pages": null
+    },
+    "DGB28334": {
+      "present": false,
+      "count": 0,
+      "snippet": null,
+      "boardCount": "0 tickets",
+      "pages": null
+    }
+  },
+  "bumpStates": [
+    {
+      "found": true,
+      "column": "NEW",
+      "card": "1 ORD-20260812-0164 02:14 DINE-IN Table H1 2× Audit Item 52235 1× Audit Item 60568 Audit Item 52235 → Started Audit Item 60568 → Started",
+      "buttons": [
+        {
+          "id": "column-move-5c6e04a3-86e6-4670-8028-bb5cf55c7afb",
+          "label": "Audit Item 52235 → Started"
+        },
+        {
+          "id": "column-move-4b64ac4d-c84c-473e-b99a-3b58b4fb9ea4",
+          "label": "Audit Item 60568 → Started"
+        }
+      ]
+    },
+    {
+      "found": true,
+      "column": "STARTED",
+      "card": "0 ORD-20260812-0164 02:24 DINE-IN Table H1 2× Audit Item 52235 1× Audit Item 60568 Audit Item 52235 → Preparing Audit Item 60568 → Preparing",
+      "buttons": [
+        {
+          "id": "column-move-5c6e04a3-86e6-4670-8028-bb5cf55c7afb",
+          "label": "Audit Item 52235 → Preparing"
+        },
+        {
+          "id": "column-move-4b64ac4d-c84c-473e-b99a-3b58b4fb9ea4",
+          "label": "Audit Item 60568 → Preparing"
+        }
+      ]
+    },
+    {
+      "found": true,
+      "column": "PREPARING",
+      "card": "0 ORD-20260812-0164 02:24 DINE-IN Table H1 2× Audit Item 52235 1× Audit Item 60568 Audit Item 52235 → Ready Audit Item 60568 → Ready",
+      "buttons": [
+        {
+          "id": "column-move-5c6e04a3-86e6-4670-8028-bb5cf55c7afb",
+          "label": "Audit Item 52235 → Ready"
+        },
+        {
+          "id": "column-move-4b64ac4d-c84c-473e-b99a-3b58b4fb9ea4",
+          "label": "Audit Item 60568 → Ready"
+        }
+      ]
+    },
+    {
+      "found": true,
+      "column": "READY",
+      "card": "0 ORD-20260812-0164 02:34 DINE-IN Table H1 2× Audit Item 52235 1× Audit Item 60568",
+      "buttons": []
+    }
+  ],
+  "bumpFinal": {
+    "fragmentKey": "READY:1c28885e-b019-4a51-ab15-073ecc07e00c",
+    "readyToggle": "Ready column",
+    "cols": {
+      "NEW": "12",
+      "STARTED": "0",
+      "PREPARING": "0",
+      "READY": "1"
+    },
+    "bumpError": null
+  },
+  "order2No": "ORD-20260812-0165",
+  "order2Cart": {
+    "lines": [
+      "Chicken Karahi",
+      "Chicken Samosa"
+    ],
+    "subtotal": "Rs 1,700.00",
+    "tax": "Rs 272.00",
+    "total": "Rs 1,972.00",
+    "typeChecked": [
+      "Takeaway"
+    ]
+  },
+  "lateAddDrawer": {
+    "drawer": null,
+    "sendNew": null
+  },
+  "orderMgmtFirstLook": {
+    "onOrderMgmt": true,
+    "hasMine": true,
+    "chips": [
+      "Active",
+      "Draft",
+      "In Progress",
+      "Partially Served",
+      "Served",
+      "Closed",
+      "Paid",
+      "Voided",
+      "Refunded"
+    ],
+    "scopeNote": "Active shows live orders only. Settled checks are under Closed, Voided and Refunded.",
+    "rows": 2,
+    "firstRows": [
+      "ORD-20260812-0165",
+      "ORD-20260812-0164"
+    ]
+  },
+  "lateAdd": {
+    "drawer": "Order #ORD-20260812-0164 In Progress Table H1 · 1 cover(s) 1 revision Butter Naan ×1 Rs 92.80 Pending Cancel Butter Naan ×1 Rs 92.80 Sent Mark Served Cancel Audit Item 52235 ×2 Rs 998.00 Ready Mark Served Cancel Audit Item 60568 ×1 Rs 499.00 Ready Mark Served Cancel + Add note Quick Add Full Menu Send New Items (1) CHARGE NOW Void Reprint kitchen ticket",
+    "sendNew": "Send New Items (1)",
+    "toasts": [
+      "Butter Naan added"
+    ]
+  },
+  "lateAddFired": {
+    "drawer": "Order #ORD-20260812-0164 In Progress Table H1 · 1 cover(s) 2 revisions Butter Naan ×1 Rs 92.80 Sent Mark Served Cancel Audit Item 52235 ×2 Rs 998.00 Ready Mark Served Cancel Audit Item 60568 ×1 Rs 499.00 Ready Mark Served Cancel Butter Naan REV 2 ×1 Rs 92.80 Sent Mark Served Cancel + Add note Quick Add Full Menu CHARGE NOW Void Reprint kitchen ticket",
+    "sendNew": null,
+    "alerts": []
+  },
+  "order1Id": "7b979100-52ca-4be6-8f80-b2383b475148",
+  "chargePage1": {
+    "heading": "Order #ORD-20260812-0164",
+    "total": "Rs 1,682.60",
+    "balance": "Rs 1,682.60",
+    "methodOptions": [
+      "CASH",
+      "CARD",
+      "BANK TRANSFER",
+      "VOUCHER"
+    ],
+    "amountLabel": "Amount (Rs)",
+    "amountPlaceholder": "0.00",
+    "tenderedPresent": true,
+    "changeDue": "Rs 0.00",
+    "denoms": [
+      "+50",
+      "+100",
+      "+500",
+      "+1,000",
+      "+5,000",
+      "Exact"
+    ],
+    "discountControls": [],
+    "tipControls": [],
+    "raw": "Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse Orders Order Charge Floating Terrace HQ Search… ⌘K B Back Order #ORD-20260812-0164 In Progress Unpaid Table H1 · Customer: — · Cashier: bc0d9897 · Aug 12, 2026, 7:52 AM Items Butter Naan ×1 Rs 92.80 Sent Audit Item 52235 ×2 Rs 998.00 Ready Audit Item 60568 ×1 Rs 499.00 Ready Butter Naan ×1 Rs 92.80 Sent Bill Subtotal Rs 1,657.00 Discounts Rs 0.00 Service charge Rs 0.00 Taxes Rs 25.60 Total Rs 1,682.60 Amount paid Rs 0.00 Remaining balance Rs 1,682.60 Payment History No payments yet Take Payment Method CASH CARD BANK TRANSFER VOUCHER Amount (Rs) Ref# (optional) Full amount Tendered (Rs) Change due Rs 0.00 Quick tender +5"
+  },
+  "order1Payment": {
+    "err": null,
+    "rows": [
+      "CASH Aug 12, 2026, 7:59 AM Rs 1,682.60"
+    ],
+    "paid": null,
+    "closeBtn": {
+      "text": "Mark served & close order",
+      "disabled": false
+    },
+    "blocked": "This order is fully paid — no further tenders can be recorded.",
+    "raw": "Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse Orders Order Charge Floating Terrace HQ Search… ⌘K B Back Order #ORD-20260812-0164 In Progress Paid Table H1 · Customer: — · Cashier: bc0d9897 · Aug 12, 2026, 7:52 AM Items Butter Naan ×1 Rs 92.80 Sent Audit Item 52235 ×2 Rs 998.00 Ready Audit Item 60568 ×1 Rs 499.00 Ready Butter Naan ×1 Rs 92.80 Sent Bill Subtotal Rs 1,657.00 Discounts Rs 0.00 Service charge Rs 0.00 Taxes Rs 25.60 Total Rs 1,682.60 Amount paid Rs 1,682.60 Remaining balance Rs 0.00 Print bill Payment History CASH Aug 12, 2026, 7:59 AM Rs 1,682.60 Take Payment This order is fully paid — no further tenders can be recorded. Mark served & close order Confirms the food reached the guest and closes the check. After this the order can be refunded, not voided"
+  },
+  "order1PaymentsApi": {
+    "data": [
+      {
+        "id": "8365aac2-7369-4aef-850b-ba6baeb97f87",
+        "method": "CASH",
+        "amountPaisa": 168260,
+        "tenderedPaisa": 200000,
+        "changePaisa": 31740,
+        "referenceNo": null,
+        "recordedAt": "2026-08-12T02:59:24.132156Z",
+        "kind": "PAYMENT"
+      }
+    ],
+    "meta": null,
+    "warnings": []
+  },
+  "order2Id": "a4863e15-50ba-4767-8281-d7a2db0eef3b",
+  "order2Payments": {
+    "data": [
+      {
+        "id": "1b0bb977-2978-42c6-a09e-bd39a735bab1",
+        "method": "CARD",
+        "amountPaisa": 197200,
+        "tenderedPaisa": 197200,
+        "changePaisa": 0,
+        "referenceNo": "VISA-4411",
+        "recordedAt": "2026-08-12T03:01:20.798943Z",
+        "kind": "PAYMENT"
+      }
+    ],
+    "meta": null,
+    "warnings": []
+  },
+  "order2Screen": {
+    "err": null,
+    "rows": [
+      "CARD Ref: VISA-4411 · Aug 12, 2026, 8:01 AM Rs 1,972.00"
+    ],
+    "raw": "Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse Orders Order Charge Floating Terrace HQ Search… ⌘K B Back Order #ORD-20260812-0165 In Progress Paid Takeaway · Customer: — · Cashier: bc0d9897 · Aug 12, 2026, 7:55 AM Items Chicken Karahi ×1 Rs 1,682.00 Sent Chicken Samosa ×1 Rs 290.00 Sent Bill Subtotal Rs 1,700.00 Discounts Rs 0.00 Service charge Rs 0.00 Taxes Rs 272.00 Total Rs 1,972.00 Amount paid Rs 1,972.00 Remaining balance Rs 0.00 Print bill Payment History CARD Ref: VISA-4411 · Aug 12, 2026, 8:01 AM Rs 1,972.00 Take Payment This order is fully paid — no further tenders can be record"
+  },
+  "discountHunt": {
+    "charge-page": [],
+    "pos-terminal": [],
+    "drawer": {
+      "buttons": [
+        "1 revision",
+        "Mark Served",
+        "Cancel",
+        "Mark Served",
+        "Cancel",
+        "+ Add note",
+        "Full Menu",
+        "CHARGE NOW",
+        "Reprint kitchen ticket"
+      ],
+      "hasDiscountWord": false
+    },
+    "apiAsCashier": {
+      "status": 400,
+      "body": {
+        "error": {
+          "code": "VALIDATION_FAILED",
+          "message": "Request validation failed",
+          "details": [
+            {
+              "field": "type",
+              "issue": "must not be null"
+            },
+            {
+              "field": "scope",
+              "issue": "must not be null"
+            }
+          ],
+          "traceId": "cb4af507-0ecc-416d-bbab-ff779ea578a8"
+        }
+      }
+    }
+  },
+  "discountApiManager": {
+    "status": 400,
+    "body": {
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "message": "Request validation failed",
+        "details": [
+          {
+            "field": "scope",
+            "issue": "must not be null"
+          },
+          {
+            "field": "type",
+            "issue": "must not be null"
+          }
+        ],
+        "traceId": "e2053001-cac7-453b-b00d-63848034a8e6"
+      }
+    }
+  },
+  "order3No": "ORD-20260812-0166",
+  "order3Id": "41227cec-9771-49d0-9191-b3199fdb19f7",
+  "paidOrderDrawer": {
+    "buttons": [
+      "2 revisions",
+      "",
+      "",
+      "Mark Served",
+      "Cancel",
+      "Mark Served",
+      "Cancel",
+      "Mark Served",
+      "Cancel",
+      "Mark Served",
+      "Cancel",
+      "+ Add note",
+      "Full Menu",
+      "CHARGE NOW",
+      "Reprint kitchen ticket"
+    ],
+    "text": "Order #ORD-20260812-0164 In Progress Table H1 · 1 cover(s) 2 revisions Butter Naan ×1 Rs 92.80 Sent Mark Served Cancel Audit Item 52235 ×2 Rs 998.00 Ready Mark Served Cancel Audit Item 60568 ×1 Rs 499.00 Ready Mark Served Cancel Butter Naan REV 2 ×1 Rs 92.80 Sent Mark Served Cancel + Add note Quick Add Full Menu CHARGE NOW Paid — void unavailable. Use Refund. Reprint kitchen ticket"
+  },
+  "voidPaidApiCashier": {
+    "status": 409,
+    "body": {
+      "detail": "Order ORD-20260812-0164 has 168260 paisa recorded against it and cannot be voided. Use Refund — a void leaves the payment in place with no reversing entry.",
+      "instance": "/api/v1/pos/orders/7b979100-52ca-4be6-8f80-b2383b475148/void",
+      "status": 409,
+      "title": "ORDER_HAS_PAYMENTS",
+      "type": "urn:restaurantos:pos:order-has-payments"
+    }
+  },
+  "voidPaidApiManager": {
+    "status": 409,
+    "body": {
+      "detail": "Order ORD-20260812-0164 has 168260 paisa recorded against it and cannot be voided. Use Refund — a void leaves the payment in place with no reversing entry.",
+      "instance": "/api/v1/pos/orders/7b979100-52ca-4be6-8f80-b2383b475148/void",
+      "status": 409,
+      "title": "ORDER_HAS_PAYMENTS",
+      "type": "urn:restaurantos:pos:order-has-payments"
+    }
+  },
+  "order1PaymentsAfterVoid": {
+    "data": [
+      {
+        "id": "8365aac2-7369-4aef-850b-ba6baeb97f87",
+        "method": "CASH",
+        "amountPaisa": 168260,
+        "tenderedPaisa": 200000,
+        "changePaisa": 31740,
+        "referenceNo": null,
+        "recordedAt": "2026-08-12T02:59:24.132156Z",
+        "kind": "PAYMENT"
+      }
+    ],
+    "meta": null,
+    "warnings": []
+  },
+  "discount_cashier_ORDER": {
+    "status": 409,
+    "body": {
+      "detail": "Cannot apply discount to order in status: SENT_TO_KDS",
+      "instance": "/api/v1/pos/orders/41227cec-9771-49d0-9191-b3199fdb19f7/discounts",
+      "status": 409,
+      "title": "STATE_INVALID",
+      "type": "urn:restaurantos:pos:state-invalid"
+    }
+  },
+  "discount_cashier_LINE": {
+    "status": 409,
+    "body": {
+      "detail": "Cannot apply discount to order in status: SENT_TO_KDS",
+      "instance": "/api/v1/pos/orders/41227cec-9771-49d0-9191-b3199fdb19f7/discounts",
+      "status": 409,
+      "title": "STATE_INVALID",
+      "type": "urn:restaurantos:pos:state-invalid"
+    }
+  },
+  "discount_manager_ORDER": {
+    "status": 409,
+    "body": {
+      "detail": "Cannot apply discount to order in status: SENT_TO_KDS",
+      "instance": "/api/v1/pos/orders/41227cec-9771-49d0-9191-b3199fdb19f7/discounts",
+      "status": 409,
+      "title": "STATE_INVALID",
+      "type": "urn:restaurantos:pos:state-invalid"
+    }
+  },
+  "discount_manager_LINE": {
+    "status": 409,
+    "body": {
+      "detail": "Cannot apply discount to order in status: SENT_TO_KDS",
+      "instance": "/api/v1/pos/orders/41227cec-9771-49d0-9191-b3199fdb19f7/discounts",
+      "status": 409,
+      "title": "STATE_INVALID",
+      "type": "urn:restaurantos:pos:state-invalid"
+    }
+  },
+  "voidPanel": {
+    "text": "Void Order Order #ORD-20260812-0166 · Dine-in Order total Rs 1,705.20 This will cancel order #ORD-20260812-0166. This action cannot be undone. Reason * Resulting state: order will be marked VOIDED and removed from active settlement. Cancel Confirm Void",
+    "fields": [
+      {
+        "tag": "TEXTAREA",
+        "label": "e.g. Customer left without ordering"
+      }
+    ],
+    "buttons": [
+      "Cancel",
+      "Confirm Void"
+    ]
+  },
+  "voidUnpaidOutcome": {
+    "err": "You don't have permission to void this order.",
+    "toasts": [],
+    "drawerOpen": true,
+    "body": "Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse App POS Floating Terrace HQ Search… ⌘K B Point of sale Till OPEN Float: Rs 5,000.00 Cash: Rs 6,682.60 Orders: 3 Close Till POS Terminal Floor View Order Management Live Active Draft In Progress Partially Served Served Closed Paid Voided Refunded Active shows live orders only. Settled checks are under Closed, Voided and Refunded. Refresh Searching every order — live, closed, voided and refunded — for “ORD-20260812-0166”. ORD"
+  },
+  "voidedChip": {
+    "present": true,
+    "ctx": "DER / TABLE STATUS PAYMENT SERVER/CASHIER ITEMS TOTAL AGE ORD-20260812-0166 Takeaway In Progress Unpaid bc0d9897 2 Items Rs 1,705.20 2m Assign Table Open ORD-20260812-0165 Takeaway In Progress Paid bc0d9897 2 Items Rs 1,972.00 11m Assign Table Open ORD-20260812-0164 H1 In Progress Paid bc0d9897 5 Items 4 Items / 5 Qty Rs 1,682.60 15m Open 3 rows"
+  },
+  "managerPaidDrawer": {
+    "buttons": [
+      "2 revisions",
+      "Refresh order details",
+      "Close order details",
+      "Mark Butter Naan served",
+      "Cancel",
+      "Mark Audit Item 52235 served",
+      "Cancel",
+      "Mark Audit Item 60568 served",
+      "Cancel",
+      "Mark Butter Naan served",
+      "Cancel",
+      "+ Add note",
+      "Full Menu",
+      "Charge order",
+      "Refund order",
+      "Reprint kitchen ticket"
+    ],
+    "notice": "Paid — void unavailable. Use Refund.",
+    "text": "Order #ORD-20260812-0164 In Progress Table H1 · 1 cover(s) 2 revisions Butter Naan ×1 Rs 92.80 Sent Mark Served Cancel Audit Item 52235 ×2 Rs 998.00 Ready Mark Served Cancel Audit Item 60568 ×1 Rs 499.00 Ready Mark Served Cancel Butter Naan REV 2 ×1 Rs 92.80 Sent Mark Served Cancel + Add note Quick Add Full Menu CHARGE NOW Paid — void unavailable. Use Refund. Refund Reprint kitchen ticket"
+  },
+  "cashierClaims": {
+    "sub": "bc0d9897-e0ef-40de-b404-89ce044ab2cb",
+    "perms": [
+      "crm.customer.manage",
+      "crm.customer.view",
+      "crm.promotion.view",
+      "pos.menu.view",
+      "pos.order.close",
+      "pos.order.create",
+      "pos.order.discount.line",
+      "pos.order.send_to_kds",
+      "pos.order.update",
+      "pos.order.view",
+      "pos.order.void.own",
+      "pos.tables.manage",
+      "pos.till.close",
+      "pos.till.open"
+    ]
+  },
+  "voidOwnDirect": {
+    "status": 403,
+    "body": {
+      "detail": "Not permitted: pos.void",
+      "instance": "/api/v1/pos/orders/41227cec-9771-49d0-9191-b3199fdb19f7/void",
+      "status": 403,
+      "title": "FORBIDDEN",
+      "type": "urn:restaurantos:pos:forbidden"
+    }
+  },
+  "order3Row": {
+    "orderId": "41227cec-9771-49d0-9191-b3199fdb19f7",
+    "orderNo": "ORD-20260812-0166",
+    "tableId": null,
+    "tableName": null,
+    "derivedStatus": "IN_PROGRESS",
+    "cashierId": "bc0d9897-e0ef-40de-b404-89ce044ab2cb",
+    "coverCount": 1,
+    "totalPaisa": 170520,
+    "openedAt": "2026-08-12T03:04:34.575869Z",
+    "settlementStatus": "SENT_TO_KDS",
+    "paymentStatus": "UNPAID",
+    "amountPaidPaisa": 0,
+    "itemQuantity": 2,
+    "distinctItemCount": 2,
+    "settlement": null
+  },
+  "myOrdersMid": [
+    {
+      "id": "0bf1f175-e7a3-4b26-a0f5-8db2c6f15b2c",
+      "no": "ORD-20260812-0167",
+      "s": "OPEN",
+      "d": "DRAFT",
+      "p": "UNPAID"
+    },
+    {
+      "id": "41227cec-9771-49d0-9191-b3199fdb19f7",
+      "no": "ORD-20260812-0166",
+      "s": "SENT_TO_KDS",
+      "d": "IN_PROGRESS",
+      "p": "UNPAID"
+    },
+    {
+      "id": "a4863e15-50ba-4767-8281-d7a2db0eef3b",
+      "no": "ORD-20260812-0165",
+      "s": "SENT_TO_KDS",
+      "d": "IN_PROGRESS",
+      "p": "PAID"
+    },
+    {
+      "id": "7b979100-52ca-4be6-8f80-b2383b475148",
+      "no": "ORD-20260812-0164",
+      "s": "SENT_TO_KDS",
+      "d": "IN_PROGRESS",
+      "p": "PAID"
+    }
+  ],
+  "voidDraft": {
+    "no": "ORD-20260812-0167",
+    "status": 200,
+    "body": {
+      "data": {
+        "id": "0bf1f175-e7a3-4b26-a0f5-8db2c6f15b2c",
+        "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "orderNo": "ORD-20260812-0167",
+        "type": "DINE_IN",
+        "status": "VOIDED",
+        "derivedStatus": "DRAFT",
+        "tableId": null,
+        "coverCount": 1,
+        "cashierId": "bc0d9897-e0ef-40de-b404-89ce044ab2cb",
+        "customerId": null,
+        "subtotalPaisa": 72500,
+        "taxPaisa": 0,
+        "discountPaisa": 0,
+        "serviceChargePaisa": 0,
+        "totalPaisa": 72500,
+        "notes": null,
+        "openedAt": "2026-08-12T03:10:20.977792Z",
+        "sentToKdsAt": null,
+        "clientOrderId": "9d16206a-904b-4d44-b211-2800ff5c2272",
+        "version": 1,
+        "items": [
+          {
+            "id": "0eab3a74-d567-440a-8ae9-4640d689b687",
+            "menuItemId": "97c2912e-a87b-452e-84f7-ff63e977e5b0",
+            "itemNameSnapshot": "Photo Dish 50585",
+            "unitPriceSnapshot": 72500,
+            "quantity": 1,
+            "kdsStation": "PANTRY1",
+            "kdsStatus": "PENDING",
+            "revisionNo": 0,
+            "firedAt": null,
+            "discountPaisa": 0,
+            "taxPaisa": 0,
+            "lineTotalPaisa": 72500,
+            "notes": null,
+            "modifiers": []
+          }
+        ]
+      },
+      "meta": null,
+      "warnings": []
+    }
+  },
+  "voidFired": {
+    "no": "ORD-20260812-0166",
+    "status": 403,
+    "body": {
+      "detail": "Not permitted: pos.void",
+      "instance": "/api/v1/pos/orders/41227cec-9771-49d0-9191-b3199fdb19f7/void",
+      "status": 403,
+      "title": "FORBIDDEN",
+      "type": "urn:restaurantos:pos:forbidden"
+    }
+  },
+  "voidFiredManager": {
+    "status": 200,
+    "body": {
+      "data": {
+        "id": "41227cec-9771-49d0-9191-b3199fdb19f7",
+        "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "orderNo": "ORD-20260812-0166",
+        "type": "DINE_IN",
+        "status": "VOIDED",
+        "derivedStatus": "IN_PROGRESS",
+        "tableId": null,
+        "coverCount": 1,
+        "cashierId": "bc0d9897-e0ef-40de-b404-89ce044ab2cb",
+        "customerId": null,
+        "subtotalPaisa": 147000,
+        "taxPaisa": 23520,
+        "discountPaisa": 0,
+        "serviceChargePaisa": 0,
+        "totalPaisa": 170520,
+        "notes": null,
+        "openedAt": "2026-08-12T03:04:34.575869Z",
+        "sentToKdsAt": "2026-08-12T03:04:34.636149Z",
+        "clientOrderId": "b1cde8b4-34ec-4629-8d72-8ef89624f687",
+        "version": 3,
+        "items": [
+          {
+            "id": "540594d3-4789-4c38-912d-887e99eb8589",
+            "menuItemId": "fd1614c4-12c0-4bff-a510-5c75ccc3ce08",
+            "itemNameSnapshot": "Fresh Lime",
+            "unitPriceSnapshot": 22000,
+            "quantity": 1,
+            "kdsStation": "GRILL",
+            "kdsStatus": "SENT",
+            "revisionNo": 1,
+            "firedAt": "2026-08-12T03:04:34.636149Z",
+            "discountPaisa": 0,
+            "taxPaisa": 3520,
+            "lineTotalPaisa": 25520,
+            "notes": null,
+            "modifiers": []
+          },
+          {
+            "id": "725b5a9e-7397-4448-b14b-98500707a587",
+            "menuItemId": "23acb4e9-cb07-434d-87f4-de82b3a65ae5",
+            "itemNameSnapshot": "Mutton Biryani",
+            "unitPriceSnapshot": 125000,
+            "quantity": 1,
+            "kdsStation": null,
+            "kdsStatus": "SENT",
+            "revisionNo": 1,
+            "firedAt": "2026-08-12T03:04:34.636149Z",
+            "discountPaisa": 0,
+            "taxPaisa": 20000,
+            "lineTotalPaisa": 145000,
+            "notes": null,
+            "modifiers": []
+          }
+        ]
+      },
+      "meta": null,
+      "warnings": []
+    }
+  },
+  "managerPerms": [
+    "crm.customer.manage",
+    "crm.customer.view",
+    "crm.promotion.manage",
+    "crm.promotion.view",
+    "file.manage",
+    "file.upload",
+    "file.view",
+    "finance.ar.view",
+    "finance.expense.approve",
+    "hr.attendance.manage",
+    "hr.attendance.view",
+    "hr.config.view",
+    "hr.employee.view",
+    "hr.leave.approve",
+    "hr.leave.view",
+    "hr.payroll.view",
+    "inventory.item.manage",
+    "inventory.item.view",
+    "nlq.query.run",
+    "pos.kds.view",
+    "pos.menu.manage",
+    "pos.menu.view",
+    "pos.order.close",
+    "pos.order.create",
+    "pos.order.discount.line",
+    "pos.order.discount.order",
+    "pos.order.discount.override",
+    "pos.order.refund",
+    "pos.order.send_to_kds",
+    "pos.order.split_bill",
+    "pos.order.update",
+    "pos.order.view",
+    "pos.order.view.all",
+    "pos.order.void.any",
+    "pos.order.void.own",
+    "pos.printers.admin",
+    "pos.tables.admin",
+    "pos.tables.manage",
+    "pos.terminals.admin",
+    "pos.till.close",
+    "pos.till.open",
+    "pos.till.reconcile.override",
+    "pos.till.review",
+    "reporting.dashboard.view",
+    "reporting.report.fbr",
+    "reporting.report.view",
+    "vendor.grn.receive",
+    "vendor.invoice.book",
+    "vendor.invoice.override",
+    "vendor.manage",
+    "vendor.payment.create",
+    "vendor.po.approve",
+    "vendor.po.close",
+    "vendor.po.create",
+    "vendor.po.send",
+    "vendor.view"
+  ],
+  "discountOrderNo": "ORD-20260812-0169",
+  "discountOrderId": "51700a36-e07b-4925-86f8-b30ef5e6543c",
+  "discountApplied": {
+    "status": 403,
+    "totals": null
+  },
+  "discountBill": {
+    "billBlock": "Subtotal Rs 1,450.00 Discounts Rs 0.00 Service charge Rs 0.00 Taxes Rs 232.00 Total Rs 1,682.00 Amount paid Rs 0.00 Remaining balance Rs 1,682.00",
+    "reasonShown": false,
+    "discountRows": [
+      "Discounts Rs 0.00"
+    ]
+  },
+  "boardScan": {
+    "DGS43431": {
+      "boardCount": "0 tickets",
+      "pages": null,
+      "hits": {
+        "ORD-20260812-0164": null,
+        "ORD-20260812-0165": null,
+        "ORD-20260812-0166": null
+      }
+    },
+    "DGS20334": {
+      "boardCount": "0 tickets",
+      "pages": null,
+      "hits": {
+        "ORD-20260812-0164": null,
+        "ORD-20260812-0165": null,
+        "ORD-20260812-0166": null
+      }
+    },
+    "PANTRY1": {
+      "boardCount": "14 tickets",
+      "pages": "1 / 2",
+      "hits": {
+        "ORD-20260812-0164": "ORD-20260812-0164 20:25 LATE DINE-IN Table H1 2× Audit Item 52235 1× Audit Item 60568 ↑ ↓ move 1–9 0 jump Enter open F bump R recall V ready column PgUp/PgDn page",
+        "ORD-20260812-0165": "ORD-20260812-0165 16:33 LATE TAKEAWAY No table 1× Chicken Samosa Chicken Samosa → Started 2 ORD-20260812-0162 38:48 LATE DINE-IN No table 1× Audit Item 52235 Audit Item 52235 → Started 3 ORD-20260812-",
+        "ORD-20260812-0166": null
+      }
+    },
+    "DEFAULT": {
+      "boardCount": "113 tickets",
+      "pages": "1 / 12",
+      "hits": {
+        "ORD-20260812-0164": "ORD-20260812-0164 20:30 LATE DINE-IN Table H1 1× Butter Naan 1× Butter Naan Butter Naan → Started Butter Naan → Started 3 ORD-20260812-0155 1:05:28 LATE DINE-IN No table 1× Butter Naan Butter Naan → S",
+        "ORD-20260812-0165": "ORD-20260812-0165 16:39 LATE TAKEAWAY No table 1× Chicken Karahi Chicken Karahi → Started 2 ORD-20260812-0164 20:30 LATE DINE-IN Table H1 1× Butter Naan 1× Butter Naan Butter Naan → Started Butter Naa",
+        "ORD-20260812-0166": null
+      }
+    },
+    "BAR": {
+      "boardCount": "4 tickets",
+      "pages": null,
+      "hits": {
+        "ORD-20260812-0164": null,
+        "ORD-20260812-0165": null,
+        "ORD-20260812-0166": null
+      }
+    },
+    "GRILL": {
+      "boardCount": "5 tickets",
+      "pages": null,
+      "hits": {
+        "ORD-20260812-0164": null,
+        "ORD-20260812-0165": null,
+        "ORD-20260812-0166": null
+      }
+    },
+    "DGB28334": {
+      "boardCount": "0 tickets",
+      "pages": null,
+      "hits": {
+        "ORD-20260812-0164": null,
+        "ORD-20260812-0165": null,
+        "ORD-20260812-0166": null
+      }
+    }
+  },
+  "pickerCounts": [
+    {
+      "code": "DGS43431",
+      "queue": "0",
+      "text": "Diag Dessert 43431 DGS43431 0 0 tickets 0 items Clear 0 NEW 0 STARTED 0 PREPARING 0 READY"
+    },
+    {
+      "code": "DGS20334",
+      "queue": "0",
+      "text": "Diag Dessert 20334 DGS20334 0 0 tickets 0 items Clear 0 NEW 0 STARTED 0 PREPARING 0 READY"
+    },
+    {
+      "code": "PANTRY1",
+      "queue": "20",
+      "text": "Cold prep PANTRY1 20 20 tickets 15 items Oldest 1h 34m 13 NEW 0 STARTED 0 PREPARING 2 READY"
+    },
+    {
+      "code": "DEFAULT",
+      "queue": "121",
+      "text": "DEFAULT DEFAULT 121 121 tickets 137 items Oldest 121h 32m 100 NEW 20 STARTED 10 PREPARING 7 READY"
+    },
+    {
+      "code": "BAR",
+      "queue": "4",
+      "text": "Main bar BAR 4 4 tickets 4 items Oldest 3h 50m 4 NEW 0 STARTED 0 PREPARING 0 READY"
+    },
+    {
+      "code": "GRILL",
+      "queue": "6",
+      "text": "Hot line GRILL 6 6 tickets 5 items Oldest 120h 51m 5 NEW 0 STARTED 0 PREPARING 0 READY"
+    },
+    {
+      "code": "DGB28334",
+      "queue": "0",
+      "text": "Diag Bar 28334 DGB28334 0 0 tickets 0 items Clear 0 NEW 0 STARTED 0 PREPARING 0 READY"
+    }
+  ],
+  "countMismatch": [
+    {
+      "code": "DGS43431",
+      "picker": "0",
+      "board": "0",
+      "agree": true
+    },
+    {
+      "code": "DGS20334",
+      "picker": "0",
+      "board": "0",
+      "agree": true
+    },
+    {
+      "code": "PANTRY1",
+      "picker": "20",
+      "board": "14",
+      "agree": false
+    },
+    {
+      "code": "DEFAULT",
+      "picker": "121",
+      "board": "113",
+      "agree": false
+    },
+    {
+      "code": "BAR",
+      "picker": "4",
+      "board": "4",
+      "agree": true
+    },
+    {
+      "code": "GRILL",
+      "picker": "6",
+      "board": "5",
+      "agree": false
+    },
+    {
+      "code": "DGB28334",
+      "picker": "0",
+      "board": "0",
+      "agree": true
+    }
+  ],
+  "myChecksAtClose": [
+    {
+      "id": "51700a36-e07b-4925-86f8-b30ef5e6543c",
+      "no": "ORD-20260812-0169",
+      "s": "OPEN",
+      "d": "DRAFT",
+      "p": "UNPAID",
+      "total": 168200,
+      "paid": 0
+    },
+    {
+      "id": "f4ec7d5b-9b14-4aba-8b68-cfa44a41a3f1",
+      "no": "ORD-20260812-0168",
+      "s": "OPEN",
+      "d": "DRAFT",
+      "p": "UNPAID",
+      "total": 168200,
+      "paid": 0
+    },
+    {
+      "id": "a4863e15-50ba-4767-8281-d7a2db0eef3b",
+      "no": "ORD-20260812-0165",
+      "s": "SENT_TO_KDS",
+      "d": "IN_PROGRESS",
+      "p": "PAID",
+      "total": 197200,
+      "paid": 197200
+    },
+    {
+      "id": "7b979100-52ca-4be6-8f80-b2383b475148",
+      "no": "ORD-20260812-0164",
+      "s": "SENT_TO_KDS",
+      "d": "IN_PROGRESS",
+      "p": "PAID",
+      "total": 168260,
+      "paid": 168260
+    }
+  ],
+  "myChecksFinal": [],
+  "closeTillPanel": {
+    "text": "Close Till Session Opening float: Rs 5,000.00 Declared Cash Count (PKR) Note for manager review (optional) Cancel Close Till",
+    "hasExpected": false
+  },
+  "tillCloseError": null,
+  "afterCloseScreen": "Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse App POS Floating Terrace HQ Search… ⌘K B Point of sale No active till Open Till POS Terminal Floor View Order Management Live Your till is closed Open your till from the bar above — recording the counted starting float — before taking any orders. Orders can't be created without an open drawer.",
+  "tillReview": {
+    "heading": "Till Review",
+    "pageInfo": "Page 1 · 5 sessions total",
+    "headers": null,
+    "rows": null,
+    "firstScreen": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse App POS Tills Floating Terrace HQ Search… ⌘K F Till Review Refresh OPENED CLOSED CASHIER STATUS REVIEW FLOAT EXPECTED DECLARED VARIANCE ACTIONS 8/12/2026, 7:50:32 AM 8/12/2026, 8:16:27 AM bc0d9897 CLOSED PENDING REVIEW Rs 5,000.00 Rs 6,682.60 Rs 6,682.60 Rs 0.00 Approve Flag Note Details Cashier note: Shift walkthrough — counted drawer 8/11/2026, 5:52:40 PM — fefd7187 OPEN PENDING REVIEW Rs 5,000.00 — — — — Details 8/8/2026, 11:47:44 PM — 9b1d4c3a OPEN PENDING REVIEW Rs 1,000.00 — — — — Details 8/7/2026, 6:56:36 AM 8/9/2026, 12:35:18 AM 61334688 CLOSED FLAGGED Rs 0.05 Rs 6,836.05 Rs 43,567.00 Rs 36,7"
+  },
+  "tillListApi": {
+    "data": [],
+    "meta": null,
+    "warnings": []
+  },
+  "takings": {
+    "date": "2026-08-11",
+    "tiles": [
+      {
+        "id": "figure-tile-gross-sales",
+        "text": "GROSS SALES Rs 43,350.00 Full menu price of everything sold, before any discount."
+      },
+      {
+        "id": "figure-tile-discounts",
+        "text": "DISCOUNTS Rs 950.00 Given away. Shown here rather than netted into a smaller sales figure."
+      },
+      {
+        "id": "figure-tile-comps",
+        "text": "COMPS Not known Comps are not recorded separately from discounts. orders.discount_paisa is one column, and a full comp appears in it as a discount equal to the subtotal. Splitting them would require a field POS does not capture."
+      },
+      {
+        "id": "figure-tile-tax",
+        "text": "TAX Rs 3,566.40"
+      },
+      {
+        "id": "figure-tile-service-charge",
+        "text": "SERVICE CHARGE Rs 0.00"
+      },
+      {
+        "id": "figure-tile-net-sales",
+        "text": "NET SALES Rs 45,966.40 What the bills actually came to. Stated by the server, not worked out here."
+      }
+    ],
+    "unclosedCash": "Rs 35,864.20",
+    "unclosedTotal": "Rs 40,277.40",
+    "unclosedNone": null,
+    "residual": null,
+    "full": "Floating Terrace OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Appearance Users Service health Collapse App Finance Takings Floating Terrace HQ Search… ⌘K 6 Takings Transactions Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Guide Takings The day's money, reconciled against what each till counted. Where a figure cannot be worked out, this screen says so and says why — it will not show you a zero it does not mean. Business date 33 orders closed on this trading day The day's money GROSS SALES Rs 43,350.00 Full menu price of everything sold, before any discount. DISCOUNTS Rs 950.00 Given away. Shown here rather than netted into a smaller sales figure. COMPS Not known Comps are not recorded separately from discounts. orders.discount_paisa is one column, and a full comp appears in it as a discount equal to the subtotal. Splitting them would require a field POS does not capture. TAX Rs 3,566.40 SERVICE CHARGE Rs 0.00 NET SALES Rs 45,966.40 What the bills actually came to. Stated by the server, not worked out here. How it came in Dated by when the money arrived, not by when its bill was finalised — so this is what the drawers and the card terminals took today, whether or not those orders are closed. TENDER PAYMENTS AMOUNT OF WHICH ON OPEN ORDERS Card 5 Rs 6,385.20 Rs 4,413.20(4) Cash 76 Rs 79,858.60 Rs 35,864.20(39) Rs 35,864.20 of today's cash is against 36 orders that are not closed yet (Rs 40,277.40 across all tenders). This money is part of the tender split above and is already in the drawer, so expect the count to include it. It is NOT in gross or net sales: a bill becomes a sale when it is closed, which may be tomorrow. Close those orders and the figures move — the cash does not get counted twice. What each till counted Every till is listed on its own. Variances are never added together — two drawers out by opposite amounts is two problems"
+  },
+  "transactions": {
+    "headers": [
+      "When",
+      "Type",
+      "Order",
+      "Tender",
+      "Amount",
+      "Order total",
+      "Trace"
+    ],
+    "rows": [
+      [
+        "8/12/2026, 8:16:13 AM",
+        "Void",
+        "ORD-20260812-0168",
+        "—",
+        "-Rs 1,682.00",
+        "Rs 1,682.00",
+        "Open"
+      ],
+      [
+        "8/12/2026, 8:15:49 AM",
+        "Void",
+        "ORD-20260812-0169",
+        "—",
+        "-Rs 1,682.00",
+        "Rs 1,682.00",
+        "Open"
+      ],
+      [
+        "8/12/2026, 8:10:40 AM",
+        "Void",
+        "ORD-20260812-0166",
+        "—",
+        "-Rs 1,705.20",
+        "Rs 1,705.20",
+        "Open"
+      ],
+      [
+        "8/12/2026, 8:10:27 AM",
+        "Void",
+        "ORD-20260812-0167",
+        "—",
+        "-Rs 725.00",
+        "Rs 725.00",
+        "Open"
+      ],
+      [
+        "8/12/2026, 8:01:20 AM",
+        "Payment",
+        "ORD-20260812-0165",
+        "CARD",
+        "Rs 1,972.00",
+        "Rs 1,972.00",
+        "Open"
+      ],
+      [
+        "8/12/2026, 7:59:24 AM",
+        "Payment",
+        "ORD-20260812-0164",
+        "CASH",
+        "Rs 1,682.60",
+        "Rs 1,682.60",
+        "Open"
+      ],
+      [
+        "8/12/2026, 7:37:18 AM",
+        "Payment",
+        "ORD-20260812-0163",
+        "CASH",
+        "Rs 499.00",
+        "Rs 499.00",
+        "Open"
+      ],
+      [
+        "8/12/2026, 7:28:40 AM",
+        "Payment",
+        "ORD-20260812-0160",
+        "CASH",
+        "Rs 499.00",
+        "Rs 499.00",
+        "Open"
+      ],
+      [
+        "8/12/2026, 7:25:40 AM",
+        "Refund",
+        "ORD-20260812-0159",
+        "—",
+        "-Rs 499.00",
+        "Rs 0.00",
+        "Open"
+      ],
+      [
+        "8/12/2026, 7:20:47 AM",
+        "Payment",
+        "ORD-20260812-0159",
+        "CASH",
+        "Rs 499.00",
+        "Rs 0.00",
+        "Open"
+      ]
+    ],
+    "links": [
+      "/app/finance/journal-entries",
+      "/app/finance/journal-entries"
+    ],
+    "body": "Floating Terrace OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Appearance Users Service health Collapse App Finance Transactions Floating Terrace HQ Search… ⌘K 6 Takings Transactions Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Guide Transactions Every payment, refund and void. Open any row to see the order behind it and the accounting entries it produced. From To Tender Any Cash Card Wallet Show Payments Refunds Voids Taken in Rs 139,717.40 Refunded Rs 7,908.80 Voided Rs 19,856.80 Net Rs 111,951.80 Totals cover the whole filtered range (162 events), not just this page. When Type Order Tender Amount Order total Trace 8/12/2026, 8:16:13 AM Void ORD-20260812-0168 — -Rs 1,682.00 Rs 1,682.00 Open 8/12/2026, 8:15:49 AM Void ORD-20260812-0169 — -Rs 1,682.00 Rs 1,682.00 Open 8/12/2026, 8:10:40 AM Void ORD-20260812-0166 — -Rs 1,705.20 Rs 1,705.20 Open 8/12/2026, 8"
+  },
+  "takings_2026-08-11": {
+    "shownDate": "2026-08-11",
+    "orders": "33",
+    "tiles": [
+      "GROSS SALES Rs 43,350.00 Full menu",
+      "DISCOUNTS Rs 950.00 Given away. Shown",
+      "COMPS Not known Comps are not",
+      "TAX Rs 3,566.40",
+      "SERVICE CHARGE Rs 0.00",
+      "NET SALES Rs 45,966.40 What the"
+    ],
+    "tenders": {
+      "Card": {
+        "count": "5",
+        "amount": "Rs 6,385.20"
+      },
+      "Cash": {
+        "count": "76",
+        "amount": "Rs 79,858.60"
+      }
+    },
+    "tillBlock": "Every till is listed on its own. Variances are never added together — two drawers out by opposite amounts is two problems, and one total of zero would hide both. TILL STATE OPENING FLOAT EXPECTED CASH COUNTED CASH VARIANCE Terrace Manager Opened 8/11/26, 5:52 PM · not closed Still open Rs 5,000.00 Not known Not known Not known Shift Cashier 984155 Opened 8/12/26, 7:50 AM · closed 8/12/26, 8:16 AM Matched Rs 5,000.00 Rs 6,682.60 Rs 6,682.60 Rs 0.00",
+    "unclosedCash": "Rs 35,864.20"
+  },
+  "takings_2026-08-12": {
+    "shownDate": "2026-08-12",
+    "orders": "0",
+    "tiles": [],
+    "tenders": {},
+    "tillBlock": null,
+    "unclosedCash": null
+  },
+  "takingsApi_2026-08-11": {
+    "error": {
+      "code": "NOT_FOUND",
+      "message": "No endpoint matches this path",
+      "details": [],
+      "traceId": "dddfe559-7ec4-40a3-bfb1-b16a4d93ab02"
+    }
+  },
+  "takingsApi_2026-08-12": {
+    "error": {
+      "code": "NOT_FOUND",
+      "message": "No endpoint matches this path",
+      "details": [],
+      "traceId": "a46da085-f947-4cd3-800c-988547e86e7c"
+    }
+  },
+  "tracedRow": {
+    "found": true,
+    "row": "8/12/2026, 7:59:24 AM Payment ORD-20260812-0164 CASH Rs 1,682.60 Rs 1,682.60 Open",
+    "linkText": "Open",
+    "href": null
+  },
+  "trace": {
+    "url": "http://localhost:3000/app/finance/transactions",
+    "body": "Floating Terrace OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Appearance Users Service health Collapse App Finance Transactions Floating Terrace HQ Search… ⌘K 6 Takings Transactions Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Guide Transactions Every payment, refund and void. Open any row to see the order behind it and the accounting entries it produced. From To Tender Any Cash Card Wallet Show Payments Refunds Voids Taken in Rs 139,717.40 Refunded Rs 7,908.80 Voided Rs 19,856.80 Net Rs 111,951.80 Totals cover the whole filtered range (162 events), not just this page. When Type Order Tender Amount Order total Trace 8/12/2026, 8:16:13 AM Void ORD-20260812-0168 — -Rs 1,682.00 Rs 1,682.00 Open 8/12/2026, 8:15:49 AM Void ORD-20260812-0169 — -Rs 1,682.00 Rs 1,682.00 Open 8/12/2026, 8:10:40 AM Void ORD-20260812-0166 — -Rs 1,705.20 Rs 1,705.20 Open 8/12/2026, 8:10:27 AM Void ORD-20260812-0167 — -Rs 725.00 Rs 725.00 Open 8/12/2026, 8:01:20 AM Payment ORD-20260812-0165 CARD Rs 1,972.00 Rs 1,972.00 Open 8/12/2026, 7:59:24 AM Payment ORD-20260812-0164 CASH Rs 1,682.60 Rs 1,682.60 Hide Order ORD-20260812-0164 · status CLOSED Order totals — subtotal Rs 1,657.00 · discount Rs 0.00 · tax Rs 25.60 · service Rs 0.00 · total Rs 1,682.60 JE-2027-000254 · ORDER_REVENUE 2026-08-11 Order revenue 7b979100-52ca-4be6-8f80-b2383b475148 Account Detail Debit Credit 1010 CASH payment Rs 1,682.60 4100 Sales revenue Rs 1,657.00 2200 Output tax Rs 25.60 Balanced · Rs 1,682.60 8/12/2026, 7:37:18 AM Payment ORD-20260812-0163 CASH Rs 499.00 Rs 499.00 Open 8/12/2026, 7:28:40 AM Payment ORD-20260812-0160 CASH Rs 499.00 Rs 499.00 Open 8/12/2026, 7:25:40 AM Refund ORD-20260812",
+    "tables": [
+      "When Type Order Tender Amount Order total Trace 8/12/2026, 8:16:13 AM Void ORD-20260812-0168 — -Rs 1,682.00 Rs 1,682.00 Open 8/12/2026, 8:15:49 AM Void ORD-20260812-0169 — -Rs 1,682.00 Rs 1,682.00 Open 8/12/2026, 8:10:40 AM Void ORD-20260812-0166 — -Rs 1,705.20 Rs 1,705.20 Open 8/12/2026, 8:10:27 AM Void ORD-20260812-0167 — -Rs 725.00 Rs 725.00 Open 8/12/2026, 8:01:20 AM Payment ORD-20260812-0165 CARD Rs 1,972.00 Rs 1,972.00 Open 8/12/2026, 7:59:24 AM Payment ORD-20260812-0164 CASH Rs 1,682.60 Rs 1,682.60 Hide Order ORD-20260812-0164 · status CLOSED Order totals — subtotal Rs 1,657.00 · discount Rs 0.00 · tax Rs 25.60 · service Rs 0.00 · total Rs 1,682.60 JE-2027-000254 · ORDER_REVENUE 2026-",
+      "Account Detail Debit Credit 1010 CASH payment Rs 1,682.60 4100 Sales revenue Rs 1,657.00 2200 Output tax Rs 25.60"
+    ]
+  },
+  "txnExpanded": {
+    "idx": 5,
+    "detailText": "Order ORD-20260812-0164 · status CLOSED Order totals — subtotal Rs 1,657.00 · discount Rs 0.00 · tax Rs 25.60 · service Rs 0.00 · total Rs 1,682.60 JE-2027-000254 · ORDER_REVENUE 2026-08-11 Order revenue 7b979100-52ca-4be6-8f80-b2383b475148 Account Detail Debit Credit 1010 CASH payment Rs 1,682.60 4100 Sales revenue Rs 1,657.00 2200 Output tax Rs 25.60 Balanced · Rs 1,682.60",
+    "links": []
+  },
+  "journalList": {
+    "headers": [
+      "Entry No",
+      "Date",
+      "Description",
+      "Status",
+      "Debit",
+      "Credit"
+    ],
+    "rows": [
+      [
+        "JE-2027-000002",
+        "2026-08-06",
+        "Order revenue b64e3cdd-6e00-4d45-88d6-7e8afdaff0fb",
+        "POSTED",
+        "Rs 3,886.00",
+        "Rs 3,886.00"
+      ],
+      [
+        "JE-2027-000003",
+        "2026-08-06",
+        "Order revenue 7689d9c7-7152-42d4-826e-be025ded14c6",
+        "POSTED",
+        "Rs 1,682.00",
+        "Rs 1,682.00"
+      ],
+      [
+        "JE-2027-000004",
+        "2026-08-06",
+        "Order revenue 23182fc4-81dc-4440-9316-841daa104b88",
+        "POSTED",
+        "Rs 1,635.60",
+        "Rs 1,635.60"
+      ],
+      [
+        "JE-2027-000005",
+        "2026-08-06",
+        "Order revenue bcfa87e4-2521-492d-b025-2af643e07d42",
+        "POSTED",
+        "Rs 92.80",
+        "Rs 92.80"
+      ],
+      [
+        "JE-2027-000006",
+        "2026-08-06",
+        "Order revenue d7246747-2340-4f3d-85ac-3a72f83bff09",
+        "POSTED",
+        "Rs 835.20",
+        "Rs 835.20"
+      ],
+      [
+        "JE-2027-000007",
+        "2026-08-06",
+        "Order revenue af8ed5f0-aa8e-42b2-9102-59ef3c91b5ae",
+        "POSTED",
+        "Rs 290.00",
+        "Rs 290.00"
+      ],
+      [
+        "JE-2027-000008",
+        "2026-08-06",
+        "Order revenue 18ac9b46-97b8-4a9e-a945-7e5776235c3c",
+        "POSTED",
+        "Rs 3,886.00",
+        "Rs 3,886.00"
+      ],
+      [
+        "JE-2027-000009",
+        "2026-08-06",
+        "Order revenue a48a843a-c32c-4af5-b9f4-f7b43f1200e2",
+        "POSTED",
+        "Rs 1,682.00",
+        "Rs 1,682.00"
+      ]
+    ],
+    "links": [
+      "/app/finance/journal-entries/new"
+    ],
+    "body": "Floating Terrace OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Appearance Users Service health Collapse App Finance Journal Entries Floating Terrace HQ Search… ⌘K 6 Takings Transactions Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Guide Journal Entries Tab to navigate rows, Enter to open New Entry Entry No Date Description Status Debit Credit JE-2027-000002 2026-08-06 Order revenue b64e3cdd-6e00-4d45-88d6-7e8afdaff0fb POSTED Rs 3,886.00 Rs 3,886.00 JE-2027-000003 2026-08-06 Order revenue 7689d9c7-7152-42d4-826e-be025ded14c6 POSTED Rs 1,682.00 Rs 1,682.00 JE-2027-000004 2026-08-06 Order revenue 23182fc4-81dc-4440-9316-841daa104b88 POSTED Rs 1,635.60 Rs 1,635.60"
+  },
+  "journalDetail": {
+    "url": "http://localhost:3000/app/finance/journal-entries/new",
+    "heading": "New Journal Entry",
+    "headers": [],
+    "rows": [],
+    "body": "Floating Terrace OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Appearance Users Service health Collapse Finance Journal Entries New Floating Terrace HQ Search… ⌘K 6 Takings Transactions Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Guide New Journal Entry Debits must equal credits before saving. Entry Date (open periods only) August 2026 Su Mo Tu We Th Fr Sa 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 Selected: 2025-08-01 Description Account Description Debit (paisa) Credit (paisa) × × + Add line Total DR: 0 Total CR: 0 Not balanced Save as Draft Cancel"
+  },
+  "jeRowOpen": {
+    "url": "http://localhost:3000/app/finance/journal-entries/93142466-edaf-4d73-b372-91dcec8808e0",
+    "heading": "JE-2027-000002",
+    "body": "Floating Terrace OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Appearance Users Service health Collapse Finance Journal Entries Journal Entry Floating Terrace HQ Search… ⌘K 6 Takings Transactions Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Guide JE-2027-000002 2026-08-06 · Order revenue b64e3cdd-6e00-4d45-88d6-7e8afdaff0fb Reverse STATUS POSTED TOTAL DEBIT Rs 3,886.00 TOTAL CREDIT Rs 3,886.00 Account Description Debit Credit 1010 CASH payment Rs 3,886.00 — 4100 Sales revenue — Rs 3,350.00 2200 Output tax — Rs 536.00"
+  },
+  "newJeForm": {
+    "selected": "2025-08-01",
+    "calendarMonth": "August 2026",
+    "amountLabels": [],
+    "totals": [
+      "0",
+      "0"
+    ]
+  },
+  "orderListByChip": {
+    "Active": {
+      "rows": "20",
+      "out": {
+        "ORD-20260812-0164": null,
+        "ORD-20260812-0165": null,
+        "ORD-20260812-0166": null,
+        "ORD-20260812-0167": null,
+        "ORD-20260812-0168": null,
+        "ORD-20260812-0169": null
+      }
+    },
+    "Draft": {
+      "rows": null,
+      "out": {
+        "ORD-20260812-0164": null,
+        "ORD-20260812-0165": null,
+        "ORD-20260812-0166": null,
+        "ORD-20260812-0167": null,
+        "ORD-20260812-0168": null,
+        "ORD-20260812-0169": null
+      }
+    },
+    "In Progress": {
+      "rows": "20",
+      "out": {
+        "ORD-20260812-0164": null,
+        "ORD-20260812-0165": null,
+        "ORD-20260812-0166": null,
+        "ORD-20260812-0167": null,
+        "ORD-20260812-0168": null,
+        "ORD-20260812-0169": null
+      }
+    },
+    "Partially Served": {
+      "rows": null,
+      "out": {
+        "ORD-20260812-0164": null,
+        "ORD-20260812-0165": null,
+        "ORD-20260812-0166": null,
+        "ORD-20260812-0167": null,
+        "ORD-20260812-0168": null,
+        "ORD-20260812-0169": null
+      }
+    },
+    "Served": {
+      "rows": null,
+      "out": {
+        "ORD-20260812-0164": null,
+        "ORD-20260812-0165": null,
+        "ORD-20260812-0166": null,
+        "ORD-20260812-0167": null,
+        "ORD-20260812-0168": null,
+        "ORD-20260812-0169": null
+      }
+    },
+    "Closed": {
+      "rows": "20",
+      "out": {
+        "ORD-20260812-0164": "ORD-20260812-0164 H1 Closed Paid bc0d9897 5 Items 4 Items / 5 Qty Rs 1,682.60 32m Open ORD-20260812-0163 Takeaway Closed Paid eb2ee67e ",
+        "ORD-20260812-0165": "ORD-20260812-0165 Takeaway Closed Paid bc0d9897 2 Items Rs 1,972.00 28m Open ORD-20260812-0164 H1 Closed Paid bc0d9897 5 Items 4 Items",
+        "ORD-20260812-0166": null,
+        "ORD-20260812-0167": null,
+        "ORD-20260812-0168": null,
+        "ORD-20260812-0169": null
+      }
+    },
+    "Paid": {
+      "rows": "4",
+      "out": {
+        "ORD-20260812-0164": null,
+        "ORD-20260812-0165": null,
+        "ORD-20260812-0166": null,
+        "ORD-20260812-0167": null,
+        "ORD-20260812-0168": null,
+        "ORD-20260812-0169": null
+      }
+    },
+    "Voided": {
+      "rows": "20",
+      "out": {
+        "ORD-20260812-0164": null,
+        "ORD-20260812-0165": null,
+        "ORD-20260812-0166": "ORD-20260812-0166 Takeaway Voided Unpaid bc0d9897 2 Items Rs 1,705.20 shift walkthrough — manager voiding a fired, unpaid check by Terrace Man",
+        "ORD-20260812-0167": "ORD-20260812-0167 Takeaway Voided Unpaid bc0d9897 1 Items Rs 725.00 shift walkthrough — voiding an unfired draft by Shift Cashier 984155 · Aug",
+        "ORD-20260812-0168": "ORD-20260812-0168 Takeaway Voided Unpaid bc0d9897 1 Items Rs 1,682.00 End of shift — parked check never taken by Shift Cashier 984155 · Aug 12",
+        "ORD-20260812-0169": "ORD-20260812-0169 Takeaway Voided Unpaid bc0d9897 1 Items Rs 1,682.00 End of shift — parked check never taken by Shift Cashier 984155 · Aug 12"
+      }
+    },
+    "Refunded": {
+      "rows": "17",
+      "out": {
+        "ORD-20260812-0164": null,
+        "ORD-20260812-0165": null,
+        "ORD-20260812-0166": null,
+        "ORD-20260812-0167": null,
+        "ORD-20260812-0168": null,
+        "ORD-20260812-0169": null
+      }
+    }
+  },
+  "orderTruth": {
+    "ORD-20260812-0164": "{\"detail\":\"Invalid UUID string: search\",\"instance\":\"/api/v1/pos/orders/search\",\"status\":422,\"title\":\"VALIDATION_FAILED\",\"type\":\"urn:restaurantos:pos:validation-failed\"}",
+    "ORD-20260812-0165": "{\"detail\":\"Invalid UUID string: search\",\"instance\":\"/api/v1/pos/orders/search\",\"status\":422,\"title\":\"VALIDATION_FAILED\",\"type\":\"urn:restaurantos:pos:validation-failed\"}",
+    "ORD-20260812-0166": "{\"detail\":\"Invalid UUID string: search\",\"instance\":\"/api/v1/pos/orders/search\",\"status\":422,\"title\":\"VALIDATION_FAILED\",\"type\":\"urn:restaurantos:pos:validation-failed\"}",
+    "ORD-20260812-0167": "{\"detail\":\"Invalid UUID string: search\",\"instance\":\"/api/v1/pos/orders/search\",\"status\":422,\"title\":\"VALIDATION_FAILED\",\"type\":\"urn:restaurantos:pos:validation-failed\"}",
+    "ORD-20260812-0168": "{\"detail\":\"Invalid UUID string: search\",\"instance\":\"/api/v1/pos/orders/search\",\"status\":422,\"title\":\"VALIDATION_FAILED\",\"type\":\"urn:restaurantos:pos:validation-failed\"}",
+    "ORD-20260812-0169": "{\"detail\":\"Invalid UUID string: search\",\"instance\":\"/api/v1/pos/orders/search\",\"status\":422,\"title\":\"VALIDATION_FAILED\",\"type\":\"urn:restaurantos:pos:validation-failed\"}"
+  },
+  "auditRoutes": {
+    "/app/audit": "404",
+    "/app/settings/audit": "404",
+    "/app/reports/audit": "reachable",
+    "/app/admin/audit": "404",
+    "/app/settings/security": "404"
+  },
+  "auditApi": {
+    "status": 200,
+    "body": {
+      "data": [
+        {
+          "id": 8805,
+          "occurredAt": "2026-08-12T03:23:32.360760Z",
+          "action": "USER_LOGIN_SUCCEEDED",
+          "resourceType": "USER",
+          "resourceId": null,
+          "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "userId": "61334688-6b5c-4926-ac82-e93208ba5324",
+          "impersonatedBy": null,
+          "afterState": "{\"ip\": \"127.0.0.1\", \"email\": \"owner@terrace.local\", \"userId\": \"61334688-6b5c-4926-ac82-e93208ba5324\"}",
+          "metadata": "{\"source\": \"auth-service\", \"eventId\": \"06169fee-0dd0-4a25-865f-be1f8326f0db\", \"correlationId\": \"6da0358b-274c-401e-9f47-b5a8c11c197f\", \"schemaVersion\": 1}"
+        },
+        {
+          "id": 8804,
+          "occurredAt": "2026-08-12T03:23:29.347314Z",
+          "action": "USER_LOGIN_FAILED",
+          "resourceType": "USER",
+          "resourceId": null,
+          "branchId": null,
+          "userId": "61334688-6b5c-4926-ac82-e93208ba5324",
+          "impersonatedBy": null,
+          "afterState": "{\"ip\": \"127.0.0.1\", \"email\": \"owner@terrace.local\", \"userId\": \"61334688-6b5c-4926-ac82-e93208ba5324\"}",
+          "metadata": "{\"source\": \"auth-service\", \"eventId\": \"53edfad8-0998-48d9-b94a-a2f97fc87c1e\", \"correlationId\": \"b2b9f554-d089-4839-b693-b8bb006e0f00\", \"schemaVersion\": 1}"
+        },
+        {
+          "id": 8803,
+          "occurredAt": "2026-08-12T03:22:08.910301Z",
+          "action": "USER_LOGIN_SUCCEEDED",
+          "resourceType": "USER",
+          "resourceId": null,
+          "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "userId": "61334688-6b5c-4926-ac82-e93208ba5324",
+          "impersonatedBy": null,
+          "afterState": "{\"ip\": \"127.0.0.1\", \"email\": \"owner@terrace.local\", \"userId\": \"61334688-6b5c-4926-ac82-e93208ba5324\"}",
+          "metadata": "{\"source\": \"auth-service\", \"eventId\": \"8169b8df-5eef-48f8-bee5-fcda50d24b85\", \"correlationId\": \"63d1994f-a272-46da-aa89-84c7149d6f26\", \"schemaVersion\": 1}"
+        },
+        {
+          "id": 8802,
+          "occurredAt": "2026-08-12T03:22:05.897572Z",
+          "action": "USER_LOGIN_FAILED",
+          "resourceType": "USER",
+          "resourceId": null,
+          "branchId": null,
+          "userId": "61334688-6b5c-4926-ac82-e93208ba5324",
+          "impersonatedBy": null,
+          "afterState": "{\"ip\": \"127.0.0.1\", \"email\": \"owner@terrace.local\", \"userId\": \"61334688-6b5c-4926-ac82-e93208ba5324\"}",
+          "metadata": "{\"source\": \"auth-service\", \"eventId\": \"508fa5a3-bf1f-4ea7-bea6-8b6fcd70b277\", \"correlationId\": \"165155f7-1827-4ebd-8a8e-93c4c8e29e0a\", \"schemaVersion\": 1}"
+        },
+        {
+          "id": 8801,
+          "occurredAt": "2026-08-12T03:21:21.835167Z",
+          "action": "USER_LOGIN_SUCCEEDED",
+          "resourceType": "USER",
+          "resourceId": null,
+          "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "userId": "61334688-6b5c-4926-ac82-e93208ba5324",
+          "impersonatedBy": null,
+          "afterState": "{\"ip\": \"127.0.0.1\", \"email\": \"owner@terrace.local\", \"userId\": \"61334688-6b5c-4926-ac82-e93208ba5324\"}",
+          "metadata": "{\"source\": \"auth-service\", \"eventId\": \"353a033f-6b46-4f69-b433-2e51aba6ca13\", \"correlationId\": \"3e61a724-4bbc-4f9f-bd37-938278037204\", \"schemaVersion\": 1}"
+        },
+        {
+          "id": 8800,
+          "occurredAt": "2026-08-12T03:21:18.830262Z",
+          "action": "USER_LOGIN_FAILED",
+          "resourceType": "USER",
+          "resourceId": null,
+          "branchId": null,
+          "userId": "61334688-6b5c-4926-ac82-e93208ba5324",
+          "impersonatedBy": null,
+          "afterState": "{\"ip\": \"127.0.0.1\", \"email\": \"owner@terrace.local\", \"userId\": \"61334688-6b5c-4926-ac82-e93208ba5324\"}",
+          "metadata": "{\"source\": \"auth-service\", \"eventId\": \"0fa5c5c5-4bd6-47c7-aa51-66e6690be21b\", \"correlationId\": \"ad18b308-7375-41e4-b4cb-bf78d27a9e08\", \"schemaVersion\": 1}"
+        },
+        {
+          "id": 8799,
+          "occurredAt": "2026-08-12T03:19:46.512907Z",
+          "action": "USER_LOGIN_SUCCEEDED",
+          "resourceType": "USER",
+          "resourceId": null,
+          "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "userId": "61334688-6b5c-4926-ac82-e93208ba5324",
+          "impersonatedBy": null,
+          "afterState": "{\"ip\": \"127.0.0.1\", \"email\": \"owner@terrace.local\", \"userId\": \"61334688-6b5c-4926-ac82-e93208ba5324\"}",
+          "metadata": "{\"source\": \"auth-service\", \"eventId\": \"c0b5117c-d8df-4fea-8247-1b01015ec6df\", \"correlationId\": \"733a7979-ae3a-44e4-95e1-12273032b848\", \"schemaVersion\": 1}"
+        },
+        {
+          "id": 8798,
+          "occurredAt": "2026-08-12T03:19:43.494508Z",
+          "action": "USER_LOGIN_FAILED",
+          "resourceType": "USER",
+          "resourceId": null,
+          "branchId": null,
+          "userId": "61334688-6b5c-4926-ac82-e93208ba5324",
+          "impersonatedBy": null,
+          "afterState": "{\"ip\": \"127.0.0.1\", \"email\": \"owner@terrace.local\", \"userId\": \"61334688-6b5c-4926-ac82-e93208ba5324\"}",
+          "metadata": "{\"source\": \"auth-service\", \"eventId\": \"eca2804b-94d3-4099-b464-c8c36bf2f7b1\", \"correlationId\": \"0ea2761e-b008-4d84-b18a-9164108e9c59\", \"schemaVersion\": 1}"
+        },
+        {
+          "id": 8797,
+          "occurredAt": "2026-08-12T03:18:10.951606Z",
+          "action": "USER_LOGIN_SUCCEEDED",
+          "resourceType": "USER",
+          "resourceId": null,
+          "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "userId": "61334688-6b5c-4926-ac82-e93208ba5324",
+          "impersonatedBy": null,
+          "afterState": "{\"ip\": \"127.0.0.1\", \"email\": \"owner@terrace.local\", \"userId\": \"61334688-6b5c-4926-ac82-e93208ba5324\"}",
+          "metadata": "{\"source\": \"auth-service\", \"eventId\": \"d4ce1421-3081-46e4-b987-dc677413dbed\", \"correlationId\": \"e6cdb984-ccae-40fa-b7b6-94271d0d4d3c\", \"schemaVersion\": 1}"
+        },
+        {
+          "id": 8796,
+          "occurredAt": "2026-08-12T03:18:07.913495Z",
+          "action": "USER_LOGIN_FAILED",
+          "resourceType": "USER",
+          "resourceId": null,
+          "branchId": null,
+          "userId": "61334688-6b5c-4926-ac82-e93208ba5324",
+          "impersonatedBy": null,
+          "afterState": "{\"ip\": \"127.0.0.1\", \"email\": \"owner@terrace.local\", \"userId\": \"61334688-6b5c-4926-ac82-e93208ba5324\"}",
+          "metadata": "{\"source\": \"auth-service\", \"eventId\": \"06d8881d-d0f1-4006-8289-d2d899cc868d\", \"correlationId\": \"8eec3701-c9ab-45a7-a7d4-90332e672f50\", \"schemaVersion\": 1}"
+        },
+        {
+          "id": 8795,
+          "occurredAt": "2026-08-12T03:17:56.274991Z",
+          "action": "USER_LOGIN_SUCCEEDED",
+          "resourceType": "USER",
+          "resourceId": null,
+          "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "userId": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+          "impersonatedBy": null,
+          "afterState": "{\"ip\": \"127.0.0.1\", \"email\": \"manager@terrace.local\", \"userId\": \"fefd7187-dbe2-4c12-a532-3c1cc8f3d322\"}",
+          "metadata": "{\"source\": \"auth-service\", \"eventId\": \"e5914ea6-5f19-4123-b20f-b1ed8193d701\", \"correlationId\": \"be0f10b3-d19e-4c36-9237-e2aef79b9edc\", \"schemaVersion\": 1}"
+        },
+        {
+          "id": 8794,
+          "occurredAt": "2026-08-12T03:17:27.626032Z",
+          "action": "USER_LOGIN_SUCCEEDED",
+          "resourceType": "USER",
+          "resourceId": null,
+          "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "userId": "61334688-6b5c-4926-ac82-e93208ba5324",
+          "impersonatedBy": null,
+          "afterState": "{\"ip\": \"127.0.0.1\", \"email\": \"owner@terrace.local\", \"userId\": \"61334688-6b5c-4926-ac82-e93208ba5324\"}",
+          "metadata": "{\"source\": \"auth-service\", \"eventId\": \"6d907791-abd6-4909-b188-ee3d7b408656\", \"correlationId\": \"e8aafc39-13b3-4080-94ee-729df18d0dab\", \"schemaVersion\": 1}"
+        },
+        {
+          "id": 8793,
+          "occurredAt": "2026-08-12T03:17:24.624550Z",
+          "action": "USER_LOGIN_FAILED",
+          "resourceType": "USER",
+          "resourceId": null,
+          "branchId": null,
+          "userId": "61334688-6b5c-4926-ac82-e93208ba5324",
+          "impersonatedBy": null,
+          "afterState": "{\"ip\": \"127.0.0.1\", \"email\": \"owner@terrace.local\", \"userId\": \"61334688-6b5c-4926-ac82-e93208ba5324\"}",
+          "metadata": "{\"source\": \"auth-service\", \"eventId\": \"b1dc08e1-f53d-4e93-b828-b1814c068a16\", \"correlationId\": \"f241a3a2-4298-422c-a8bc-994bc0d7516d\", \"schemaVersion\": 1}"
+        },
+        {
+          "id": 8792,
+          "occurredAt": "2026-08-12T03:17:12.676722Z",
+          "action": "USER_LOGIN_SUCCEEDED",
+          "resourceType": "USER",
+          "resourceId": null,
+          "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "userId": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+          "impersonatedBy": null,
+          "afterState": "{\"ip\": \"127.0.0.1\", \"email\": \"manager@terrace.local\", \"userId\": \"fefd7187-dbe2-4c12-a532-3c1cc8f3d322\"}",
+          "metadata": "{\"source\": \"auth-service\", \"eventId\": \"313a6c3c-7275-4110-ab1a-ce3545f9bfd2\", \"correlationId\": \"381c048d-90fd-45f3-be14-bcc97af217e2\", \"schemaVersion\": 1}"
+        },
+        {
+          "id": 8791,
+          "occurredAt": "2026-08-12T03:16:27.942638Z",
+          "action": "TILL_CLOSED",
+          "resourceType": "TILL",
+          "resourceId": null,
+          "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "userId": "bc0d9897-e0ef-40de-b404-89ce044ab2cb",
+          "impersonatedBy": null,
+          "afterState": "{\"cashierId\": \"bc0d9897-e0ef-40de-b404-89ce044ab2cb\", \"tillSessionId\": \"f6b61863-0f47-4d17-923a-faa95ccb75ad\", \"variancePaisa\": 0, \"countedCashPaisa\": 668260, \"expectedCashPaisa\": 668260}",
+          "metadata": "{\"source\": \"pos-service\", \"eventId\": \"f954598d-df82-4b34-aeb3-a75c64affc29\", \"correlationId\": \"a4b08759-e986-4d56-b602-6184c4e061f5\", \"schemaVersion\": 1}"
+        },
+        {
+          "id": 8790,
+          "occurredAt": "2026-08-12T03:16:13.304953Z",
+          "action": "ORDER_VOIDED",
+          "resourceType": "ORDER",
+          "resourceId": "f4ec7d5b-9b14-4aba-8b68-cfa44a41a3f1",
+          "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "userId": "bc0d9897-e0ef-40de-b404-89ce044ab2cb",
+          "impersonatedBy": null,
+          "afterState": "{\"reason\": \"End of shift — parked check never taken\", \"orderId\": \"f4ec7d5b-9b14-4aba-8b68-cfa44a41a3f1\", \"voidedBy\": \"bc0d9897-e0ef-40de-b404-89ce044ab2cb\"}",
+          "metadata": "{\"source\": \"pos-service\", \"eventId\": \"ff9f7593-d919-40ed-9715-9d2ad5cbfdf9\", \"correlationId\": \"5ff75403-b359-45da-89ae-3e36d9b14046\", \"schemaVersion\": 1}"
+        },
+        {
+          "id": 8789,
+          "occurredAt": "2026-08-12T03:15:49.506405Z",
+          "action": "ORDER_VOIDED",
+          "resourceType": "ORDER",
+          "resourceId": "51700a36-e07b-4925-86f8-b30ef5e6543c",
+          "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "userId": "bc0d9897-e0ef-40de-b404-89ce044ab2cb",
+          "impersonatedBy": null,
+          "afterState": "{\"reason\": \"End of shift — parked check never taken\", \"orderId\": \"51700a36-e07b-4925-86f8-b30ef5e6543c\", \"voidedBy\": \"bc0d9897-e0ef-40de-b404-89ce044ab2cb\"}",
+          "metadata": "{\"source\": \"pos-service\", \"eventId\": \"191b1760-7ee2-46eb-9684-2ff7b4469266\", \"correlationId\": \"343c8b5d-b74e-4af8-8ee7-d592c3d082db\", \"schemaVersion\": 1}"
+        },
+        {
+          "id": 8788,
+          "occurredAt": "2026-08-12T03:15:25.649745Z",
+          "action": "JOURNAL_POSTED",
+          "resourceType": "JOURNAL",
+          "resourceId": null,
+          "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "userId": null,
+          "impersonatedBy": null,
+          "afterState": "{\"jeId\": \"756f728f-e898-4ee6-95fe-384d21857203\", \"entryNo\": \"JE-2027-000254\", \"sourceId\": \"7b979100-52ca-4be6-8f80-b2383b475148\", \"sourceType\": \"ORDER_REVENUE\", \"totalDebitPaisa\": 168260, \"totalCreditPaisa\": 168260}",
+          "metadata": "{\"source\": \"finance-service\", \"eventId\": \"0f5ef186-5719-4f6b-a12f-bef75d7c433a\", \"correlationId\": \"0a85a668-65e7-4620-95e5-22014d16b148\", \"schemaVersion\": 1}"
+        },
+        {
+          "id": 8787,
+          "occurredAt": "2026-08-12T03:15:14.408203Z",
+          "action": "JOURNAL_POSTED",
+          "resourceType": "JOURNAL",
+          "resourceId": null,
+          "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "userId": null,
+          "impersonatedBy": null,
+          "afterState": "{\"jeId\": \"3d9e422a-2bbd-4c0e-b3a3-7cc10c184a2a\", \"entryNo\": \"JE-2027-000253\", \"sourceId\": \"a4863e15-50ba-4767-8281-d7a2db0eef3b\", \"sourceType\": \"ORDER_COGS\", \"totalDebitPaisa\": 241271, \"totalCreditPaisa\": 241271}",
+          "metadata": "{\"source\": \"finance-service\", \"eventId\": \"41bb5bef-86a8-43f6-8d21-5411e0b11976\", \"correlationId\": \"1f2d81da-3d60-46a9-a994-f29fb3b98892\", \"schemaVersion\": 1}"
+        },
+        {
+          "id": 8786,
+          "occurredAt": "2026-08-12T03:15:13.437800Z",
+          "action": "JOURNAL_POSTED",
+          "resourceType": "JOURNAL",
+          "resourceId": null,
+          "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "userId": null,
+          "impersonatedBy": null,
+          "afterState": "{\"jeId\": \"5ecf348a-cc2e-4a62-af9a-4a236cb49fbf\", \"entryNo\": \"JE-2027-000252\", \"sourceId\": \"a4863e15-50ba-4767-8281-d7a2db0eef3b\", \"sourceType\": \"ORDER_REVENUE\", \"totalDebitPaisa\": 197200, \"totalCreditPaisa\": 197200}",
+          "metadata": "{\"source\": \"finance-service\", \"eventId\": \"31902bc2-1e4a-4c79-8b97-2ba69f8cde59\", \"correlationId\": \"0f034bdf-78e3-423d-af58-1ff070066862\", \"schemaVersion\": 1}"
+        }
+      ],
+      "meta": null,
+      "warnings": []
+    }
+  },
+  "audit_size=200": {
+    "count": 200,
+    "kinds": {
+      "USER_LOGIN_SUCCEEDED": 153,
+      "USER_LOGIN_FAILED": 22,
+      "TILL_CLOSED": 1,
+      "ORDER_VOIDED": 4,
+      "JOURNAL_POSTED": 12,
+      "TILL_OPENED": 1,
+      "PASSWORD_CHANGED": 1,
+      "USER_CREATED": 2,
+      "ROLE_GRANTED": 2,
+      "ORDER_REFUNDED": 2
+    }
+  },
+  "audit_action=ORDER_VOIDED": {
+    "count": 20,
+    "kinds": {
+      "ORDER_VOIDED": 20
+    }
+  },
+  "audit_resourceType=ORDER": {
+    "count": 40,
+    "kinds": {
+      "USER_LOGIN_SUCCEEDED": 24,
+      "USER_LOGIN_FAILED": 8,
+      "TILL_CLOSED": 1,
+      "ORDER_VOIDED": 4,
+      "JOURNAL_POSTED": 3
+    }
+  },
+  "reportsAudit": "Floating Terrace OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Appearance Users Service health Collapse App Reports Audit Floating Terrace HQ Search… ⌘K 6 ← All reports audit From To",
+  "reportsIndex": [
+    {
+      "t": "FBR Tax Summary →",
+      "h": "/app/reports/fbr"
+    },
+    {
+      "t": "Sales by Day6 columns",
+      "h": "/app/reports/sales-by-day"
+    },
+    {
+      "t": "Sales by Item6 columns",
+      "h": "/app/reports/sales-by-item"
+    },
+    {
+      "t": "Sales by Hour (Peak Hours)3 columns",
+      "h": "/app/reports/sales-by-hour"
+    },
+    {
+      "t": "Sales by Order Type3 columns",
+      "h": "/app/reports/sales-by-order-type"
+    },
+    {
+      "t": "Discount Summary3 columns",
+      "h": "/app/reports/discount-summary"
+    },
+    {
+      "t": "Till Sessions7 columns",
+      "h": "/app/reports/till-sessions"
+    },
+    {
+      "t": "Purchases by Purchase Order5 columns",
+      "h": "/app/reports/purchases-by-po"
+    }
+  ],
+  "voidedRows": {
+    "headers": [
+      "Order / Table",
+      "Status",
+      "Payment",
+      "Server/Cashier",
+      "Items",
+      "Total",
+      "Voided",
+      "Age",
+      ""
+    ],
+    "out": [
+      {
+        "no": "ORD-20260812-0166",
+        "cells": [
+          "ORD-20260812-0166 Takeaway",
+          "Voided",
+          "Unpaid",
+          "bc0d9897",
+          "2 Items",
+          "Rs 1,705.20",
+          "shift walkthrough — manager voiding a fired, unpaid check by Terrace Manager · Aug 12, 08:10 AM",
+          "22m",
+          "Open"
+        ]
+      },
+      {
+        "no": "ORD-20260812-0168",
+        "cells": [
+          "ORD-20260812-0168 Takeaway",
+          "Voided",
+          "Unpaid",
+          "bc0d9897",
+          "1 Items",
+          "Rs 1,682.00",
+          "End of shift — parked check never taken by Shift Cashier 984155 · Aug 12, 08:16 AM",
+          "15m",
+          "Cancel Continue"
+        ]
+      }
+    ]
+  },
+  "voidDetail": [
+    "ORD-20260812-0169 Takeaway Voided Unpaid bc0d9897 1 Items Rs 1,682.00 End of shift — parked check never taken by Shift Cashier 984155 · Aug 12, 08:15 AM 14m Cancel Continue",
+    "ORD-20260812-0168 Takeaway Voided Unpaid bc0d9897 1 Items Rs 1,682.00 End of shift — parked check never taken by Shift Cashier 984155 · Aug 12, 08:16 AM 15m Cancel Continue",
+    "ORD-20260812-0167 Takeaway Voided Unpaid bc0d9897 1 Items Rs 725.00 shift walkthrough — voiding an unfired draft by Shift Cashier 984155 · Aug 12, 08:10 AM 17m Cancel Continue",
+    "ORD-20260812-0166 Takeaway Voided Unpaid bc0d9897 2 Items Rs 1,705.20 shift walkthrough — manager voiding a fired, unpaid check by Terrace Manager · Aug 12, 08:10 AM 22m Open",
+    "ORD-20260812-0151 Takeaway Voided Unpaid fefd7187 1 Items Rs 499.00 adversarial recheck — unpaid, guest walked by Terrace Manager · Aug 12, 06:52 AM 1h 34m Open"
+  ],
+  "floorView": {
+    "count": 6,
+    "tiles": [
+      "G1 Occupied In Progress 8 seats",
+      "H1 Available 4 seats",
+      "T1 Occupied In Progress 4 seats",
+      "T2 Occupied In Progress 2 seats",
+      "T3 Occupied In Progress 6 seats",
+      "UIQ3028 Occupied Draft 4 seats"
+    ],
+    "h1": "H1 Available 4 seats",
+    "legend": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse App POS Floating Terrace HQ Search… ⌘K F Point of sale Till OPEN Float: Rs 5,000.00 Cash: Rs 30,752.00 Orders: 65 Close Till POS Terminal Floor View Order Management Live G1 Occupied In Progress 8 seats H1 A"
+  },
+  "tablesScreen": {
+    "h1ctx": "6 seats T1 4 seats Occupied T2 2 seats Occupied Other tables 2 tables · 8 seats H1 4 seats Available UIQ3028 4 seats Occupied",
+    "head": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse App Tables Floating Terrace HQ Search… ⌘K F Tables Your dining tables. Anything active here can be picked w"
+  },
+  "printers": {
+    "heading": "Printers",
+    "rows": [],
+    "buttons": [
+      "Floating Terrace HQ",
+      "Collapse",
+      "Search…⌘K",
+      "F",
+      "Enrol an agent",
+      "Revoke",
+      "Revoke",
+      "Revoke",
+      "Revoke",
+      "Revoke",
+      "Revoke",
+      "Revoke",
+      "Revoke",
+      "Revoke"
+    ],
+    "agentState": "No print agent answered on this machine.",
+    "body": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse App Settings Printers Floating Terrace HQ Search… ⌘K F Printers The receipt printer at the till and the ticket printers in the kitchen, and the machine that drives them. Print agents A print agent is a small program running on a machine in this branch. It is the only thing that can put bytes on a printer — a browser cannot open a socket to port 9100 or address a USB spooler. It collects jobs from the server, so it keeps printing kitchen tickets when no browser tab is open anywhere. Enrol an agent S1-06 pantry audit It has polled before but not recently. The machine may be off or off the network. Not responding Revoke S1-06 origins audit It has polled before but not recently. The machine may be off or off the network. Not responding Revoke S1-06 re-audit agent It has polled before but not recently"
+  },
+  "receipt": {
+    "url": "http://localhost:3000/app/pos/orders/7b979100-52ca-4be6-8f80-b2383b475148/receipt",
+    "body": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse Orders Order Receipt Floating Terrace HQ Search… ⌘K F Back Print a browser copy Sent to the receipt printer This bill was queued for audit-receipt and the branch print agent will put it on paper. No browser print dialog is opened. If nothing comes out, check the agent on Settings → Printers — the job is kept and retried, not lost. *** REPRINT #2 *** Originally issued 2026-08-12T03:15:24.754Z Floating Terrace HQ 12 Khayaban-e-Iqbal +92 21 4628872 Order ORD-20260812-0164 Issued 2026-08-12T03:28:58.849Z 1 x Butter Naan Rs 92.80 2 x Audit Item 52235 Rs 998.00 1 x Audit Item 60568 Rs 499.00 1 x Butter Naan Rs 92.80 Subtotal Rs 1,657.00 Discount Rs 0.00 Service charge Rs 0.00 Tax (16.00%) [OTHER] Rs 25.60 Tax Rs 25.60 TOTAL Rs 1,682.60 CASH Rs 1,682.60 Tendered Rs 2,000.00 Change Rs 317.40",
+    "hasPrinterLine": false
+  },
+  "kdsCount_DEFAULT": {
+    "picker": "DEFAULT DEFAULT 120 120 tickets 134 items Oldest 121h 49m 97 NEW 20 STARTED 10 PREPARING 7 READY",
+    "board": {
+      "count": "111 tickets",
+      "cols": {
+        "NEW": "76",
+        "STARTED": "18",
+        "PREPARING": "10",
+        "READY": "7"
+      },
+      "readyToggle": "true"
+    }
+  },
+  "kdsCount_PANTRY1": {
+    "picker": "Cold prep PANTRY1 18 18 tickets 12 items Oldest 1h 51m 12 NEW 0 STARTED 0 PREPARING 0 READY",
+    "board": {
+      "count": "12 tickets",
+      "cols": {
+        "NEW": "12",
+        "STARTED": "0",
+        "PREPARING": "0",
+        "READY": "0"
+      },
+      "readyToggle": "true"
+    }
+  },
+  "kdsCount_GRILL": {
+    "picker": "Hot line GRILL 6 6 tickets 5 items Oldest 121h 8m 5 NEW 0 STARTED 0 PREPARING 0 READY",
+    "board": {
+      "count": "5 tickets",
+      "cols": {
+        "NEW": "5",
+        "STARTED": "0",
+        "PREPARING": "0",
+        "READY": "0"
+      },
+      "readyToggle": "true"
+    }
+  },
+  "taxRoutes": {
+    "/app/settings/tax": "404",
+    "/app/settings/taxes": "404",
+    "/app/finance/tax": "404",
+    "/app/menu/tax": "404",
+    "/app/settings": "reachable"
+  },
+  "settingsBody": "Floating Terrace OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Appearance Users Service health Collapse App Settings Floating Terrace HQ Search… ⌘K 6 Settings How this branch is set up, and who can sign in to it. Branch details Saved to your restaurant's record and visible to everyone on this branch. Branch name Address Phone Email Time zone An IANA name. Business dates and reports are cut on it. Opened on Sales tax registration (STRN) Not set National tax number (NTN) Not set Read-only here. The branch update API has no field for either, so an editable box would accept your change and discard it. Tax registration is set during onboarding. Save changes Users Add staff, set what they can do on each branch, and issue a password when someone is locked out. Manage users Appearance Brand colour and logo. Stored in this browser only — it is not saved to your account, so colleagues and your other devices se",
+  "branchSettings": {
+    "Branch name": "Floating Terrace HQ",
+    "Address": "\"12 Khayaban-e-Iqbal\"",
+    "Phone": "+92 21 4628872",
+    "Email": "hq@floatingterrace.pk",
+    "Time zone": "Asia/Karachi",
+    "Opened on": "2024-01-15"
+  }
+}

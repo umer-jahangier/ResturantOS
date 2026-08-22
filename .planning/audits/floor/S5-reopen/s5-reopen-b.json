@@ -1,0 +1,306 @@
+{
+  "stamp": "37641",
+  "name": "Adjacent Probe 37641",
+  "steps": [
+    {
+      "step": "claim at start",
+      "detail": {
+        "branch_id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "tenant_id": "d108c2e6-a70d-49c8-acdc-37531fd752d8"
+      }
+    },
+    {
+      "step": "takings on HQ",
+      "detail": {
+        "trouble": [],
+        "main": "Takings Transactions Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Guide Takings The day's money, reconciled against what each till counted. Where a figure cannot be worked out, this screen says so and says why — it will not show you a zero it does not mean. Business date 107 orders closed on this trading day The day's money GROSS SALES Rs 113,197.00 Full menu price of everything sold, before any discount. DISCOUNTS Rs 662.30 Given away. Shown here rather than netted into a smaller sales figure. COMPS Not known Comps are not recorded separately from discounts. orders.discount_paisa is one column, and a full comp appears in it as a discount equal to the subtotal. Splitting them would require a field POS does not capture. NET SALES Rs 112,534.70 Gross sales less discounts. Tax and service charge are NOT in this figure — this is the revenue line. "
+      }
+    },
+    {
+      "step": "till review on HQ",
+      "detail": {
+        "trouble": [],
+        "main": "Till Review Open a drawer Refresh OPENED CLOSED CASHIER STATUS REVIEW FLOAT EXPECTED DECLARED VARIANCE ACTIONS 8/12/2026, 4:35:55 PM — 76676e49 OPEN PENDING REVIEW Rs 1,234.56 — — — — Details 8/12/2026, 4:35:32 PM — 8177414d OPEN PENDING REVIEW Rs 3,000.00 — — — — Details 8/12/2026, 4:29:03 PM 8/12/2026, 4:35:14 PM 8177414d CLOSED PENDING REVIEW Rs 7,250.50 Rs 7,250.50 Rs 7,250.50 Rs 0.00 Approve Flag Note Details 8/12/2026, 4:17:58 PM — eb2ee67e OPEN PENDING REVIEW Rs 5,000.00 — — — — Details 8/12/2026, 4:08:43 PM — bc0d9897 OPEN PENDING REVIEW Rs 2,750.25 — — — — Details 8/12/2026, 4:08:02 PM — 0e7f51d0 OPEN PENDING REVIEW Rs 5,000.00 — — — — Details 8/12/2026, 3:47:42 PM 8/12/2026, 4:02:26 PM bc0d9897 CLOSED PENDING REVIEW Rs 4,317.50 Rs 4,435.30 Rs 4,235.30 -Rs 200.00 Approve Flag Note Details Cashier note: F1 re-open — Rs 200 short on purpose, after a Rs 50 cash refund 8/12/2026, 12"
+      }
+    },
+    {
+      "step": "rows after create",
+      "detail": [
+        "Floating Terrace HQ",
+        "Adjacent Probe 37641",
+        "Admin Branch 51070",
+        "Floating Terrace — Rooftop",
+        "Reopen Branch 28265 — Annexe",
+        "Reopen Branch 51070 — Annexe",
+        "S4 Reopen Probe 532004"
+      ]
+    },
+    {
+      "step": "switcher",
+      "detail": {
+        "present": true,
+        "label": "Floating Terrace HQ",
+        "options": [
+          "Floating Terrace HQ",
+          "Adjacent Probe 37641",
+          "Reopen Branch 28265 — Annexe",
+          "Reopen Branch 51070 — Annexe",
+          "S4 Reopen Probe 532004"
+        ]
+      }
+    },
+    {
+      "step": "claim after switch",
+      "detail": {
+        "branch_id": "3d91b921-4efc-41b9-9106-34b382ec0f34",
+        "tenant_id": "d108c2e6-a70d-49c8-acdc-37531fd752d8"
+      }
+    },
+    {
+      "step": "takings on NEW branch",
+      "detail": {
+        "trouble": [],
+        "main": "Takings Transactions Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Guide Takings The day's money, reconciled against what each till counted. Where a figure cannot be worked out, this screen says so and says why — it will not show you a zero it does not mean. Business date 107 orders closed on this trading day The day's money GROSS SALES Rs 113,197.00 Full menu price of everything sold, before any discount. DISCOUNTS Rs 662.30 Given away. Shown here rather than netted into a smaller sales figure. COMPS Not known Comps are not recorded separately from discounts. orders.discount_paisa is one column, and a full comp appears in it as a discount equal to the subtotal. Splitting them would require a field POS does not capture. NET SALES Rs 112,534.70 Gross sales less discounts. Tax and service charge are NOT in this figure — this is the revenue line. "
+      }
+    },
+    {
+      "step": "till review on NEW branch",
+      "detail": {
+        "trouble": [],
+        "main": "Till Review Open a drawer Refresh No till sessions yet Opened and closed tills appear here for review."
+      }
+    },
+    {
+      "step": "data screens differ between HQ and the new branch",
+      "detail": true
+    },
+    {
+      "step": "Deactivate aria-disabled while standing on this branch",
+      "detail": null
+    },
+    {
+      "step": "switcher AFTER deactivating the branch I am on",
+      "detail": {
+        "present": true,
+        "label": "Select branch",
+        "options": [
+          "Floating Terrace HQ",
+          "Reopen Branch 28265 — Annexe",
+          "Reopen Branch 51070 — Annexe",
+          "S4 Reopen Probe 532004"
+        ]
+      }
+    },
+    {
+      "step": "claim after self-deactivate",
+      "detail": {
+        "branch_id": "3d91b921-4efc-41b9-9106-34b382ec0f34",
+        "tenant_id": "d108c2e6-a70d-49c8-acdc-37531fd752d8"
+      }
+    },
+    {
+      "step": "shell header after self-deactivate",
+      "detail": "Floating Terrace | Select branch |  | OVERVIEW |  | Dashboard"
+    },
+    {
+      "step": "GET /branches/mine after self-deactivate",
+      "detail": {
+        "data": [
+          {
+            "id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+            "name": "Floating Terrace HQ",
+            "isHq": true,
+            "roleCode": "OWNER"
+          },
+          {
+            "id": "2e57509d-c773-4a67-980c-512bc054327b",
+            "name": "Reopen Branch 28265 — Annexe",
+            "isHq": false,
+            "roleCode": "OWNER"
+          },
+          {
+            "id": "1dd7022c-db6a-4ea2-a686-338bf87890f9",
+            "name": "Reopen Branch 51070 — Annexe",
+            "isHq": false,
+            "roleCode": "OWNER"
+          },
+          {
+            "id": "852a242c-b110-4b28-be25-ad46c9a3149a",
+            "name": "S4 Reopen Probe 532004",
+            "isHq": false,
+            "roleCode": "OWNER"
+          }
+        ],
+        "meta": null,
+        "warnings": []
+      }
+    },
+    {
+      "step": "takings while stranded on a deactivated branch",
+      "detail": {
+        "trouble": [],
+        "main": "Takings Transactions Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Guide Takings The day's money, reconciled against what each till counted. Where a figure cannot be worked out, this screen says so and says why — it will not show you a zero it does not mean. Business date 107 orders closed on this trading day The day's money GROSS SALES Rs 113,197.00 Full menu price of everything sold, before any discount. DISCOUNTS Rs 662.30 Given away. Shown here rather than netted into a smaller sales figure. COMPS Not known Comps are not recorded separately from discounts. orders.discount_paisa is one column, and a full comp appears in it as a discount equal to the subtotal. Splitting them would require a field POS does not capture. NET SALES Rs 112,534.70 Gross sales less discounts. Tax and service charge are NOT in this figure — this is the revenue line. "
+      }
+    },
+    {
+      "step": "POS while stranded on a deactivated branch",
+      "detail": {
+        "trouble": [],
+        "main": "Point of sale No active till Open Till POS Terminal Floor View Order Management Live Your till is closed Open your till from the bar above — recording the counted starting float — before taking any orders. Orders can't be created without an open drawer."
+      }
+    },
+    {
+      "step": "GET another tenant's branch",
+      "detail": {
+        "status": 404,
+        "body": {
+          "error": {
+            "code": "NOT_FOUND",
+            "message": "Branch not found: 99aa0e36-6c4c-4019-98b4-2a87e21a7a2b",
+            "details": [],
+            "traceId": "4a3d090f-d494-4395-90ed-a51e4a1338f5"
+          }
+        }
+      }
+    },
+    {
+      "step": "PUT another tenant's branch",
+      "detail": {
+        "status": 404,
+        "body": {
+          "error": {
+            "code": "NOT_FOUND",
+            "message": "Branch not found: 99aa0e36-6c4c-4019-98b4-2a87e21a7a2b",
+            "details": [],
+            "traceId": "6c9d80c1-64e1-4055-abaa-bba5bbe5ce18"
+          }
+        }
+      }
+    },
+    {
+      "step": "DELETE another tenant's branch",
+      "detail": {
+        "status": 404,
+        "body": {
+          "error": {
+            "code": "NOT_FOUND",
+            "message": "Branch not found: 99aa0e36-6c4c-4019-98b4-2a87e21a7a2b",
+            "details": [],
+            "traceId": "9fac49a3-c555-4a82-be31-ab93321870df"
+          }
+        }
+      }
+    }
+  ],
+  "takingsHQ": {
+    "trouble": [],
+    "main": "Takings Transactions Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Guide Takings The day's money, reconciled against what each till counted. Where a figure cannot be worked out, this screen says so and says why — it will not show you a zero it does not mean. Business date 107 orders closed on this trading day The day's money GROSS SALES Rs 113,197.00 Full menu price of everything sold, before any discount. DISCOUNTS Rs 662.30 Given away. Shown here rather than netted into a smaller sales figure. COMPS Not known Comps are not recorded separately from discounts. orders.discount_paisa is one column, and a full comp appears in it as a discount equal to the subtotal. Splitting them would require a field POS does not capture. NET SALES Rs 112,534.70 Gross sales less discounts. Tax and service charge are NOT in this figure — this is the revenue line. "
+  },
+  "tillsHQ": {
+    "trouble": [],
+    "main": "Till Review Open a drawer Refresh OPENED CLOSED CASHIER STATUS REVIEW FLOAT EXPECTED DECLARED VARIANCE ACTIONS 8/12/2026, 4:35:55 PM — 76676e49 OPEN PENDING REVIEW Rs 1,234.56 — — — — Details 8/12/2026, 4:35:32 PM — 8177414d OPEN PENDING REVIEW Rs 3,000.00 — — — — Details 8/12/2026, 4:29:03 PM 8/12/2026, 4:35:14 PM 8177414d CLOSED PENDING REVIEW Rs 7,250.50 Rs 7,250.50 Rs 7,250.50 Rs 0.00 Approve Flag Note Details 8/12/2026, 4:17:58 PM — eb2ee67e OPEN PENDING REVIEW Rs 5,000.00 — — — — Details 8/12/2026, 4:08:43 PM — bc0d9897 OPEN PENDING REVIEW Rs 2,750.25 — — — — Details 8/12/2026, 4:08:02 PM — 0e7f51d0 OPEN PENDING REVIEW Rs 5,000.00 — — — — Details 8/12/2026, 3:47:42 PM 8/12/2026, 4:02:26 PM bc0d9897 CLOSED PENDING REVIEW Rs 4,317.50 Rs 4,435.30 Rs 4,235.30 -Rs 200.00 Approve Flag Note Details Cashier note: F1 re-open — Rs 200 short on purpose, after a Rs 50 cash refund 8/12/2026, 12"
+  },
+  "claimOnNew": {
+    "branch_id": "3d91b921-4efc-41b9-9106-34b382ec0f34",
+    "tenant_id": "d108c2e6-a70d-49c8-acdc-37531fd752d8"
+  },
+  "takingsNew": {
+    "trouble": [],
+    "main": "Takings Transactions Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Guide Takings The day's money, reconciled against what each till counted. Where a figure cannot be worked out, this screen says so and says why — it will not show you a zero it does not mean. Business date 107 orders closed on this trading day The day's money GROSS SALES Rs 113,197.00 Full menu price of everything sold, before any discount. DISCOUNTS Rs 662.30 Given away. Shown here rather than netted into a smaller sales figure. COMPS Not known Comps are not recorded separately from discounts. orders.discount_paisa is one column, and a full comp appears in it as a discount equal to the subtotal. Splitting them would require a field POS does not capture. NET SALES Rs 112,534.70 Gross sales less discounts. Tax and service charge are NOT in this figure — this is the revenue line. "
+  },
+  "tillsNew": {
+    "trouble": [],
+    "main": "Till Review Open a drawer Refresh No till sessions yet Opened and closed tills appear here for review."
+  },
+  "dataScreensDiffer": true,
+  "deactivateDisabledWhileStandingOnIt": null,
+  "switcherAfterSelfDeactivate": {
+    "present": true,
+    "label": "Select branch",
+    "options": [
+      "Floating Terrace HQ",
+      "Reopen Branch 28265 — Annexe",
+      "Reopen Branch 51070 — Annexe",
+      "S4 Reopen Probe 532004"
+    ]
+  },
+  "claimAfterSelfDeactivate": {
+    "branch_id": "3d91b921-4efc-41b9-9106-34b382ec0f34",
+    "tenant_id": "d108c2e6-a70d-49c8-acdc-37531fd752d8"
+  },
+  "topBarAfterSelfDeactivate": "Floating Terrace | Select branch |  | OVERVIEW |  | Dashboard",
+  "mineAfterSelfDeactivate": {
+    "status": 200,
+    "body": {
+      "data": [
+        {
+          "id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "name": "Floating Terrace HQ",
+          "isHq": true,
+          "roleCode": "OWNER"
+        },
+        {
+          "id": "2e57509d-c773-4a67-980c-512bc054327b",
+          "name": "Reopen Branch 28265 — Annexe",
+          "isHq": false,
+          "roleCode": "OWNER"
+        },
+        {
+          "id": "1dd7022c-db6a-4ea2-a686-338bf87890f9",
+          "name": "Reopen Branch 51070 — Annexe",
+          "isHq": false,
+          "roleCode": "OWNER"
+        },
+        {
+          "id": "852a242c-b110-4b28-be25-ad46c9a3149a",
+          "name": "S4 Reopen Probe 532004",
+          "isHq": false,
+          "roleCode": "OWNER"
+        }
+      ],
+      "meta": null,
+      "warnings": []
+    }
+  },
+  "takingsStranded": {
+    "trouble": [],
+    "main": "Takings Transactions Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Guide Takings The day's money, reconciled against what each till counted. Where a figure cannot be worked out, this screen says so and says why — it will not show you a zero it does not mean. Business date 107 orders closed on this trading day The day's money GROSS SALES Rs 113,197.00 Full menu price of everything sold, before any discount. DISCOUNTS Rs 662.30 Given away. Shown here rather than netted into a smaller sales figure. COMPS Not known Comps are not recorded separately from discounts. orders.discount_paisa is one column, and a full comp appears in it as a discount equal to the subtotal. Splitting them would require a field POS does not capture. NET SALES Rs 112,534.70 Gross sales less discounts. Tax and service charge are NOT in this figure — this is the revenue line. "
+  },
+  "posStranded": {
+    "trouble": [],
+    "main": "Point of sale No active till Open Till POS Terminal Floor View Order Management Live Your till is closed Open your till from the bar above — recording the counted starting float — before taking any orders. Orders can't be created without an open drawer."
+  },
+  "crossTenantGet": {
+    "status": 404,
+    "body": {
+      "error": {
+        "code": "NOT_FOUND",
+        "message": "Branch not found: 99aa0e36-6c4c-4019-98b4-2a87e21a7a2b",
+        "details": [],
+        "traceId": "4a3d090f-d494-4395-90ed-a51e4a1338f5"
+      }
+    }
+  },
+  "crossTenantPut": {
+    "status": 404,
+    "body": {
+      "error": {
+        "code": "NOT_FOUND",
+        "message": "Branch not found: 99aa0e36-6c4c-4019-98b4-2a87e21a7a2b",
+        "details": [],
+        "traceId": "6c9d80c1-64e1-4055-abaa-bba5bbe5ce18"
+      }
+    }
+  },
+  "crossTenantDelete": {
+    "status": 404,
+    "body": {
+      "error": {
+        "code": "NOT_FOUND",
+        "message": "Branch not found: 99aa0e36-6c4c-4019-98b4-2a87e21a7a2b",
+        "details": [],
+        "traceId": "9fac49a3-c555-4a82-be31-ab93321870df"
+      }
+    }
+  }
+}

@@ -1,0 +1,216 @@
+[
+  {
+    "route": "/app/purchasing/vendors",
+    "ok": true,
+    "apiCalls": [
+      {
+        "url": "/api/v1/purchasing/vendors",
+        "rows": 20,
+        "total": 29,
+        "next": "1",
+        "limit": 20
+      }
+    ],
+    "ui": {
+      "rowish": 0,
+      "pager": [],
+      "totalsShown": []
+    },
+    "truncatedCalls": [
+      {
+        "url": "/api/v1/purchasing/vendors",
+        "rows": 20,
+        "total": 29,
+        "next": "1",
+        "limit": 20
+      }
+    ]
+  },
+  {
+    "route": "/app/purchasing/purchase-orders",
+    "ok": true,
+    "apiCalls": [
+      {
+        "url": "/api/v1/purchasing/vendors",
+        "rows": 20,
+        "total": 29,
+        "next": "1",
+        "limit": 20
+      }
+    ],
+    "ui": {
+      "rowish": 25,
+      "pager": [
+        "Previous",
+        "Next"
+      ],
+      "totalsShown": [
+        "1 of 4"
+      ]
+    },
+    "truncatedCalls": [
+      {
+        "url": "/api/v1/purchasing/vendors",
+        "rows": 20,
+        "total": 29,
+        "next": "1",
+        "limit": 20
+      }
+    ]
+  },
+  {
+    "route": "/app/menu/items",
+    "ok": false,
+    "apiCalls": [],
+    "ui": {
+      "rowish": 0,
+      "pager": [],
+      "totalsShown": []
+    },
+    "truncatedCalls": []
+  },
+  {
+    "route": "/app/inventory/ingredients",
+    "ok": true,
+    "apiCalls": [],
+    "ui": {
+      "rowish": 20,
+      "pager": [],
+      "totalsShown": []
+    },
+    "truncatedCalls": []
+  },
+  {
+    "route": "/app/users",
+    "ok": true,
+    "apiCalls": [
+      {
+        "url": "/api/v1/users",
+        "rows": 25,
+        "total": 29,
+        "next": "1",
+        "limit": 25
+      }
+    ],
+    "ui": {
+      "rowish": 0,
+      "pager": [
+        "Previous",
+        "Next"
+      ],
+      "totalsShown": []
+    },
+    "truncatedCalls": [
+      {
+        "url": "/api/v1/users",
+        "rows": 25,
+        "total": 29,
+        "next": "1",
+        "limit": 25
+      }
+    ]
+  },
+  {
+    "route": "/app/hr/employees",
+    "ok": false,
+    "apiCalls": [],
+    "ui": {
+      "rowish": 0,
+      "pager": [],
+      "totalsShown": [
+        "0 of 0"
+      ]
+    },
+    "truncatedCalls": []
+  },
+  {
+    "route": "/app/tables",
+    "ok": false,
+    "apiCalls": [],
+    "ui": {
+      "rowish": 0,
+      "pager": [],
+      "totalsShown": []
+    },
+    "truncatedCalls": []
+  },
+  {
+    "route": "/app/stations",
+    "ok": false,
+    "apiCalls": [],
+    "ui": {
+      "rowish": 0,
+      "pager": [],
+      "totalsShown": []
+    },
+    "truncatedCalls": []
+  },
+  {
+    "route": "/app/finance/expenses",
+    "ok": true,
+    "apiCalls": [
+      {
+        "url": "/api/v1/finance/accounts",
+        "rows": 12,
+        "total": 12,
+        "next": null,
+        "limit": 50
+      }
+    ],
+    "ui": {
+      "rowish": 0,
+      "pager": [],
+      "totalsShown": []
+    },
+    "truncatedCalls": []
+  },
+  {
+    "route": "/app/finance/journal-entries",
+    "ok": true,
+    "apiCalls": [
+      {
+        "url": "/api/v1/finance/journal-entries",
+        "rows": 50,
+        "total": 209,
+        "next": "1",
+        "limit": 50
+      }
+    ],
+    "ui": {
+      "rowish": 50,
+      "pager": [],
+      "totalsShown": []
+    },
+    "truncatedCalls": [
+      {
+        "url": "/api/v1/finance/journal-entries",
+        "rows": 50,
+        "total": 209,
+        "next": "1",
+        "limit": 50
+      }
+    ]
+  },
+  {
+    "route": "/app/customers",
+    "ok": true,
+    "apiCalls": [],
+    "ui": {
+      "rowish": 0,
+      "pager": [],
+      "totalsShown": []
+    },
+    "truncatedCalls": []
+  },
+  {
+    "route": "/app/terminals",
+    "ok": false,
+    "apiCalls": [],
+    "ui": {
+      "rowish": 0,
+      "pager": [],
+      "totalsShown": []
+    },
+    "truncatedCalls": []
+  }
+]

@@ -1,0 +1,39 @@
+===== CASHIER CASH-UP =====
+till header: Till OPEN | Float: Rs 5,000.00 | Cash: Rs 42,445.80 | Orders: 45 | Close Till | POS Terminal | Floor View | Order Management | Live | All | Diag Cat 
+!! EXPECTED CASH IS ON SCREEN BEFORE COUNTING: true
+Close Till button: 1
+dialog count: 0
+
+(not pressing confirm: closing the branch till would disturb sibling agents)
+X/Z report controls anywhere on POS: []
+
+===== REPORTS =====
+
+-- /app/reports/sales-by-day  denied=false errored=false  exports=NONE
+Sales By Day
+← All reports
+Sales by Day
+From
+To
+Business Date	Order Count	Subtotal Paisa	Discount Paisa	Tax Paisa	Total Paisa
+2026-08-07T19:00:00.000Z	5	Rs 9,603.00	Rs 0.00	Rs 911.60	Rs 10,514.60
+2026-08-10T19:00:00.000Z	7	Rs 14,550.00	Rs 950.00	Rs 2,328.00	Rs 15,928.00
+
+-- /app/reports/till-sessions  denied=false errored=false  exports=NONE
+Till Sessions
+← All reports
+Till Sessions
+From
+To
+Till Session Id	Cashier Id	Business Date	Expected Cash Paisa	Counted Cash Paisa	Variance Paisa	Closed At
+ea929b37-910a-419c-b747-9a396b1b258a	61334688-6b5c-4926-ac82-e93208ba5324	2026-08-07T19:00:00.000Z	Rs 6,836.05	Rs 43,567.00	Rs 36,730.95	2026-08-08T14:35:18.206Z
+
+-- /app/reports/discount-summary  denied=false errored=false  exports=NONE
+Discount Summary
+← All reports
+Discount Summary
+From
+To
+Business Date	Discount Paisa	Subtotal Paisa
+2026-08-07T19:00:00.000Z	Rs 0.00	Rs 9,603.00
+2026-08-10T19:00:00.000Z	Rs 950.00	Rs 14,550.00

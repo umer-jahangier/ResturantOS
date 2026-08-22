@@ -1,0 +1,27 @@
+=== KDS: count the fired tickets on the real board ===
+  kitchen login: true
+  /app/kitchen -> Floating Terrace OVERVIEW Dashboard ORDERS Kitchen Display Collapse App Kitchen PANTRY1 Floating Terrace HQ Search… ⌘K D Cold prep 0 tickets READY COLUMN All stations LIVE NEW 0 Nothing here STARTED 0 Nothing here PREPARING 0 Nothing here READY 0 Nothing here ↑ ↓ move 1–9 0 jump Enter open F bump R recall V ready column
+  station links: []
+
+=== Order Management: is the banner's promise true? ===
+  cashier login: true
+  search inputs: 0
+  ORD-20260812-0089 present on Order Management: false
+  page: 404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data. Back to dashboard
+
+=== E-abandon: create OK, EVERY addItem 503, then walk away ===
+    [route] 503 <- addItem
+  banner: Order was saved was NOT sent to the kitchenThis module is temporarily unavailable. Try again in a moment. The check is saved and is waiting in Order Management. Press Send to Kitchen again to fire it — do not ring these items a second time.
+  created order ids: ["c553e4a6-9c72-426a-adce-e3ddb852d3e7"]
+  Order Management after abandoning: 404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data. Back to dashboard
+
+=== adjacent: Save as Draft with create 503 ===
+    [route] 503 <- createOrder
+  draft banner: Not sent — nothing was savedThis module is temporarily unavailable. Try again in a moment. Your items are still in the cart. Check the connection, then press Send to Kitchen again.
+  draft toasts: []
+
+=== adjacent: Charge Now with create 503 ===
+    [route] 503 <- createOrder
+  url after charge: http://localhost:3000/app/pos
+  charge banner: Not sent — nothing was savedThis module is temporarily unavailable. Try again in a moment. Your items are still in the cart. Check the connection, then press Send to Kitchen again.
+  charge toasts: []

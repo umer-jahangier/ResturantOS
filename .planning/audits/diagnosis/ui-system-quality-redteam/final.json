@@ -1,0 +1,263 @@
+{
+  "vendorListFull": "{\"data\":[{\"id\":\"b6b79c85-6964-45b8-bd3c-e252399494bd\",\"name\":\"Floating Terrace Supplies\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":\"1234567-8\",\"strn\":\"12-34-5678-901-23\",\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"seed:d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"active\":true},{\"id\":\"f7ddb66d-f9ba-4144-b8f1-a6ac6006f903\",\"name\":\"Drive Vendor p36-1786468439 MANAGER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786468439\",\"active\":true},{\"id\":\"5fbf7f0e-454b-43df-934e-9eb4a24f932e\",\"name\":\"Drive Vendor p36-1786468439 OWNER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786468439\",\"active\":true},{\"id\":\"653ff10f-0d72-45f4-a83f-42467e939054\",\"name\":\"Drive Vendor p36-1786468624 MANAGER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786468624\",\"active\":true},{\"id\":\"f9434183-e1c9-4361-8b0b-f460ad505b39\",\"name\":\"Drive Vendor p36-1786468624 OWNER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786468624\",\"active\":true},{\"id\":\"6a72905e-7158-4b09-b4f0-fcc1b49292df\",\"name\":\"Drive Vendor p36-1786468766 MANAGER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786468766\",\"active\":true},{\"id\":\"bfc01e6e-6314-4e0a-b26b-ae5a563b436c\",\"name\":\"Drive Vendor p36-1786468766 OWNER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786468766\",\"active\":true},{\"id\":\"322e13f8-3700-4e1c-9d80-905a3cb449a6\",\"name\":\"Drive Vendor p36-1786468886 MANAGER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786468886\",\"active\":true},{\"id\":\"393cff3d-82f8-4ea0-ba4a-86f08e032638\",\"name\":\"Drive Vendor p36-1786468886 OWNER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786468886\",\"active\":true},{\"id\":\"306fac55-aa64-440d-8cfa-25fd905a68c3\",\"name\":\"Drive Vendor p36-1786469011 MANAGER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786469011\",\"active\":true},{\"id\":\"5c733d46-c5a6-4327-985d-9efed4ab385e\",\"name\":\"Drive Vendor p36-1786469011 OWNER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786469011\",\"active\":true},{\"id\":\"ecfc4d5d-8593-4f22-9b81-e075c9c17db5\",\"name\":\"Drive Vendor p36-1786469957 MANAGER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786469957\",\"active\":true},{\"id\":\"80108fbe-26ce-4ad8-97c3-f15c01e3d19c\",\"name\":\"Drive Vendor p36-1786469957 OWNER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786469957\",\"active\":true},{\"id\":\"185b7bae-051b-4fd1-9de4-a14443c2211c\",\"name\":\"Drive Vendor p36-1786473907 MANAGER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786473907\",\"active\":true},{\"id\":\"0e5b7da2-ba5f-48be-abbd-04db79c6d68c\",\"name\":\"Drive Vendor p36-1786473907 OWNER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786473907\",\"active\":true},{\"id\":\"00bb9fc5-5fdf-4d85-8af9-c2f6661710b0\",\"name\":\"Drive Vendor p36-1786474157 MANAGER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786474157\",\"active\":true},{\"id\":\"f9324bc9-e9fa-4d79-bad7-1359c0ffd272\",\"name\":\"Drive Vendor p36-1786474157 OWNER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786474157\",\"active\":true},{\"id\":\"138bf803-6d5c-4057-ac5a-2eccd25cc73e\",\"name\":\"Drive Vendor p36-1786474959 MANAGER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786474959\",\"active\":true},{\"id\":\"7c8e7541-822a-445f-b0fb-4fe90e79def7\",\"name\":\"Drive Vendor p36-1786474959 OWNER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786474959\",\"active\":true},{\"id\":\"efc86837-3fef-4908-a2e3-b9387a28efd3\",\"name\":\"Drive Vendor p36-1786475519 MANAGER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786475519\",\"active\":true}],\"meta\":{\"page\":{\"cursor\":\"0\",\"nextCursor\":\"1\",\"limit\":20},\"totalCount\":26},\"warnings\":[]}",
+  "vendorNamesFromApi": [
+    {
+      "name": "Floating Terrace Supplies",
+      "email": null
+    },
+    {
+      "name": "Drive Vendor p36-1786468439 MANAGER",
+      "email": null
+    },
+    {
+      "name": "Drive Vendor p36-1786468439 OWNER",
+      "email": null
+    },
+    {
+      "name": "Drive Vendor p36-1786468624 MANAGER",
+      "email": null
+    },
+    {
+      "name": "Drive Vendor p36-1786468624 OWNER",
+      "email": null
+    },
+    {
+      "name": "Drive Vendor p36-1786468766 MANAGER",
+      "email": null
+    },
+    {
+      "name": "Drive Vendor p36-1786468766 OWNER",
+      "email": null
+    },
+    {
+      "name": "Drive Vendor p36-1786468886 MANAGER",
+      "email": null
+    },
+    {
+      "name": "Drive Vendor p36-1786468886 OWNER",
+      "email": null
+    },
+    {
+      "name": "Drive Vendor p36-1786469011 MANAGER",
+      "email": null
+    },
+    {
+      "name": "Drive Vendor p36-1786469011 OWNER",
+      "email": null
+    },
+    {
+      "name": "Drive Vendor p36-1786469957 MANAGER",
+      "email": null
+    },
+    {
+      "name": "Drive Vendor p36-1786469957 OWNER",
+      "email": null
+    },
+    {
+      "name": "Drive Vendor p36-1786473907 MANAGER",
+      "email": null
+    },
+    {
+      "name": "Drive Vendor p36-1786473907 OWNER",
+      "email": null
+    },
+    {
+      "name": "Drive Vendor p36-1786474157 MANAGER",
+      "email": null
+    },
+    {
+      "name": "Drive Vendor p36-1786474157 OWNER",
+      "email": null
+    },
+    {
+      "name": "Drive Vendor p36-1786474959 MANAGER",
+      "email": null
+    },
+    {
+      "name": "Drive Vendor p36-1786474959 OWNER",
+      "email": null
+    },
+    {
+      "name": "Drive Vendor p36-1786475519 MANAGER",
+      "email": null
+    }
+  ],
+  "rtInApi": false,
+  "clip_390x844": {
+    "vh": 844,
+    "dialogBox": {
+      "top": 19,
+      "bottom": 825,
+      "h": 806
+    },
+    "dialogBoxClipTop": 0,
+    "dialogBoxClipBottom": 0,
+    "overflowY": "visible",
+    "dialogScrollable": false,
+    "pageScrollable": false,
+    "lowestChildBottom": 1695,
+    "childrenFullyBelowViewport": 59,
+    "childrenStraddling": 4,
+    "examplesBelow": [
+      {
+        "tag": "div",
+        "n": "Default yield %",
+        "top": 865
+      },
+      {
+        "tag": "div",
+        "n": "Default yield %",
+        "top": 865
+      },
+      {
+        "tag": "label",
+        "n": "Default yield %",
+        "top": 865
+      },
+      {
+        "tag": "button",
+        "n": "",
+        "top": 865
+      },
+      {
+        "tag": "input",
+        "n": "defaultYieldPct",
+        "top": 887
+      },
+      {
+        "tag": "p",
+        "n": "Stock and recipe units are",
+        "top": 935
+      },
+      {
+        "tag": "div",
+        "n": "ConversionsAdd conversion",
+        "top": 1031
+      },
+      {
+        "tag": "div",
+        "n": "ConversionsAdd conversion",
+        "top": 1031
+      }
+    ],
+    "stockUnitTop": null
+  },
+  "clip_768x1024": {
+    "vh": 1024,
+    "dialogBox": {
+      "top": 91,
+      "bottom": 933,
+      "h": 843
+    },
+    "dialogBoxClipTop": 0,
+    "dialogBoxClipBottom": 0,
+    "overflowY": "visible",
+    "dialogScrollable": false,
+    "pageScrollable": false,
+    "lowestChildBottom": 1203,
+    "childrenFullyBelowViewport": 21,
+    "childrenStraddling": 3,
+    "examplesBelow": [
+      {
+        "tag": "button",
+        "n": "Not perishable",
+        "top": 1025
+      },
+      {
+        "tag": "div",
+        "n": "ComplianceAllergensGlutenC",
+        "top": 1079
+      },
+      {
+        "tag": "div",
+        "n": "AllergensGlutenCrustaceans",
+        "top": 1115
+      },
+      {
+        "tag": "div",
+        "n": "Allergens",
+        "top": 1115
+      },
+      {
+        "tag": "label",
+        "n": "Allergens",
+        "top": 1115
+      },
+      {
+        "tag": "button",
+        "n": "",
+        "top": 1115
+      },
+      {
+        "tag": "div",
+        "n": "GlutenCrustaceansEggsFishP",
+        "top": 1137
+      },
+      {
+        "tag": "button",
+        "n": "Gluten",
+        "top": 1137
+      }
+    ],
+    "stockUnitTop": null
+  },
+  "clip_1440x900": {
+    "vh": 900,
+    "dialogBox": {
+      "top": 69,
+      "bottom": 831,
+      "h": 762
+    },
+    "dialogBoxClipTop": 0,
+    "dialogBoxClipBottom": 0,
+    "overflowY": "visible",
+    "dialogScrollable": false,
+    "pageScrollable": false,
+    "lowestChildBottom": 1181,
+    "childrenFullyBelowViewport": 28,
+    "childrenStraddling": 10,
+    "examplesBelow": [
+      {
+        "tag": "select",
+        "n": "storageLocationId",
+        "top": 909
+      },
+      {
+        "tag": "p",
+        "n": "No locations yet — add the",
+        "top": 949
+      },
+      {
+        "tag": "input",
+        "n": "shelfLifeDays",
+        "top": 921
+      },
+      {
+        "tag": "div",
+        "n": "PerishableNot perishable",
+        "top": 981
+      },
+      {
+        "tag": "div",
+        "n": "Perishable",
+        "top": 981
+      },
+      {
+        "tag": "label",
+        "n": "Perishable",
+        "top": 981
+      },
+      {
+        "tag": "button",
+        "n": "",
+        "top": 981
+      },
+      {
+        "tag": "button",
+        "n": "Not perishable",
+        "top": 1003
+      }
+    ],
+    "stockUnitTop": null
+  }
+}

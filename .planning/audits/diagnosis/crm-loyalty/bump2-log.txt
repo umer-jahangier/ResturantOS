@@ -1,0 +1,9 @@
+kitchen login: true
+step 0: buttons ["Move to Started"] url=http://localhost:3000/app/kitchen/DEFAULT/orders/fece4ec8-1ef8-4410-80e8-a71582a8e917
+step 1: buttons ["Move to Preparing"] url=http://localhost:3000/app/kitchen/DEFAULT/orders/fece4ec8-1ef8-4410-80e8-a71582a8e917
+step 2: buttons ["Move to Ready"] url=http://localhost:3000/app/kitchen/DEFAULT/orders/fece4ec8-1ef8-4410-80e8-a71582a8e917
+step 3: buttons [] url=http://localhost:3000/app/kitchen/DEFAULT/orders/fece4ec8-1ef8-4410-80e8-a71582a8e917
+   shot: bump2-final-ticket.png
+FINAL TICKET >>> Floating Terrace |  | OVERVIEW |  | Dashboard |  | ORDERS |  | Kitchen Display | Collapse | DEFAULT | Orders | Order | Floating Terrace HQ | Search… | ⌘K | D | Back to board | ORD-20260812-0007 |  | DEFAULT |  | REV 1 · 03:05 AM | Ready | Chicken Karahi
+   shot: bump2-loyalty-final.png
+LOYALTY FINAL >>> Floating Terrace |  | OVERVIEW |  | Dashboard |  | ORDERS |  | POS |  | PEOPLE |  | Customers | Collapse | App | Customers | Floating Terrace HQ | Search… | ⌘K | E | Customers |  | Find a customer, see their loyalty standing, and review the points they have earned. |  | Diag Loyalty 24573 | 03009824573 | BRONZE | 0 pts | Rs 0.00 | Diag Loyalty 24573 |  | 03009824573 |  | Tier | BRONZE | Points | 0 | Lifetime spend | Rs 0.00

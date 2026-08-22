@@ -1,0 +1,165 @@
+[
+  {
+    "k": "manager-login",
+    "v": "ok"
+  },
+  {
+    "k": "50-mgr-dashboard-HQ",
+    "v": {
+      "route": "/app/dashboard",
+      "attempt": 1,
+      "bad": false,
+      "content": "\nF\nWhat needs me in the next five minutes?\n\nToday, live\n\nOPEN ORDERS\n\n20\n\n20 orders in view\nLATE TICKETS\n\n33\n\n37 on the board now\nTILL VARIANCE TODAY\n\n—\n\nNo till has been counted yet today.\n\nTABLES OCCUPIED\n\n2 / 5\n\n3 free right now\nLIVE ORDERS\nORD-20260812-0014\nNo table · in progress\nRs 1,682.00\nORD-20260812-0013\nNo table · draft\nRs 1,682.00\nORD-20260812-0012\nNo table · draft\nRs 499.00\nORD-20260812-0011\nNo table · in progress\nRs 92.80\nORD-20260812-0010\nNo table · draft\nRs 700.00\nORD-20260812-0009\nNo table · draft\nRs 777.20\nSTATION LOAD\nDEFAULT\n36 tickets\nGRILL\n1 ticket\nACT NOW\nACT\nORD-20260807-0015 is late at DEFAULT\n116:32:14 on the board — past this station's target\nACT\nORD-20260807-0016 is late at DEFAULT\n116:32:14 on the board — past this station's target\nACT\nORD-20260807-0017 is late "
+    }
+  },
+  {
+    "k": "51-mgr-orders-HQ",
+    "v": {
+      "route": "/app/pos/orders",
+      "attempt": 2,
+      "bad": true,
+      "content": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+    }
+  },
+  {
+    "k": "52-mgr-tables-HQ",
+    "v": {
+      "route": "/app/tables",
+      "attempt": 1,
+      "bad": false,
+      "content": "\nF\nTables\n\nYour dining tables. Anything active here can be picked when a waiter starts an order.\n\nAdd table\nShow retired\nGarden\n2 tables · 14 seats\nG1\n8 seats\nOccupied\nT3\n6 seats\nAvailable\nRooftop\n2 tables · 6 seats\nT1\n4 seats\nOccupied\nT2\n2 seats\nAvailable\nOther tables\n1 table · 4 seats\nH1\n4 seats\nAvailable"
+    }
+  },
+  {
+    "k": "mgr-switcher-count",
+    "v": 1
+  },
+  {
+    "k": "mgr-switcher-current",
+    "v": "Floating Terrace HQ"
+  },
+  {
+    "k": "mgr-switcher-options",
+    "v": [
+      "Floating Terrace HQ",
+      "Floating Terrace — Rooftop"
+    ]
+  },
+  {
+    "k": "mgr-url-after-switch",
+    "v": "http://localhost:3000/app/dashboard"
+  },
+  {
+    "k": "mgr-switcher-after",
+    "v": "Floating Terrace — Rooftop"
+  },
+  {
+    "k": "55-mgr-dashboard-ROOFTOP",
+    "v": {
+      "route": "/app/dashboard",
+      "attempt": 1,
+      "bad": false,
+      "content": "\nF\nWhat needs me in the next five minutes?\n\nToday, live\n\nOPEN ORDERS\n\n20\n\n20 orders in view\nLATE TICKETS\n\n33\n\n39 on the board now\nTILL VARIANCE TODAY\n\n—\n\nNo till has been counted yet today.\n\nTABLES OCCUPIED\n\n2 / 5\n\n3 free right now\nLIVE ORDERS\nORD-20260812-0016\nNo table · in progress\nRs 1,682.00\nORD-20260812-0015\nNo table · in progress\nRs 1,937.20\nORD-20260812-0014\nNo table · in progress\nRs 1,682.00\nORD-20260812-0013\nNo table · draft\nRs 1,682.00\nORD-20260812-0012\nNo table · draft\nRs 499.00\nORD-20260812-0011\nNo table · in progress\nRs 92.80\nSTATION LOAD\nDEFAULT\n38 tickets\nGRILL\n1 ticket\nACT NOW\nACT\nORD-20260807-0015 is late at DEFAULT\n116:33:02 on the board — past this station's target\nACT\nORD-20260807-0016 is late at DEFAULT\n116:33:02 on the board — past this station's target\nACT\nORD-202608"
+    }
+  },
+  {
+    "k": "56-mgr-orders-ROOFTOP",
+    "v": {
+      "route": "/app/pos/orders",
+      "attempt": 2,
+      "bad": true,
+      "content": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+    }
+  },
+  {
+    "k": "57-mgr-tables-ROOFTOP",
+    "v": {
+      "route": "/app/tables",
+      "attempt": 1,
+      "bad": false,
+      "content": "\nF\nTables\n\nYour dining tables. Anything active here can be picked when a waiter starts an order.\n\nAdd table\nShow retired\nGarden\n2 tables · 14 seats\nG1\n8 seats\nOccupied\nT3\n6 seats\nAvailable\nRooftop\n2 tables · 6 seats\nT1\n4 seats\nOccupied\nT2\n2 seats\nAvailable\nOther tables\n1 table · 4 seats\nH1\n4 seats\nAvailable"
+    }
+  },
+  {
+    "k": "scope-dashboard-changed",
+    "v": true
+  },
+  {
+    "k": "scope-orders-changed",
+    "v": false
+  },
+  {
+    "k": "scope-tables-changed",
+    "v": false
+  },
+  {
+    "k": "owner-dialog-after-role",
+    "v": "Assign a role to owner@terrace.local\n\nA user holds one role per branch. Assigning a role on a branch they already work at replaces the role they had there.\n\nBranch\nChoose a branch…\nFloating Terrace — Rooftop\nFloating Terrace HQ (HQ)\nRole\nChoose a role…\nAccountant\nCashier\nInventory Manager\nKitchen Staff\nManager\nOwner\nTenant Admin\nWaiter\nApproval limit\nRs\nNo approval authority\n\nOWNER can approve amounts up to this limit. The limit is compared against the amount of each request, so a limit of Rs 0.00 and no approval authority both refuse every approval — they are kept apart here because they say different things about what you intended.\n\nOWNER can approve spending, so an approval limit is required. Enter an amount, or choose no approval authority.\n\nCancel\nAssign role\nClose"
+  },
+  {
+    "k": "owner-dialog-radios",
+    "v": 1
+  },
+  {
+    "k": "owner-submit-enabled",
+    "v": true
+  },
+  {
+    "k": "owner-selfassign-response",
+    "v": {
+      "status": 200,
+      "body": "{\"data\":{\"id\":\"82fa48b3-94ed-4eb0-a6b7-8e241282abbe\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"userId\":\"61334688-6b5c-4926-ac82-e93208ba5324\",\"branchId\":\"c2d74ade-7ff8-4167-8cd0-131bfbdf4fba\",\"roleCode\":\"OWNER\",\"approvalLimitPaisa\":100000000,\"active\":true,\"primary\":false,\"displacedRoleCode\""
+    }
+  },
+  {
+    "k": "owner-switcher-count-after",
+    "v": 1
+  },
+  {
+    "k": "65-owner-settings-on-ROOFTOP",
+    "v": {
+      "route": "/app/settings",
+      "attempt": 1,
+      "bad": false,
+      "content": "\n6\nSettings\n\nHow this branch is set up, and who can sign in to it.\n\nBranch details\nSaved to your restaurant's record and visible to everyone on this branch.\nBranch name\nAddress\nPhone\nEmail\nTime zone\n\nAn IANA name. Business dates and reports are cut on it.\n\nOpened on\n\nSales tax registration (STRN)\n\nNot set\n\nNational tax number (NTN)\n\nNot set\n\nRead-only here. The branch update API has no field for either, so an editable box would accept your change and discard it. Tax registration is set during onboarding.\n\nSave changes\nUsers\nAdd staff, set what they can do on each branch, and issue a password when someone is locked out.\nManage users\nAppearance\nBrand colour and logo. Stored in this browser only — it is not saved to your account, so colleagues and your other devices see the default.\nChange ap"
+    }
+  },
+  {
+    "k": "owner-settings-values-rooftop",
+    "v": [
+      {
+        "name": "name",
+        "value": "Floating Terrace HQ"
+      },
+      {
+        "name": "address",
+        "value": "\"12 Khayaban-e-Iqbal\""
+      },
+      {
+        "name": "phone",
+        "value": "+92 21 4628872"
+      },
+      {
+        "name": "email",
+        "value": "hq@terrace.local"
+      },
+      {
+        "name": "timezone",
+        "value": "Asia/Karachi"
+      },
+      {
+        "name": "openedOn",
+        "value": "2024-01-15"
+      }
+    ]
+  },
+  {
+    "k": "66-reports",
+    "v": {
+      "route": "/app/reports",
+      "attempt": 1,
+      "bad": false,
+      "content": "\n6\nReports\n\nNamed reports backed by real sales, cash and purchasing data.\n\nFBR Tax Summary →\nSALES\nSales by Day\n6 columns\nSales by Item\n6 columns\nSales by Hour (Peak Hours)\n3 columns\nSales by Order Type\n3 columns\nDiscount Summary\n3 columns\nCASH\nTill Sessions\n7 columns\nPURCHASING\nPurchases by Purchase Order\n5 columns"
+    }
+  }
+]

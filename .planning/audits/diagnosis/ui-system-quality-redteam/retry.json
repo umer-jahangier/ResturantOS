@@ -1,0 +1,379 @@
+[
+  {
+    "route": "/app/menu/items",
+    "nav": {
+      "attempt": 4,
+      "url": "http://localhost:3000/app/menu/items",
+      "refused": false,
+      "failed": true,
+      "ok": false
+    },
+    "ui": {
+      "rowsTable": 0,
+      "rowsRole": 0,
+      "cards": 0,
+      "alerts": 1,
+      "errorCopy": true,
+      "refusal": false,
+      "pager": [],
+      "totalsShown": [],
+      "headline": "Floating Terrace / OVERVIEW / Dashboard",
+      "len": 676
+    },
+    "calls": [
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      },
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      },
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      },
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      }
+    ]
+  },
+  {
+    "route": "/app/hr/employees",
+    "nav": {
+      "attempt": 4,
+      "url": "http://localhost:3000/app/hr/employees",
+      "refused": false,
+      "failed": true,
+      "ok": false
+    },
+    "ui": {
+      "rowsTable": 0,
+      "rowsRole": 0,
+      "cards": 0,
+      "alerts": 1,
+      "errorCopy": true,
+      "refusal": false,
+      "pager": [],
+      "totalsShown": [
+        "0 of 0"
+      ],
+      "headline": "Floating Terrace / OVERVIEW / Dashboard",
+      "len": 667
+    },
+    "calls": [
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      },
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      },
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      },
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      }
+    ]
+  },
+  {
+    "route": "/app/tables",
+    "nav": {
+      "attempt": 4,
+      "url": "http://localhost:3000/app/tables",
+      "refused": false,
+      "failed": true,
+      "ok": false
+    },
+    "ui": {
+      "rowsTable": 0,
+      "rowsRole": 0,
+      "cards": 0,
+      "alerts": 1,
+      "errorCopy": true,
+      "refusal": false,
+      "pager": [],
+      "totalsShown": [],
+      "headline": "Floating Terrace / OVERVIEW / Dashboard",
+      "len": 630
+    },
+    "calls": [
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      },
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      },
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      },
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      }
+    ]
+  },
+  {
+    "route": "/app/stations",
+    "nav": {
+      "attempt": 4,
+      "url": "http://localhost:3000/app/stations",
+      "refused": false,
+      "failed": true,
+      "ok": false
+    },
+    "ui": {
+      "rowsTable": 0,
+      "rowsRole": 0,
+      "cards": 0,
+      "alerts": 1,
+      "errorCopy": true,
+      "refusal": false,
+      "pager": [],
+      "totalsShown": [],
+      "headline": "Floating Terrace / OVERVIEW / Dashboard",
+      "len": 688
+    },
+    "calls": [
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      },
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      },
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      },
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      }
+    ]
+  },
+  {
+    "route": "/app/terminals",
+    "nav": {
+      "attempt": 4,
+      "url": "http://localhost:3000/app/terminals",
+      "refused": false,
+      "failed": true,
+      "ok": false
+    },
+    "ui": {
+      "rowsTable": 0,
+      "rowsRole": 0,
+      "cards": 0,
+      "alerts": 1,
+      "errorCopy": true,
+      "refusal": false,
+      "pager": [],
+      "totalsShown": [],
+      "headline": "Floating Terrace / OVERVIEW / Dashboard",
+      "len": 666
+    },
+    "calls": [
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      },
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      },
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      },
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      }
+    ]
+  },
+  {
+    "route": "/app/inventory/ingredients",
+    "nav": {
+      "attempt": 1,
+      "url": "http://localhost:3000/app/inventory/ingredients",
+      "refused": false,
+      "failed": false,
+      "ok": true
+    },
+    "ui": {
+      "rowsTable": 20,
+      "rowsRole": 0,
+      "cards": 0,
+      "alerts": 0,
+      "errorCopy": false,
+      "refusal": false,
+      "pager": [],
+      "totalsShown": [],
+      "headline": "Floating Terrace / OVERVIEW / Dashboard",
+      "len": 2210
+    },
+    "calls": [
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      },
+      {
+        "url": "/api/v1/inventory/uom",
+        "rows": 22,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      },
+      {
+        "url": "/api/v1/inventory/storage-locations",
+        "rows": 0,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      },
+      {
+        "url": "/api/v1/inventory/recipes/options",
+        "rows": 3,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      },
+      {
+        "url": "/api/v1/inventory/categories",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      },
+      {
+        "url": "/api/v1/inventory/ingredients",
+        "rows": 20,
+        "total": null,
+        "next": null,
+        "limit": null,
+        "status": 200
+      }
+    ]
+  },
+  {
+    "route": "/app/customers",
+    "nav": {
+      "attempt": 1,
+      "url": "http://localhost:3000/app/customers",
+      "refused": false,
+      "failed": false,
+      "ok": true
+    },
+    "ui": {
+      "rowsTable": 0,
+      "rowsRole": 0,
+      "cards": 0,
+      "alerts": 0,
+      "errorCopy": false,
+      "refusal": false,
+      "pager": [],
+      "totalsShown": [],
+      "headline": "404 / This page doesn't exist / The link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.",
+      "len": 152
+    },
+    "calls": []
+  }
+]

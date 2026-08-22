@@ -1,0 +1,97 @@
+{
+  "log": [
+    {
+      "k": "url",
+      "v": "http://localhost:3000/app/dashboard"
+    },
+    {
+      "k": "users-page",
+      "v": {
+        "alerts": [],
+        "headers": [],
+        "rowCount": 0,
+        "controls": [
+          "Collapse",
+          "Search… ⌘K",
+          "6",
+          "Search by name or email…",
+          "Add user",
+          "Terrace Accountant accountant@terrace.local 2FA Active Aug 12, 2026",
+          "Terrace Admin admin@terrace.local 2FA Active Aug 12, 2026",
+          "Audit Proof audit-proof-1786067329@terrace.local Password reset pending Active Never signed in",
+          "Audit Proof 2 audit-proof2-1786067566@terrace.local Password reset pending Deactivated Never signed in",
+          "Bar Tender 6299 bartend6299@terrace.local Active Aug 12, 2026",
+          "Asha the bartender bartender+1786478284947@terrace.local Active Aug 12, 2026",
+          "Diag Bartender 37730 bartender37730@terrace.local Password reset pending Active Never signed in",
+          "Diag Bartender 76991 bartender76991@terrace.local Active Aug 12, 2026",
+          "Asha bartender.proof@terrace.local Password reset pending Active Never signed in",
+          "Terrace Cashier cashier@terrace.local Active Aug 12, 2026",
+          "Gap Audit Probe RENAMED gapaudit-1786070790@terrace.local Password reset pending Deactivated Never signed in",
+          "Terrace Kitchen kitchen@terrace.local Active Aug 12, 2026",
+          "Terrace Manager manager@terrace.local Active Aug 12, 2026",
+          "owner@terrace.local owner@terrace.local 2FA Active Aug 12, 2026",
+          "Phase 19 Probe phase19-probe-1786454628872@terrace.local Deactivated Aug 11, 2026",
+          "Probe Nineteen Renamed probe19-1786095561@terrace.local Password reset pending Active Never signed in",
+          "RBACV Probe User rbacv-probe-1786488225295@terrace.local Password reset pending Deactivated Never signed in",
+          "Terrace Storekeeper storekeeper@terrace.local Active Aug 11, 2026",
+          "Terrace Waiter waiter@terrace.local Active Aug 12, 2026"
+        ],
+        "bodyHasBranchWord": false
+      }
+    },
+    {
+      "k": "row-click",
+      "v": "clicked Terrace Manager"
+    },
+    {
+      "k": "user-detail",
+      "v": {
+        "text": "enses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nCollapse\nApp\nUsers\nFloating Terrace HQ\nSearch…\n⌘K\n6\nUsers\n\nEveryone who can sign in to this restaurant. Add staff, set what they can do on each branch, and issue a password when someone is locked out.\n\nActive only\n19 users\nAdd user\nTerrace Accountant\naccountant@terrace.local\n2FA\nActive\nAug 12, 2026\nTerrace Admin\nadmin@terrace.local\n2FA\nActive\nAug 12, 2026\nAudit Proof\naudit-proof-1786067329@terrace.local\nPassword reset pending\nActive\nNever signed in\nAudit Proof 2\naudit-proof2-1786067566@terrace.local\nPassword reset pending\nDeactivated\nNever signed in\nBar Tender 6299\nbartend6299@terrace.local\nActive\nAug 12, 2026\nAsha the bartender\nbartender+1786478284947@terrace.local\nActive\nAug 12, 2026\nDiag Bartender 37730\nbartender37730@terrace.local\nPassword reset pending\nActive\nNever signed in\nDiag Bartender 76991\nbartender76991@terrace.local\nActive\nAug 12, 2026\nAsha\nbartender.proof@terrace.local\nPassword reset pending\nActive\nNever signed in\nTerrace Cashier\ncashier@terrace.local\nActive\nAug 12, 2026\nGap Audit Probe RENAMED\ngapaudit-1786070790@terrace.local\nPassword reset pending\nDeactivated\nNever signed in\nTerrace Kitchen\nkitchen@terrace.local\nActive\nAug 12, 2026\nTerrace Manager\nmanager@terrace.local\nActive\nAug 12, 2026\nowner@terrace.local\nowner@terrace.local\n2FA\nActive\nAug 12, 2026\nPhase 19 Probe\nphase19-probe-1786454628872@terrace.local\nDeactivated\nAug 11, 2026\nProbe Nineteen Renamed\nprobe19-1786095561@terrace.local\nPassword reset pending\nActive\nNever signed in\nRBACV Probe User\nrbacv-probe-1786488225295@terrace.local\nPassword reset pending\nDeactivated\nNever signed in\nTerrace Storekeeper\nstorekeeper@terrace.local\nActive\nAug 11, 2026\nTerrace Waiter\nwaiter@terrace.local\nActive\nAug 12, 2026\nTerrace Manager\nEmail\nmanager@terrace.local\nStatus\nActive\nTwo-factor\nNot enrolled\nPassword\nSet by the user\nRoles by branch\nFloating Terrace HQ\nApproves up to Rs 300,000.00\nprimary\nMANAGER\nFloating Terrace — Rooftop\nApproves up to Rs 300,000.00\nMANAGER\nStations\n\nSees every station in every branch they work.\n\nEdit\nAssign role\nReset password\nDeactivate",
+        "buttons": [
+          "6",
+          "Add user",
+          "Terrace Accountant accountant@terrace.local 2FA Active Aug 12, 2026",
+          "Terrace Admin admin@terrace.local 2FA Active Aug 12, 2026",
+          "Audit Proof audit-proof-1786067329@terrace.local Password reset pending Active Never signed in",
+          "Audit Proof 2 audit-proof2-1786067566@terrace.local Password reset pending Deactivated Never signed in",
+          "Bar Tender 6299 bartend6299@terrace.local Active Aug 12, 2026",
+          "Asha the bartender bartender+1786478284947@terrace.local Active Aug 12, 2026",
+          "Diag Bartender 37730 bartender37730@terrace.local Password reset pending Active Never signed in",
+          "Diag Bartender 76991 bartender76991@terrace.local Active Aug 12, 2026",
+          "Asha bartender.proof@terrace.local Password reset pending Active Never signed in",
+          "Terrace Cashier cashier@terrace.local Active Aug 12, 2026",
+          "Gap Audit Probe RENAMED gapaudit-1786070790@terrace.local Password reset pending Deactivated Never signed in",
+          "Terrace Kitchen kitchen@terrace.local Active Aug 12, 2026",
+          "Terrace Manager manager@terrace.local Active Aug 12, 2026",
+          "owner@terrace.local owner@terrace.local 2FA Active Aug 12, 2026",
+          "Phase 19 Probe phase19-probe-1786454628872@terrace.local Deactivated Aug 11, 2026",
+          "Probe Nineteen Renamed probe19-1786095561@terrace.local Password reset pending Active Never signed in",
+          "RBACV Probe User rbacv-probe-1786488225295@terrace.local Password reset pending Deactivated Never signed in",
+          "Terrace Storekeeper storekeeper@terrace.local Active Aug 11, 2026",
+          "Terrace Waiter waiter@terrace.local Active Aug 12, 2026",
+          "Edit",
+          "Assign role",
+          "Reset password",
+          "Deactivate"
+        ]
+      }
+    },
+    {
+      "k": "assign-button-present",
+      "v": 1
+    },
+    {
+      "k": "assign-dialog",
+      "v": {
+        "w": 448,
+        "h": 297,
+        "text": "Assign a role to manager@terrace.local A user holds one role per branch. Assigning a role on a branch they already work at replaces the role they had there. Branch Choose a branch… Floating Terrace — Rooftop Floating Terrace HQ (HQ) Role Choose a role… Accountant Cashier Inventory Manager Kitchen Staff Manager Owner Tenant Admin Waiter Cancel Assign role Close",
+        "selects": [
+          "Choose a branch… Floating Terrace — Rooftop Floating Terrace HQ (HQ)",
+          "Choose a role… Accountant Cashier Inventory Manager Kitchen Staff Manager Owner Tenant Admin Waiter"
+        ]
+      }
+    }
+  ],
+  "net": []
+}

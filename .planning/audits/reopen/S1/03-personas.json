@@ -1,0 +1,104 @@
+{
+  "personas": [
+    {
+      "label": "manager",
+      "email": "manager@terrace.local",
+      "navCount": 1,
+      "dom": {
+        "h1": "Station Routing",
+        "bodyHead": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Service Charge FINANCE Guide Takings PURCHASING Purchasing PEOPLE Custom",
+        "cats": 8,
+        "rows": 44,
+        "catSelectsEnabled": 8,
+        "itemSelectsEnabled": 44,
+        "alerts": []
+      },
+      "trouble": [],
+      "putCategoryStatus": 204,
+      "putCategoryBody": "null",
+      "putItemStatus": 200,
+      "getRoutingStatus": 200
+    },
+    {
+      "label": "cashier",
+      "email": "cashier@terrace.local",
+      "navCount": 0,
+      "dom": {
+        "h1": "Station Routing",
+        "bodyHead": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse App Menu Routing Floating Terrace HQ Search… ⌘K E Station Routing Where each dish is made. Route a whole category — “all drinks go to the bar” — and override ",
+        "cats": 0,
+        "rows": 0,
+        "catSelectsEnabled": 0,
+        "itemSelectsEnabled": 0,
+        "alerts": [
+          "You don't have access to menuYour signed-in role may not perform this action. An owner or administrator can change your role."
+        ]
+      },
+      "trouble": [],
+      "putCategoryStatus": 403,
+      "putCategoryBody": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"b087970b-73a1-4199-baa6-3321a142a2b5\"}}",
+      "putItemStatus": 403,
+      "getRoutingStatus": 403
+    },
+    {
+      "label": "waiter",
+      "email": "waiter@terrace.local",
+      "navCount": 0,
+      "dom": {
+        "h1": "Station Routing",
+        "bodyHead": "Floating Terrace OVERVIEW Dashboard ORDERS POS Kitchen Display MENU Service Charge Collapse App Menu Routing Floating Terrace HQ Search… ⌘K 6 Station Routing Where each dish is made. Route a whole category — “all drinks go to the bar” — and override sin",
+        "cats": 0,
+        "rows": 0,
+        "catSelectsEnabled": 0,
+        "itemSelectsEnabled": 0,
+        "alerts": [
+          "You don't have access to menuYour signed-in role may not perform this action. An owner or administrator can change your role."
+        ]
+      },
+      "trouble": [],
+      "putCategoryStatus": 403,
+      "putCategoryBody": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"e201b39c-443e-4a9e-9958-9668db629d4a\"}}",
+      "putItemStatus": 403,
+      "getRoutingStatus": 403
+    },
+    {
+      "label": "kitchen",
+      "email": "kitchen@terrace.local",
+      "navCount": 0,
+      "dom": {
+        "h1": "Station Routing",
+        "bodyHead": "Floating Terrace OVERVIEW Dashboard ORDERS Kitchen Display Collapse App Menu Routing Floating Terrace HQ Search… ⌘K D Station Routing Where each dish is made. Route a whole category — “all drinks go to the bar” — and override single items where the rule d",
+        "cats": 0,
+        "rows": 0,
+        "catSelectsEnabled": 0,
+        "itemSelectsEnabled": 0,
+        "alerts": [
+          "You don't have access to menuYour signed-in role may not perform this action. An owner or administrator can change your role."
+        ]
+      },
+      "trouble": [],
+      "putCategoryStatus": 403,
+      "putCategoryBody": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"c2078479-7c88-4004-bc4b-da326c04c778\"}}",
+      "putItemStatus": 401,
+      "getRoutingStatus": 401
+    }
+  ],
+  "branch": {
+    "error": "no switcher"
+  },
+  "tenant": {
+    "me": "{\"error\":{\"code\":\"NOT_FOUND\",\"message\":\"No endpoint matches this path\",\"details\":[],\"traceId\":\"e198ce50-9c20-4baf-bbb3-88ed4fe6e543\"}}",
+    "putCategory": 403,
+    "putItem": 403,
+    "getRouting": 403,
+    "bodies": [
+      "{\"detail\":\"Cannot access menu pricing for a different branch\",\"instance\":\"/api/v1/pos/menu/categories/c3d9fa09-d583-4bb3-a552-4c36fe329b56/station\",\"status\":403,\"title\":\"FORBIDDEN\",\"type\":\"urn:restaur",
+      "{\"detail\":\"Cannot read station routing for a different branch\",\"instance\":\"/api/v1/pos/menu/routing\",\"status\":403,\"title\":\"FORBIDDEN\",\"type\":\"urn:restaurantos:pos:forbidden\"}"
+    ],
+    "dom": {
+      "h1": "Sign in to RestaurantOS",
+      "cats": [],
+      "body": "Sign in to RestaurantOS Enter your email and password to continue Your session expired. Please sign in again. Email Password Use a restaurant identifier instead Sign in"
+    }
+  }
+}

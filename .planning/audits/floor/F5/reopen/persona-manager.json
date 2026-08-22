@@ -1,0 +1,58 @@
+{
+  "apiStatus": 200,
+  "denied": false,
+  "tiles": {
+    "figure-tile-gross-sales": {
+      "label": "GROSS SALES",
+      "amountText": "Rs 73,026.00",
+      "paisa": 7302600,
+      "caption": "Full menu price of everything sold, before any discount.",
+      "raw": "GROSS SALES |  | Rs 73,026.00 |  | Full menu price of everything sold, before any discount."
+    },
+    "figure-tile-discounts": {
+      "label": "DISCOUNTS",
+      "amountText": "Rs 230.50",
+      "paisa": 23050,
+      "caption": "Given away. Shown here rather than netted into a smaller sales figure.",
+      "raw": "DISCOUNTS |  | Rs 230.50 |  | Given away. Shown here rather than netted into a smaller sales figure."
+    },
+    "figure-tile-comps": {
+      "label": "COMPS",
+      "amountText": null,
+      "paisa": null,
+      "caption": "Comps are not recorded separately from discounts. orders.discount_paisa is one column, and a full comp appears in it as a discount equal to the subtotal. Splitting them would require a field POS does not capture.",
+      "raw": "COMPS |  | Not known | Comps are not recorded separately from discounts. orders.discount_paisa is one column, and a full comp appears in it as a discount equal to the subtotal. Splitting them would require a field POS does not capture."
+    },
+    "figure-tile-net-sales": {
+      "label": "NET SALES",
+      "amountText": "Rs 72,795.50",
+      "paisa": 7279550,
+      "caption": "Gross sales less discounts. Tax and service charge are NOT in this figure — this is the revenue line.",
+      "raw": "NET SALES |  | Rs 72,795.50 |  | Gross sales less discounts. Tax and service charge are NOT in this figure — this is the revenue line."
+    },
+    "figure-tile-tax": {
+      "label": "TAX",
+      "amountText": "Rs 6,117.40",
+      "paisa": 611740,
+      "caption": "Charged on top of net sales and owed onward to the tax authority. Not revenue, and not inside net sales.",
+      "raw": "TAX |  | Rs 6,117.40 |  | Charged on top of net sales and owed onward to the tax authority. Not revenue, and not inside net sales."
+    },
+    "figure-tile-service-charge": {
+      "label": "SERVICE CHARGE",
+      "amountText": "Rs 214.60",
+      "paisa": 21460,
+      "caption": "Added to the bill on top of net sales. Shown on its own, not folded into it.",
+      "raw": "SERVICE CHARGE |  | Rs 214.60 |  | Added to the bill on top of net sales. Shown on its own, not folded into it."
+    },
+    "figure-tile-total-billed": {
+      "label": "TOTAL BILLED",
+      "amountText": "Rs 79,127.50",
+      "paisa": 7912750,
+      "caption": "What the bills actually came to: net sales plus tax plus service charge. This is the figure the tender split below reconciles against.",
+      "raw": "TOTAL BILLED |  | Rs 79,127.50 |  | What the bills actually came to: net sales plus tax plus service charge. This is the figure the tender split below reconciles against."
+    },
+    "__identity": "Gross sales − discounts = net sales. Net sales + tax + service charge = total billed.",
+    "__alerts": [],
+    "__bodyHasError": false
+  }
+}

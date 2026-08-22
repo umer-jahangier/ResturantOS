@@ -1,0 +1,7593 @@
+[
+  {
+    "mod": "Tables",
+    "route": "/app/tables",
+    "trigger": "Add table",
+    "key": "tables-add-table",
+    "onOpen": {
+      "open": true,
+      "w": 448,
+      "h": 371,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_e_",
+      "title": "Add table",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "tableNumber",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name or number",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_g_-form-item-description"
+        },
+        {
+          "name": "capacity",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Seats",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_i_-form-item-description"
+        },
+        {
+          "name": "section",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Section",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_k_-form-item-description"
+        }
+      ],
+      "rawSelects": 0,
+      "errors": [],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add table",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "button"
+    },
+    "afterEmptySubmit": {
+      "open": true,
+      "w": 448,
+      "h": 399,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_e_",
+      "title": "Add table",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "tableNumber",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name or number",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_g_-form-item-description _r_g_-form-item-message"
+        },
+        {
+          "name": "capacity",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Seats",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_i_-form-item-description"
+        },
+        {
+          "name": "section",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Section",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_k_-form-item-description"
+        }
+      ],
+      "rawSelects": 0,
+      "errors": [
+        "Give the table a name or number"
+      ],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add table",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "input#tableNumber"
+    },
+    "afterBadFillBlur": {
+      "open": true,
+      "w": 448,
+      "h": 399,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_e_",
+      "title": "Add table",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "tableNumber",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name or number",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_g_-form-item-description"
+        },
+        {
+          "name": "capacity",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Seats",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_i_-form-item-description _r_i_-form-item-message"
+        },
+        {
+          "name": "section",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Section",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_k_-form-item-description"
+        }
+      ],
+      "rawSelects": 0,
+      "errors": [
+        "Enter a number of seats"
+      ],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add table",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": false,
+      "focusEl": "body"
+    },
+    "afterBadSubmit": {
+      "open": true,
+      "w": 448,
+      "h": 399,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_e_",
+      "title": "Add table",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "tableNumber",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name or number",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_g_-form-item-description"
+        },
+        {
+          "name": "capacity",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Seats",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_i_-form-item-description _r_i_-form-item-message"
+        },
+        {
+          "name": "section",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Section",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_k_-form-item-description"
+        }
+      ],
+      "rawSelects": 0,
+      "errors": [
+        "Enter a number of seats"
+      ],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add table",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "input#capacity"
+    },
+    "escapeCloses": true
+  },
+  {
+    "mod": "Menu",
+    "route": "/app/menu/items",
+    "trigger": "Add item",
+    "key": "menu-add-item",
+    "onOpen": {
+      "open": true,
+      "w": 512,
+      "h": 539,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1b_",
+      "title": "Add menu item",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "categoryId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Category",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1d_-form-item-description"
+        },
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1f_-form-item-description"
+        },
+        {
+          "name": "description",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Description",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1h_-form-item-description"
+        },
+        {
+          "name": "priceRupees",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Price (Rs)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1j_-form-item-description"
+        },
+        {
+          "name": "_r_1l_",
+          "tag": "input",
+          "type": "file",
+          "required": false,
+          "label": "Picture",
+          "labelMarksRequired": false,
+          "h": 1,
+          "ariaInvalid": null,
+          "describedBy": null
+        }
+      ],
+      "rawSelects": 1,
+      "errors": [],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Upload picture",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add item",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "button"
+    },
+    "afterEmptySubmit": {
+      "open": true,
+      "w": 512,
+      "h": 595,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1b_",
+      "title": "Add menu item",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "categoryId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Category",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1d_-form-item-description"
+        },
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_1f_-form-item-description _r_1f_-form-item-message"
+        },
+        {
+          "name": "description",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Description",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1h_-form-item-description"
+        },
+        {
+          "name": "priceRupees",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Price (Rs)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_1j_-form-item-description _r_1j_-form-item-message"
+        },
+        {
+          "name": "_r_1l_",
+          "tag": "input",
+          "type": "file",
+          "required": false,
+          "label": "Picture",
+          "labelMarksRequired": false,
+          "h": 1,
+          "ariaInvalid": null,
+          "describedBy": null
+        }
+      ],
+      "rawSelects": 1,
+      "errors": [
+        "Name is required",
+        "Enter a price"
+      ],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Upload picture",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add item",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "input#name"
+    },
+    "afterBadFillBlur": {
+      "open": true,
+      "w": 512,
+      "h": 567,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1b_",
+      "title": "Add menu item",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "categoryId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Category",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1d_-form-item-description"
+        },
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1f_-form-item-description"
+        },
+        {
+          "name": "description",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Description",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1h_-form-item-description"
+        },
+        {
+          "name": "priceRupees",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Price (Rs)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_1j_-form-item-description _r_1j_-form-item-message"
+        },
+        {
+          "name": "_r_1l_",
+          "tag": "input",
+          "type": "file",
+          "required": false,
+          "label": "Picture",
+          "labelMarksRequired": false,
+          "h": 1,
+          "ariaInvalid": null,
+          "describedBy": null
+        }
+      ],
+      "rawSelects": 1,
+      "errors": [
+        "Enter a price"
+      ],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Upload picture",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add item",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": false,
+      "focusEl": "body"
+    },
+    "afterBadSubmit": {
+      "open": true,
+      "w": 512,
+      "h": 567,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1b_",
+      "title": "Add menu item",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "categoryId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Category",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1d_-form-item-description"
+        },
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1f_-form-item-description"
+        },
+        {
+          "name": "description",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Description",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1h_-form-item-description"
+        },
+        {
+          "name": "priceRupees",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Price (Rs)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_1j_-form-item-description _r_1j_-form-item-message"
+        },
+        {
+          "name": "_r_1l_",
+          "tag": "input",
+          "type": "file",
+          "required": false,
+          "label": "Picture",
+          "labelMarksRequired": false,
+          "h": 1,
+          "ariaInvalid": null,
+          "describedBy": null
+        }
+      ],
+      "rawSelects": 1,
+      "errors": [
+        "Enter a price"
+      ],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Upload picture",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add item",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "input#priceRupees"
+    },
+    "escapeCloses": true
+  },
+  {
+    "mod": "Menu",
+    "route": "/app/menu/items",
+    "trigger": "Add category",
+    "key": "menu-category",
+    "onOpen": {
+      "open": true,
+      "w": 448,
+      "h": 351,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1b_",
+      "title": "Add menu category",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1d_-form-item-description"
+        },
+        {
+          "name": "description",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Description",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1f_-form-item-description"
+        },
+        {
+          "name": "sortOrder",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Sort order",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1h_-form-item-description"
+        }
+      ],
+      "rawSelects": 0,
+      "errors": [],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add category",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "button"
+    },
+    "afterEmptySubmit": {
+      "open": true,
+      "w": 448,
+      "h": 379,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1b_",
+      "title": "Add menu category",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_1d_-form-item-description _r_1d_-form-item-message"
+        },
+        {
+          "name": "description",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Description",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1f_-form-item-description"
+        },
+        {
+          "name": "sortOrder",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Sort order",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1h_-form-item-description"
+        }
+      ],
+      "rawSelects": 0,
+      "errors": [
+        "Name is required"
+      ],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add category",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "input#name"
+    },
+    "afterBadFillBlur": {
+      "open": true,
+      "w": 448,
+      "h": 351,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1b_",
+      "title": "Add menu category",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1d_-form-item-description"
+        },
+        {
+          "name": "description",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Description",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1f_-form-item-description"
+        },
+        {
+          "name": "sortOrder",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Sort order",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1h_-form-item-description"
+        }
+      ],
+      "rawSelects": 0,
+      "errors": [],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add category",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": false,
+      "focusEl": "body"
+    },
+    "afterBadSubmit": {
+      "open": true,
+      "w": 448,
+      "h": 351,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1b_",
+      "title": "Add menu category",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1d_-form-item-description"
+        },
+        {
+          "name": "description",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Description",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1f_-form-item-description"
+        },
+        {
+          "name": "sortOrder",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Sort order",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1h_-form-item-description"
+        }
+      ],
+      "rawSelects": 0,
+      "errors": [],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add category",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "button"
+    },
+    "escapeCloses": true
+  },
+  {
+    "mod": "Inventory",
+    "route": "/app/inventory/ingredients",
+    "trigger": "Add ingredient",
+    "key": "inventory-add-ingredient",
+    "onOpen": {
+      "open": true,
+      "w": 672,
+      "h": 762,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "Add ingredient",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2m_-form-item-description"
+        },
+        {
+          "name": "shortName",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Short name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2n_-form-item-description"
+        },
+        {
+          "name": "sku",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "SKU",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2p_-form-item-description"
+        },
+        {
+          "name": "categoryId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Primary category *",
+          "labelMarksRequired": true,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2r_-form-item-description"
+        },
+        {
+          "name": "itemType",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Item type",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2t_-form-item-description"
+        },
+        {
+          "name": "description",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Description",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2v_-form-item-description"
+        },
+        {
+          "name": "measureType",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Measure type",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_30_-form-item-description"
+        },
+        {
+          "name": "baseUomCode",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Stock unit",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_32_-form-item-description"
+        },
+        {
+          "name": "recipeUomCode",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Recipe unit",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_34_-form-item-description"
+        },
+        {
+          "name": "defaultYieldPct",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Default yield %",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_36_-form-item-description"
+        },
+        {
+          "name": "parLevel",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Par level",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_39_-form-item-description"
+        },
+        {
+          "name": "reorderPoint",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Reorder point",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_3b_-form-item-description"
+        },
+        {
+          "name": "storageLocationId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Storage location",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_3d_-form-item-description"
+        },
+        {
+          "name": "shelfLifeDays",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Shelf life (days)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_3f_-form-item-description"
+        }
+      ],
+      "rawSelects": 6,
+      "errors": [],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Add conversion",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Not perishable",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Gluten",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Crustaceans",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Eggs",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Fish",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Peanuts",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Soybeans",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Milk",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Tree nuts",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Celery",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Mustard",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Sesame",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Sulphites",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Lupin",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Molluscs",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add ingredient",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "input#name"
+    },
+    "afterEmptySubmit": {
+      "open": true,
+      "w": 672,
+      "h": 762,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "Add ingredient",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_2m_-form-item-description _r_2m_-form-item-message"
+        },
+        {
+          "name": "shortName",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Short name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2n_-form-item-description"
+        },
+        {
+          "name": "sku",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "SKU",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_2p_-form-item-description _r_2p_-form-item-message"
+        },
+        {
+          "name": "categoryId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Primary category *",
+          "labelMarksRequired": true,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_2r_-form-item-description _r_2r_-form-item-message"
+        },
+        {
+          "name": "itemType",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Item type",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2t_-form-item-description"
+        },
+        {
+          "name": "description",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Description",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2v_-form-item-description"
+        },
+        {
+          "name": "measureType",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Measure type",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_30_-form-item-description"
+        },
+        {
+          "name": "baseUomCode",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Stock unit",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_32_-form-item-description _r_32_-form-item-message"
+        },
+        {
+          "name": "recipeUomCode",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Recipe unit",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_34_-form-item-description"
+        },
+        {
+          "name": "defaultYieldPct",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Default yield %",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_36_-form-item-description"
+        },
+        {
+          "name": "parLevel",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Par level",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_39_-form-item-description"
+        },
+        {
+          "name": "reorderPoint",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Reorder point",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_3b_-form-item-description _r_3b_-form-item-message"
+        },
+        {
+          "name": "storageLocationId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Storage location",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_3d_-form-item-description"
+        },
+        {
+          "name": "shelfLifeDays",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Shelf life (days)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_3f_-form-item-description"
+        }
+      ],
+      "rawSelects": 6,
+      "errors": [
+        "Name is required",
+        "SKU is required",
+        "A category is required",
+        "Stock unit is required",
+        "Enter a reorder point"
+      ],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Add conversion",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Not perishable",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Gluten",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Crustaceans",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Eggs",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Fish",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Peanuts",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Soybeans",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Milk",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Tree nuts",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Celery",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Mustard",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Sesame",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Sulphites",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Lupin",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Molluscs",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add ingredient",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "input#name"
+    },
+    "afterBadFillBlur": {
+      "open": true,
+      "w": 672,
+      "h": 762,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "Add ingredient",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2m_-form-item-description"
+        },
+        {
+          "name": "shortName",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Short name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2n_-form-item-description"
+        },
+        {
+          "name": "sku",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "SKU",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2p_-form-item-description"
+        },
+        {
+          "name": "categoryId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Primary category *",
+          "labelMarksRequired": true,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_2r_-form-item-description _r_2r_-form-item-message"
+        },
+        {
+          "name": "itemType",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Item type",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2t_-form-item-description"
+        },
+        {
+          "name": "description",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Description",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2v_-form-item-description"
+        },
+        {
+          "name": "measureType",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Measure type",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_30_-form-item-description"
+        },
+        {
+          "name": "baseUomCode",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Stock unit",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_32_-form-item-description _r_32_-form-item-message"
+        },
+        {
+          "name": "recipeUomCode",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Recipe unit",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_34_-form-item-description"
+        },
+        {
+          "name": "defaultYieldPct",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Default yield %",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_36_-form-item-description"
+        },
+        {
+          "name": "parLevel",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Par level",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_39_-form-item-description"
+        },
+        {
+          "name": "reorderPoint",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Reorder point",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_3b_-form-item-description _r_3b_-form-item-message"
+        },
+        {
+          "name": "storageLocationId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Storage location",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_3d_-form-item-description"
+        },
+        {
+          "name": "shelfLifeDays",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Shelf life (days)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_3f_-form-item-description"
+        }
+      ],
+      "rawSelects": 6,
+      "errors": [
+        "A category is required",
+        "Stock unit is required",
+        "Enter a reorder point"
+      ],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Add conversion",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Not perishable",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Gluten",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Crustaceans",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Eggs",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Fish",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Peanuts",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Soybeans",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Milk",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Tree nuts",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Celery",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Mustard",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Sesame",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Sulphites",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Lupin",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Molluscs",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add ingredient",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": false,
+      "focusEl": "body"
+    },
+    "afterBadSubmit": {
+      "open": true,
+      "w": 672,
+      "h": 762,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "Add ingredient",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2m_-form-item-description"
+        },
+        {
+          "name": "shortName",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Short name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2n_-form-item-description"
+        },
+        {
+          "name": "sku",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "SKU",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2p_-form-item-description"
+        },
+        {
+          "name": "categoryId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Primary category *",
+          "labelMarksRequired": true,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_2r_-form-item-description _r_2r_-form-item-message"
+        },
+        {
+          "name": "itemType",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Item type",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2t_-form-item-description"
+        },
+        {
+          "name": "description",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Description",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2v_-form-item-description"
+        },
+        {
+          "name": "measureType",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Measure type",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_30_-form-item-description"
+        },
+        {
+          "name": "baseUomCode",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Stock unit",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_32_-form-item-description _r_32_-form-item-message"
+        },
+        {
+          "name": "recipeUomCode",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Recipe unit",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_34_-form-item-description"
+        },
+        {
+          "name": "defaultYieldPct",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Default yield %",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_36_-form-item-description"
+        },
+        {
+          "name": "parLevel",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Par level",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_39_-form-item-description"
+        },
+        {
+          "name": "reorderPoint",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Reorder point",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_3b_-form-item-description _r_3b_-form-item-message"
+        },
+        {
+          "name": "storageLocationId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Storage location",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_3d_-form-item-description"
+        },
+        {
+          "name": "shelfLifeDays",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Shelf life (days)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_3f_-form-item-description"
+        }
+      ],
+      "rawSelects": 6,
+      "errors": [
+        "A category is required",
+        "Stock unit is required",
+        "Enter a reorder point"
+      ],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Add conversion",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Not perishable",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Gluten",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Crustaceans",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Eggs",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Fish",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Peanuts",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Soybeans",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Milk",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Tree nuts",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Celery",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Mustard",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Sesame",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Sulphites",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Lupin",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Molluscs",
+          "disabled": false,
+          "type": "button",
+          "h": 30
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add ingredient",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "select#categoryId"
+    },
+    "escapeCloses": true
+  },
+  {
+    "mod": "Inventory",
+    "route": "/app/inventory/setup",
+    "trigger": "Add unit",
+    "key": "inventory-add-unit",
+    "onOpen": {
+      "open": true,
+      "w": 512,
+      "h": 395,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "Add unit",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "code",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Code",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2b_-form-item-description"
+        },
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2d_-form-item-description"
+        },
+        {
+          "name": "measureType",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Measure type",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2f_-form-item-description"
+        },
+        {
+          "name": "baseUnitCode",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Measured in",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2h_-form-item-description"
+        },
+        {
+          "name": "toBaseFactor",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "How many, per unit",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2j_-form-item-description"
+        }
+      ],
+      "rawSelects": 2,
+      "errors": [],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add unit",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "button"
+    },
+    "afterEmptySubmit": {
+      "open": true,
+      "w": 512,
+      "h": 423,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "Add unit",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "code",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Code",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_2b_-form-item-description _r_2b_-form-item-message"
+        },
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_2d_-form-item-description _r_2d_-form-item-message"
+        },
+        {
+          "name": "measureType",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Measure type",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2f_-form-item-description"
+        },
+        {
+          "name": "baseUnitCode",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Measured in",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2h_-form-item-description"
+        },
+        {
+          "name": "toBaseFactor",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "How many, per unit",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2j_-form-item-description"
+        }
+      ],
+      "rawSelects": 2,
+      "errors": [
+        "Code is required",
+        "Name is required"
+      ],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add unit",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "input#code"
+    },
+    "afterBadFillBlur": {
+      "open": true,
+      "w": 512,
+      "h": 395,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "Add unit",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "code",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Code",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2b_-form-item-description"
+        },
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2d_-form-item-description"
+        },
+        {
+          "name": "measureType",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Measure type",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2f_-form-item-description"
+        },
+        {
+          "name": "baseUnitCode",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Measured in",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2h_-form-item-description"
+        },
+        {
+          "name": "toBaseFactor",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "How many, per unit",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2j_-form-item-description"
+        }
+      ],
+      "rawSelects": 2,
+      "errors": [],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add unit",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": false,
+      "focusEl": "body"
+    },
+    "afterBadSubmit": {
+      "open": true,
+      "w": 512,
+      "h": 395,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "Add unit",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "code",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Code",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2b_-form-item-description"
+        },
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2d_-form-item-description"
+        },
+        {
+          "name": "measureType",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Measure type",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2f_-form-item-description"
+        },
+        {
+          "name": "baseUnitCode",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Measured in",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2h_-form-item-description"
+        },
+        {
+          "name": "toBaseFactor",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "How many, per unit",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_2j_-form-item-description"
+        }
+      ],
+      "rawSelects": 2,
+      "errors": [],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add unit",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": false,
+      "focusEl": "body"
+    },
+    "escapeCloses": true
+  },
+  {
+    "mod": "Inventory",
+    "route": "/app/inventory/stock",
+    "trigger": "Receipt",
+    "key": "inventory-receipt",
+    "onOpen": {
+      "open": true,
+      "w": 672,
+      "h": 287,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "Record a stock receipt",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "lines.0.qty",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Qty",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_f_-form-item-description"
+        },
+        {
+          "name": "_r_h_-form-item",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Unit for line 1",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_h_-form-item-description"
+        },
+        {
+          "name": "lines.0.unitCostRupees",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Unit cost (PKR)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_j_-form-item-description"
+        }
+      ],
+      "rawSelects": 0,
+      "errors": [],
+      "buttons": [
+        {
+          "t": "Add line",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Select an ingredient…",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Remove",
+          "disabled": true,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Record receipt",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "button"
+    },
+    "afterEmptySubmit": {
+      "open": true,
+      "w": 672,
+      "h": 335,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "Record a stock receipt",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "lines.0.qty",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Qty",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_f_-form-item-description _r_f_-form-item-message"
+        },
+        {
+          "name": "_r_h_-form-item",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Unit for line 1",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_h_-form-item-description"
+        },
+        {
+          "name": "lines.0.unitCostRupees",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Unit cost (PKR)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_j_-form-item-description _r_j_-form-item-message"
+        }
+      ],
+      "rawSelects": 0,
+      "errors": [
+        "Ingredient is required",
+        "Enter a positive quantity",
+        "Enter a unit cost"
+      ],
+      "buttons": [
+        {
+          "t": "Add line",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Select an ingredient…",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Remove",
+          "disabled": true,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Record receipt",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "input#lines.0.qty"
+    },
+    "afterBadFillBlur": {
+      "open": true,
+      "w": 672,
+      "h": 335,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "Record a stock receipt",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "lines.0.qty",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Qty",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_f_-form-item-description _r_f_-form-item-message"
+        },
+        {
+          "name": "_r_h_-form-item",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Unit for line 1",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_h_-form-item-description"
+        },
+        {
+          "name": "lines.0.unitCostRupees",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Unit cost (PKR)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_j_-form-item-description _r_j_-form-item-message"
+        }
+      ],
+      "rawSelects": 0,
+      "errors": [
+        "Ingredient is required",
+        "Enter a positive quantity",
+        "Enter a unit cost"
+      ],
+      "buttons": [
+        {
+          "t": "Add line",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Select an ingredient…",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Remove",
+          "disabled": true,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Record receipt",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": false,
+      "focusEl": "body"
+    },
+    "afterBadSubmit": {
+      "open": true,
+      "w": 672,
+      "h": 335,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "Record a stock receipt",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "lines.0.qty",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Qty",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_f_-form-item-description _r_f_-form-item-message"
+        },
+        {
+          "name": "_r_h_-form-item",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Unit for line 1",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_h_-form-item-description"
+        },
+        {
+          "name": "lines.0.unitCostRupees",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Unit cost (PKR)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_j_-form-item-description _r_j_-form-item-message"
+        }
+      ],
+      "rawSelects": 0,
+      "errors": [
+        "Ingredient is required",
+        "Enter a positive quantity",
+        "Enter a unit cost"
+      ],
+      "buttons": [
+        {
+          "t": "Add line",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Select an ingredient…",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Remove",
+          "disabled": true,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Record receipt",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "input#lines.0.qty"
+    },
+    "escapeCloses": true
+  },
+  {
+    "mod": "Inventory",
+    "route": "/app/inventory/stock",
+    "trigger": "Count",
+    "key": "stock-count",
+    "error": "no [role=dialog] appeared after click"
+  },
+  {
+    "mod": "Purchasing",
+    "route": "/app/purchasing/vendors",
+    "trigger": "Add vendor",
+    "key": "purchasing-add-vendor",
+    "onOpen": {
+      "open": true,
+      "w": 512,
+      "h": 717,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "Add vendor",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1v_-form-item-description"
+        },
+        {
+          "name": "paymentTerms",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Payment terms",
+          "labelMarksRequired": false,
+          "h": 36,
+          "ariaInvalid": "false",
+          "describedBy": "_r_20_-form-item-description"
+        },
+        {
+          "name": "leadTimeDays",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Lead time (days)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_21_-form-item-description"
+        },
+        {
+          "name": "contactPerson",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Contact person",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_22_-form-item-description"
+        },
+        {
+          "name": "phone",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Phone",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_23_-form-item-description"
+        },
+        {
+          "name": "email",
+          "tag": "input",
+          "type": "email",
+          "required": false,
+          "label": "Email",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_24_-form-item-description"
+        },
+        {
+          "name": "address",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Address",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_25_-form-item-description"
+        },
+        {
+          "name": "ntn",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "NTN",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_26_-form-item-description"
+        },
+        {
+          "name": "strn",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "STRN",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_27_-form-item-description"
+        },
+        {
+          "name": "bankAccountNo",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Bank account number",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "bank-hint"
+        },
+        {
+          "name": "notes",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Notes",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_29_-form-item-description"
+        }
+      ],
+      "rawSelects": 1,
+      "errors": [],
+      "buttons": [
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add vendor",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "input#name"
+    },
+    "afterEmptySubmit": {
+      "open": true,
+      "w": 512,
+      "h": 717,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "Add vendor",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_1v_-form-item-description _r_1v_-form-item-message"
+        },
+        {
+          "name": "paymentTerms",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Payment terms",
+          "labelMarksRequired": false,
+          "h": 36,
+          "ariaInvalid": "false",
+          "describedBy": "_r_20_-form-item-description"
+        },
+        {
+          "name": "leadTimeDays",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Lead time (days)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_21_-form-item-description"
+        },
+        {
+          "name": "contactPerson",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Contact person",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_22_-form-item-description"
+        },
+        {
+          "name": "phone",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Phone",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_23_-form-item-description"
+        },
+        {
+          "name": "email",
+          "tag": "input",
+          "type": "email",
+          "required": false,
+          "label": "Email",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_24_-form-item-description"
+        },
+        {
+          "name": "address",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Address",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_25_-form-item-description"
+        },
+        {
+          "name": "ntn",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "NTN",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_26_-form-item-description"
+        },
+        {
+          "name": "strn",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "STRN",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_27_-form-item-description"
+        },
+        {
+          "name": "bankAccountNo",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Bank account number",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "bank-hint"
+        },
+        {
+          "name": "notes",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Notes",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_29_-form-item-description"
+        }
+      ],
+      "rawSelects": 1,
+      "errors": [
+        "Vendor name is required"
+      ],
+      "buttons": [
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add vendor",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "input#name"
+    },
+    "afterBadFillBlur": {
+      "open": true,
+      "w": 512,
+      "h": 717,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "Add vendor",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1v_-form-item-description"
+        },
+        {
+          "name": "paymentTerms",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Payment terms",
+          "labelMarksRequired": false,
+          "h": 36,
+          "ariaInvalid": "false",
+          "describedBy": "_r_20_-form-item-description"
+        },
+        {
+          "name": "leadTimeDays",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Lead time (days)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_21_-form-item-description _r_21_-form-item-message"
+        },
+        {
+          "name": "contactPerson",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Contact person",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_22_-form-item-description"
+        },
+        {
+          "name": "phone",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Phone",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_23_-form-item-description"
+        },
+        {
+          "name": "email",
+          "tag": "input",
+          "type": "email",
+          "required": false,
+          "label": "Email",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_24_-form-item-description"
+        },
+        {
+          "name": "address",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Address",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_25_-form-item-description"
+        },
+        {
+          "name": "ntn",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "NTN",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_26_-form-item-description"
+        },
+        {
+          "name": "strn",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "STRN",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_27_-form-item-description"
+        },
+        {
+          "name": "bankAccountNo",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Bank account number",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "bank-hint"
+        },
+        {
+          "name": "notes",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Notes",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_29_-form-item-description"
+        }
+      ],
+      "rawSelects": 1,
+      "errors": [
+        "Enter a whole number of days"
+      ],
+      "buttons": [
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add vendor",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": false,
+      "focusEl": "body"
+    },
+    "afterBadSubmit": {
+      "open": true,
+      "w": 512,
+      "h": 717,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "Add vendor",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_1v_-form-item-description"
+        },
+        {
+          "name": "paymentTerms",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Payment terms",
+          "labelMarksRequired": false,
+          "h": 36,
+          "ariaInvalid": "false",
+          "describedBy": "_r_20_-form-item-description"
+        },
+        {
+          "name": "leadTimeDays",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Lead time (days)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_21_-form-item-description _r_21_-form-item-message"
+        },
+        {
+          "name": "contactPerson",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Contact person",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_22_-form-item-description"
+        },
+        {
+          "name": "phone",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Phone",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_23_-form-item-description"
+        },
+        {
+          "name": "email",
+          "tag": "input",
+          "type": "email",
+          "required": false,
+          "label": "Email",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_24_-form-item-description"
+        },
+        {
+          "name": "address",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Address",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_25_-form-item-description"
+        },
+        {
+          "name": "ntn",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "NTN",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_26_-form-item-description"
+        },
+        {
+          "name": "strn",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "STRN",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_27_-form-item-description"
+        },
+        {
+          "name": "bankAccountNo",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Bank account number",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "bank-hint"
+        },
+        {
+          "name": "notes",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Notes",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_29_-form-item-description"
+        }
+      ],
+      "rawSelects": 1,
+      "errors": [
+        "Enter a whole number of days"
+      ],
+      "buttons": [
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add vendor",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "input#leadTimeDays"
+    },
+    "escapeCloses": true
+  },
+  {
+    "mod": "Purchasing",
+    "route": "/app/purchasing/purchase-orders",
+    "trigger": "New Purchase Order",
+    "key": "purchasing-new-purchase-order",
+    "onOpen": {
+      "open": true,
+      "w": 768,
+      "h": 464,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "New purchase order",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "vendorId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Vendor",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_3_-form-item-description"
+        },
+        {
+          "name": "expectedDeliveryDate",
+          "tag": "input",
+          "type": "date",
+          "required": false,
+          "label": "Expected delivery date",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_4_-form-item-description"
+        },
+        {
+          "name": "notes",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Notes",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_5_-form-item-description"
+        },
+        {
+          "name": "lines.0.uom",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Unit",
+          "labelMarksRequired": false,
+          "h": 36,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "lines.0.qty",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Qty",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_9_-form-item-description"
+        },
+        {
+          "name": "lines.0.unitPriceRupees",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Unit price (PKR)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_a_-form-item-description"
+        }
+      ],
+      "rawSelects": 2,
+      "errors": [],
+      "buttons": [
+        {
+          "t": "Add line",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "Select a vendor first.",
+          "disabled": true,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Remove",
+          "disabled": true,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Create purchase order",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "select#vendorId"
+    },
+    "afterEmptySubmit": {
+      "open": true,
+      "w": 768,
+      "h": 536,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "New purchase order",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "vendorId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Vendor",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_3_-form-item-description _r_3_-form-item-message"
+        },
+        {
+          "name": "expectedDeliveryDate",
+          "tag": "input",
+          "type": "date",
+          "required": false,
+          "label": "Expected delivery date",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_4_-form-item-description"
+        },
+        {
+          "name": "notes",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Notes",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_5_-form-item-description"
+        },
+        {
+          "name": "lines.0.uom",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Unit",
+          "labelMarksRequired": false,
+          "h": 36,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "lines.0.qty",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Qty",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_9_-form-item-description _r_9_-form-item-message"
+        },
+        {
+          "name": "lines.0.unitPriceRupees",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Unit price (PKR)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_a_-form-item-description _r_a_-form-item-message"
+        }
+      ],
+      "rawSelects": 2,
+      "errors": [
+        "Vendor is required",
+        "Select a catalog item before adding this line",
+        "Enter a positive quantity",
+        "Enter a unit price"
+      ],
+      "buttons": [
+        {
+          "t": "Add line",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "Select a vendor first.",
+          "disabled": true,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Remove",
+          "disabled": true,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Create purchase order",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "select#vendorId"
+    },
+    "afterBadFillBlur": {
+      "open": true,
+      "w": 768,
+      "h": 536,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "New purchase order",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "vendorId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Vendor",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_3_-form-item-description _r_3_-form-item-message"
+        },
+        {
+          "name": "expectedDeliveryDate",
+          "tag": "input",
+          "type": "date",
+          "required": false,
+          "label": "Expected delivery date",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_4_-form-item-description"
+        },
+        {
+          "name": "notes",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Notes",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_5_-form-item-description"
+        },
+        {
+          "name": "lines.0.uom",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Unit",
+          "labelMarksRequired": false,
+          "h": 36,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "lines.0.qty",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Qty",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_9_-form-item-description _r_9_-form-item-message"
+        },
+        {
+          "name": "lines.0.unitPriceRupees",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Unit price (PKR)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_a_-form-item-description _r_a_-form-item-message"
+        }
+      ],
+      "rawSelects": 2,
+      "errors": [
+        "Vendor is required",
+        "Select a catalog item before adding this line",
+        "Enter a positive quantity",
+        "Enter a unit price"
+      ],
+      "buttons": [
+        {
+          "t": "Add line",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "Select a vendor first.",
+          "disabled": true,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Remove",
+          "disabled": true,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Create purchase order",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": false,
+      "focusEl": "body"
+    },
+    "afterBadSubmit": {
+      "open": true,
+      "w": 768,
+      "h": 536,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "New purchase order",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "vendorId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Vendor",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_3_-form-item-description _r_3_-form-item-message"
+        },
+        {
+          "name": "expectedDeliveryDate",
+          "tag": "input",
+          "type": "date",
+          "required": false,
+          "label": "Expected delivery date",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_4_-form-item-description"
+        },
+        {
+          "name": "notes",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Notes",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_5_-form-item-description"
+        },
+        {
+          "name": "lines.0.uom",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Unit",
+          "labelMarksRequired": false,
+          "h": 36,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "lines.0.qty",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Qty",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_9_-form-item-description _r_9_-form-item-message"
+        },
+        {
+          "name": "lines.0.unitPriceRupees",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Unit price (PKR)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_a_-form-item-description _r_a_-form-item-message"
+        }
+      ],
+      "rawSelects": 2,
+      "errors": [
+        "Vendor is required",
+        "Select a catalog item before adding this line",
+        "Enter a positive quantity",
+        "Enter a unit price"
+      ],
+      "buttons": [
+        {
+          "t": "Add line",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "Select a vendor first.",
+          "disabled": true,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Remove",
+          "disabled": true,
+          "type": "button",
+          "h": 28
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Create purchase order",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "select#vendorId"
+    },
+    "escapeCloses": true
+  },
+  {
+    "mod": "Finance",
+    "route": "/app/finance/expenses",
+    "trigger": "New expense",
+    "key": "finance-new-expense",
+    "onOpen": {
+      "open": true,
+      "w": 512,
+      "h": 445,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "New expense",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "expenseAccountCode",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Expense account",
+          "labelMarksRequired": false,
+          "h": 36,
+          "ariaInvalid": "false",
+          "describedBy": "_r_3_-form-item-description"
+        },
+        {
+          "name": "expenseDate",
+          "tag": "input",
+          "type": "date",
+          "required": false,
+          "label": "Expense date",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_4_-form-item-description"
+        },
+        {
+          "name": "amountRupees",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Amount (PKR)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_5_-form-item-description"
+        },
+        {
+          "name": "description",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Description",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_6_-form-item-description"
+        }
+      ],
+      "rawSelects": 1,
+      "errors": [],
+      "buttons": [
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Submit expense",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "select#expenseAccountCode"
+    },
+    "afterEmptySubmit": {
+      "open": true,
+      "w": 512,
+      "h": 501,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "New expense",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "expenseAccountCode",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Expense account",
+          "labelMarksRequired": false,
+          "h": 36,
+          "ariaInvalid": "true",
+          "describedBy": "_r_3_-form-item-description _r_3_-form-item-message"
+        },
+        {
+          "name": "expenseDate",
+          "tag": "input",
+          "type": "date",
+          "required": false,
+          "label": "Expense date",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_4_-form-item-description"
+        },
+        {
+          "name": "amountRupees",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Amount (PKR)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_5_-form-item-description _r_5_-form-item-message"
+        },
+        {
+          "name": "description",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Description",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_6_-form-item-description"
+        }
+      ],
+      "rawSelects": 1,
+      "errors": [
+        "Select an expense account",
+        "Amount is required"
+      ],
+      "buttons": [
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Submit expense",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "select#expenseAccountCode"
+    },
+    "afterBadFillBlur": {
+      "open": true,
+      "w": 512,
+      "h": 501,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "New expense",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "expenseAccountCode",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Expense account",
+          "labelMarksRequired": false,
+          "h": 36,
+          "ariaInvalid": "true",
+          "describedBy": "_r_3_-form-item-description _r_3_-form-item-message"
+        },
+        {
+          "name": "expenseDate",
+          "tag": "input",
+          "type": "date",
+          "required": false,
+          "label": "Expense date",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_4_-form-item-description"
+        },
+        {
+          "name": "amountRupees",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Amount (PKR)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_5_-form-item-description _r_5_-form-item-message"
+        },
+        {
+          "name": "description",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Description",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_6_-form-item-description"
+        }
+      ],
+      "rawSelects": 1,
+      "errors": [
+        "Select an expense account",
+        "Enter an amount greater than zero"
+      ],
+      "buttons": [
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Submit expense",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": false,
+      "focusEl": "body"
+    },
+    "afterBadSubmit": {
+      "open": true,
+      "w": 512,
+      "h": 501,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "New expense",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "expenseAccountCode",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Expense account",
+          "labelMarksRequired": false,
+          "h": 36,
+          "ariaInvalid": "true",
+          "describedBy": "_r_3_-form-item-description _r_3_-form-item-message"
+        },
+        {
+          "name": "expenseDate",
+          "tag": "input",
+          "type": "date",
+          "required": false,
+          "label": "Expense date",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_4_-form-item-description"
+        },
+        {
+          "name": "amountRupees",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Amount (PKR)",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_5_-form-item-description _r_5_-form-item-message"
+        },
+        {
+          "name": "description",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Description",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_6_-form-item-description"
+        }
+      ],
+      "rawSelects": 1,
+      "errors": [
+        "Select an expense account",
+        "Enter an amount greater than zero"
+      ],
+      "buttons": [
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Submit expense",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "select#expenseAccountCode"
+    },
+    "escapeCloses": true
+  },
+  {
+    "mod": "HR",
+    "route": "/app/hr/employees",
+    "trigger": "New employee",
+    "key": "hr-new-employee",
+    "onOpen": {
+      "open": true,
+      "w": 672,
+      "h": 599,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "New employee",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "employeeNo",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Employee number",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_3_-form-item-description"
+        },
+        {
+          "name": "fullName",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Full name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_4_-form-item-description"
+        },
+        {
+          "name": "departmentId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Department",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_5_-form-item-description"
+        },
+        {
+          "name": "designationId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Job title",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_6_-form-item-description"
+        },
+        {
+          "name": "employmentType",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Employment type",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_7_-form-item-description"
+        },
+        {
+          "name": "joinDate",
+          "tag": "input",
+          "type": "date",
+          "required": false,
+          "label": "Join date",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_8_-form-item-description"
+        },
+        {
+          "name": "basicSalaryRupees",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Basic salary",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_9_-form-item-description"
+        },
+        {
+          "name": "deviceUserRef",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Device PIN",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_a_-form-item-description"
+        },
+        {
+          "name": "cnic",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "CNIC",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_b_-form-item-description"
+        },
+        {
+          "name": "bankAccountNo",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Bank account",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_c_-form-item-description"
+        }
+      ],
+      "rawSelects": 3,
+      "errors": [],
+      "buttons": [
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add employee",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "input#employeeNo"
+    },
+    "afterEmptySubmit": {
+      "open": true,
+      "w": 672,
+      "h": 647,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "New employee",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "employeeNo",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Employee number",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_3_-form-item-description _r_3_-form-item-message"
+        },
+        {
+          "name": "fullName",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Full name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_4_-form-item-description"
+        },
+        {
+          "name": "departmentId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Department",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_5_-form-item-description"
+        },
+        {
+          "name": "designationId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Job title",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_6_-form-item-description"
+        },
+        {
+          "name": "employmentType",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Employment type",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_7_-form-item-description"
+        },
+        {
+          "name": "joinDate",
+          "tag": "input",
+          "type": "date",
+          "required": false,
+          "label": "Join date",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_8_-form-item-description"
+        },
+        {
+          "name": "basicSalaryRupees",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Basic salary",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_9_-form-item-description"
+        },
+        {
+          "name": "deviceUserRef",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Device PIN",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_a_-form-item-description"
+        },
+        {
+          "name": "cnic",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "CNIC",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_b_-form-item-description"
+        },
+        {
+          "name": "bankAccountNo",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Bank account",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_c_-form-item-description"
+        }
+      ],
+      "rawSelects": 3,
+      "errors": [
+        "Enter the employee number"
+      ],
+      "buttons": [
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add employee",
+          "disabled": true,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": false,
+      "focusEl": "body"
+    },
+    "afterBadFillBlur": {
+      "open": true,
+      "w": 672,
+      "h": 695,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "New employee",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "employeeNo",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Employee number",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_3_-form-item-description"
+        },
+        {
+          "name": "fullName",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Full name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_4_-form-item-description"
+        },
+        {
+          "name": "departmentId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Department",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_5_-form-item-description"
+        },
+        {
+          "name": "designationId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Job title",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_6_-form-item-description"
+        },
+        {
+          "name": "employmentType",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Employment type",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_7_-form-item-description"
+        },
+        {
+          "name": "joinDate",
+          "tag": "input",
+          "type": "date",
+          "required": false,
+          "label": "Join date",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_8_-form-item-description"
+        },
+        {
+          "name": "basicSalaryRupees",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Basic salary",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_9_-form-item-description _r_9_-form-item-message"
+        },
+        {
+          "name": "deviceUserRef",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Device PIN",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_a_-form-item-description _r_a_-form-item-message"
+        },
+        {
+          "name": "cnic",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "CNIC",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_b_-form-item-description _r_b_-form-item-message"
+        },
+        {
+          "name": "bankAccountNo",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Bank account",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_c_-form-item-description _r_c_-form-item-message"
+        }
+      ],
+      "rawSelects": 3,
+      "errors": [
+        "Rupees only, up to two decimal places",
+        "A device PIN is up to 10 digits",
+        "A CNIC is 13 digits, with or without dashes",
+        "An account or IBAN is 6–34 letters, digits or dashes"
+      ],
+      "buttons": [
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add employee",
+          "disabled": true,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": false,
+      "focusEl": "body"
+    },
+    "afterBadSubmit": {
+      "open": true,
+      "w": 672,
+      "h": 695,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "New employee",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "employeeNo",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Employee number",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_3_-form-item-description"
+        },
+        {
+          "name": "fullName",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Full name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_4_-form-item-description"
+        },
+        {
+          "name": "departmentId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Department",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_5_-form-item-description"
+        },
+        {
+          "name": "designationId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Job title",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_6_-form-item-description"
+        },
+        {
+          "name": "employmentType",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Employment type",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_7_-form-item-description"
+        },
+        {
+          "name": "joinDate",
+          "tag": "input",
+          "type": "date",
+          "required": false,
+          "label": "Join date",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_8_-form-item-description"
+        },
+        {
+          "name": "basicSalaryRupees",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Basic salary",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_9_-form-item-description _r_9_-form-item-message"
+        },
+        {
+          "name": "deviceUserRef",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Device PIN",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_a_-form-item-description _r_a_-form-item-message"
+        },
+        {
+          "name": "cnic",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "CNIC",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_b_-form-item-description _r_b_-form-item-message"
+        },
+        {
+          "name": "bankAccountNo",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Bank account",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_c_-form-item-description _r_c_-form-item-message"
+        }
+      ],
+      "rawSelects": 3,
+      "errors": [
+        "Rupees only, up to two decimal places",
+        "A device PIN is up to 10 digits",
+        "A CNIC is 13 digits, with or without dashes",
+        "An account or IBAN is 6–34 letters, digits or dashes"
+      ],
+      "buttons": [
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add employee",
+          "disabled": true,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": false,
+      "focusEl": "body"
+    },
+    "escapeCloses": true
+  },
+  {
+    "mod": "Users",
+    "route": "/app/users",
+    "trigger": "Add user",
+    "key": "users-add-user",
+    "onOpen": {
+      "open": true,
+      "w": 512,
+      "h": 447,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "Add a user",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "email",
+          "tag": "input",
+          "type": "email",
+          "required": false,
+          "label": "Email address",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_3_-form-item-description"
+        },
+        {
+          "name": "fullName",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Full name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_4_-form-item-description"
+        },
+        {
+          "name": "branchId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Branch",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_5_-form-item-description"
+        },
+        {
+          "name": "create-user-role",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Role",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        }
+      ],
+      "rawSelects": 2,
+      "errors": [],
+      "buttons": [
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Create user",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "input#email"
+    },
+    "afterEmptySubmit": {
+      "open": true,
+      "w": 512,
+      "h": 475,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "Add a user",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "email",
+          "tag": "input",
+          "type": "email",
+          "required": false,
+          "label": "Email address",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_3_-form-item-description _r_3_-form-item-message"
+        },
+        {
+          "name": "fullName",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Full name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_4_-form-item-description"
+        },
+        {
+          "name": "branchId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Branch",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_5_-form-item-description"
+        },
+        {
+          "name": "create-user-role",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Role",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        }
+      ],
+      "rawSelects": 2,
+      "errors": [
+        "Email address is required"
+      ],
+      "buttons": [
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Create user",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "input#email"
+    },
+    "afterBadFillBlur": {
+      "open": true,
+      "w": 512,
+      "h": 475,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "Add a user",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "email",
+          "tag": "input",
+          "type": "email",
+          "required": false,
+          "label": "Email address",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_3_-form-item-description _r_3_-form-item-message"
+        },
+        {
+          "name": "fullName",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Full name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_4_-form-item-description"
+        },
+        {
+          "name": "branchId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Branch",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_5_-form-item-description"
+        },
+        {
+          "name": "create-user-role",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Role",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        }
+      ],
+      "rawSelects": 2,
+      "errors": [
+        "Enter a valid email address"
+      ],
+      "buttons": [
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Create user",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": false,
+      "focusEl": "body"
+    },
+    "afterBadSubmit": {
+      "open": true,
+      "w": 512,
+      "h": 475,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_1_",
+      "title": "Add a user",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "email",
+          "tag": "input",
+          "type": "email",
+          "required": false,
+          "label": "Email address",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_3_-form-item-description _r_3_-form-item-message"
+        },
+        {
+          "name": "fullName",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Full name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_4_-form-item-description"
+        },
+        {
+          "name": "branchId",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Branch",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_5_-form-item-description"
+        },
+        {
+          "name": "create-user-role",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Role",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        }
+      ],
+      "rawSelects": 2,
+      "errors": [
+        "Enter a valid email address"
+      ],
+      "buttons": [
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Create user",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "input#email"
+    },
+    "escapeCloses": true
+  },
+  {
+    "mod": "Stations",
+    "route": "/app/stations",
+    "trigger": "Add station",
+    "key": "stations-add-station",
+    "onOpen": {
+      "open": true,
+      "w": 448,
+      "h": 409,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_d_",
+      "title": "Add station",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "code",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Code",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_f_-form-item-description"
+        },
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_h_-form-item-description"
+        },
+        {
+          "name": "station-type",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": null,
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        }
+      ],
+      "rawSelects": 1,
+      "errors": [],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add station",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "button"
+    },
+    "afterEmptySubmit": {
+      "open": true,
+      "w": 448,
+      "h": 465,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_d_",
+      "title": "Add station",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "code",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Code",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_f_-form-item-description _r_f_-form-item-message"
+        },
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_h_-form-item-description _r_h_-form-item-message"
+        },
+        {
+          "name": "station-type",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": null,
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        }
+      ],
+      "rawSelects": 1,
+      "errors": [
+        "Give the station a short code",
+        "Give the station a name staff will recognise"
+      ],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add station",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "input#code"
+    },
+    "afterBadFillBlur": {
+      "open": true,
+      "w": 448,
+      "h": 457,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_d_",
+      "title": "Add station",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "code",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Code",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_f_-form-item-description _r_f_-form-item-message"
+        },
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_h_-form-item-description"
+        },
+        {
+          "name": "station-type",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": null,
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        }
+      ],
+      "rawSelects": 1,
+      "errors": [
+        "Use letters, numbers, hyphens and underscores only — the code is a routing key, not a label"
+      ],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add station",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": false,
+      "focusEl": "body"
+    },
+    "afterBadSubmit": {
+      "open": true,
+      "w": 448,
+      "h": 457,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_d_",
+      "title": "Add station",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "code",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Code",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "true",
+          "describedBy": "_r_f_-form-item-description _r_f_-form-item-message"
+        },
+        {
+          "name": "name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": "false",
+          "describedBy": "_r_h_-form-item-description"
+        },
+        {
+          "name": "station-type",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": null,
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        }
+      ],
+      "rawSelects": 1,
+      "errors": [
+        "Use letters, numbers, hyphens and underscores only — the code is a routing key, not a label"
+      ],
+      "buttons": [
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "",
+          "disabled": false,
+          "type": "button",
+          "h": 14
+        },
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add station",
+          "disabled": false,
+          "type": "submit",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "input#code"
+    },
+    "escapeCloses": true
+  },
+  {
+    "mod": "Terminals",
+    "route": "/app/terminals",
+    "trigger": "Add terminal",
+    "key": "terminals-add-terminal",
+    "onOpen": {
+      "open": true,
+      "w": 512,
+      "h": 849,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_d_",
+      "title": "Add POS terminal",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "terminal-code",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Code",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "terminal-name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "terminal-service-model",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Service model",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "terminal-order-type",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Default order type",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Recheck Cat 186597",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Diag Cat 785508",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Starters",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Diag Cat 683566",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Mains",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Soft Drinks",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Drinks",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Main barBar — Bar screen",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Hot lineKitchen — Kitchen screen",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Diag Bar 28334Bar — Bar screen",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        }
+      ],
+      "rawSelects": 2,
+      "errors": [],
+      "buttons": [
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add terminal",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "input"
+    },
+    "afterEmptySubmit": {
+      "open": true,
+      "w": 512,
+      "h": 885,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_d_",
+      "title": "Add POS terminal",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "terminal-code",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Code",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "terminal-name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "terminal-service-model",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Service model",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "terminal-order-type",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Default order type",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Recheck Cat 186597",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Diag Cat 785508",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Starters",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Diag Cat 683566",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Mains",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Soft Drinks",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Drinks",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Main barBar — Bar screen",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Hot lineKitchen — Kitchen screen",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Diag Bar 28334Bar — Bar screen",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        }
+      ],
+      "rawSelects": 2,
+      "errors": [
+        "Give the terminal a name staff will recognise."
+      ],
+      "buttons": [
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add terminal",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "button"
+    },
+    "afterBadFillBlur": {
+      "open": true,
+      "w": 512,
+      "h": 885,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_d_",
+      "title": "Add POS terminal",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "terminal-code",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Code",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "terminal-name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "terminal-service-model",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Service model",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "terminal-order-type",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Default order type",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Recheck Cat 186597",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Diag Cat 785508",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Starters",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Diag Cat 683566",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Mains",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Soft Drinks",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Drinks",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Main barBar — Bar screen",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Hot lineKitchen — Kitchen screen",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Diag Bar 28334Bar — Bar screen",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        }
+      ],
+      "rawSelects": 2,
+      "errors": [
+        "Give the terminal a name staff will recognise."
+      ],
+      "buttons": [
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add terminal",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "button"
+    },
+    "afterBadSubmit": {
+      "open": true,
+      "w": 512,
+      "h": 885,
+      "radius": "11.2px",
+      "bg": "oklch(1 0 195)",
+      "padding": "16px",
+      "ariaModal": "true",
+      "ariaLabelledby": "radix-_r_d_",
+      "title": "Add POS terminal",
+      "hasDescription": true,
+      "hasFooter": true,
+      "hasCloseX": true,
+      "scrollable": false,
+      "offscreenBottom": 0,
+      "fields": [
+        {
+          "name": "terminal-code",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Code",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "terminal-name",
+          "tag": "input",
+          "type": "text",
+          "required": false,
+          "label": "Name",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "terminal-service-model",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Service model",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "terminal-order-type",
+          "tag": "select",
+          "type": "select-one",
+          "required": false,
+          "label": "Default order type",
+          "labelMarksRequired": false,
+          "h": 32,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Recheck Cat 186597",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Diag Cat 785508",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Starters",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Diag Cat 683566",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Mains",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Soft Drinks",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Drinks",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Main barBar — Bar screen",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Hot lineKitchen — Kitchen screen",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        },
+        {
+          "name": "",
+          "tag": "input",
+          "type": "checkbox",
+          "required": false,
+          "label": "Diag Bar 28334Bar — Bar screen",
+          "labelMarksRequired": false,
+          "h": 16,
+          "ariaInvalid": null,
+          "describedBy": null
+        }
+      ],
+      "rawSelects": 2,
+      "errors": [
+        "Give the terminal a name staff will recognise."
+      ],
+      "buttons": [
+        {
+          "t": "Cancel",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Add terminal",
+          "disabled": false,
+          "type": "button",
+          "h": 32
+        },
+        {
+          "t": "Close",
+          "disabled": false,
+          "type": "button",
+          "h": 28
+        }
+      ],
+      "focusInside": true,
+      "focusEl": "button"
+    },
+    "escapeCloses": true
+  }
+]

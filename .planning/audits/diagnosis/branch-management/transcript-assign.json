@@ -1,0 +1,59 @@
+{
+  "log": [
+    {
+      "k": "roles-BEFORE",
+      "v": "Roles by branch Floating Terrace HQ No approval authority primary KITCHEN_STAFF"
+    },
+    {
+      "k": "select-count",
+      "v": 2
+    },
+    {
+      "k": "dialog-after-pick",
+      "v": "Assign a role to bartender.proof@terrace.local A user holds one role per branch. Assigning a role on a branch they already work at replaces the role they had there. Branch Choose a branch… Floating Terrace — Rooftop Floating Terrace HQ (HQ) Role Choose a role… Accountant Cashier Inventory Manager Kitchen Staff Manager Owner Tenant Admin Waiter Cancel Assign role Close"
+    },
+    {
+      "k": "assign-network",
+      "v": [
+        {
+          "m": "POST",
+          "s": 200,
+          "req": "{\"branchId\":\"c2d74ade-7ff8-4167-8cd0-131bfbdf4fba\",\"roleCode\":\"CASHIER\"}",
+          "b": "{\"data\":{\"id\":\"916ff6a2-4ad8-4132-99de-17a38d02a332\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"userId\":\"418e1539-dc81-46a0-8b31-cd71f31f31bb\",\"branchId\":\"c2d74ade-7ff8-4167-8cd0-131bfbdf4fba\",\"roleCode\":\"CASHIER\",\"approvalLimitPaisa\":null,\"active\":true,\"primary\":false,\"displacedRoleCode\":nu"
+        }
+      ]
+    },
+    {
+      "k": "assign-toasts",
+      "v": [
+        "CASHIER assigned. It applies the next time that user signs in or their session refreshes."
+      ]
+    },
+    {
+      "k": "roles-AFTER-RELOAD",
+      "v": "Roles by branch Floating Terrace HQ No approval authority primary KITCHEN_STAFF Floating Terrace — Rooftop No approval authority CASHIER"
+    },
+    {
+      "k": "PERSISTED",
+      "v": true
+    },
+    {
+      "k": "revoke-controls",
+      "v": {
+        "buttonsInsideRolesBlock": [],
+        "panelButtons": [
+          "Collapse"
+        ],
+        "anyRevokeText": false
+      }
+    }
+  ],
+  "net": [
+    {
+      "m": "POST",
+      "s": 200,
+      "req": "{\"branchId\":\"c2d74ade-7ff8-4167-8cd0-131bfbdf4fba\",\"roleCode\":\"CASHIER\"}",
+      "b": "{\"data\":{\"id\":\"916ff6a2-4ad8-4132-99de-17a38d02a332\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"userId\":\"418e1539-dc81-46a0-8b31-cd71f31f31bb\",\"branchId\":\"c2d74ade-7ff8-4167-8cd0-131bfbdf4fba\",\"roleCode\":\"CASHIER\",\"approvalLimitPaisa\":null,\"active\":true,\"primary\":false,\"displacedRoleCode\":nu"
+    }
+  ]
+}

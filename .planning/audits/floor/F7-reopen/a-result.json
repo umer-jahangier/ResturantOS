@@ -1,0 +1,206 @@
+{
+  "scenario": "A-tender",
+  "startedAt": "2026-08-12T10:49:29.522Z",
+  "checks": [
+    {
+      "name": "before any tender the screen says NO bill exists",
+      "ok": false,
+      "detail": null
+    },
+    {
+      "name": "no CUSTOMER_RECEIPT row before the tender",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "the check is NOT closed at this moment (we never marked served)",
+      "ok": true,
+      "detail": {
+        "status": null,
+        "paymentStatus": null,
+        "closedAt": null,
+        "totalPaisa": null,
+        "items": []
+      }
+    },
+    {
+      "name": "a CUSTOMER_RECEIPT exists the moment the money is taken",
+      "ok": true,
+      "detail": {
+        "count": 1
+      }
+    },
+    {
+      "name": "that receipt is the ORIGINAL (issueSeq 1, no originalIssuedAt)",
+      "ok": true,
+      "detail": {
+        "printJobId": "673150aa-ae5e-4296-8a4b-bc5745125671",
+        "documentType": "CUSTOMER_RECEIPT",
+        "targetPrinterId": "audit-receipt",
+        "issueSeq": 1,
+        "status": "PRINTED",
+        "issuedAt": "2026-08-12T10:50:12.357793Z",
+        "originalIssuedAt": null
+      }
+    },
+    {
+      "name": "the original is stamped within 10s of the payment",
+      "ok": true,
+      "detail": {
+        "recordedAt": "2026-08-12T10:50:12.024365Z",
+        "issuedAt": "2026-08-12T10:50:12.357793Z",
+        "gapMs": 333
+      }
+    },
+    {
+      "name": "the SCREEN tells the cashier the bill exists",
+      "ok": true,
+      "detail": "Bill issued Aug 12, 2026, 3:50 PM Sent to audit-receipt. Check Settings → Printers if no paper appears — the job is kept and retried, not lost."
+    },
+    {
+      "name": "the bill strip survives a reload with the same issue time",
+      "ok": true,
+      "detail": {
+        "text": "Bill issued Aug 12, 2026, 3:50 PM Sent to audit-receipt. Check Settings → Printers if no paper appears — the job is kept and retried, not lost.",
+        "issued": "true",
+        "at": "2026-08-12T10:50:12.357793Z"
+      }
+    },
+    {
+      "name": "the bill reachable at tender carries the tender-time original stamp",
+      "ok": true,
+      "detail": {
+        "orig": "2026-08-12T10:50:12.357793Z",
+        "banner": "Originally issued 2026-08-12T10:50:12.357Z"
+      }
+    },
+    {
+      "name": "the close did NOT re-stamp the original",
+      "ok": true,
+      "detail": {
+        "before": "2026-08-12T10:50:12.357793Z",
+        "after": "2026-08-12T10:50:12.357793Z"
+      }
+    },
+    {
+      "name": "the close produced no SECOND original (nothing claims seq 1 twice)",
+      "ok": true,
+      "detail": [
+        1,
+        2
+      ]
+    },
+    {
+      "name": "a bill taken AFTER the close is a REPRINT of the tender-time original",
+      "ok": true,
+      "detail": {
+        "reprint": "*** REPRINT #3 ***",
+        "originallyIssued": "Originally issued 2026-08-12T10:50:12.357Z",
+        "total": "Rs 620.75"
+      }
+    }
+  ],
+  "posLoad": {
+    "alerts": [],
+    "bad": false
+  },
+  "table": "AUD3829 Available",
+  "itemsAdded": 2,
+  "orderId": "8914f2f7-0707-4b63-b5c9-b6e549654392",
+  "orderNo": "ORD-20260812-0366",
+  "stripBeforePayment": null,
+  "receiptsBeforePayment": [],
+  "amountFilled": "620.75",
+  "clickedPayAt": "2026-08-12T10:50:11.823Z",
+  "screenAtTender": {
+    "strip": "Bill issued Aug 12, 2026, 3:50 PM Sent to audit-receipt. Check Settings → Printers if no paper appears — the job is kept and retried, not lost.",
+    "billIssued": "true",
+    "billIssuedAt": "2026-08-12T10:50:12.357793Z",
+    "billTarget": "audit-receipt",
+    "closeCta": "Mark served & close order",
+    "closedChip": null,
+    "alerts": [],
+    "bodyHasSent": true,
+    "bodyHasServed": false
+  },
+  "orderAtTender": {
+    "status": null,
+    "paymentStatus": null,
+    "closedAt": null,
+    "totalPaisa": null,
+    "items": []
+  },
+  "payments": [
+    {
+      "id": "ee4a3fd2-a0dc-4a98-be18-9c606fafa885",
+      "method": "CASH",
+      "amountPaisa": 62075,
+      "tipPaisa": 0,
+      "tenderedPaisa": 62075,
+      "changePaisa": 0,
+      "referenceNo": null,
+      "recordedAt": "2026-08-12T10:50:12.024365Z",
+      "kind": "PAYMENT"
+    }
+  ],
+  "printJobsStatus": 200,
+  "receiptsAtTender": [
+    {
+      "printJobId": "673150aa-ae5e-4296-8a4b-bc5745125671",
+      "documentType": "CUSTOMER_RECEIPT",
+      "targetPrinterId": "audit-receipt",
+      "issueSeq": 1,
+      "status": "PRINTED",
+      "issuedAt": "2026-08-12T10:50:12.357793Z",
+      "originalIssuedAt": null
+    }
+  ],
+  "tenderToBillMs": 333,
+  "stripAfterReload": {
+    "text": "Bill issued Aug 12, 2026, 3:50 PM Sent to audit-receipt. Check Settings → Printers if no paper appears — the job is kept and retried, not lost.",
+    "issued": "true",
+    "at": "2026-08-12T10:50:12.357793Z"
+  },
+  "billAtTender": {
+    "url": "http://localhost:3000/app/pos/orders/8914f2f7-0707-4b63-b5c9-b6e549654392/receipt",
+    "reprint": "*** REPRINT #2 ***",
+    "originallyIssued": "Originally issued 2026-08-12T10:50:12.357Z",
+    "total": "Rs 620.75",
+    "cash": "Rs 620.75",
+    "alerts": []
+  },
+  "closeCtaPresent": true,
+  "orderAfterClose": {
+    "status": null,
+    "closedAt": null
+  },
+  "receiptsAfterClose": [
+    {
+      "printJobId": "673150aa-ae5e-4296-8a4b-bc5745125671",
+      "documentType": "CUSTOMER_RECEIPT",
+      "targetPrinterId": "audit-receipt",
+      "issueSeq": 1,
+      "status": "PRINTED",
+      "issuedAt": "2026-08-12T10:50:12.357793Z",
+      "originalIssuedAt": null
+    },
+    {
+      "printJobId": "30cfce6c-ac3b-4e39-b184-a06120fcc4e0",
+      "documentType": "CUSTOMER_RECEIPT",
+      "targetPrinterId": "audit-receipt",
+      "issueSeq": 2,
+      "status": "PRINTED",
+      "issuedAt": "2026-08-12T10:50:30.995563Z",
+      "originalIssuedAt": "2026-08-12T10:50:12.357793Z"
+    }
+  ],
+  "billAfterClose": {
+    "reprint": "*** REPRINT #3 ***",
+    "originallyIssued": "Originally issued 2026-08-12T10:50:12.357Z",
+    "total": "Rs 620.75"
+  },
+  "finishedAt": "2026-08-12T10:50:58.845Z",
+  "failed": [
+    "before any tender the screen says NO bill exists"
+  ]
+}

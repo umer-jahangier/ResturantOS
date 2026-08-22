@@ -1,0 +1,25 @@
+=== provisioning result dialog ===
+onboard-test-479550 provisioned
+
+This password is shown once and is not stored anywhere you can read it again. There is no email delivery — you must pass it to the tenant administrator yourself.
+
+Administrator
+admin+479550@onboard.local
+Temporary password
+ykPMKcmq*S@T8mC2
+Sign-in URL
+https://app.restaurantos.io/login?tenant=onboard-test-479550
+I have saved the password
+Close
+parsed temp password: ykPMKcmq*S@T8mC2 | slug: onboard-test-479550
+
+=== the new administrator signs in through the real form ===
+URL: http://localhost:3000/login/change-password?token=0cbf14ca-45bc-4959-bbbb-d7368e9fb41b.W3S76wEhu-10GIin2RN-saUgxzh0vaogyLnt99B57To&email=admin%2B479550%40onboard.local
+SCREEN: Choose a new password | admin+479550@onboard.local must set its own password before signing in. | Current password | New password | Confirm new password | Change password
+alerts: []
+
+API: [
+ "403 POST /api/v1/auth/login"
+]
+password inputs on screen: 3
+QR-ish elements (TOTP enrolment): 0

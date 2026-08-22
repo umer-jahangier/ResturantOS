@@ -1,0 +1,56 @@
+{
+  "probe": "branch-scoped-role-actually-usable",
+  "steps": [
+    {
+      "k": "jwt-at-HQ",
+      "v": {
+        "branch": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "roles": [
+          "WAITER"
+        ],
+        "perms": 7
+      }
+    },
+    {
+      "k": "branches-mine",
+      "v": "{\"data\":[{\"id\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"name\":\"Floating Terrace HQ\",\"isHq\":true,\"roleCode\":\"WAITER\"},{\"id\":\"c2d74ade-7ff8-4167-8cd0-131bfbdf4fba\",\"name\":\"Floating Terrace — Rooftop\",\"isHq\":false,\"roleCode\":\"CASHIER\"}],\"meta\":null,\"warnings\":[]}"
+    },
+    {
+      "k": "rooftop-cashier-grant-still-present",
+      "v": true
+    },
+    {
+      "k": "tills-at-HQ",
+      "v": {
+        "denied": false,
+        "notFound": false
+      }
+    },
+    {
+      "k": "branch-switcher-trigger-present",
+      "v": 0
+    },
+    {
+      "k": "VERDICT",
+      "v": "no branch switcher rendered for a user holding 2 branch roles"
+    },
+    {
+      "k": "restore-ids",
+      "v": {
+        "waiter": "666aefca-b5a2-4b07-a690-4ea3da88ff5d",
+        "rooftop": "c2d74ade-7ff8-4167-8cd0-131bfbdf4fba"
+      }
+    },
+    {
+      "k": "RESTORE-delete",
+      "v": {
+        "status": 204,
+        "body": ""
+      }
+    },
+    {
+      "k": "RESTORE-verify-user-row",
+      "v": "{\"data\":{\"user\":{\"id\":\"666aefca-b5a2-4b07-a690-4ea3da88ff5d\",\"email\":\"waiter@terrace.local\",\"fullName\":\"Terrace Waiter\",\"locale\":\"en\",\"active\":true,\"mustChangePassword\":false,\"totpEnabled\":false,\"lastLoginAt\":\"2026-08-11T22:27:14.957213Z\",\"createdAt\":\"2026-08-07T01:38:57.255998Z\"},\"assignments\":[{\"branchId\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"roleCode\":\"WAITER\",\"primary\":true,\"approvalLimitPaisa\":null}]},\"meta\":null,\"warnings\":[]}"
+    }
+  ]
+}

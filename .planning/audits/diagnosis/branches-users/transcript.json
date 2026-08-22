@@ -1,0 +1,298 @@
+[
+  {
+    "k": "login",
+    "v": "signed in as owner, url=http://localhost:3000/app/dashboard"
+  },
+  {
+    "k": "storage-keys",
+    "v": []
+  },
+  {
+    "k": "cookie-names",
+    "v": [
+      "refresh_token",
+      "has_session"
+    ]
+  },
+  {
+    "k": "sidebar-links",
+    "v": [
+      "Dashboard -> /app/dashboard",
+      "POS -> /app/pos",
+      "Kitchen Display -> /app/kitchen",
+      "Till Review -> /app/pos/tills",
+      "Inventory -> /app/inventory",
+      "Menu Items -> /app/menu/items",
+      "Tables -> /app/tables",
+      "Stations -> /app/stations",
+      "POS Terminals -> /app/terminals",
+      "Guide -> /app/finance/guide",
+      "Takings -> /app/finance/takings",
+      "Accounts -> /app/finance/accounts",
+      "Journal Entries -> /app/finance/journal-entries",
+      "General Ledger -> /app/finance/gl",
+      "Periods -> /app/finance/periods",
+      "Expenses -> /app/finance/expenses",
+      "AP Aging -> /app/finance/ap-aging",
+      "Purchasing -> /app/purchasing",
+      "HR -> /app/hr",
+      "Customers -> /app/crm",
+      "Reports -> /app/reports",
+      "Realtime Dashboard -> /app/dashboard/realtime",
+      "Ask (NLQ) -> /app/nlq",
+      "General -> /app/settings",
+      "Appearance -> /settings/appearance",
+      "Users -> /app/users",
+      "Dashboard -> /app/dashboard",
+      "Orders -> /app/pos",
+      "Menu -> /app/inventory",
+      "Finance -> /app/finance/accounts",
+      "Settings -> /app/settings"
+    ]
+  },
+  {
+    "k": "route:01-probe_app_branches",
+    "v": {
+      "route": "/app/branches",
+      "url": "http://localhost:3000/app/branches",
+      "is404": true,
+      "denied": false,
+      "alerts": [
+        ""
+      ],
+      "textHead": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+    }
+  },
+  {
+    "k": "branch-route-probe",
+    "v": {
+      "route": "/app/branches",
+      "is404": true
+    }
+  },
+  {
+    "k": "route:01-probe_app_settings_branches",
+    "v": {
+      "route": "/app/settings/branches",
+      "url": "http://localhost:3000/app/settings/branches",
+      "is404": true,
+      "denied": false,
+      "alerts": [
+        ""
+      ],
+      "textHead": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+    }
+  },
+  {
+    "k": "branch-route-probe",
+    "v": {
+      "route": "/app/settings/branches",
+      "is404": true
+    }
+  },
+  {
+    "k": "route:01-probe_app_branch",
+    "v": {
+      "route": "/app/branch",
+      "url": "http://localhost:3000/app/branch",
+      "is404": true,
+      "denied": false,
+      "alerts": [
+        ""
+      ],
+      "textHead": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+    }
+  },
+  {
+    "k": "branch-route-probe",
+    "v": {
+      "route": "/app/branch",
+      "is404": true
+    }
+  },
+  {
+    "k": "route:01-probe_app_locations",
+    "v": {
+      "route": "/app/locations",
+      "url": "http://localhost:3000/app/locations",
+      "is404": true,
+      "denied": false,
+      "alerts": [
+        ""
+      ],
+      "textHead": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+    }
+  },
+  {
+    "k": "branch-route-probe",
+    "v": {
+      "route": "/app/locations",
+      "is404": true
+    }
+  },
+  {
+    "k": "route:01-probe_app_settings_general",
+    "v": {
+      "route": "/app/settings/general",
+      "url": "http://localhost:3000/app/settings/general",
+      "is404": true,
+      "denied": false,
+      "alerts": [
+        ""
+      ],
+      "textHead": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+    }
+  },
+  {
+    "k": "branch-route-probe",
+    "v": {
+      "route": "/app/settings/general",
+      "is404": true
+    }
+  },
+  {
+    "k": "route:02-settings",
+    "v": {
+      "route": "/app/settings",
+      "url": "http://localhost:3000/app/settings",
+      "is404": false,
+      "denied": false,
+      "alerts": [
+        ""
+      ],
+      "textHead": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nCollapse\nApp\nSettings\nFloating Terrace HQ\nSearch…\n⌘K\n6\nSettings\n\nHow this branch is set up, and who can sign in to it.\n\nBranch details\nSaved to your restaurant's record and visible to everyone on this branch.\nBranch name\nAddress\nPhone\nEmail\nTime zone\n\nAn IANA name. Business dates and reports are cut on it.\n\nOpened on\n\nSales tax registration (STRN)\n\nNot set\n\nNational tax number (NTN)\n\nNot set\n\nRead-only here. The branch update API has no field for either, so an editable box would accept your change and discard it. Tax registration is set during onboarding.\n\nSave changes\nUsers\nAdd staff, set what they can do on each branch, and issue a password when someone is locked out.\nManage users\nAppearance\nBrand colour and logo. Stored in this browser only — it is not saved to your account, so colleagues and your other devices see the default.\nChange appearance"
+    }
+  },
+  {
+    "k": "settings-inputs",
+    "v": [
+      {
+        "tag": "INPUT",
+        "name": "name",
+        "type": null,
+        "value": "Floating Terrace HQ",
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "name": "address",
+        "type": null,
+        "value": "",
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "name": "phone",
+        "type": null,
+        "value": "+92 21 4628872",
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "name": "email",
+        "type": "email",
+        "value": "",
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "name": "timezone",
+        "type": null,
+        "value": "Asia/Karachi",
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "name": "openedOn",
+        "type": "date",
+        "value": "",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "k": "settings-buttons",
+    "v": [
+      "Collapse",
+      "",
+      "Search…\n⌘K",
+      "",
+      "",
+      "6",
+      "Save changes",
+      ""
+    ]
+  },
+  {
+    "k": "route:03-users",
+    "v": {
+      "route": "/app/users",
+      "url": "http://localhost:3000/app/users",
+      "is404": false,
+      "denied": false,
+      "alerts": [
+        ""
+      ],
+      "textHead": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nCollapse\nApp\nUsers\nFloating Terrace HQ\nSearch…\n⌘K\n6\nUsers\n\nEveryone who can sign in to this restaurant. Add staff, set what they can do on each branch, and issue a password when someone is locked out.\n\nActive only\n15 users\nAdd user\nTerrace Accountant\naccountant@terrace.local\n2FA\nActive\nAug 12, 2026\nTerrace Admin\nadmin@terrace.local\n2FA\nActive\nAug 12, 2026\nAudit Proof\naudit-proof-1786067329@terrace.local\nPassword reset pending\nActive\nNever signed in\nAudit Proof 2\naudit-proof2-1786067566@terrace.local\nPassword reset pending\nDeactivated\nNever signed in\nAsha the bartender\nbartender+1786478284947@terrace.local\nActive\nAug 12, 2026\nAsha\nbartender.proof@terrace.local\nPassword reset pending\nActive\nNever signed in\nTerrace Cashier\ncashier@terrace.local\nActive\nAug 12, 2026\nGap Audit Probe RENAMED\ngapaudit-1786070790@terrace.local\nPassword reset pending\nDeactivated\nNever signed in\nTerrace Kitchen\nkitchen@terrace.local\nActive\nAug 12, 2026\nTerrace Manager\nmanager@terrace.local\nActive\nAug 12, 2026\nowner@terrace.local\nowner@terrace.local\n2FA\nA"
+    }
+  },
+  {
+    "k": "user-rows",
+    "v": [
+      "Terrace Accountant\naccountant@terrace.local\n2FA\nActive\nAug 12, 2026\nTerrace Admin\nadmin@terrace.local\n2FA\nActive\nAug 12, 2026\nAudit Proof\naudit-proof-1786067329@terrace.local\nPassword reset pending\nActive\nNever signed in\nAudit Proof 2\naudit-proof2-1786067566@terrace.local\nPassword reset pending\nDeactivated\nNever signed in\nAsha the bartender\nbartender+1786478284947@terrace.local\nActive\nAug 12, 2026\nAsha\nbartender.proof@terrace.local\nPassword reset pending\nActive\nNever signed in\nTerrace Cashier\ncashier@terrace.local\nActive\nAug 12, 2026\nGap Audit Probe RENAMED\ngapaudit-1786070790@terrace.local\nPassword reset pending\nDeactivated\nNever signed in\nTerrace Kitchen\nkitchen@terrace.local\nActive\nAug 12, 2026\nTerrace Manager\nmanager@terrace.local\nActive\nAug 12, 2026\nowner@terrace.local\nowner@terrace.local\n2FA\nActive\nAug 12, 2026\nPhase 19 Probe\nphase19-probe-1786454628872@terrace.local\nDeactivated\nAug 11, 2026\nProbe Nineteen Renamed\nprobe19-1786095561@terrace.local\nPassword reset pending\nActive\nNever signed in\nTerrace Storekeeper\nstorekeeper@terrace.local\nActive\nAug 11, 2026\nTerrace Waiter\nwaiter@terrace.local\nActive\nAug 12, 2026",
+      "Terrace Accountant\naccountant@terrace.local\n2FA\nActive\nAug 12, 2026",
+      "Terrace Admin\nadmin@terrace.local\n2FA\nActive\nAug 12, 2026",
+      "Audit Proof\naudit-proof-1786067329@terrace.local\nPassword reset pending\nActive\nNever signed in",
+      "Audit Proof 2\naudit-proof2-1786067566@terrace.local\nPassword reset pending\nDeactivated\nNever signed in",
+      "Asha the bartender\nbartender+1786478284947@terrace.local\nActive\nAug 12, 2026",
+      "Asha\nbartender.proof@terrace.local\nPassword reset pending\nActive\nNever signed in",
+      "Terrace Cashier\ncashier@terrace.local\nActive\nAug 12, 2026",
+      "Gap Audit Probe RENAMED\ngapaudit-1786070790@terrace.local\nPassword reset pending\nDeactivated\nNever signed in",
+      "Terrace Kitchen\nkitchen@terrace.local\nActive\nAug 12, 2026",
+      "Terrace Manager\nmanager@terrace.local\nActive\nAug 12, 2026",
+      "owner@terrace.local\nowner@terrace.local\n2FA\nActive\nAug 12, 2026",
+      "Phase 19 Probe\nphase19-probe-1786454628872@terrace.local\nDeactivated\nAug 11, 2026",
+      "Probe Nineteen Renamed\nprobe19-1786095561@terrace.local\nPassword reset pending\nActive\nNever signed in",
+      "Terrace Storekeeper\nstorekeeper@terrace.local\nActive\nAug 11, 2026",
+      "Terrace Waiter\nwaiter@terrace.local\nActive\nAug 12, 2026"
+    ]
+  },
+  {
+    "k": "users-buttons",
+    "v": [
+      "Collapse",
+      "",
+      "Search…\n⌘K",
+      "",
+      "",
+      "6",
+      "Add user",
+      "Terrace Accountant\naccountant@terrace.local\n2FA\nActive\nAug 12, 2026",
+      "Terrace Admin\nadmin@terrace.local\n2FA\nActive\nAug 12, 2026",
+      "Audit Proof\naudit-proof-1786067329@terrace.local\nPassword reset pending\nActive\nNever signed in",
+      "Audit Proof 2\naudit-proof2-1786067566@terrace.local\nPassword reset pending\nDeactivated\nNever signed in",
+      "Asha the bartender\nbartender+1786478284947@terrace.local\nActive\nAug 12, 2026",
+      "Asha\nbartender.proof@terrace.local\nPassword reset pending\nActive\nNever signed in",
+      "Terrace Cashier\ncashier@terrace.local\nActive\nAug 12, 2026",
+      "Gap Audit Probe RENAMED\ngapaudit-1786070790@terrace.local\nPassword reset pending\nDeactivated\nNever signed in",
+      "Terrace Kitchen\nkitchen@terrace.local\nActive\nAug 12, 2026",
+      "Terrace Manager\nmanager@terrace.local\nActive\nAug 12, 2026",
+      "owner@terrace.local\nowner@terrace.local\n2FA\nActive\nAug 12, 2026",
+      "Phase 19 Probe\nphase19-probe-1786454628872@terrace.local\nDeactivated\nAug 11, 2026",
+      "Probe Nineteen Renamed\nprobe19-1786095561@terrace.local\nPassword reset pending\nActive\nNever signed in",
+      "Terrace Storekeeper\nstorekeeper@terrace.local\nActive\nAug 11, 2026",
+      "Terrace Waiter\nwaiter@terrace.local\nActive\nAug 12, 2026",
+      ""
+    ]
+  },
+  {
+    "k": "users-filters",
+    "v": []
+  },
+  {
+    "k": "api-4xx-so-far",
+    "v": [
+      "401 POST http://localhost:8080/api/v1/auth/login"
+    ]
+  }
+]

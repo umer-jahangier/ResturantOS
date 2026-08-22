@@ -1,0 +1,63 @@
+[
+  {
+    "before": {
+      "url": "http://localhost:3000/app/reports/sales-by-day",
+      "rows": [
+        "2026-08-07T19:00:00.000Z 5 Rs 9,603.00 Rs 0.00 Rs 911.60 Rs 10,514.60",
+        "2026-08-10T19:00:00.000Z 7 Rs 14,550.00 Rs 950.00 Rs 2,328.00 Rs 15,928.00"
+      ],
+      "rowCount": 2,
+      "alerts": [],
+      "branchChip": [
+        "Floating Terrace",
+        "Floating Terrace HQ",
+        "Floating Terrace HQ"
+      ],
+      "emptyState": false,
+      "hasTable": true
+    },
+    "after": {
+      "url": "http://localhost:3000/app/reports/sales-by-day",
+      "rows": [],
+      "rowCount": 0,
+      "alerts": [],
+      "branchChip": [
+        "Floating Terrace",
+        "Floating Terrace — Rooftop",
+        "Floating Terrace — Rooftop"
+      ],
+      "emptyState": true,
+      "hasTable": false
+    },
+    "dash": {
+      "url": "http://localhost:3000/app/dashboard",
+      "rows": [],
+      "rowCount": 0,
+      "alerts": [],
+      "branchChip": [
+        "Floating Terrace",
+        "Floating Terrace HQ",
+        "Floating Terrace HQ"
+      ],
+      "emptyState": false,
+      "hasTable": false
+    },
+    "compare": {
+      "compareWord": false,
+      "controls": [
+        "BUTTON:Floating Terrace HQ",
+        "BUTTON:Collapse",
+        "BUTTON:Toggle mobile menu",
+        "BUTTON:Search…\n⌘K",
+        "BUTTON:Search",
+        "BUTTON:Switch to light mode",
+        "BUTTON:F"
+      ]
+    },
+    "net": [],
+    "menuItems": [
+      "Floating Terrace HQ",
+      "Floating Terrace — Rooftop"
+    ]
+  }
+]

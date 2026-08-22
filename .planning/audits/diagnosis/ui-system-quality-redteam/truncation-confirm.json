@@ -1,0 +1,164 @@
+[
+  {
+    "route": "/app/purchasing/vendors",
+    "nav": true,
+    "ui": {
+      "renderedRows": 0,
+      "tr": 0,
+      "gr": 0,
+      "pager": [],
+      "pageIndicator": [],
+      "errorCopy": false
+    },
+    "main": {
+      "url": "/api/v1/purchasing/vendors",
+      "rows": 20,
+      "total": 29,
+      "next": "1",
+      "limit": 20
+    },
+    "allCalls": [
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null
+      },
+      {
+        "url": "/api/v1/purchasing/vendors",
+        "rows": 20,
+        "total": 29,
+        "next": "1",
+        "limit": 20
+      }
+    ]
+  },
+  {
+    "route": "/app/finance/journal-entries",
+    "nav": true,
+    "ui": {
+      "renderedRows": 50,
+      "tr": 50,
+      "gr": 0,
+      "pager": [],
+      "pageIndicator": [],
+      "errorCopy": false
+    },
+    "main": {
+      "url": "/api/v1/finance/journal-entries",
+      "rows": 50,
+      "total": 209,
+      "next": "1",
+      "limit": 50
+    },
+    "allCalls": [
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null
+      },
+      {
+        "url": "/api/v1/finance/journal-entries",
+        "rows": 50,
+        "total": 209,
+        "next": "1",
+        "limit": 50
+      }
+    ]
+  },
+  {
+    "route": "/app/purchasing/purchase-orders",
+    "nav": true,
+    "ui": {
+      "renderedRows": 25,
+      "tr": 25,
+      "gr": 0,
+      "pager": [
+        "Previous",
+        "Next"
+      ],
+      "pageIndicator": [
+        "1 of 4"
+      ],
+      "errorCopy": false
+    },
+    "main": {
+      "url": "/api/v1/purchasing/vendors",
+      "rows": 20,
+      "total": 29,
+      "next": "1",
+      "limit": 20
+    },
+    "allCalls": [
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null
+      },
+      {
+        "url": "/api/v1/purchasing/vendors",
+        "rows": 20,
+        "total": 29,
+        "next": "1",
+        "limit": 20
+      },
+      {
+        "url": "/api/v1/inventory/ingredients",
+        "rows": 20,
+        "total": null,
+        "next": null,
+        "limit": null
+      },
+      {
+        "url": "/api/v1/purchasing/purchase-orders",
+        "rows": 85,
+        "total": null,
+        "next": null,
+        "limit": null
+      }
+    ]
+  },
+  {
+    "route": "/app/users",
+    "nav": true,
+    "ui": {
+      "renderedRows": 0,
+      "tr": 0,
+      "gr": 0,
+      "pager": [
+        "Previous",
+        "Next"
+      ],
+      "pageIndicator": [],
+      "errorCopy": false
+    },
+    "main": {
+      "url": "/api/v1/users",
+      "rows": 25,
+      "total": 29,
+      "next": "1",
+      "limit": 25
+    },
+    "allCalls": [
+      {
+        "url": "/api/v1/users",
+        "rows": 25,
+        "total": 29,
+        "next": "1",
+        "limit": 25
+      },
+      {
+        "url": "/api/v1/branches/mine",
+        "rows": 1,
+        "total": null,
+        "next": null,
+        "limit": null
+      }
+    ]
+  }
+]

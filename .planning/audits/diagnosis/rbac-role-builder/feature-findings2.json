@@ -1,0 +1,13 @@
+{
+  "before": "FEATURE_CRM\tOn\t\nIncluded in tier\n\t\nDisable",
+  "confirmDialog": {
+    "present": true,
+    "width": 384,
+    "text": "Disable FEATURE_CRM?\n\nEvery user of Floating Terrace loses access to this module immediately — its screens stop loading and its API calls are refused on the next request.\n\nNothing is deleted. All of the module's existing records are kept and re-enabling restores them exactly.\n\nThis tenant's tier includes this module, so disabling it records a deliberate override that will survive future tier changes.\n\nType\nFloating Terrace\nto confirm\nCancel\nDisable module\nClose"
+  },
+  "confirmEnabled": true,
+  "after": "FEATURE_CRM\tOff\t\nRevoked despite tier\nTier default: on — this override survives a tier change\n\t\nRevert\nEnable",
+  "afterReload": "FEATURE_CRM\tOff\t\nRevoked despite tier\nTier default: on — this override survives a tier change\n\t\nRevert\nEnable",
+  "persisted": true,
+  "reverted": "FEATURE_CRM\tOn\t\nIncluded in tier\n\t\nDisable"
+}

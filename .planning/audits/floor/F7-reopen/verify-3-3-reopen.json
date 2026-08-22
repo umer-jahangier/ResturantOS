@@ -1,0 +1,271 @@
+{
+  "startedAt": "2026-08-12T06:35:04.752Z",
+  "scenarios": {
+    "A": {
+      "order": {
+        "orderId": "32ce7307-0f9c-4838-bdca-0b6cc5d447e9",
+        "orderNo": "ORD-20260812-0305",
+        "table": "F2-2104 Available"
+      },
+      "tender": {
+        "clickedAt": "2026-08-12T06:35:46.358Z",
+        "filled": "1289.40",
+        "changeDue": null
+      },
+      "stripAtTender": {
+        "present": true,
+        "issued": "true",
+        "issuedAt": "2026-08-12T06:35:46.474481Z",
+        "target": "audit-receipt",
+        "text": "Bill issued Aug 12, 2026, 11:35 AM Sent to audit-receipt. Check Settings → Printers if no paper appears — the job is kept and retried, not lost.",
+        "errorState": false,
+        "loadingState": false
+      },
+      "payments": [
+        {
+          "id": "39d37f8d-8779-4718-96fc-3272843a8385",
+          "method": "CASH",
+          "amountPaisa": 128940,
+          "tipPaisa": 0,
+          "tenderedPaisa": 128940,
+          "changePaisa": 0,
+          "referenceNo": null,
+          "recordedAt": "2026-08-12T06:35:46.408509Z",
+          "kind": "PAYMENT"
+        }
+      ],
+      "recordedAt": "2026-08-12T06:35:46.408509Z",
+      "printJobsStatus": 200,
+      "receiptsAtTender": [
+        {
+          "printJobId": "50ecae82-c25b-4fab-8cad-d74b27647f14",
+          "documentType": "CUSTOMER_RECEIPT",
+          "targetPrinterId": "audit-receipt",
+          "issueSeq": 1,
+          "status": "PRINTED",
+          "issuedAt": "2026-08-12T06:35:46.474481Z",
+          "originalIssuedAt": null
+        }
+      ],
+      "orderState": null,
+      "statusAtTender": null,
+      "itemStatusesAtTender": [],
+      "tenderToBillMs": 66,
+      "stripAfterReload": {
+        "present": true,
+        "issued": "true",
+        "issuedAt": "2026-08-12T06:35:46.474481Z",
+        "target": "audit-receipt",
+        "text": "Bill issued Aug 12, 2026, 11:35 AM Sent to audit-receipt. Check Settings → Printers if no paper appears — the job is kept and retried, not lost.",
+        "errorState": false,
+        "loadingState": false
+      },
+      "billAtTender": {
+        "url": "http://localhost:3000/app/pos/orders/32ce7307-0f9c-4838-bdca-0b6cc5d447e9/receipt",
+        "reprintBanner": "*** REPRINT #2 ***",
+        "originallyIssued": "Originally issued 2026-08-12T06:35:46.474Z",
+        "total": "Rs 1,289.40",
+        "cashLine": "Rs 1,289.40",
+        "changeLine": null
+      },
+      "closeCtaPresent": true,
+      "receiptsAfterClose": [
+        {
+          "printJobId": "50ecae82-c25b-4fab-8cad-d74b27647f14",
+          "documentType": "CUSTOMER_RECEIPT",
+          "targetPrinterId": "audit-receipt",
+          "issueSeq": 1,
+          "status": "PRINTED",
+          "issuedAt": "2026-08-12T06:35:46.474481Z",
+          "originalIssuedAt": null
+        },
+        {
+          "printJobId": "0dc907b6-0868-407f-948b-203630d54fe4",
+          "documentType": "CUSTOMER_RECEIPT",
+          "targetPrinterId": "audit-receipt",
+          "issueSeq": 2,
+          "status": "PRINTED",
+          "issuedAt": "2026-08-12T06:35:59.705137Z",
+          "originalIssuedAt": "2026-08-12T06:35:46.474481Z"
+        }
+      ],
+      "originalUnchanged": true,
+      "billAfterClose": {
+        "reprintBanner": "*** REPRINT #3 ***",
+        "originallyIssued": "Originally issued 2026-08-12T06:35:46.474Z",
+        "total": "Rs 1,289.40"
+      }
+    },
+    "B": {
+      "order": {
+        "orderId": "e7a82d02-ff24-491f-aacb-33fab31b570d",
+        "orderNo": "ORD-20260812-0309",
+        "table": "F2-2104 Available"
+      },
+      "balancePaisa": 128940,
+      "halfPaisa": 64470,
+      "stripAfterHalf": {
+        "present": true,
+        "issued": "false",
+        "issuedAt": null,
+        "target": null,
+        "text": "No bill has been produced for this order yet. Print bill makes one.",
+        "errorState": false,
+        "loadingState": false
+      },
+      "receiptsAfterHalf": [],
+      "secondTender": {
+        "clickedAt": "2026-08-12T06:37:15.595Z",
+        "filled": "644.70",
+        "changeDue": null
+      },
+      "stripAfterFull": {
+        "present": true,
+        "issued": "true",
+        "issuedAt": "2026-08-12T06:37:15.681649Z",
+        "target": "audit-receipt",
+        "text": "Bill issued Aug 12, 2026, 11:37 AM Sent to audit-receipt. Check Settings → Printers if no paper appears — the job is kept and retried, not lost.",
+        "errorState": false,
+        "loadingState": false
+      },
+      "receiptsAfterFull": [
+        {
+          "printJobId": "20c8ec98-bfa5-482e-a5c7-96d001880253",
+          "documentType": "CUSTOMER_RECEIPT",
+          "targetPrinterId": "audit-receipt",
+          "issueSeq": 1,
+          "status": "PRINTED",
+          "issuedAt": "2026-08-12T06:37:15.681649Z",
+          "originalIssuedAt": null
+        }
+      ],
+      "payments": [
+        {
+          "id": "ebc6a929-3c88-4842-8361-820b6342cf09",
+          "method": "CASH",
+          "amountPaisa": 64470,
+          "tipPaisa": 0,
+          "tenderedPaisa": 64470,
+          "changePaisa": 0,
+          "referenceNo": null,
+          "recordedAt": "2026-08-12T06:36:58.471137Z",
+          "kind": "PAYMENT"
+        },
+        {
+          "id": "87dc6323-ef3b-42da-8750-7a909ca26996",
+          "method": "CASH",
+          "amountPaisa": 64470,
+          "tipPaisa": 0,
+          "tenderedPaisa": 64470,
+          "changePaisa": 0,
+          "referenceNo": null,
+          "recordedAt": "2026-08-12T06:37:15.633286Z",
+          "kind": "PAYMENT"
+        }
+      ],
+      "lastRecordedAt": "2026-08-12T06:37:15.633286Z",
+      "settleToBillMs": 48
+    },
+    "C": {
+      "order": {
+        "orderId": "933a215c-25ad-429a-bf51-1cacfb848538",
+        "orderNo": "ORD-20260812-0310",
+        "table": "F2-2104 Available"
+      },
+      "tender": {
+        "clickedAt": "2026-08-12T06:37:57.216Z",
+        "filled": "1289.40",
+        "changeDue": null
+      },
+      "strip": {
+        "present": true,
+        "issued": "true",
+        "issuedAt": "2026-08-12T06:37:57.321684Z",
+        "target": "audit-receipt",
+        "text": "Bill issued Aug 12, 2026, 11:37 AM Sent to audit-receipt. Check Settings → Printers if no paper appears — the job is kept and retried, not lost.",
+        "errorState": false,
+        "loadingState": false
+      },
+      "receipts": [
+        {
+          "printJobId": "aa2166f9-a45c-4413-adfe-7c0bc88c457b",
+          "documentType": "CUSTOMER_RECEIPT",
+          "targetPrinterId": "audit-receipt",
+          "issueSeq": 1,
+          "status": "PRINTED",
+          "issuedAt": "2026-08-12T06:37:57.321684Z",
+          "originalIssuedAt": null
+        }
+      ],
+      "payments": [
+        {
+          "id": "339e67c7-1259-4a09-9b95-6b8c607fd12e",
+          "method": "CARD",
+          "amountPaisa": 128940,
+          "tipPaisa": 0,
+          "tenderedPaisa": 128940,
+          "changePaisa": 0,
+          "referenceNo": null,
+          "recordedAt": "2026-08-12T06:37:57.247579Z",
+          "kind": "PAYMENT"
+        }
+      ],
+      "recordedAt": "2026-08-12T06:37:57.247579Z",
+      "tenderToBillMs": 74
+    },
+    "D": {
+      "order": {
+        "orderId": "707e2eb1-da16-4078-859b-411c01620e50",
+        "orderNo": "ORD-20260812-0311",
+        "table": "F2-4987 Available"
+      },
+      "denoms": [
+        "denom-5000",
+        "denom-10000",
+        "denom-50000",
+        "denom-100000",
+        "denom-500000"
+      ],
+      "changeDueBefore": "871060",
+      "clickedAt": "2026-08-12T06:38:39.293Z",
+      "strip": {
+        "present": true,
+        "issued": "true",
+        "issuedAt": "2026-08-12T06:38:39.560242Z",
+        "target": "audit-receipt",
+        "text": "Bill issued Aug 12, 2026, 11:38 AM Sent to audit-receipt. Check Settings → Printers if no paper appears — the job is kept and retried, not lost.",
+        "errorState": false,
+        "loadingState": false
+      },
+      "receipts": [
+        {
+          "printJobId": "88368967-1b51-415f-b206-bb55f8df374f",
+          "documentType": "CUSTOMER_RECEIPT",
+          "targetPrinterId": "audit-receipt",
+          "issueSeq": 1,
+          "status": "PRINTED",
+          "issuedAt": "2026-08-12T06:38:39.560242Z",
+          "originalIssuedAt": null
+        }
+      ],
+      "payments": [
+        {
+          "id": "d8feee12-fa44-4fbc-85bc-04e77b6d1865",
+          "method": "CASH",
+          "amountPaisa": 128940,
+          "tipPaisa": 0,
+          "tenderedPaisa": 1000000,
+          "changePaisa": 871060,
+          "referenceNo": null,
+          "recordedAt": "2026-08-12T06:38:39.394828Z",
+          "kind": "PAYMENT"
+        }
+      ],
+      "recordedAt": "2026-08-12T06:38:39.394828Z",
+      "tenderToBillMs": 166
+    }
+  },
+  "tokenMinted": true,
+  "tokenForApiProbes": "eyJraWQiOiJkZXYta2V5LTEiLCJhbGciOiJSUzI1NiJ9.eyJqdGkiOiI1ODk1YjVmNS1hZGM3LTRmMGMtOGUzNS00MzM0NTI2MGQ1ZWQiLCJzdWIiOiJlYjJlZTY3ZS05ZmMwLTRlZDUtYmI1Yi1jZDYzMjFlMDJiYTEiLCJ0ZW5hbnRfaWQiOiJkMTA4YzJlNi1hNzBkLTQ5YzgtYWNkYy0zNzUzMWZkNzUyZDgiLCJicmFuY2hfaWQiOiIzNGNkNmY2Mi02YjhmLTRlYmYtOGUxNi1kMGQ1N2I1ZTRhMDMiLCJyb2xlcyI6WyJDQVNISUVSIl0sInBlcm1pc3Npb25zIjpbImNybS5jdXN0b21lci5tYW5hZ2UiLCJjcm0uY3VzdG9tZXIudmlldyIsImNybS5wcm9tb3Rpb24udmlldyIsInBvcy5tZW51LnZpZXciLCJwb3Mub3JkZXIuY2xvc2UiLCJwb3Mub3JkZXIuY3JlYXRlIiwicG9zLm9yZGVyLmRpc2NvdW50LmxpbmUiLCJwb3Mub3JkZXIuc2VuZF90b19rZHMiLCJwb3Mub3JkZXIudXBkYXRlIiwicG9zLm9yZGVyLnZpZXciLCJwb3Mub3JkZXIudm9pZC5vd24iLCJwb3MudGFibGVzLm1hbmFnZSIsInBvcy50aWxsLmNsb3NlIiwicG9zLnRpbGwub3BlbiJdLCJhdHRyaWJ1dGVzIjp7ImFwcHJvdmFsX2xpbWl0X3BhaXNhIjo1MDAwMDAwfSwidG90cF92ZXJpZmllZCI6ZmFsc2UsImlhdCI6MTc4NjUxNjUxMywiZXhwIjoxNzg2NTE3NDEzfQ.D7wB5-JoBJSxZqCrPK4MoJS3CCcK8-z1fs8Pi0Bp7_dZtFW3vA6LQlCNWN2xRh6O3Tfbax6IoWT9T2JS8TsvgM_og6HGAr8fUdcOueO2plCF7h9lApq9yZD_eqOIwBR3lUVrBVINs42ag1pGffYPiRrkR2D7YLDDM8SsqZ-GWp5j6k293fWb6UVz2uTSJ-rGZlPA4bQyXj3Ews3e4SErkP6-2HAjcj7GSj34_zVvImERpCD7AsPnhrvC_8uv_j8wjezAEFWv1Rio85Gj6c9iVMNCXEqIGUYP3RceZO0ZFV_VU6fBS0ZwRotzDUTvlNBRzyHV9ojPmgtYiMBqbkj5rg",
+  "finishedAt": "2026-08-12T06:38:47.394Z"
+}

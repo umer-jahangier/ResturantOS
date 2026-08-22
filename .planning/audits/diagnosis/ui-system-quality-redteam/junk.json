@@ -1,0 +1,83 @@
+{
+  "uomNav": {
+    "attempt": 1,
+    "url": "http://localhost:3000/app/inventory/setup",
+    "refused": false,
+    "failed": false,
+    "ok": true
+  },
+  "uomRows": {
+    "total": 40,
+    "first8": [
+      "!! | !! | Base unit | In use | EditRetire",
+      "DRV1440 | Drive Unit edited | 1 DRV1440 = 250 G | Retired | Restore",
+      "DRV2797 | Drive Unit DRV2797 | 1 DRV2797 = 250 G | Retired | Restore",
+      "DRV3542 | Drive Unit edited | 1 DRV3542 = 250 G | Retired | Restore",
+      "DRV3882 | Drive Unit DRV3882 | 1 DRV3882 = 250 G | Retired | Restore",
+      "DRV4325 | Drive Unit DRV4325 | 1 DRV4325 = 250 G | In use | EditRetire",
+      "DRV4955 | Drive Unit DRV4955 | 1 DRV4955 = 250 G | In use | EditRetire",
+      "DRV5087 | Drive Unit DRV5087 | 1 DRV5087 = 250 G | In use | EditRetire"
+    ],
+    "bangRows": [
+      "!! | !! | Base unit | In use | EditRetire"
+    ]
+  },
+  "categoryDialogOpened": true,
+  "sortFieldPresent": true,
+  "zodBlurErrs": {
+    "open": true,
+    "texts": []
+  },
+  "zodSubmitDisabled": false,
+  "zodToasts": [
+    {
+      "text": "[\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"received\": \"NaN\",\n    \"path\": [\n      \"sortOrder\"\n    ],\n    \"message\": \"Invalid input: expected number, received NaN\"\n  }\n]",
+      "type": "error",
+      "role": null,
+      "live": "polite",
+      "closeBtn": false
+    }
+  ],
+  "zodDialogErrs": {
+    "open": true,
+    "texts": []
+  },
+  "userDialogOpened": true,
+  "userFields": [
+    {
+      "name": "email",
+      "tag": "input",
+      "type": "email",
+      "value": ""
+    },
+    {
+      "name": "fullName",
+      "tag": "input",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "name": "branchId",
+      "tag": "select",
+      "type": "select-one",
+      "value": ""
+    },
+    {
+      "name": "create-user-role",
+      "tag": "select",
+      "type": "select-one",
+      "value": ""
+    }
+  ],
+  "userSubmitDisabled": false,
+  "userToasts": [],
+  "userDialogErrs": {
+    "open": true,
+    "texts": []
+  },
+  "userNet": [],
+  "userTable": {
+    "total": 0,
+    "zzz": []
+  }
+}

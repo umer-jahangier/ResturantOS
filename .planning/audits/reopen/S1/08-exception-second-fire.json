@@ -1,0 +1,126 @@
+{
+  "routesBeforeRing": [
+    {
+      "name": "Pinacolada",
+      "cat": "Drinks",
+      "eff": "BAR",
+      "src": "CATEGORY"
+    },
+    {
+      "name": "Chicken Karahi",
+      "cat": "Mains",
+      "eff": "GRILL",
+      "src": "CATEGORY"
+    },
+    {
+      "name": "Mutton Biryani",
+      "cat": "Mains",
+      "eff": "BAR",
+      "src": "ITEM"
+    },
+    {
+      "name": "Chicken Samosa",
+      "cat": "Starters",
+      "eff": "PANTRY1",
+      "src": "CATEGORY"
+    },
+    {
+      "name": "Fresh Lime",
+      "cat": "Drinks",
+      "eff": "BAR",
+      "src": "CATEGORY"
+    }
+  ],
+  "cart1": [
+    "Pinacolada",
+    "Chicken Karahi",
+    "Mutton Biryani"
+  ],
+  "orderNo": "ORD-20260812-0353",
+  "round2": {
+    "attempted": true,
+    "sendButtonPresent": true,
+    "fired": true,
+    "orderNoAfter": "ORD-20260812-0353"
+  },
+  "cart2": [],
+  "kitchen": [
+    {
+      "station": "BAR",
+      "status": "PENDING",
+      "items": [
+        "1× Pinacolada",
+        "1× Mutton Biryani",
+        "1× Fresh Lime"
+      ]
+    },
+    {
+      "station": "GRILL",
+      "status": "PENDING",
+      "items": [
+        "1× Chicken Karahi"
+      ]
+    },
+    {
+      "station": "PANTRY1",
+      "status": "PENDING",
+      "items": [
+        "1× Chicken Samosa"
+      ]
+    }
+  ],
+  "boardsDom": {
+    "BAR": {
+      "h1": "Main bar",
+      "cards": [],
+      "alerts": []
+    },
+    "GRILL": {
+      "h1": "Hot line",
+      "cards": [],
+      "alerts": []
+    },
+    "PANTRY1": {
+      "h1": "Cold prep",
+      "cards": [],
+      "alerts": []
+    },
+    "DEFAULT": {
+      "h1": "DEFAULT",
+      "cards": [],
+      "alerts": []
+    }
+  },
+  "verdict": [
+    {
+      "name": "Pinacolada",
+      "want": "BAR",
+      "got": "BAR",
+      "ok": true
+    },
+    {
+      "name": "Chicken Karahi",
+      "want": "GRILL",
+      "got": "GRILL",
+      "ok": true
+    },
+    {
+      "name": "Mutton Biryani",
+      "want": "BAR",
+      "got": "BAR",
+      "ok": true
+    },
+    {
+      "name": "Chicken Samosa",
+      "want": "PANTRY1",
+      "got": "PANTRY1",
+      "ok": true
+    },
+    {
+      "name": "Fresh Lime",
+      "want": "BAR",
+      "got": "BAR",
+      "ok": true
+    }
+  ]
+}

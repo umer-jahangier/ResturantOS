@@ -1,0 +1,51 @@
+[
+  {
+    "route": "/app/menu/items",
+    "url": "/app/menu/items",
+    "body": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nCollapse\nApp\nMenu\nItems\nFloating Terrace HQ\nSearch…\n⌘K\n6\nMenu Items\n\nWhat's sellable, organized into categories — write a recipe for an item under Inventory › Recipes once it's here.\n\nAdd category\nAdd item\nShow inactive\n\nCouldn't load the menu. This module is temporarily unavailable. Try again in a moment.\n\nTry again",
+    "alerts": [
+      "Couldn't load the menu. This module is temporarily unavailable. Try again in a moment.Try again"
+    ],
+    "retryButtons": [
+      "Try again"
+    ],
+    "failedRequests": [
+      "503 /api/v1/pos/menu/categories",
+      "503 /api/v1/pos/menu/categories/admin",
+      "503 /api/v1/pos/menu/items/admin",
+      "503 /api/v1/pos/menu/categories/admin",
+      "503 /api/v1/pos/menu/categories",
+      "503 /api/v1/pos/menu/items/admin"
+    ]
+  },
+  {
+    "route": "/app/tables",
+    "url": "/app/tables",
+    "body": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nCollapse\nApp\nTables\nFloating Terrace HQ\nSearch…\n⌘K\n6\nTables\n\nYour dining tables. Anything active here can be picked when a waiter starts an order.\n\nAdd table\nShow retired\n\nCouldn't load your tables. This module is temporarily unavailable. Try again in a moment.\n\nTry again",
+    "alerts": [
+      "Couldn't load your tables. This module is temporarily unavailable. Try again in a moment.Try again"
+    ],
+    "retryButtons": [
+      "Try again"
+    ],
+    "failedRequests": [
+      "503 /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&includeInactive=true",
+      "503 /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&includeInactive=true"
+    ]
+  },
+  {
+    "route": "/app/stations",
+    "url": "/app/stations",
+    "body": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nCollapse\nApp\nStations\nFloating Terrace HQ\nSearch…\n⌘K\n6\nStations\n\nWhere tickets go. A station's type decides which screen it appears on, and staff can be put on specific stations from the Users screen.\n\nAdd station\nShow retired\n\nCouldn't load your stations. This module is temporarily unavailable. Try again in a moment.\n\nTry again",
+    "alerts": [
+      "Couldn't load your stations. This module is temporarily unavailable. Try again in a moment.Try again"
+    ],
+    "retryButtons": [
+      "Try again"
+    ],
+    "failedRequests": [
+      "503 /api/v1/pos/stations?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "503 /api/v1/pos/stations?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+    ]
+  }
+]

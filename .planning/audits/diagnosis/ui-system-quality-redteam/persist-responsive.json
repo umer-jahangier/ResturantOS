@@ -1,0 +1,162 @@
+{
+  "vendorOpened": true,
+  "vendorName": "RTBAD RT987743",
+  "vendorPreSubmitErrs": [],
+  "vendorSubmitDisabled": false,
+  "vendorToasts": [
+    "Added RTBAD RT987743"
+  ],
+  "vendorDialogStillOpen": false,
+  "vendorAfterReload": {
+    "found": false,
+    "badEmailShown": false
+  },
+  "mobile": [
+    {
+      "route": "/app/dashboard",
+      "nav": {
+        "attempt": 1,
+        "url": "http://localhost:3000/app/dashboard",
+        "refused": false,
+        "failed": false,
+        "ok": true
+      },
+      "overflowX": 0,
+      "navVisible": false,
+      "burger": true,
+      "horizontalScrollers": 0,
+      "hiddenScrollWidth": [],
+      "controls": 16,
+      "under44": 0,
+      "under24": 0,
+      "smallestFont": 10
+    },
+    {
+      "route": "/app/menu/items",
+      "nav": {
+        "attempt": 1,
+        "url": "http://localhost:3000/app/menu/items",
+        "refused": false,
+        "failed": false,
+        "ok": true
+      },
+      "overflowX": 0,
+      "navVisible": false,
+      "burger": true,
+      "horizontalScrollers": 0,
+      "hiddenScrollWidth": [],
+      "controls": 34,
+      "under44": 25,
+      "under24": 1,
+      "smallestFont": 10
+    },
+    {
+      "route": "/app/inventory/ingredients",
+      "nav": {
+        "attempt": 1,
+        "url": "http://localhost:3000/app/inventory/ingredients",
+        "refused": false,
+        "failed": false,
+        "ok": true
+      },
+      "overflowX": 0,
+      "navVisible": false,
+      "burger": true,
+      "horizontalScrollers": 1,
+      "hiddenScrollWidth": [
+        100
+      ],
+      "controls": 33,
+      "under44": 24,
+      "under24": 0,
+      "smallestFont": 10
+    },
+    {
+      "route": "/app/purchasing/purchase-orders",
+      "nav": {
+        "attempt": 1,
+        "url": "http://localhost:3000/app/purchasing/purchase-orders",
+        "refused": false,
+        "failed": false,
+        "ok": true
+      },
+      "overflowX": 0,
+      "navVisible": false,
+      "burger": true,
+      "horizontalScrollers": 1,
+      "hiddenScrollWidth": [
+        127
+      ],
+      "controls": 45,
+      "under44": 29,
+      "under24": 25,
+      "smallestFont": 10
+    },
+    {
+      "route": "/app/hr/employees",
+      "nav": {
+        "attempt": 1,
+        "url": "http://localhost:3000/app/hr/employees",
+        "refused": false,
+        "failed": false,
+        "ok": true
+      },
+      "overflowX": 0,
+      "navVisible": false,
+      "burger": true,
+      "horizontalScrollers": 1,
+      "hiddenScrollWidth": [
+        163
+      ],
+      "controls": 26,
+      "under44": 12,
+      "under24": 1,
+      "smallestFont": 10
+    },
+    {
+      "route": "/app/pos",
+      "nav": {
+        "attempt": 1,
+        "url": "http://localhost:3000/app/pos",
+        "refused": false,
+        "failed": false,
+        "ok": true
+      },
+      "overflowX": 0,
+      "navVisible": false,
+      "burger": true,
+      "horizontalScrollers": 0,
+      "hiddenScrollWidth": [],
+      "controls": 13,
+      "under44": 0,
+      "under24": 0,
+      "smallestFont": 10
+    }
+  ],
+  "mobileDialog": {
+    "w": 358,
+    "h": 806,
+    "top": 19,
+    "bottom": 825,
+    "vh": 844,
+    "clipTop": 0,
+    "clipBottom": 0,
+    "innerScrollable": false,
+    "submitInViewport": true,
+    "submitTop": 737
+  },
+  "dark": {
+    "htmlDark": true,
+    "bodyBg": "oklch(0.132 0.006 195)",
+    "bodyColor": "oklch(0.985 0.002 195)"
+  },
+  "darkDialog": {
+    "htmlDark": true,
+    "dialogBg": "oklch(0.168 0.006 195)",
+    "dialogColor": "oklch(0.985 0.002 195)",
+    "toastText": "[\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"received\": \"NaN\",\n    \"path\": [\n      \"sortOrder\"\n    ],\n    \"message\": \"Invalid input: expected number, received NaN\"\n  }\n]",
+    "toastBg": "rgb(45, 6, 7)",
+    "toastColor": "rgb(255, 158, 161)",
+    "toastHasCloseButton": false
+  }
+}

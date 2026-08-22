@@ -1,0 +1,20 @@
+detail page denied=false errored=false
+--- detail text ---
+Journal Entry
+Draft Entry
+2025-08-01 · DIAG probe — finance audit, safe to reverse
+Post
+STATUS
+DRAFT
+TOTAL DEBIT
+Rs 50.00
+TOTAL CREDIT
+Rs 50.00
+Account	Description	Debit	Credit
+1010		Rs 50.00	—
+4100		—	Rs 50.00
+Post button: 1
+API: 200 POST /api/v1/finance/journal-entries/fe5a5def-2c5d-4794-b5ae-a317ffd3d0c9/post | 200 GET /api/v1/finance/journal-entries/fe5a5def-2c5d-4794-b5ae-a317ffd3d0c9 | 200 GET /api/v1/finance/journal-entries/fe5a5def-2c5d-4794-b5ae-a317ffd3d0c9
+alerts: [""]
+status now shown: POSTED
+entry number now: JE-2026-000002

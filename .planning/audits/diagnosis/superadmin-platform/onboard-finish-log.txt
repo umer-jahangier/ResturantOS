@@ -1,0 +1,19 @@
+redirected to: http://localhost:3000/login/change-password
+password fields: 3
+URL after change: http://localhost:3000/login
+SCREEN: Sign in to RestaurantOS | Enter your email and password to continue | Email | Password | Use a restaurant identifier instead | Sign in
+
+-> bounced to login; signing in with the NEW password
+URL: http://localhost:3000/login
+SCREEN: Sign in to RestaurantOS | Enter your email and password to continue | Set up two-factor authentication | This account can approve payroll, close accounting periods or manage access, so signing in needs a code from an authenticator app as well as your password. Setting it up takes a minute and only happens once. | Install an authenticator app — Google Authenticator, Authy, 1Password and Microsoft Authenticator all work. | Press the button below to generate your key. | Add the key to the app, then enter the six-digit code it shows. | Generate my key | Back to sign in
+
+TOTP enrolment UI present?
+  QR/canvas/svg: 0
+  otpauth text: true
+  reached the app: false
+
+API: [
+ "403 POST /api/v1/auth/login",
+ "200 POST /api/v1/auth/change-password/forced",
+ "401 POST /api/v1/auth/login"
+]

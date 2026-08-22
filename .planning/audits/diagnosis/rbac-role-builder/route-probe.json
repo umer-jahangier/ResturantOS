@@ -1,0 +1,112 @@
+[
+  {
+    "route": "/app/users",
+    "status": 200,
+    "is404": false,
+    "denied": false,
+    "retried": true,
+    "alerts": [
+      ""
+    ],
+    "body": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nCollapse\nApp\nUsers\nFloating Terrace HQ\nSearch…\n⌘K\n6\nUsers\n\nEveryone who can sign in to this restaurant. Add staff, set what they can do on each branch, and issue a password when someone is locked out.\n\nActive only\n15 users\nAdd user\nTerrace Accountant\naccountant@terrace.local\n2FA\nActive\nAug 12, 2026\nTerrace Admin\nadmin@terrace.local\n2FA\nActive\nAug 12, 2026\nAudit Proof\naudit-proof-1786067329@terrace.local\nPassword reset pending\nActive\nNever signed in\nAudit Proof 2\naudit-proof2-1786067566@terrace.local\nPassword reset pending\nDeactivated\nNever signed in\nAsha the bartender\nbartender+1786478284947@terrace.local\nActive\nAug 12, 2026\nAsha\nbartender.proof@terrace.local\nPassword reset pending\nActive\nNever signed in\nTerrace Cashier\ncashier@terrace.local\nActive\nAug 12, 2026\nGap Audit Probe RENAMED\ngapaudit-1786070790@terrace.local\nPassword reset pending\nDeactivated\nNever signed in\nTerrace Kitchen\nkitchen@terrace.local\nActive\nAug 12, 2026\nTerrace Manager\nmanager@terrace.local\nActive\nAug 12, 2026\nowner@terrace.local\nowner@terrace.local\n2FA\nActive\nAug 12, 2026\nPhase 19 Probe\nphase19-probe-1786454628872@terrace.local\nDeactivated\nAug 11, 2026\nProbe Nineteen Renamed\nprobe19-1786095561@terrace.local\nPassword reset pending\nActive\nNever signed in\nTerrace Storekeeper\nstorekeeper@terrace.local\nActive\nAug 11, 2026\nTerrace Waiter\nwaiter@terrace.local\nActive\nAug 12, 2026\nChoose someone from the list to see their roles and manage their account."
+  },
+  {
+    "route": "/app/settings",
+    "status": 200,
+    "is404": false,
+    "denied": false,
+    "retried": true,
+    "alerts": [
+      ""
+    ],
+    "body": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nCollapse\nApp\nSettings\nFloating Terrace HQ\nSearch…\n⌘K\n6\nSettings\n\nHow this branch is set up, and who can sign in to it.\n\nBranch details\nSaved to your restaurant's record and visible to everyone on this branch.\nBranch name\nAddress\nPhone\nEmail\nTime zone\n\nAn IANA name. Business dates and reports are cut on it.\n\nOpened on\n\nSales tax registration (STRN)\n\nNot set\n\nNational tax number (NTN)\n\nNot set\n\nRead-only here. The branch update API has no field for either, so an editable box would accept your change and discard it. Tax registration is set during onboarding.\n\nSave changes\nUsers\nAdd staff, set what they can do on each branch, and issue a password when someone is locked out.\nManage users\nAppearance\nBrand colour and logo. Stored in this browser only — it is not saved to your account, so colleagues and your other devices see the default.\nChange appearance"
+  },
+  {
+    "route": "/app/roles",
+    "status": 404,
+    "is404": true,
+    "denied": false,
+    "retried": false,
+    "alerts": [
+      ""
+    ],
+    "body": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+  },
+  {
+    "route": "/app/settings/roles",
+    "status": 404,
+    "is404": true,
+    "denied": false,
+    "retried": false,
+    "alerts": [
+      ""
+    ],
+    "body": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+  },
+  {
+    "route": "/app/settings/users",
+    "status": 404,
+    "is404": true,
+    "denied": false,
+    "retried": false,
+    "alerts": [
+      ""
+    ],
+    "body": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+  },
+  {
+    "route": "/app/settings/permissions",
+    "status": 404,
+    "is404": true,
+    "denied": false,
+    "retried": false,
+    "alerts": [
+      ""
+    ],
+    "body": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+  },
+  {
+    "route": "/app/permissions",
+    "status": 404,
+    "is404": true,
+    "denied": false,
+    "retried": false,
+    "alerts": [
+      ""
+    ],
+    "body": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+  },
+  {
+    "route": "/app/settings/features",
+    "status": 404,
+    "is404": true,
+    "denied": false,
+    "retried": false,
+    "alerts": [
+      ""
+    ],
+    "body": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+  },
+  {
+    "route": "/app/admin/roles",
+    "status": 404,
+    "is404": true,
+    "denied": false,
+    "retried": false,
+    "alerts": [
+      ""
+    ],
+    "body": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+  },
+  {
+    "route": "/settings/appearance",
+    "status": 200,
+    "is404": false,
+    "denied": false,
+    "retried": true,
+    "alerts": [
+      ""
+    ],
+    "body": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nCollapse\nSettings\nAppearance\nFloating Terrace HQ\nSearch…\n⌘K\n6\nAppearance\n\nChoose the colour this app uses on your screen. It is remembered in this browser — it is not part of your restaurant's settings and other people will not see it.\n\nSaved in this browser only.There is no API to store a restaurant's branding yet, so this is not attached to your account: colleagues, and you on another device, will see the default colours. Clearing your browser data resets it.\nBrand colour presets\nCustom hex colour\n#\n\nPalette preview\n\nSample Text — AA black-on-light\nLogo URL\n\nStored alongside the colour in this browser — but nothing in the app renders a restaurant logo yet, so setting it changes nothing you can see today. It is kept rather than dropped so it is here when a logo surface ships.\n\nSave appearance"
+  }
+]

@@ -1,0 +1,124 @@
+  shot: 60-menu-items-admin
+MENU ADMIN: real <img>= [{"src":"blob:http://localhost:3000/03e4b59b-85ee-41a8-801e-3acf4f55f6c4","alt":"Photo Dish 50585","nat":96}]  placeholders= 9  errors= 0
+  shot: 61-menu-item-edit-dialog
+MENU ITEM EDIT DIALOG: {
+ "w": 512,
+ "h": 559,
+ "text": "Edit menu item\n\nChanges apply the next time this item is ordered — orders already in progress keep their original price.\n\nCategory\nSelect a category…\nDiag Cat 683566\nDiag Cat 785508\nStarters\nMains\nDrinks\nSoft Drinks\nName\nDescription\nPrice (Rs)\nPicture\nReplace\nRemove\n\nJPEG, PNG or WebP · up to 2 MB\n\nCancel\nSave changes\nClose",
+ "fileInputs": 1,
+ "fields": [
+  {
+   "t": "select-one",
+   "ph": "",
+   "lbl": "Category",
+   "id": "_r_1d_-form-item"
+  },
+  {
+   "t": "text",
+   "ph": "Chicken Karahi",
+   "lbl": "",
+   "id": "_r_1f_-form-item"
+  },
+  {
+   "t": "text",
+   "ph": "Optional",
+   "lbl": "",
+   "id": "_r_1h_-form-item"
+  },
+  {
+   "t": "text",
+   "ph": "450",
+   "lbl": "",
+   "id": "_r_1j_-form-item"
+  },
+  {
+   "t": "file",
+   "ph": "",
+   "lbl": "",
+   "id": "_r_1l_"
+  }
+ ],
+ "buttons": [
+  "Replace",
+  "Remove",
+  "Cancel",
+  "Save changes",
+  "Close"
+ ]
+}
+ONLINE: menu tiles = 10
+  shot: 70-offline-banner
+OFFLINE BANNER: "Offline — Orders will sync when connection returns"
+OFFLINE: menu tiles still rendered = 10
+  shot: 71-offline-send-attempt
+OFFLINE toasts: []
+OFFLINE panel: Add customer | New Order | Draft |  | 1 cover(s) |  | + Add note | Add items from the menu | Subtotal | Rs 0.00 | Total | Rs 0.00 | CHARGE NOW | Clear / New Order
+OFFLINE RELOAD threw: Error: page.reload: net::ERR_INTERNET_DISCONNECTED
+Call log:
+  - waiting for navigation until "domcontentloaded"
+
+  shot: 72-offline-after-reload
+OFFLINE AFTER RELOAD body: 
+  shot: 73-back-online
+BACK ONLINE panel: Add customer | Dine-in | Takeaway | Pickup | No table (optional) |  | Add items to start an order |  | Tap a menu item to build the cart — nothing is saved until Send to Kitchen or Charge. |  | Send to Kitchen | Save as Draft | Charge Now
+FILTER All: rows=11
+FILTER Closed: rows=3
+FILTER Paid: rows=3
+SEARCH 'ORD-20260812-0011' rows: 1
+SEARCH by phone '0300' rows: 0
+  shot: 74-order-search
+
+=== NET ===
+[mgr] 200 POST /api/v1/auth/login
+[mgr] 200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+[mgr] 200 GET /api/v1/feature-flags
+[mgr] 200 GET /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[mgr] 200 GET /api/v1/pos/tills?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&page=0&size=20
+[mgr] 200 GET /api/v1/branches/mine
+[mgr] 200 GET /api/v1/pos/menu/items/admin
+[mgr] 200 GET /api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[mgr] 200 GET /api/v1/kitchen/kds/stations?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[mgr] 200 GET /api/v1/kitchen/kds/tickets?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&status=PENDING,COOKING,READY&size=500
+[mgr] 200 POST /api/v1/auth/refresh
+[mgr] 200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+[mgr] 200 GET /api/v1/feature-flags
+[mgr] 200 GET /api/v1/pos/menu/categories
+[mgr] 200 GET /api/v1/pos/menu/categories/admin
+[mgr] 200 GET /api/v1/pos/menu/items/admin
+[mgr] 200 GET /api/v1/branches/mine
+[mgr] 200 GET /api/v1/files/10271e3a-ab12-476c-aba1-909c67a767b7/download
+[mgr] 200 GET /api/v1/files/10271e3a-ab12-476c-aba1-909c67a767b7/download
+[mgr] 200 GET /api/v1/files/10271e3a-ab12-476c-aba1-909c67a767b7/download
+[mgr] 200 GET /api/v1/files/10271e3a-ab12-476c-aba1-909c67a767b7/download
+[cash] 200 POST /api/v1/auth/login
+[cash] 200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+[cash] 200 GET /api/v1/feature-flags
+[cash] 200 GET /api/v1/pos/tills?cashierId=eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1&status=OPEN
+[cash] 200 GET /api/v1/branches/mine
+[cash] 200 GET /api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[cash] 200 POST /api/v1/auth/refresh
+[cash] 200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+[cash] 200 GET /api/v1/pos/tills?cashierId=eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1&status=OPEN
+[cash] 200 GET /api/v1/feature-flags
+[cash] 200 GET /api/v1/branches/mine
+[cash] 200 GET /api/v1/pos/menu/categories
+[cash] 200 GET /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[cash] 200 GET /api/v1/pos/menu/items?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[cash] 200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+[cash] 401 POST /api/v1/pos/orders
+[cash] 200 POST /api/v1/auth/refresh
+[cash] 200 POST /api/v1/auth/refresh
+[cash] 200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+[cash] 200 GET /api/v1/feature-flags
+[cash] 200 GET /api/v1/pos/tills?cashierId=eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1&status=OPEN
+[cash] 200 GET /api/v1/branches/mine
+[cash] 201 POST /api/v1/pos/orders
+[cash] 200 GET /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[cash] 200 GET /api/v1/pos/menu/categories
+[cash] 200 GET /api/v1/pos/menu/items?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[cash] 200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+[cash] 200 POST /api/v1/pos/orders/10533dec-aa98-4853-9f19-e3be621c8f6e/items
+[cash] 200 GET /api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+[cash] 200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+[cash] 200 GET /api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&status%5B%5D=CLOSED
+[cash] 200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation

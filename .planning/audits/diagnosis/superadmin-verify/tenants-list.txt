@@ -1,0 +1,49 @@
+RestaurantOS
+PLATFORM
+Overview
+Tenants
+Sign out
+Tenants
+
+Every restaurant group on the platform, with the entitlements their tier grants.
+
+Create tenant
+Platform tenants
+Tenant	Status	Tier	Branches	Users	Storage	Created
+Lume
+test
+	Active	GROWTH	max 5	max 50	20 GB	6/30/2026
+Saffron Grill
+saffron-grill
+	Active	STARTER	max 1	max 10	5 GB	8/7/2026
+Zaitoon Kitchen
+zaitoon-kitchen
+	Active	GROWTH	max 5	max 50	20 GB	8/7/2026
+Marina Bay Dining
+marina-bay-dining
+	Active	ENTERPRISE	max 50	max 500	100 GB	8/7/2026
+Floating Terrace
+floating-terrace
+	Active	ENTERPRISE	max 50	max 500	100 GB	8/7/2026
+Control Bistro (isolation test tenant)
+control-bistro-isolation-test-tenant
+	Active	STARTER	max 1	max 10	5 GB	8/7/2026
+Gap Audit Bistro
+gap-audit-bistro
+	Active	GROWTH	max 5	max 50	20 GB	8/7/2026
+Demo Restaurant
+demo
+	Active	GROWTH	max 5	max 50	20 GB	7/14/2026
+Diag Bistro 953661
+diag-bistro-953661
+	Active	GROWTH	max 5	max 50	20 GB	8/12/2026
+GA008 Verify Bistro
+ga008-verify
+	Active	GROWTH	max 5	max 50	20 GB	8/7/2026
+GA008 Browser Bistro
+ga008-browser
+	Active	GROWTH	max 5	max 50	20 GB	8/7/2026
+GA008 Browser Two
+ga008-browser2
+	Active	GROWTH	max 5	max 50	20 GB	8/7/2026
+Show 6 purged tenants

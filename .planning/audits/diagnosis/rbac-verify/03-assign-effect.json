@@ -1,0 +1,165 @@
+{
+  "probe": "assign-role-behavioural-effect",
+  "steps": [
+    {
+      "k": "waiter-jwt-BEFORE",
+      "v": {
+        "branch": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "roles": [
+          "WAITER"
+        ],
+        "permCount": 7,
+        "hasTillOpen": false
+      }
+    },
+    {
+      "k": "waiter-measure-BEFORE",
+      "v": {
+        "navHasTill": false,
+        "navHasCustomers": false,
+        "profilePermissionCount": "7",
+        "tillsDenied": true,
+        "tillsNotFound": false,
+        "crmDenied": true,
+        "branchesInSwitcher": ""
+      }
+    },
+    {
+      "k": "detail-panel-before",
+      "v": "ocal Active Aug 12, 2026 owner@terrace.local owner@terrace.local 2FA Active Aug 12, 2026 Phase 19 Probe phase19-probe-1786454628872@terrace.local Deactivated Aug 11, 2026 Probe Nineteen Renamed probe19-1786095561@terrace.local Password reset pending Active Never signed in Terrace Storekeeper storekeeper@terrace.local Active Aug 11, 2026 Terrace Waiter waiter@terrace.local Active Aug 12, 2026 Terrace Waiter Email waiter@terrace.local Status Active Two-factor Not enrolled Password Set by the user Roles by branch Floating Terrace HQ No approval authority primary WAITER Stations Sees every station in every branch they work. Edit Assign role Reset password Deactivate"
+    },
+    {
+      "k": "panel-buttons",
+      "v": [
+        "Add user",
+        "Terrace Accountant accountant@terrace.local 2FA Active Aug 12, 2026",
+        "Terrace Admin admin@terrace.local 2FA Active Aug 12, 2026",
+        "Audit Proof audit-proof-1786067329@terrace.local Password reset pending Active Never signed in",
+        "Audit Proof 2 audit-proof2-1786067566@terrace.local Password reset pending Deactivated Never signed in",
+        "Bar Tender 6299 bartend6299@terrace.local Password reset pending Active Never signed in",
+        "Asha the bartender bartender+1786478284947@terrace.local Active Aug 12, 2026",
+        "Diag Bartender 37730 bartender37730@terrace.local Password reset pending Active Never signed in",
+        "Diag Bartender 76991 bartender76991@terrace.local Active Aug 12, 2026",
+        "Asha bartender.proof@terrace.local Password reset pending Active Never signed in",
+        "Terrace Cashier cashier@terrace.local Active Aug 12, 2026",
+        "Gap Audit Probe RENAMED gapaudit-1786070790@terrace.local Password reset pending Deactivated Never signed in",
+        "Terrace Kitchen kitchen@terrace.local Active Aug 12, 2026",
+        "Terrace Manager manager@terrace.local Active Aug 12, 2026",
+        "owner@terrace.local owner@terrace.local 2FA Active Aug 12, 2026",
+        "Phase 19 Probe phase19-probe-1786454628872@terrace.local Deactivated Aug 11, 2026",
+        "Probe Nineteen Renamed probe19-1786095561@terrace.local Password reset pending Active Never signed in",
+        "Terrace Storekeeper storekeeper@terrace.local Active Aug 11, 2026",
+        "Terrace Waiter waiter@terrace.local Active Aug 12, 2026",
+        "Edit",
+        "Assign role",
+        "Reset password",
+        "Deactivate"
+      ]
+    },
+    {
+      "k": "assign-dialog-size",
+      "v": {
+        "x": 526,
+        "y": 401.5,
+        "width": 448,
+        "height": 297
+      }
+    },
+    {
+      "k": "assign-dialog-selects",
+      "v": 2
+    },
+    {
+      "k": "assign-dialog-checkboxes",
+      "v": 0
+    },
+    {
+      "k": "branch-options",
+      "v": [
+        "Choose a branch…",
+        "Floating Terrace — Rooftop",
+        "Floating Terrace HQ (HQ)"
+      ]
+    },
+    {
+      "k": "role-options",
+      "v": [
+        "Choose a role…",
+        "Accountant",
+        "Cashier",
+        "Inventory Manager",
+        "Kitchen Staff",
+        "Manager",
+        "Owner",
+        "Tenant Admin",
+        "Waiter"
+      ]
+    },
+    {
+      "k": "detail-panel-after-assign",
+      "v": "eper@terrace.local Active Aug 11, 2026 Terrace Waiter waiter@terrace.local Active Aug 12, 2026 Terrace Waiter Email waiter@terrace.local Status Active Two-factor Not enrolled Password Set by the user Roles by branch Floating Terrace HQ No approval authority primary WAITER Floating Terrace — Rooftop No approval authority CASHIER Stations Sees every station in every branch they work. Edit Assign role Reset password Deactivate"
+    },
+    {
+      "k": "waiter-jwt-AFTER-default-branch",
+      "v": {
+        "branch": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "roles": [
+          "WAITER"
+        ],
+        "permCount": 7,
+        "hasTillOpen": false
+      }
+    },
+    {
+      "k": "waiter-measure-AFTER-default-branch",
+      "v": {
+        "navHasTill": false,
+        "navHasCustomers": false,
+        "profilePermissionCount": "7",
+        "tillsDenied": true,
+        "tillsNotFound": false,
+        "crmDenied": true,
+        "branchesInSwitcher": ""
+      }
+    },
+    {
+      "k": "waiter-branches-mine",
+      "v": {
+        "status": 200,
+        "body": "{\"data\":[{\"id\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"name\":\"Floating Terrace HQ\",\"isHq\":true,\"roleCode\":\"WAITER\"},{\"id\":\"c2d74ade-7ff8-4167-8cd0-131bfbdf4fba\",\"name\":\"Floating Terrace — Rooftop\",\"isHq\":false,\"roleCode\":\"CASHIER\"}],\"meta\":null,\"warnings\":[]}"
+      }
+    },
+    {
+      "k": "branch-switcher-candidates",
+      "v": [
+        "Floating Terrace HQ"
+      ]
+    },
+    {
+      "k": "rooftop-visible-to-waiter-in-ui",
+      "v": 0
+    },
+    {
+      "k": "restore-ids",
+      "v": {}
+    }
+  ],
+  "before": {
+    "navHasTill": false,
+    "navHasCustomers": false,
+    "profilePermissionCount": "7",
+    "tillsDenied": true,
+    "tillsNotFound": false,
+    "crmDenied": true,
+    "branchesInSwitcher": ""
+  },
+  "afterDefault": {
+    "navHasTill": false,
+    "navHasCustomers": false,
+    "profilePermissionCount": "7",
+    "tillsDenied": true,
+    "tillsNotFound": false,
+    "crmDenied": true,
+    "branchesInSwitcher": ""
+  }
+}

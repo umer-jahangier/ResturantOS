@@ -1,0 +1,50 @@
+== signed in ==
+
+=== 1. CREATE TENANT via UI ===
+  dialog: {"found":true,"w":384,"h":423,"fields":["INPUT#brand-name","INPUT#admin-email","SELECT#tier"],"buttons":["Cancel","Create tenant","Close"]}
+     shot: 07-create-dialog
+  brand-name: true
+  admin-email: true
+  tier: selected
+  dialog text: Create tenant Provisions the tenant, its HQ branch, its chart of accounts and its first administrator. If any step fails the whole thing is rolled back. Brand name The slug is derived from this and cannot be changed later — login resolves tenants by it. Administrator email Tier STARTER GROWTH ENTERPRISE CUSTOM Cancel C
+     shot: 07-create-filled
+  submit enabled: true
+     shot: 07-after-create
+  after create: RestaurantOS PLATFORM Overview Tenants Sign out Tenants Every restaurant group on the platform, with the entitlements their tier grants. Create tenant Platform tenants Tenant Status Tier Branches Users Storage Created Lume test Active GROWTH max 5 max 50 20 GB 6/30/2026 Saffron Grill saffron-grill Active STARTER max 1 max 10 5 GB 8/7/2026 Zaitoon Kitchen zaitoon-kitchen Active GROWTH max 5 max 50 20 GB 8/7/2026 Marina Bay Dining marina-bay-dining Active ENTERPRISE max 50 max 500 100 GB 8/7/2026 
+
+=== 2. does the new tenant survive a reload of the LIST? ===
+  list state: OK
+  {"present":true,"row":"Verify Bistro 289409 verify-bistro-289409 Active GROWTH max 5 max 50 20 GB 8/12/2026","href":"/platform/tenants/770c2dfd-ffef-4faa-b4d3-a7d168f909b3"}
+  tenantId = 770c2dfd-ffef-4faa-b4d3-a7d168f909b3
+
+=== 3. TIER CHANGE ===
+  before: RestaurantOS PLATFORM Overview Tenants Sign out All tenants Verify Bistro 289409 verify-bistro-289409 Active GROWTH Suspend Subscription Edit Billing reference Not set Trial ends Not set Renews Not set Branch limit 5 User limit 50 NLQ quota 5,000 / month Chang
+  tier buttons visible: 1 Move to GROWTH
+  after selecting STARTER, button reads: Move to GROWTH
+     shot: 07-tier-selected
+  !! tier button missing or disabled
+     shot: 07-after-tier
+  RELOAD to test persistence…
+  after reload: RestaurantOS PLATFORM Overview Tenants Sign out All tenants Verify Bistro 289409 verify-bistro-289409 Active GROWTH Suspend Subscription Edit Billing reference Not set Trial ends Not set Renews Not set Branch limit 5 User limit 50 NLQ quota 5,000 / month Change tier STARTER GROWTH ENTERPRISE CUSTOM Move to GROWTH Re-applies the 
+
+=== 4. MODULE TOGGLE ===
+  module buttons on page: 20
+  clicking Disable on: Disable
+  confirm: Disable FEATURE_ANALYTICS? Every user of Verify Bistro 289409 loses access to this module immediately — its screens stop loading and its API calls are refused on the next request. Nothing is deleted. 
+FATAL TimeoutError: locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator('[role=dialog]').locator('button:has-text("Disable"), button[type=submit]').last()
+    - locator resolved to <button disabled data-slot="button" data-size="default" data-variant="destructive" data-testid="confirm-destructive-submit" class="group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all select-none active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:b…>Disable module</button>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+      - waiting 100ms
+    58 × waiting for element to be visible, enabled and stable
+       - element is not enabled
+     - retrying click action
+       - waiting 500ms

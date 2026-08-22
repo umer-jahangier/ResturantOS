@@ -1,0 +1,9 @@
+tab loaded. alerts: []
+first 500: Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse App POS Floating Terrace HQ Search… ⌘K E Point of sale Till OPEN Float: Rs 5,000.00 Cash: Rs 62,676.40 Orders: 97 Close Till POS Terminal Floor View Order Management Live Active Draft In Progress Partially Served Served Closed Paid Voided Refunded Active shows live orders only. Settled checks are under Closed, Voided and Refunded. Refresh ORDER / TABLE STATUS PAYMENT SERVER/CASHIER ITEMS TOTAL AGE ORD-20260812-0108 Takeaway
+search boxes: 1
+SEARCH "ORD-20260812-0089" -> found on screen: true
+  result area: Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse App POS Floating Terrace HQ Search… ⌘K E Point of sale Till OPEN Float: Rs 5,000.00 Cash: Rs 62,676.40 Orders: 97 Close Till POS Terminal Floor View Order Management Live Active Draft In Progress Partially Served Served Closed Paid Voided Refunded Active shows live orders only. Settled checks are under Closed, Voided and Refunded. Refresh Searching every order — live, closed, voided and refunded — for “ORD-20260812-0089”. ORDER / TABLE STATUS PAYMENT SERVER/CASHIER ITEMS TOTAL AGE ORD-20260812-0089 Takeaway Draft Unpaid e
+  search 'Audit Item': Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse App POS Floating Terrace HQ Search… ⌘K E Point of sale Till OPEN Float: Rs 5,000.00 Cash: Rs 62,676.40 Orders: 98 Close Till POS Terminal Floor View Order Management Live Active Draft In Progress Partially Served Served Closed Paid Voided Refunded Active shows live orders only. Settled checks are under Closed, Voided and Refu
+filter Draft: 5 numbered rows; unfired ORD-20260812-0089 present=true
+filter All: control not found
+filter Open: control not found

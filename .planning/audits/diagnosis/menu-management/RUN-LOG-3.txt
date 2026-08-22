@@ -1,0 +1,81 @@
+signed in as cashier@terrace.local
+  shot: 30-cashier-pos.png
+POS state: till appears open
+  shot: 32-pos-terminal-grid.png
+POS grid now shows a menu? mentions Starters/Mains = true
+POS BODY (content region):
+    Rs 1,250.00
+    Photo Dish 50585
+    Rs 725.00
+    Pinacolada
+    Rs 700.00
+    Seekh Kebab
+    Rs 450.00
+    Add customer
+    Dine-in
+    Takeaway
+    Pickup
+    No table (optional)
+    
+    Add items to start an order
+    
+    Tap a menu item to build the cart — nothing is saved until Send to Kitchen or Charge.
+    
+    Send to Kitchen
+    Save as Draft
+    Charge Now
+  <img> ON THE POS ORDER GRID = {"count":0,"info":[]}
+  POS grid shows the photo item 'Photo Dish 50585' = true
+  shot: 33-pos-item-tapped.png
+  after tapping 'Photo Dish 50585': dialogs=0
+  cart/panel text:
+    Soft Drinks
+    Clear All
+    Audit Item 52235
+    Rs 499.00
+    Audit Item 60568
+    Rs 499.00
+    Butter Naan
+    Rs 80.00
+    Chicken Karahi
+    Rs 1,450.00
+    Chicken Samosa
+    Rs 250.00
+    Fresh Lime
+    Rs 220.00
+    Mutton Biryani
+    Rs 1,250.00
+    Photo Dish 50585
+    Rs 725.00
+    1
+    Pinacolada
+    Rs 700.00
+    Seekh Kebab
+    Rs 450.00
+    Add customer
+    Dine-in
+    Takeaway
+    Pickup
+    No table (optional)
+    
+    Photo Dish 50585
+    
+    1
+    Rs 725.00
+    Subtotal
+    Rs 725.00
+    Tax (est.)
+    Rs 0.00
+    Total (est.)
+    Rs 725.00
+    
+    Estimated — final tax & any discounts confirmed on the order.
+    
+    Send to Kitchen
+    Save as Draft
+    Charge Now
+  any modifier/variant/size/notes affordance = true
+  per-line edit buttons = 0
+  shot: 34-pos-cart.png
+
+API 4xx/5xx:

@@ -1,0 +1,50 @@
+{
+  "managerTransactions": {
+    "bad": [
+      "access-denied"
+    ],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/transactions",
+    "heading": [
+      "Floating Terrace",
+      "Floating Terrace HQ",
+      "OVERVIEW",
+      "Dashboard",
+      "ORDERS",
+      "POS"
+    ]
+  },
+  "managerJournal": {
+    "bad": [
+      "access-denied"
+    ],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/journal-entries",
+    "heading": [
+      "Floating Terrace",
+      "Floating Terrace HQ",
+      "OVERVIEW",
+      "Dashboard",
+      "ORDERS",
+      "POS"
+    ]
+  },
+  "takings0812_till": {
+    "orderLine": "59 orders closed on this trading day",
+    "tillRow": " OPENING FLOAT EXPECTED CASH COUNTED CASH VARIANCE Cashier bc0d9897 Opened 8/12/26, 7:50 AM · closed 8/12/26, 8:16 AM Matched Rs 5,000.00 Rs 6,682.60 Rs 6,682.60 Rs 0.00 Cashier bc0d9897 Opened 8/12/26, 9:02 AM · closed 8/12/26, 9:03 AM Short Rs 5,000.00 R"
+  },
+  "takings0811_till": {
+    "orderLine": "10 orders closed on this trading day",
+    "tillRow": "NOT ON THIS PAGE"
+  },
+  "je254": {
+    "count": "1 entry matches “JE-2027-000254”",
+    "rows": [
+      "JE-2027-000254 | 2026-08-11 | Order revenue 7b979100-52ca-4be6-8f80-b2383b475148 | POSTED | Rs 1,682.60 | Rs 1,682.60"
+    ]
+  },
+  "je254detail": {
+    "url": "http://localhost:3000/app/finance/journal-entries/756f728f-e898-4ee6-95fe-384d21857203",
+    "text": "Floating Terrace OVERVIEW Dashboard ORDERS POS FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse Finance Journal Entries Journal Entry Floating Terrace HQ Search… ⌘K 9 Takings Transactions Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Guide JE-2027-000254 2026-08-11 · Order revenue 7b979100-52ca-4be6-8f80-b2383b475148 Reverse STATUS POSTED TOTAL DEBIT Rs 1,682.60 TOTAL CREDIT Rs 1,682.60 Account Description Debit Credit 1010 CASH payment Rs 1,682.60 — 4100 Sales revenue — Rs 1,657.00 2200 Output tax — Rs 25.60"
+  }
+}

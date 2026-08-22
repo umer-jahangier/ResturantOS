@@ -1,0 +1,76 @@
+  shot: 80-paid-filter
+PAID rows: 3
+PAID row buttons: ["Assign Table","Open","Assign Table","Open","Assign Table","Open"]
+  shot: 81-paid-order-drawer
+PAID ORDER DRAWER: {
+ "w": 1520,
+ "h": 920,
+ "text": "Order #ORD-20260812-0014\nIn Progress\n\nDINE IN · 1 cover(s)\n\n1 revision\n\nChicken Karahi\n\n×1\nRs 1,682.00\nSent\nMark Served\nCancel\n+ Add note\nQuick Add\nFull Menu\nCHARGE NOW\nVoid",
+ "buttons": [
+  "1 revision",
+  "Mark Served",
+  "Cancel",
+  "+ Add note",
+  "Full Menu",
+  "CHARGE NOW",
+  "Void"
+ ]
+}
+!! NO Refund control on a PAID order drawer
+  shot: 83-quick-add
+QUICK ADD results: "Order #ORD-20260812-0015\nIn Progress\n\nDINE IN · 1 cover(s)\n\n1 revision\n\nChicken Karahi\n\n×1\nRs 1,682.00\nSent\nMark Served\nCancel\n\nFresh Lime\n\n×1\nRs 255.20\nSent\nMark Served\nCancel\n+ Add note\nQuick Add\nFull Menu\nButter Naan\nRs 80.00\nAdd\nCHARGE NOW\nVoid"
+  shot: 85-assign-table
+ASSIGN TABLE DIALOG: null
+  shot: 86-receipt-1st
+RECEIPT#1 has band? 1
+RECEIPT#2 has band? 1
+RECEIPT page buttons: ["Dashboard","POS","Customers","Collapse","Search…\n⌘K","E","Back","Print","Dashboard","Orders"]
+  shot: 87-receipt-2nd
+  shot: 88-floor-view
+FLOOR VIEW: Point of sale | Till OPEN | Float: Rs 5,000.00 | Cash: Rs 42,445.80 | Orders: 46 | Close Till | POS Terminal | Floor View | Order Management | Live | G1 | Occupied | In Progress | 8 seats | H1 | Available | 4 seats | T1 | Occupied | In Progress | 4 seats | T2 | Available | 2 seats | T3 | Available | 6 seats
+FLOOR BUTTONS: ["Collapse","Toggle mobile menu","Search…\n⌘K","Search","Switch to light mode","E","Close Till","POS Terminal","Floor View","Order Management","G1\nOccupied\nIn Progress\n8 seats","H1\nAvailable\n4 seats","T1\nOccupied\nIn Progress\n4 seats","T2\nAvailable\n2 seats","T3\nAvailable\n6 seats"]
+
+=== NET ===
+200 POST /api/v1/auth/login
+200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+200 GET /api/v1/feature-flags
+200 GET /api/v1/pos/tills?cashierId=eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1&status=OPEN
+200 GET /api/v1/branches/mine
+200 GET /api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 POST /api/v1/auth/refresh
+200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+200 GET /api/v1/feature-flags
+200 GET /api/v1/pos/tills?cashierId=eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1&status=OPEN
+200 GET /api/v1/branches/mine
+200 GET /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/menu/categories
+200 GET /api/v1/pos/menu/items?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+200 GET /api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+200 GET /api/v1/pos/orders/746bc218-fce6-4387-9578-9aa51aaee39d?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+200 GET /api/v1/pos/orders/f14a4dc7-94cd-4296-b30d-2b815d6a80ba?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+200 GET /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 POST /api/v1/auth/refresh
+200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+200 GET /api/v1/feature-flags
+200 GET /api/v1/branches/mine
+201 POST /api/v1/pos/orders/dd304880-022c-4bcf-a343-6741a34c2bbb/print-jobs?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 POST /api/v1/auth/refresh
+200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+200 GET /api/v1/feature-flags
+200 GET /api/v1/branches/mine
+201 POST /api/v1/pos/orders/dd304880-022c-4bcf-a343-6741a34c2bbb/print-jobs?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 POST /api/v1/auth/refresh
+200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+200 GET /api/v1/feature-flags
+200 GET /api/v1/pos/tills?cashierId=eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1&status=OPEN
+200 GET /api/v1/branches/mine
+200 GET /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/menu/categories
+200 GET /api/v1/pos/menu/items?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+200 GET /api/v1/pos/tables/f5f5b68a-b0f4-47ba-9b9d-ce2b29b1ede3/active-order?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/tables/3ce7f565-5e38-4c4b-9ca4-b5e78275f338/active-order?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03

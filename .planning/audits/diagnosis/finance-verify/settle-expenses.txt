@@ -1,0 +1,21 @@
+login=true
+
+===== SETTLE the Rs 100 charge =====
+balance before: Rs 50,000.00	Rs 100.00
+settle dialog: 1 box={"x":576,"y":374.5,"width":448,"height":351}
+text: Settle DIAG Verify Corp 47144 |  | Posts DR Bank / CR Accounts Receivable. |  | Amount (PKR) | Date | Reference | Cancel | Record settlement | Close
+fields: [{"name":"amountRupees","type":"text"},{"name":"txnDate","type":"date"},{"name":"reference","type":"text"}]
+dialog still open: 0
+alerts: []
+row after settle: Code	Name	Contact	Credit limit	Balance	Status	Actions | HA-DIAG47144	DIAG Verify Corp 47144	Verify Agent · 03001234567	Rs 50,000.00	Rs 0.00	Active	 | Charge | Settle
+
+===== AR AGING after settlement =====
+AR aging: AR Aging | Floating Terrace HQ | Search… | ⌘K | 9 | Takings | Transactions | Accounts | Journal Entries | General Ledger | Periods | Expenses | AP Aging | House Accounts | AR Aging | Guide | AR Aging |  | Outstanding house-account charges bucketed by how overdue they are. |  | No outstanding receivables |  | AR aging buckets will appear here once a house account is charged.
+
+===== EXPENSES: is the approved expense visible? =====
+tab-like elements: []
+  "Approved" not clickable
+  "All statuses" not clickable
+
+--- finance non-GET ---
+200 POST /api/v1/finance/ar/settlements

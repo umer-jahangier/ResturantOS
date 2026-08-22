@@ -1,0 +1,171 @@
+URL after Charge Now: http://localhost:3000/app/pos/orders/aaabff1b-b7ca-4bf5-bf6f-145eb781ce04/charge
+  shot: 30-charge-page
+CHARGE PAGE >>>
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+PEOPLE
+
+Customers
+Collapse
+Orders
+Order
+Charge
+Floating Terrace HQ
+Search…
+⌘K
+E
+Back
+Order #ORD-20260812-0009
+Draft
+Unpaid
+
+Dine-in · Customer: — · Cashier: eb2ee67e · Aug 12, 2026, 3:06 AM
+
+Items
+
+Seekh Kebab
+
+×1
+Rs 522.00
+Pending
+
+Fresh Lime
+
+×1
+Rs 255.20
+Pending
+Bill
+Subtotal
+Rs 670.00
+Discounts
+Rs 0.00
+Service charge
+Rs 0.00
+Taxes
+Rs 107.20
+Total
+Rs 777.20
+Amount paid
+Rs 0.00
+Remaining balance
+Rs 777.20
+Payment History
+
+No payments yet
+
+Take Payment
+CASH
+CARD
+BANK TRANSFER
+VOUCHER
+Full amount
++ Add tender
+Tender total
+Rs 0.00
+Record Payment
+<<<
+CHARGE BUTTONS: ["Collapse","Toggle mobile menu","Search…\n⌘K","Search","Switch to light mode","E","Back","Full amount","+ Add tender","Record Payment"]
+CHARGE INPUTS: [{"t":"select-one","ph":"","lbl":"Payment method","name":"","id":""},{"t":"number","ph":"Amount (paisa)","lbl":"Amount in paisa","name":"","id":""},{"t":"text","ph":"Ref# (optional)","lbl":"Reference number","name":"","id":""}]
+CHARGE FEATURE PROBE: {"split":false,"discount":true,"tip":false,"serviceCharge":true,"partial":false,"rounding":false,"houseAccount":false,"giftCard":true,"wallet":false,"qr":false,"card":true,"cash":true}
+NO "Cash" control on charge page
+NO "Card" control on charge page
+NO "Split" control on charge page
+NO "Discount" control on charge page
+PARK toasts: []
+  shot: 32-parked
+  shot: 33-draft-filter
+DRAFT LIST >>>
+Point of sale
+Till OPEN
+Float: Rs 5,000.00
+Cash: Rs 38,989.00
+Orders: 40
+Close Till
+POS Terminal
+Floor View
+Order Management
+Live
+All
+Draft
+In Progress
+Partially Served
+Served
+Closed
+Paid
+Refresh
+ORDER / TABLE	STATUS	PAYMENT	SERVER/CASHIER	ITEMS	TOTAL	AGE	
+
+ORD-20260812-0010
+Takeaway
+	
+Draft
+	
+Unpaid
+	eb2ee67e	
+1 Items
+	Rs 700.00	<1m	
+Assign Table
+Cancel
+Continue
+
+
+ORD-20260812-0009
+Takeaway
+	
+Draft
+	
+Unpaid
+	eb2ee67e	
+2 Items
+	Rs 777.20	<1m	
+Assign Table
+Cancel
+Continue
+
+2 rows
+<<<
+ORDER MGMT INPUTS: ["Search order # or table…"]
+
+=== NET ===
+200 POST /api/v1/auth/login
+200 GET /api/v1/feature-flags
+200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+200 GET /api/v1/pos/tills?cashierId=eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1&status=OPEN
+200 GET /api/v1/branches/mine
+200 GET /api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 POST /api/v1/auth/refresh
+200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+200 GET /api/v1/feature-flags
+200 GET /api/v1/pos/tills?cashierId=eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1&status=OPEN
+200 GET /api/v1/branches/mine
+200 GET /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/menu/categories
+200 GET /api/v1/pos/menu/items?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+201 POST /api/v1/pos/orders
+200 POST /api/v1/pos/orders/aaabff1b-b7ca-4bf5-bf6f-145eb781ce04/items
+200 POST /api/v1/pos/orders/aaabff1b-b7ca-4bf5-bf6f-145eb781ce04/items
+200 GET /api/v1/pos/orders/aaabff1b-b7ca-4bf5-bf6f-145eb781ce04/payments
+200 GET /api/v1/pos/orders/aaabff1b-b7ca-4bf5-bf6f-145eb781ce04?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 POST /api/v1/auth/refresh
+429 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+200 GET /api/v1/feature-flags
+200 GET /api/v1/pos/tills?cashierId=eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1&status=OPEN
+200 GET /api/v1/branches/mine
+200 GET /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/menu/categories
+200 GET /api/v1/pos/menu/items?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+201 POST /api/v1/pos/orders
+200 POST /api/v1/pos/orders/4b3542ce-d5ae-4eeb-b629-09fdcb6c922e/items
+200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation
+200 GET /api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+200 GET /api/v1/pos/tills/74e7bfdc-262b-42bb-aab4-e89dfbf77347/reconciliation

@@ -1,0 +1,17 @@
+{
+  "rowsInOrderManagement": 1,
+  "rowText": "ORD-20260812-0159 Takeaway Draft Paid fefd7187 0 Items Rs 0.00 5m Assign Table Cancel Continue",
+  "probeAfterCancel": {
+    "voidPresent": false,
+    "refundPresent": true,
+    "refundEnabled": true,
+    "notice": "Paid — void unavailable. Use Refund."
+  },
+  "refundAfterCancel": {
+    "status": 200,
+    "body": "{\"data\":{\"id\":\"143c1453-e876-41fe-8da8-d3fdfa4edee9\",\"branchId\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"orderNo\":\"ORD-20260812-0159\",\"type\":\"DINE_IN\",\"status\":\"REFUNDED\",\"derivedStatus\":\"DRAFT\",\"tableId\":null,\"coverCount\":1,\"cashierId\":\"fef"
+  },
+  "netAfterRefund": 0,
+  "finalStatus": "REFUNDED",
+  "finalTotal": 0
+}

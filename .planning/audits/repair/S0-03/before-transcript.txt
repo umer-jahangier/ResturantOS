@@ -1,0 +1,37 @@
+== S0-03 before ==
+signed in at: http://localhost:3000/app/dashboard
+GET before  : {"status":200,"body":{"data":{"id":"c496bf7b-e6e9-49ed-b08d-a45536520e90","categoryId":"5258fa35-679b-40c4-b1ec-f1d66f848d1a","categoryName":"Starters","name":"Seekh Kebab","description":"Seekh Kebab — Floating Terrace · tenant d108c2e6","basePricePaisa":45000,"taxRatePct":17,"taxRateCode":"SR-STD-17","kdsStation":null,"active":true,"overridePricePaisa":null,"stationId":null,"imageFileId":null,"im
+menu page   : h1="Menu Items" denied=false failed=false alerts=[""]
+dialog labels: ["Category","Name","Description","Price (Rs)","Picture"]
+typed description: Seekh Kebab — typo fixed before 10325
+PUT bodies  : [{"url":"http://localhost:8080/api/v1/pos/menu/items/c496bf7b-e6e9-49ed-b08d-a45536520e90","body":"{\"categoryId\":\"5258fa35-679b-40c4-b1ec-f1d66f848d1a\",\"name\":\"Seekh Kebab\",\"description\":\"Seekh Kebab — typo fixed before 10325\",\"basePricePaisa\":45000,\"imageFileId\":null}"}]
+reopened dialog text:
+Edit menu item
+
+Changes apply the next time this item is ordered — orders already in progress keep their original price.
+
+Category
+Select a category…
+Diag Cat 683566
+Diag Cat 785508
+Starters
+Mains
+Soft Drinks
+Drinks
+ZZ Paging
+Name
+Description
+Price (Rs)
+Picture
+Upload picture
+
+JPEG, PNG or WebP · up to 2 MB
+
+Cancel
+Save changes
+Close
+GET after   : {"status":200,"body":{"data":{"id":"c496bf7b-e6e9-49ed-b08d-a45536520e90","categoryId":"5258fa35-679b-40c4-b1ec-f1d66f848d1a","categoryName":"Starters","name":"Seekh Kebab","description":"Seekh Kebab — typo fixed before 10325","basePricePaisa":45000,"taxRatePct":17,"taxRateCode":null,"kdsStation":null,"active":true,"overridePricePaisa":null,"stationId":null,"imageFileId":null,"imageUrl":null,"effe
+VERDICT     : description "Seekh Kebab — Floating Terrace · tenant d108c2e6" -> "Seekh Kebab — typo fixed before 10325"
+VERDICT     : taxRatePct  17 -> 17
+VERDICT     : taxRateCode "SR-STD-17" -> null
+RESULT      : tax code was DESTROYED by the description-only edit

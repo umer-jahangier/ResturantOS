@@ -1,0 +1,70 @@
+[
+  {
+    "k": "BEFORE-switch tables calls",
+    "v": [
+      {
+        "t": 1786486568606,
+        "method": "GET",
+        "url": "/api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&includeInactive=true",
+        "tokenBranch": "HQ",
+        "status": 200,
+        "bodyHead": "{\"data\":[{\"id\":\"b38cdf6a-3ecb-4af3-b54a-68a302571094\",\"branchId\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"tableName\":\"E2E-06566\",\"capacity\":6,\"section\":\"Terrace\",\"active\":false,\"status\":\"AVAILABLE\",\"fl"
+      }
+    ]
+  },
+  {
+    "k": "BEFORE-switch tables screen",
+    "v": "Tables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\nCollapse\nApp\nTables\nFloating Terrace HQ\nSearch…\n⌘K\nF\nTables\n\nYour dining tables. Anything active here can be picked when a waiter starts an order.\n\nAdd table\nShow retired\nGarden\n2 tables · 14 seats\nG1\n8 seats\nOccupied\nT3\n6 seats\nAvailable\nRooftop\n2 tables · 6 seats\nT1\n4 seats\nOccupied\nT2\n2 seats\nAvailable\nOther tables\n1 table · 4 seats\nH1\n4 seats\nAvail"
+  },
+  {
+    "k": "switch-call",
+    "v": [
+      {
+        "t": 1786486577080,
+        "method": "POST",
+        "url": "/api/v1/auth/switch-branch",
+        "tokenBranch": "HQ",
+        "status": 200
+      }
+    ]
+  },
+  {
+    "k": "switcher-label-after",
+    "v": "Floating Terrace — Rooftop"
+  },
+  {
+    "k": "calls-during-switch",
+    "v": [
+      "200 POST /api/v1/auth/switch-branch [tok=HQ]",
+      "200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8 [tok=null]",
+      "200 GET /api/v1/branches/mine [tok=ROOFTOP]",
+      "200 GET /api/v1/feature-flags [tok=ROOFTOP]",
+      "200 GET /api/v1/pos/tables?branchId=c2d74ade-7ff8-4167-8cd0-131bfbdf4fba&includeInactive=true [tok=ROOFTOP]"
+    ]
+  },
+  {
+    "k": "AFTER-switch tables calls",
+    "v": [
+      {
+        "t": 1786486586352,
+        "method": "GET",
+        "url": "/api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&includeInactive=true",
+        "tokenBranch": "HQ",
+        "status": 200,
+        "bodyHead": "{\"data\":[{\"id\":\"b38cdf6a-3ecb-4af3-b54a-68a302571094\",\"branchId\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"tableName\":\"E2E-06566\",\"capacity\":6,\"section\":\"Terrace\",\"active\":false,\"status\":\"AVAILABLE\",\"fl"
+      }
+    ]
+  },
+  {
+    "k": "AFTER-switch tables screen",
+    "v": "Tables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\nCollapse\nApp\nTables\nFloating Terrace HQ\nSearch…\n⌘K\nF\nTables\n\nYour dining tables. Anything active here can be picked when a waiter starts an order.\n\nAdd table\nShow retired\nGarden\n2 tables · 14 seats\nG1\n8 seats\nOccupied\nT3\n6 seats\nAvailable\nRooftop\n2 tables · 6 seats\nT1\n4 seats\nOccupied\nT2\n2 seats\nAvailable\nOther tables\n1 table · 4 seats\nH1\n4 seats\nAvail"
+  },
+  {
+    "k": "tables-screen-identical",
+    "v": true
+  },
+  {
+    "k": "switcher-label-after-reload",
+    "v": "Floating Terrace HQ"
+  }
+]

@@ -1,0 +1,30 @@
+
+================ CONTROL(STARTER, CRM/NLQ off) ================
+login -> http://localhost:3000/app/dashboard
+SIDEBAR: ["Dashboard|/app/dashboard","POS|/app/pos","Kitchen Display|/app/kitchen","Till Review|/app/pos/tills","Inventory|/app/inventory","Menu Items|/app/menu/items","Tables|/app/tables","Stations|/app/stations","POS Terminals|/app/terminals","Guide|/app/finance/guide","Takings|/app/finance/takings","Purchasing|/app/purchasing","Reports|/app/reports","Realtime Dashboard|/app/dashboard/realtime","Orders|/app/pos","Menu|/app/inventory"]
+GET /api/v1/feature-flags -> {"s":404,"b":"<!DOCTYPE html><html lang=\"en\" class=\"geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variable h-full antialiased\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"stylesheet\" href=\"/_next/static/chunks/%5Broot-of-the-server%5D__0cbk-n2._.css\" data-precedence=\"next_static/chunks/[root-of-the-server]__0cbk-n2._.css\"/><link rel=\"preload\" as=\"script\" fetchPriority=\"low\" href=\"/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_0hh8nta._.js\"/><script src=\"/_next/static/chunks/0fxd_next_dist_compiled_next-devtools_index_1_m2p5h.js\" async=\"\"></script><script src=\"/_next/static/chunks/0fxd_"}
+  /app/crm -> alerts=[] :: Control Bistro (isolation test tenant) OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purc
+  /app/nlq -> alerts=[] :: Control Bistro (isolation test tenant) OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purc
+  /app/reports -> alerts=[] :: Control Bistro (isolation test tenant) OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purc
+  /app/dashboard -> alerts=[] :: Control Bistro (isolation test tenant) OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purc
+  -- direct API probes as this tenant --
+     GET /api/v1/crm/customers -> 404 <!DOCTYPE html><html lang="en" class="geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variab
+     GET /api/v1/crm/loyalty/tiers -> 404 <!DOCTYPE html><html lang="en" class="geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variab
+     GET /api/v1/nlq/query -> 404 <!DOCTYPE html><html lang="en" class="geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variab
+     GET /api/v1/branches -> 404 <!DOCTYPE html><html lang="en" class="geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variab
+     GET /api/v1/reports -> 404 <!DOCTYPE html><html lang="en" class="geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variab
+
+================ TERRACE(ENTERPRISE, all on) ================
+login -> http://localhost:3000/app/dashboard
+SIDEBAR: ["Dashboard|/app/dashboard","POS|/app/pos","Kitchen Display|/app/kitchen","Till Review|/app/pos/tills","Inventory|/app/inventory","Menu Items|/app/menu/items","Tables|/app/tables","Stations|/app/stations","POS Terminals|/app/terminals","Guide|/app/finance/guide","Takings|/app/finance/takings","Purchasing|/app/purchasing","Customers|/app/crm","Reports|/app/reports","Realtime Dashboard|/app/dashboard/realtime","Ask (NLQ)|/app/nlq","Orders|/app/pos","Menu|/app/inventory"]
+GET /api/v1/feature-flags -> {"s":404,"b":"<!DOCTYPE html><html lang=\"en\" class=\"geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variable h-full antialiased\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"stylesheet\" href=\"/_next/static/chunks/%5Broot-of-the-server%5D__0cbk-n2._.css\" data-precedence=\"next_static/chunks/[root-of-the-server]__0cbk-n2._.css\"/><link rel=\"preload\" as=\"script\" fetchPriority=\"low\" href=\"/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_0hh8nta._.js\"/><script src=\"/_next/static/chunks/0fxd_next_dist_compiled_next-devtools_index_1_m2p5h.js\" async=\"\"></script><script src=\"/_next/static/chunks/0fxd_"}
+  /app/crm -> alerts=[] :: Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purcha
+  /app/nlq -> alerts=[] :: Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purcha
+  /app/reports -> alerts=[] :: Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purcha
+  /app/dashboard -> alerts=[] :: Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations POS Terminals FINANCE Guide Takings PURCHASING Purcha
+  -- direct API probes as this tenant --
+     GET /api/v1/crm/customers -> 404 <!DOCTYPE html><html lang="en" class="geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variab
+     GET /api/v1/crm/loyalty/tiers -> 404 <!DOCTYPE html><html lang="en" class="geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variab
+     GET /api/v1/nlq/query -> 404 <!DOCTYPE html><html lang="en" class="geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variab
+     GET /api/v1/branches -> 404 <!DOCTYPE html><html lang="en" class="geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variab
+     GET /api/v1/reports -> 404 <!DOCTYPE html><html lang="en" class="geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variab

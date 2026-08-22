@@ -1,6 +1,6 @@
 {
-  "email": "f19.prove.094463@terrace.local",
-  "at": "2026-08-12T05:54:54.594Z",
+  "email": "f19.prove.413900@terrace.local",
+  "at": "2026-08-12T06:16:54.017Z",
   "steps": [
     {
       "label": "forced-change-panel",
@@ -12,7 +12,7 @@
       "alert": null,
       "heading": "Choose a new password",
       "changePanel": 1,
-      "snippet": "Choose a new password f19.prove.094463@terrace.local must set its own password before signing in. Current password New password Confirm new password Change password Back to sign in",
+      "snippet": "Choose a new password f19.prove.413900@terrace.local must set its own password before signing in. Current password New password Confirm new password Change password Back to sign in",
       "refreshStatus": 401,
       "hasAccessToken": false
     },
@@ -26,7 +26,7 @@
       "alert": null,
       "heading": "Where is my till, and what is still open?",
       "changePanel": 0,
-      "snippet": "Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse App Dashboard Floating Terrace HQ Search… ⌘K 7 Where is my till, and what is still open? This shift MY TILL — You have no open till. Open one from ",
+      "snippet": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse App Dashboard Floating Terrace HQ Search… ⌘K F Where is my till, and what is still open? This shift MY TILL — You have no open ",
       "refreshStatus": 200,
       "hasAccessToken": true
     },
@@ -40,7 +40,7 @@
       "alert": null,
       "heading": "Where is my till, and what is still open?",
       "changePanel": 0,
-      "snippet": "Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse App Dashboard Floating Terrace HQ Search… ⌘K 7 Where is my till, and what is still open? This shift MY TILL — You have no open till. Open one from ",
+      "snippet": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse App Dashboard Floating Terrace HQ Search… ⌘K F Where is my till, and what is still open? This shift MY TILL — You have no open ",
       "refreshStatus": 200,
       "hasAccessToken": true
     }

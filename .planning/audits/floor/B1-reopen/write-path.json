@@ -1,0 +1,253 @@
+{
+  "clock": {
+    "utc": "2026-08-12T11:01:33.789Z",
+    "karachi": "12/08/2026, 16:01:33"
+  },
+  "posTrouble_1": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/pos"
+  },
+  "rung_1": {
+    "orderNos": [
+      "ORD-20260812-0375"
+    ],
+    "alerts": []
+  },
+  "newOrder": {
+    "orderNo": "ORD-20260812-0375",
+    "orderId": "7e154f8e-7f9c-48ec-8802-e81aec35c446"
+  },
+  "amountField": "729.00",
+  "afterPayment": {
+    "err": null,
+    "text": "Back Order #ORD-20260812-0375 In Progress Paid Takeaway · Customer: — · Cashier: fefd7187 · Aug 12, 2026, 4:01 PM Items Audit Item 52235 ×1 Rs 729.00 Sent Bill Subtotal Rs 729.00 Discounts Rs 0.00 Apply a discount Taxes Rs 0.00 Total Rs 729.00 Amount paid Rs 729.00 Remaining balance Rs 0.00 Bill issued Aug 12, 2026, 4:02 PM Sent to audit-receipt. Check Settings → Printers if no paper appears — the job is kept and retried, not lost. Print another copy Payment History CASH Aug 12, 2026, 4:02 PM Rs 729.00 Take Payment This order is fully paid — no further tenders can be recorded. Mark served & close order Confirms the food reached the guest and closes the check. After this the order can be refu"
+  },
+  "orderReadBack": null,
+  "takingsAfterTrouble": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/takings"
+  },
+  "takingsDefault_after": {
+    "dateBox": "2026-08-12",
+    "orderLine": "73 orders closed on this trading day",
+    "cash": "Cash 133 Rs 121,167.24 Rs 40,067.63(62) Rs 40,067.63 of today's cash is against 58 orders that are not closed",
+    "card": "Card 11 Rs 11,003.90 Rs 1,289.40(1) Cash 133 Rs 121,167.24 Rs 40,067.63(62) Rs 40,067.63 of today's cash is a",
+    "emptyState": false,
+    "alerts": []
+  },
+  "api_takings_default_after": {
+    "businessDate": "2026-08-12"
+  },
+  "takings_0811_after": {
+    "dateBox": "2026-08-11",
+    "orderLine": "10 orders closed on this trading day",
+    "cash": "Cash 13 Rs 20,746.20 Rs 955.20(1) Rs 955.20 of today's cash is against 1 order that is not closed yet. This",
+    "card": null,
+    "emptyState": false,
+    "alerts": []
+  },
+  "manager_transactions": {
+    "bad": [
+      "access-denied"
+    ],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/transactions"
+  },
+  "manager_journal": {
+    "bad": [
+      "access-denied"
+    ],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/journal-entries"
+  },
+  "acc_journalTrouble": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/journal-entries"
+  },
+  "journalScreen_top": [
+    "Takings",
+    "Transactions",
+    "Accounts",
+    "Journal Entries",
+    "General Ledger",
+    "Periods",
+    "Expenses",
+    "AP Aging",
+    "House Accounts",
+    "AR Aging",
+    "Guide",
+    "Journal Entries",
+    "Tab to navigate rows, Enter to open",
+    "New Entry",
+    "Showing 50 of 321 entries",
+    "Entry No\tDate\tDescription\tStatus\tDebit\tCredit",
+    "REV-2027-000203\t2026-08-12\tReversal of JE-2027-000001\tPOSTED\tRs 290.00\tRs 290.00",
+    "JE-2027-000323\t2026-08-12\tOrder revenue ORD-20260812-0375\tPOSTED\tRs 729.00\tRs 729.00",
+    "JE-2027-000322\t2026-08-12\tOrder refund a4cf9544-131e-48f0-95bd-f4405fd1be5d\tPOSTED\tRs 50.00\tRs 50.00",
+    "JE-2027-000321\t2026-08-12\tOrder COGS e7b2b2ea-c819-4149-8bc2-8396709a124e\tPOSTED\tRs 2,500.00\tRs 2,500.00",
+    "JE-2027-000320\t2026-08-12\tOrder revenue ORD-20260812-0362\tPOSTED\tRs 1,128.95\tRs 1,128.95",
+    "JE-2027-000319\t2026-08-12\tF9 REOPEN whole rupee 1250\tPOSTED\tRs 1,250.00\tRs 1,250.00",
+    "JE-2027-000318\t2026-08-12\tOrder revenue ORD-20260812-0366\tPOSTED\tRs 620.75\tRs 620.75",
+    "JE-2027-000317\t2026-08-12\tOrder revenue ORD-20260812-0363\tPOSTED\tRs 92.80\tRs 92.80",
+    "JE-2027-000316\t2026-08-12\tOrder revenue ORD-20260812-0361\tPOSTED\tRs 167.80\tRs 167.80",
+    "JE-2027-000315\t2026-08-12\tF9 REOPEN accountant rupee entry\tPOSTED\tRs 1,250.50\tRs 1,250.50",
+    "JE-2027-000314\t2026-08-12\tOrder revenue ORD-20260812-0354\tPOSTED\tRs 499.00\tRs 499.00",
+    "JE-2027-000313\t2026-08-12\tOrder COGS 98efbd18-4bd2-4a1d-b2df-bc29fad9008c\tPOSTED\tRs 1,250.00\tRs 1,250.00",
+    "JE-2027-000312\t2026-08-12\tOrder revenue ORD-20260812-0351\tPOSTED\tRs 789.00\tRs 789.00",
+    "JE-2027-000311\t2026-08-12\tOrder COGS 78a9ec19-3ad5-42e3-bd58-784deda64877\tPOSTED\tRs 1,250.00\tRs 1,250.00",
+    "JE-2027-000310\t2026-08-12\tOrder revenue ORD-20260812-0348\tPOSTED\tRs 789.00\tRs 789.00",
+    "JE-2027-000309\t2026-08-12\tOrder revenue ORD-20260812-0346\tPOSTED\tRs 681.45\tRs 681.45",
+    "JE-2027-000308\t2026-08-12\tOrder revenue ORD-20260812-0339\tPOSTED\tRs 998.00\tRs 998.00",
+    "JE-2027-000307\t2026-08-12\tOrder COGS fca5f520-a755-40ea-964e-b4f179e0193d\tPOSTED\tRs 1,250.00\tRs 1,250.00",
+    "JE-2027-000306\t2026-08-12\tOrder revenue ORD-20260812-0334\tPOSTED\tRs 789.00\tRs 789.00",
+    "JE-2027-000305\t2026-08-12\tOrder revenue ORD-20260812-0327\tPOSTED\tRs 681.45\tRs 681.45",
+    "JE-2027-000304\t2026-08-12\tOrder revenue ORD-20260812-0323\tPOSTED\tRs 681.45\tRs 681.45",
+    "JE-2027-000303\t2026-08-12\tOrder COGS e6fe0e41-886d-4178-88e4-3b8875de6fee\tPOSTED\tRs 1,162.71\tRs 1,162.71",
+    "JE-2027-000302\t2026-08-12\tOrder revenue ORD-20260812-0319\tPOSTED\tRs 2,011.36\tRs 2,011.36",
+    "JE-2027-000301\t2026-08-12\tOrder revenue ORD-20260812-0305\tPOSTED\tRs 1,289.40\tRs 1,289.40",
+    "JE-2027-000300\t2026-08-12\tOrder COGS a4295e44-03d1-44de-ab59-7b6a18b6dfcd\tPOSTED\tRs 1,162.71\tRs 1,162.71",
+    "JE-2027-000299\t2026-08-12\tOrder revenue ORD-20260812-0304\tPOSTED\tRs 1,774.80\tRs 1,774.80",
+    "JE-2027-000298\t2026-08-12\tOrder revenue ORD-20260812-0301\tPOSTED\tRs 1,147.90\tRs 1,147.90",
+    "JE-2027-000297\t2026-08-12\tOrder revenue ORD-20260812-0297\tPOSTED\tRs 681.45\tRs 681.45",
+    "JE-2027-000296\t2026-08-12\tOrder revenue ORD-20260812-0296\tPOSTED\tRs 1,147.90\tRs 1,147.90",
+    "JE-2027-000295\t2026-08-12\tOrder revenue ORD-20260812-0291\tPOSTED\tRs 92.80\tRs 92.80",
+    "JE-2027-000294\t2026-08-12\tOrder revenue ORD-20260812-0289\tPOSTED\tRs 681.45\tRs 681.45",
+    "JE-2027-000293\t2026-08-12\tF9 REOPEN — accountant types rupees by hand\tPOSTED\tRs 1,250.50\tRs 1,250.50",
+    "JE-2027-000292\t2026-08-12\tOrder revenue ORD-20260812-0281\tPOSTED\tRs 3,350.50\tRs 3,350.50",
+    "JE-2027-000291\t2026-08-12\tOrder revenue ORD-20260812-0280\tPOSTED\tRs 3,350.50\tRs 3,350.50",
+    "JE-2027-000290\t2026-08-12\tOrder COGS 307e8fe6-a58c-4ddc-a6a0-c9505b5a2a92\tPOSTED\tRs 1,162.71\tRs 1,162.71",
+    "JE-2027-000289\t2026-08-12\tOrder revenue ORD-20260812-0254\tPOSTED\tRs 1,774.80\tRs 1,774.80",
+    "JE-2027-000288\t2026-08-12\tOrder revenue ORD-20260812-0252\tPOSTED\tRs 998.00\tRs 998.00",
+    "JE-2027-000286\t2026-08-12\tOrder revenue ORD-20260812-0210\tPOSTED\tRs 998.00\tRs 998.00",
+    "JE-2027-000285\t2026-08-12\tOrder revenue ORD-20260812-0199\tPOSTED\tRs 92.80\tRs 92.80",
+    "JE-2027-000284\t2026-08-12\tOrder revenue ORD-20260812-0203\tPOSTED\tRs 1,319.30\tRs 1,319.30",
+    "JE-2027-000283\t2026-08-12\tOrder revenue ORD-20260812-0204\tPOSTED\tRs 92.80\tRs 92.80",
+    "JE-2027-000282\t2026-08-12\tOrder revenue ORD-20260812-0193\tPOSTED\tRs 998.00\tRs 998.00",
+    "JE-2027-000281\t2026-08-12\tOrder revenue ORD-20260812-0202\tPOSTED\tRs 998.00\tRs 998.00",
+    "JE-2027-000280\t2026-08-12\tOrder revenue ORD-20260812-0201\tPOSTED\tRs 998.00\tRs 998.00"
+  ],
+  "journalHasSearch": true,
+  "journalScreen_newOrder": [
+    "Takings",
+    "Transactions",
+    "Accounts",
+    "Journal Entries",
+    "General Ledger",
+    "Periods",
+    "Expenses",
+    "AP Aging",
+    "House Accounts",
+    "AR Aging",
+    "Guide",
+    "Journal Entries",
+    "Tab to navigate rows, Enter to open",
+    "New Entry",
+    "1 entry matches “ORD-20260812-0375”",
+    "Entry No\tDate\tDescription\tStatus\tDebit\tCredit",
+    "JE-2027-000323\t2026-08-12\tOrder revenue ORD-20260812-0375\tPOSTED\tRs 729.00\tRs 729.00"
+  ],
+  "journalScreen_0164": [
+    "Takings",
+    "Transactions",
+    "Accounts",
+    "Journal Entries",
+    "General Ledger",
+    "Periods",
+    "Expenses",
+    "AP Aging",
+    "House Accounts",
+    "AR Aging",
+    "Guide",
+    "Journal Entries",
+    "Tab to navigate rows, Enter to open",
+    "New Entry",
+    "0 entries match “ORD-20260812-0164”",
+    "No entry matches “ORD-20260812-0164”",
+    "The search covers every entry for this branch, not just the ones listed — so this really is no match. Check the order number, or try part of it."
+  ],
+  "je_api_new": {
+    "status": 200,
+    "body": "{\"data\":[{\"id\":\"fc257ef5-24b4-4f87-ad60-e07ba3574ca2\",\"entryNo\":\"REV-2027-000203\",\"periodId\":\"d5a01de9-ee35-46f4-9545-ba0c72f14741\",\"entryDate\":\"2026-08-12\",\"description\":\"Reversal of JE-2027-000001\",\"sourceType\":null,\"sourceId\":null,\"status\":\"POSTED\",\"postedBy\":\"9e11ef06-4bfa-4fc2-af4f-b2063b297662\",\"reversal\":true,\"reversalOfJe\":\"7ef691cb-96f0-4519-8929-61d9db1af771\",\"reversedByJe\":null,\"totalDebitPaisa\":29000,\"totalCreditPaisa\":29000,\"lines\":[{\"id\":\"a0458035-5063-4a78-8d3d-7f5e7c03ab17\",\"accountCode\":\"1010\",\"description\":\"Reversal: CASH payment\",\"debitPaisa\":0,\"creditPaisa\":29000},{\"id\":\"618e4e0e-fd34-474f-9836-b25f7df5b0de\",\"accountCode\":\"4100\",\"description\":\"Reversal: Sales revenue\",\"debitPaisa\":25000,\"creditPaisa\":0},{\"id\":\"0a99ef52-8c99-498e-8fce-76554d051c3c\",\"accountCode\":\"2200\",\"description\":\"Reversal: Output tax\",\"debitPaisa\":4000,\"creditPaisa\":0}],\"sourceReference\":null},{\"id\":\"22d2655e-3b85-48f5-a372-4c02f7c8c09d\",\"entryNo\":\"JE-2027-000323\",\"periodId\":\"d5a01de9-ee35-46f4-9545-ba0c72f14741\",\"entryDate\":\"2026-08-12\",\"description\":\"Order revenue ORD-20260812-0375\",\"sourceType\":\"ORDER_REVENUE\",\"sourceId\":\"7e154f8e-7f9c-48ec-8802-e81aec35c446\",\"status\":\"POSTED\",\"postedBy\":null,\"reversal\":false,\"reversalOfJe\":null,\"reversedByJe\":null,\"totalDebitPaisa\":72900,\"totalCreditPaisa\":72900,\"lines\":[{\"id\":\"65754a37-6fec-43fb-8c81-867010fd98d1\",\"accountCode\":\"1010\",\"description\":\""
+  },
+  "je_api_0164": {
+    "status": 200,
+    "body": "{\"data\":[{\"id\":\"fc257ef5-24b4-4f87-ad60-e07ba3574ca2\",\"entryNo\":\"REV-2027-000203\",\"periodId\":\"d5a01de9-ee35-46f4-9545-ba0c72f14741\",\"entryDate\":\"2026-08-12\",\"description\":\"Reversal of JE-2027-000001\",\"sourceType\":null,\"sourceId\":null,\"status\":\"POSTED\",\"postedBy\":\"9e11ef06-4bfa-4fc2-af4f-b2063b297662\",\"reversal\":true,\"reversalOfJe\":\"7ef691cb-96f0-4519-8929-61d9db1af771\",\"reversedByJe\":null,\"totalDebitPaisa\":29000,\"totalCreditPaisa\":29000,\"lines\":[{\"id\":\"a0458035-5063-4a78-8d3d-7f5e7c03ab17\",\"accountCode\":\"1010\",\"description\":\"Reversal: CASH payment\",\"debitPaisa\":0,\"creditPaisa\":29000},{\"id\":\"618e4e0e-fd34-474f-9836-b25f7df5b0de\",\"accountCode\":\"4100\",\"description\":\"Reversal: Sales revenue\",\"debitPaisa\":25000,\"creditPaisa\":0},{\"id\":\"0a99ef52-8c99-498e-8fce-76554d051c3c\",\"accountCode\":\"2200\",\"description\":\"Reversal: Output tax\",\"debitPaisa\":4000,\"creditPaisa\":0}],\"sourceReference\":null},{\"id\":\"22d2655e-3b85-48f5-a372-4c02f7c8c09d\",\"entryNo\":\"JE-2027-000323\",\"periodId\":\"d5a01de9-ee35-46f4-9545-ba0c72f14741\",\"entryDate\":\"2026-08-12\",\"description\":\"Order revenue ORD-20260812-0375\",\"sourceType\":\"ORDER_REVENUE\",\"sourceId\":\"7e154f8e-7f9c-48ec-8802-e81aec35c446\",\"status\":\"POSTED\",\"postedBy\":null,\"reversal\":false,\"reversalOfJe\":null,\"reversedByJe\":null,\"totalDebitPaisa\":72900,\"totalCreditPaisa\":72900,\"lines\":[{\"id\":\"65754a37-6fec-43fb-8c81-867010fd98d1\",\"accountCode\":\"1010\",\"description\":\""
+  },
+  "acc_transactionsTrouble": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/transactions"
+  },
+  "transactionsScreen_top": [
+    "Takings",
+    "Transactions",
+    "Accounts",
+    "Journal Entries",
+    "General Ledger",
+    "Periods",
+    "Expenses",
+    "AP Aging",
+    "House Accounts",
+    "AR Aging",
+    "Guide",
+    "Transactions",
+    "Every payment, refund and void. Open any row to see the order behind it and the accounting entries it produced.",
+    "From",
+    "To",
+    "Tender",
+    "Any",
+    "Cash",
+    "Card",
+    "Wallet",
+    "Show",
+    "Payments",
+    "Refunds",
+    "Voids",
+    "Taken in",
+    "Rs 206,390.94",
+    "Refunded",
+    "Rs 7,958.80",
+    "Voided",
+    "Rs 130,006.20",
+    "Net",
+    "Rs 68,425.94",
+    "Totals cover the whole filtered range (349 events), not just this page.",
+    "When\tType\tOrder\tTender\tAmount\tOrder total\tTrace",
+    "8/12/2026, 4:02:44 PM\tVoid\tORD-20260812-0377\t—\t-Rs 92.80\tRs 92.80\tOpen",
+    "8/12/2026, 4:02:23 PM\tPayment\tORD-20260812-0374\tCASH\tRs 92.80\tRs 92.80\tOpen",
+    "8/12/2026, 4:02:20 PM\tPayment\tORD-20260812-0375\tCASH\tRs 729.00\tRs 729.00\tOpen",
+    "8/12/2026, 4:02:08 PM\tPayment\tORD-20260812-0372\tCASH\tRs 310.37\tRs 620.75\tOpen",
+    "8/12/2026, 4:02:04 PM\tRefund\tORD-20260812-0361\t—\t-Rs 50.00\tRs 92.80\tOpen",
+    "8/12/2026, 4:01:58 PM\tPayment\tORD-20260812-0372\tCASH\tRs 310.38\tRs 620.75\tOpen",
+    "8/12/2026, 3:59:05 PM\tPayment\tORD-20260812-0370\tCASH\tRs 310.38\tRs 620.75\tOpen",
+    "8/12/2026, 3:54:00 PM\tPayment\tORD-20260812-0369\tCASH\tRs 310.37\tRs 620.75\tOpen",
+    "8/12/2026, 3:53:50 PM\tPayment\tORD-20260812-0369\tCASH\tRs 310.38\tRs 620.75\tOpen",
+    "8/12/2026, 3:51:36 PM\tPayment\tORD-20260812-0362\tCASH\tRs 1,128.95\tRs 1,128.95\tOpen",
+    "8/12/2026, 3:50:12 PM\tPayment\tORD-20260812-0366\tCASH\tRs 620.75\tRs 620.75\tOpen",
+    "8/12/2026, 3:50:09 PM\tPayment\tORD-20260812-0365\tCASH\tRs 2,257.30\tRs 2,257.30\tOpen",
+    "8/12/2026, 3:49:54 PM\tPayment\tORD-20260812-0364\tCASH\tRs 92.80\tRs 92.80\tOpen",
+    "8/12/2026, 3:49:15 PM\tPayment\tORD-20260812-0363\tCARD\tRs 92.80\tRs 92.80\tOpen",
+    "8/12/2026, 3:48:33 PM\tPayment\tORD-20260812-0360\tCASH\tRs 2,087.30\tRs 2,087.30\tOpen",
+    "8/12/2026, 3:48:29 PM\tPayment\tORD-20260812-0361\tCASH\tRs 92.80\tRs 92.80\tOpen",
+    "8/12/2026, 12:13:04 PM\tPayment\tORD-20260812-0354\tCASH\tRs 499.00\tRs 499.00\tOpen",
+    "8/12/2026, 12:08:19 PM\tPayment\tORD-20260812-0351\tCASH\tRs 789.00\tRs 789.00\tOpen",
+    "8/12/2026, 12:07:44 PM\tVoid\tORD-20260812-0350\t—\t-Rs 499.00\tRs 499.00\tOpen",
+    "8/12/2026, 12:06:42 PM\tVoid\tORD-20260812-0349\t—\t-Rs 499.00\tRs 499.00\tOpen",
+    "8/12/2026, 12:05:15 PM\tPayment\tORD-20260812-0348\tCASH\tRs 789.00\tRs 789.00\tOpen",
+    "8/12/2026, 12:04:37 PM\tPayment\tORD-20260812-0346\tCASH\tRs 681.45\tRs 681.45\tOpen",
+    "8/12/2026, 11:59:02 AM\tPayment\tORD-20260812-0342\tCASH\tRs 499.00\tRs 998.00\tOpen",
+    "8/12/2026, 11:58:15 AM\tVoid\tORD-20260812-0340\t—\t-Rs 499.00\tRs 499.00\tOpen",
+    "8/12/2026, 11:58:05 AM\tPayment\tORD-20260812-0338\tCASH\tRs 523.95\tRs 523.95\tOpen",
+    "8/12/2026, 11:57:40 AM\tPayment\tORD-20260812-0339\tCASH\tRs 998.00\tRs 998.00\tOpen"
+  ],
+  "cashier_takings": {
+    "bad": [
+      "access-denied"
+    ],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/takings"
+  }
+}

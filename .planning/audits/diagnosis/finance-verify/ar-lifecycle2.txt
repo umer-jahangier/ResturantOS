@@ -1,0 +1,39 @@
+login=true url=http://localhost:3000/app/dashboard
+
+===== HOUSE ACCOUNT: create (all fields filled) =====
+  filled accountCode=HA-DIAG47144
+  filled name=DIAG Verify Corp 47144
+  filled contactName=Verify Agent
+  filled contactPhone=03001234567
+  filled contactEmail=diag47144@verify.local
+  filled creditLimitRupees=50000
+  filled paymentTermsDays=30
+dialog still open: 0
+alerts: []
+list empty? false
+POST seen: ["200 POST /api/v1/finance/ar/customer-accounts"]
+
+===== reload to prove persistence =====
+after reload, list empty? false
+contains our account? true
+rows: 1
+buttons: ["Collapse","Search…\n⌘K","9","New house account","Charge","Settle"]
+body: House Accounts | Floating Terrace HQ | Search… | ⌘K | 9 | Takings | Transactions | Accounts | Journal Entries | General Ledger | Periods | Expenses | AP Aging | House Accounts | AR Aging | Guide | House Accounts |  | Corporate clients and regulars billed on account — catering invoices, phone orders, month-end billing, settled later. |  | New house account | Code	Name	Contact	Credit limit	Balance	Status	Actions | HA-DIAG47144	DIAG Verify Corp 47144	Verify Agent · 03001234567	Rs 50,000.00	Rs 0.00	Active	 | Charge | Settle
+
+===== charge / settle / statement affordances =====
+detail url=http://localhost:3000/app/finance/house-accounts
+detail buttons: ["Collapse","Search…\n⌘K","9","New house account","Charge","Settle"]
+detail body: House Accounts | Floating Terrace HQ | Search… | ⌘K | 9 | Takings | Transactions | Accounts | Journal Entries | General Ledger | Periods | Expenses | AP Aging | House Accounts | AR Aging | Guide | House Accounts |  | Corporate clients and regulars billed on account — catering invoices, phone orders, month-end billing, settled later. |  | New house account | Code	Name	Contact	Credit limit	Balance	Status	Actions | HA-DIAG47144	DIAG Verify Corp 47144	Verify Agent · 03001234567	Rs 50,000.00	Rs 0.00	Active	 | Charge | Settle
+  Charge: 1
+  Settle/Payment: 1
+  Statement: 0
+
+--- non-GET network ---
+401 POST /api/v1/auth/login
+200 POST /api/v1/auth/login
+200 POST /api/v1/reporting/reports/sales-by-day/run
+200 POST /api/v1/reporting/reports/sales-by-item/run
+200 POST /api/v1/reporting/reports/sales-by-day/run
+200 POST /api/v1/auth/refresh
+200 POST /api/v1/finance/ar/customer-accounts
+200 POST /api/v1/auth/refresh

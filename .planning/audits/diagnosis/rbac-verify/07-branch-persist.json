@@ -1,0 +1,100 @@
+{
+  "probe": "does-the-selected-branch-survive",
+  "steps": [
+    {
+      "k": "grant",
+      "v": {
+        "status": 200,
+        "body": "{\"data\":{\"id\":\"6f61fbc7-6564-4f51-95af-7606886a8227\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"userId\":\"666aefca-b5a2-4b07-a690-4ea3da88ff5d\",\"branchId\":\"c2d74ade-7ff8-4167-8cd0-131bfbdf4fba\",\"roleCode\":\"CASHIER\",\"approvalLimitPaisa\":null,\"active\":true,\"primary\":false,\"displacedRoleCode\":null},\"meta\":null,\"warnings\":[]}"
+      }
+    },
+    {
+      "k": "1-fresh-login",
+      "v": {
+        "url": "/app/dashboard",
+        "jwtBranch": "HQ",
+        "jwtRoles": [
+          "WAITER"
+        ],
+        "jwtPerms": 7,
+        "chromeSaysBranch": "HQ",
+        "navHasCustomers": false
+      }
+    },
+    {
+      "k": "2-immediately-after-switch",
+      "v": {
+        "url": "/app/dashboard",
+        "jwtBranch": "ROOFTOP",
+        "jwtRoles": [
+          "CASHIER"
+        ],
+        "jwtPerms": 14,
+        "chromeSaysBranch": "ROOFTOP",
+        "navHasCustomers": true
+      }
+    },
+    {
+      "k": "customers-link-in-sidebar",
+      "v": 1
+    },
+    {
+      "k": "3-after-SOFT-nav-to-customers",
+      "v": {
+        "url": "/app/crm",
+        "jwtBranch": "ROOFTOP",
+        "jwtRoles": [
+          "CASHIER"
+        ],
+        "jwtPerms": 14,
+        "chromeSaysBranch": "ROOFTOP",
+        "navHasCustomers": true
+      }
+    },
+    {
+      "k": "3-soft-nav-page-denied",
+      "v": false
+    },
+    {
+      "k": "4-after-RELOAD",
+      "v": {
+        "url": "/app/crm",
+        "jwtBranch": "HQ",
+        "jwtRoles": [
+          "WAITER"
+        ],
+        "jwtPerms": 7,
+        "chromeSaysBranch": "HQ",
+        "navHasCustomers": false
+      }
+    },
+    {
+      "k": "4-reload-page-denied",
+      "v": true
+    },
+    {
+      "k": "5-after-HARD-nav",
+      "v": {
+        "url": "/login?reason=session_expired",
+        "jwtBranch": "HQ",
+        "jwtRoles": [
+          "WAITER"
+        ],
+        "jwtPerms": 7,
+        "chromeSaysBranch": "?",
+        "navHasCustomers": false
+      }
+    },
+    {
+      "k": "RESTORE-delete",
+      "v": {
+        "status": 204,
+        "body": ""
+      }
+    },
+    {
+      "k": "RESTORE-assignments",
+      "v": "[{\"branchId\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"roleCode\":\"WAITER\",\"primary\":true,\"approvalLimitPaisa\":null}]"
+    }
+  ]
+}

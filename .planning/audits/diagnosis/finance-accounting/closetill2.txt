@@ -1,0 +1,48 @@
+Close Till Session
+Opening float:
+Declared Cash Count (PKR)
+Note for manager review (optional)
+Cancel
+
+CONTROLS:
+[
+ "BUTTON<button>[Collapse sidebar]",
+ "BUTTON<button>[Toggle mobile menu]",
+ "BUTTON<button>[Open command palette]",
+ "BUTTON<button>[Search]",
+ "BUTTON<button>[Switch to light mode]",
+ "BUTTON<button>[Open profile menu]",
+ "INPUT<number>[e.g. 12500.00]",
+ "TEXTAREA<>[e.g. 200 short — customer disputed change on order #1042]",
+ "BUTTON<>[Cancel]",
+ "BUTTON<>[Close Till]",
+ "BUTTON<>[POS Terminal]",
+ "BUTTON<>[Floor View]",
+ "BUTTON<>[Order Management]",
+ "INPUT<text>[Search menu…]",
+ "BUTTON<>[All]",
+ "BUTTON<>[Diag Cat 683566]",
+ "BUTTON<>[Diag Cat 785508]",
+ "BUTTON<>[Starters]",
+ "BUTTON<>[Mains]",
+ "BUTTON<>[Drinks]",
+ "BUTTON<>[Soft Drinks]",
+ "BUTTON<button>[Audit Item 52235Rs 499.00]",
+ "BUTTON<button>[Audit Item 60568Rs 499.00]",
+ "BUTTON<button>[Butter NaanRs 80.00]",
+ "BUTTON<button>[Chicken KarahiRs 1,450.00]",
+ "BUTTON<button>[Chicken SamosaRs 250.00]",
+ "BUTTON<button>[Fresh LimeRs 220.00]",
+ "BUTTON<button>[Mutton BiryaniRs 1,250.00]",
+ "BUTTON<button>[Photo Dish 50585Rs 725.00]",
+ "BUTTON<button>[PinacoladaRs 700.00]",
+ "BUTTON<button>[Seekh KebabRs 450.00]",
+ "BUTTON<button>[Add customer]",
+ "BUTTON<button>[Dine-in]",
+ "BUTTON<button>[Takeaway]",
+ "BUTTON<button>[Pickup]",
+ "BUTTON<button>[Select table]",
+ "BUTTON<button>[Send to Kitchen]",
+ "BUTTON<button>[Save as Draft]",
+ "BUTTON<button>[Charge Now]"
+]

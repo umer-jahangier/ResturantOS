@@ -1,0 +1,75 @@
+{
+  "orderNo": "ORD-20260812-0345",
+  "boards": {
+    "BAR": {
+      "h1": "Main bar",
+      "alerts": [],
+      "mine": [
+        "1 ORD-20260812-0345 01:19 DINE-IN No table 1× Pinacolada"
+      ],
+      "cardCount": 9,
+      "hasNoStations": false,
+      "mentions": {
+        "Pinacolada": true,
+        "Chicken Karahi": false,
+        "Mutton Biryani": false,
+        "Chicken Samosa": false
+      },
+      "head": "Floating Terrace OVERVIEW Dashboard ORDERS Kitchen Display Collapse App Kitchen BAR Floating Terrace HQ Search… ⌘K D Main bar 9 tickets · 9 items Diag Dessert 43431 Diag Dessert 20334 Cold prep DEFAUL",
+      "trouble": []
+    },
+    "GRILL": {
+      "h1": "Hot line",
+      "alerts": [],
+      "mine": [
+        "1 ORD-20260812-0345 01:25 DINE-IN No table 1× Chicken Karahi 1× Mutton Biryani"
+      ],
+      "cardCount": 10,
+      "hasNoStations": false,
+      "mentions": {
+        "Pinacolada": false,
+        "Chicken Karahi": true,
+        "Mutton Biryani": true,
+        "Chicken Samosa": false
+      },
+      "head": "Floating Terrace OVERVIEW Dashboard ORDERS Kitchen Display Collapse App Kitchen GRILL Floating Terrace HQ Search… ⌘K D Hot line 22 tickets · 25 items Diag Dessert 43431 Diag Dessert 20334 Cold prep DE",
+      "trouble": []
+    },
+    "PANTRY1": {
+      "h1": "Cold prep",
+      "alerts": [],
+      "mine": [
+        "2 ORD-20260812-0345 01:31 DINE-IN No table 1× Chicken Samosa"
+      ],
+      "cardCount": 10,
+      "hasNoStations": false,
+      "mentions": {
+        "Pinacolada": false,
+        "Chicken Karahi": false,
+        "Mutton Biryani": false,
+        "Chicken Samosa": true
+      },
+      "head": "Floating Terrace OVERVIEW Dashboard ORDERS Kitchen Display Collapse App Kitchen PANTRY1 Floating Terrace HQ Search… ⌘K D Cold prep 91 tickets · 149 items Diag Dessert 43431 Diag Dessert 20334 Cold pre",
+      "trouble": []
+    },
+    "DEFAULT": {
+      "h1": "DEFAULT",
+      "alerts": [],
+      "mine": [],
+      "cardCount": 10,
+      "hasNoStations": false,
+      "mentions": {
+        "Pinacolada": false,
+        "Chicken Karahi": true,
+        "Mutton Biryani": false,
+        "Chicken Samosa": false
+      },
+      "head": "Floating Terrace OVERVIEW Dashboard ORDERS Kitchen Display Collapse App Kitchen DEFAULT Floating Terrace HQ Search… ⌘K D DEFAULT 45 tickets · 49 items Diag Dessert 43431 Diag Dessert 20334 Cold prep D",
+      "trouble": []
+    }
+  },
+  "order": {
+    "status": 422,
+    "items": []
+  }
+}

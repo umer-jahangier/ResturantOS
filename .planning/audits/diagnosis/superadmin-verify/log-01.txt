@@ -1,0 +1,37 @@
+== LOGIN ==
+landed: http://localhost:3000/platform/dashboard
+  shot: 01-after-login
+{"alerts":[],"bad":false,"len":289,"head":"RestaurantOS\nPLATFORM\nOverview\nTenants\nSign out\nPlatform Dashboard\n\nEvery action taken here affects a whole restaurant group, not one branch.\n\nTenants\n\n12\n\nExcluding purged\n\nActive\n\n12\n\nSuspended\n\n0\n\nProvisioning failed\n\n0\n\nBy tier\nSTARTER\n2\nGROWTH\n8\nENTERPRISE\n2\nCUSTOM\n0\nManage tenants →"}
+
+== /platform/dashboard (Overview) ==
+  health: {"alerts":[],"bad":false,"len":289,"head":"RestaurantOS\nPLATFORM\nOverview\nTenants\nSign out\nPlatform Dashboard\n\nEvery action taken here affects a whole restaurant group, not one branch.\n\nTenants\n\n12\n\nExcluding purged\n\nActive\n\n12\n\nSuspended\n\n0\n\nProvisioning failed\n\n0\n\nBy tier\nSTARTER\n2\nGROWTH\n8\nENTERPRISE\n2\nCUSTOM\n0\nManage tenants →"}
+  shot: 02-overview
+
+== /platform/tenants ==
+  health: {"alerts":[],"bad":false,"len":1184,"head":"RestaurantOS\nPLATFORM\nOverview\nTenants\nSign out\nTenants\n\nEvery restaurant group on the platform, with the entitlements their tier grants.\n\nCreate tenant\nPlatform tenants\nTenant\tStatus\tTier\tBranches\tUsers\tStorage\tCreated\nLume\ntest\n\tActive\tGROWTH\tmax 5\tmax 50\t20 GB\t6/30/2026\nSaffron Grill\nsaffron-grill\n\tActive\tSTARTER\tmax 1\
+  shot: 03-tenants
+  rows: 12 detailLinks: 12
+  controls: ["Sign out","Create tenant","Show 6 purged tenants"]
+
+== /platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8 (Floating Terrace) ==
+  health: {"alerts":[],"bad":false,"len":1974,"head":"RestaurantOS\nPLATFORM\nOverview\nTenants\nSign out\nAll tenants\nFloating Terrace\nfloating-terrace\nActive\nENTERPRISE\nSuspend\nSubscription\nEdit\nBilling reference\nNot set\nTrial ends\nNot set\nRenews\nNot set\nBranch limit\n50\nUser limit\n500\nNLQ quota\n50,000 / month\nChange tier\nSTARTER\nGROWTH\nENTERPRISE\nCUSTOM\nMove to ENTERPRISE\n\nRe-ap
+  shot: 04-ft-detail
+  BUTTONS: ["Sign out","Suspend","Edit","Move to ENTERPRISE","Disable","Disable","Disable","Disable","Disable","Disable","Disable","Disable","Disable","Disable","Disable","Disable","Disable","Disable","Disable","Disable","Disable","Disable","Disable","Disable"]
+  SWITCHES: []
+  LINKS: ["/platform/dashboard","/platform/tenants"]
+
+== ROUTE PROBES (claimed 404) ==
+  /platform/health -> 404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing has gone 
+  /platform/users -> 404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing has gone 
+  /platform/settings -> Sign in to RestaurantOS Enter your email and password to continue Your session expired. Please sign in again. 
+  /platform/billing -> Sign in to RestaurantOS Enter your email and password to continue Email Password Use a restaurant identifier i
+  /platform/plans -> Sign in to RestaurantOS Enter your email and password to continue Email Password Use a restaurant identifier i
+  /platform/usage -> Sign in to RestaurantOS Enter your email and password to continue Email Password Use a restaurant identifier i
+  /platform/audit -> Sign in to RestaurantOS Enter your email and password to continue Email Password Use a restaurant identifier i
+  /platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8/users -> Sign in to RestaurantOS Enter your email and password to continue Email Password Use a restaurant identifier i
+  /platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8/audit -> Sign in to RestaurantOS Enter your email and password to continue Email Password Use a restaurant identifier i
+  /platform/impersonate -> Sign in to RestaurantOS Enter your email and password to continue Email Password Use a restaurant identifier i
+  /platform/overview -> Sign in to RestaurantOS Enter your email and password to continue Email Password Use a restaurant identifier i
+  /platform/subscriptions -> Sign in to RestaurantOS Enter your email and password to continue Email Password Use a restaurant identifier i
+  /platform/support -> Sign in to RestaurantOS Enter your email and password to continue Email Password Use a restaurant identifier i
+  /platform/logs -> Sign in to RestaurantOS Enter your email and password to continue Email Password Use a restaurant identifier i

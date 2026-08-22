@@ -1,0 +1,33 @@
+kitchen login: true
+  [01-default-landing] url=http://localhost:3000/app/kitchen/PANTRY1
+     total ticket refs = 0
+     ORD-20260812-0093 x0
+     ORD-20260812-0094 x0
+     ORD-20260812-0089 (must be 0) x0
+     text: Floating Terrace OVERVIEW Dashboard ORDERS Kitchen Display Collapse App Kitchen PANTRY1 Floating Terrace HQ Search… ⌘K D Cold prep 0 tickets READY COLUMN All stations LIVE NEW 0 Nothing here STARTED 0 Nothing here PREPARING 0 Nothing here READY 0 Nothing here ↑ ↓ move 1–9 0 jump Enter open F bump R recall V ready column
+  'All stations' nodes: 1
+  [02-all-stations] url=http://localhost:3000/app/kitchen/PANTRY1
+     total ticket refs = 0
+     ORD-20260812-0093 x0
+     ORD-20260812-0094 x0
+     ORD-20260812-0089 (must be 0) x0
+     text: Floating Terrace OVERVIEW Dashboard ORDERS Kitchen Display Collapse App Kitchen PANTRY1 Floating Terrace HQ Search… ⌘K D Cold prep 0 tickets READY COLUMN All stations LIVE NEW 0 Nothing here STARTED 0 Nothing here PREPARING 0 Nothing here READY 0 Nothing here ↑ ↓ move 1–9 0 jump Enter open F bump R recall V ready column
+  controls: [{"tag":"A","href":"/app/kitchen","t":"Kitchen Display"},{"tag":"BUTTON","href":null,"t":"All stations"}]
+  [03-app-kitchen-ALL] url=http://localhost:3000/app/kitchen/ALL
+     total ticket refs = 0
+     ORD-20260812-0093 x0
+     ORD-20260812-0094 x0
+     ORD-20260812-0089 (must be 0) x0
+     text: Floating Terrace OVERVIEW Dashboard ORDERS Kitchen Display Collapse App Kitchen ALL Floating Terrace HQ Search… ⌘K D No such station This branch has no active station with the code "ALL", or it is not one of yours. Check the code, or pick a board from all stations. All stations
+  [03-app-kitchen-DEFAULT] url=http://localhost:3000/app/kitchen/DEFAULT
+     total ticket refs = 10
+     ORD-20260812-0093 x0
+     ORD-20260812-0094 x0
+     ORD-20260812-0089 (must be 0) x0
+     text: Floating Terrace OVERVIEW Dashboard ORDERS Kitchen Display Collapse App Kitchen DEFAULT Floating Terrace HQ Search… ⌘K D DEFAULT 81 tickets Diag Dessert 43431 Diag Dessert 20334 Cold prep DEFAULT Main bar Hot line Diag Bar 28334 1 / 9 READY COLUMN All stations LIVE NEW 54 1 ORD-20260812-0101 00:35 DINE-IN No table 1× Butter Naan 2× Chicken Karahi Butter Naan → Started Chicken K
+  [03-app-kitchen-PANTRY1] url=http://localhost:3000/app/kitchen/PANTRY1
+     total ticket refs = 0
+     ORD-20260812-0093 x0
+     ORD-20260812-0094 x0
+     ORD-20260812-0089 (must be 0) x0
+     text: Floating Terrace OVERVIEW Dashboard ORDERS Kitchen Display Collapse App Kitchen PANTRY1 Floating Terrace HQ Search… ⌘K D Cold prep 0 tickets Diag Dessert 43431 Diag Dessert 20334 Cold prep DEFAULT Main bar Hot line Diag Bar 28334 READY COLUMN All stations LIVE NEW 0 Nothing here STARTED 0 Nothing here PREPARING 0 Nothing here READY 0 Nothing here ↑ ↓ move 1–9 0 jump Enter open 

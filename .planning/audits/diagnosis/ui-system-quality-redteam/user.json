@@ -1,0 +1,38 @@
+{
+  "nav": {
+    "attempt": 1,
+    "url": "http://localhost:3000/app/users",
+    "refused": false,
+    "failed": false,
+    "ok": true
+  },
+  "pageText": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nCollapse\nApp\nUsers\nFloating Terrace HQ\nSearch…\n⌘K\n6\nUsers\n\nEveryone who can sign in to this restaurant. Add staff, set what they can do on each branch, and issue a password when someone is locked out.\n\nActive only\n21 users\nAdd user\nTerrace Accountant\naccountant@terrace.local\n2FA\nActive\nAug 12, 2026\nTerrace Admin\nadmin@terrace.local\n2FA\nActive\nAug 12, 2026\nAudit Proof\naudit-proof-1786067329@terrace.local\nPassword reset pending\nActive\nNever signed in\nAudit Proof 2\naudit-proof2-1786067566@terrace.local\nPassword reset pending\nDeactivated\nNever signed in\nBar Tender 6299\nbartend6299@terrace.local\nActive\nAug 12, 2026\nAsha the bartender\nbartender+1786478284947@terrace.local\nActive\nAug 12, 2026\nDiag Bartender 37730\nbartender37730@terrace.local\nPassword reset pending\nActive\nNever signed in\nDiag Bartender 76991\nbartender76991@terrace.local\nA",
+  "rowCounts": {
+    "tables": 0,
+    "tbodyRows": 0,
+    "gridRows": 0
+  },
+  "opened": true,
+  "btnCount": 1,
+  "btnDisabled": false,
+  "after": {
+    "dialogStillOpen": true,
+    "formMessages": [],
+    "allRed": [],
+    "ariaInvalid": 0,
+    "toasts": [],
+    "emailValue": "zzz",
+    "dialogHTML": 8383
+  },
+  "net": [],
+  "console": [],
+  "validAttempt": {
+    "dialogStillOpen": true,
+    "toasts": [],
+    "formMessages": [],
+    "bodySnippet": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nCollapse\nApp\nUsers\nFloating Terrace HQ\nSearch…\n⌘K\n6\nUsers\n\nEveryone who can sign in to this restaurant. Add staff, set what they can do on each branch, and issue a password when someone is locked out.\n\nActive only\n22 users\nAdd user\nTerrace Ac"
+  },
+  "validNet": [
+    "POST /api/v1/users"
+  ]
+}

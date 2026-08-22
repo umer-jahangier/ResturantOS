@@ -1,0 +1,124 @@
+[
+  {
+    "k": "url",
+    "v": "http://localhost:3000/app/dashboard"
+  },
+  {
+    "k": "SAVE-ATTEMPT",
+    "v": {
+      "label": "address-real",
+      "field": "address",
+      "typed": "12 Khayaban-e-Iqbal, F-7 Markaz, Islamabad",
+      "before": "null",
+      "toasts": [
+        "This conflicts with existing data"
+      ],
+      "network": [
+        {
+          "method": "PUT",
+          "url": "/api/v1/branches/34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "reqBody": "{\"address\":\"12 Khayaban-e-Iqbal, F-7 Markaz, Islamabad\"}",
+          "status": 409,
+          "body": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"This conflicts with existing data\",\"details\":[],\"traceId\":\"5a0eb226-a550-4bc5-b477-852697747d21\"}}"
+        }
+      ],
+      "afterReload": "null",
+      "persisted": false
+    }
+  },
+  {
+    "k": "SAVE-ATTEMPT",
+    "v": {
+      "label": "address-oneword",
+      "field": "address",
+      "typed": "Islamabad",
+      "before": "null",
+      "toasts": [
+        "This conflicts with existing data"
+      ],
+      "network": [
+        {
+          "method": "PUT",
+          "url": "/api/v1/branches/34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "reqBody": "{\"address\":\"Islamabad\"}",
+          "status": 409,
+          "body": "{\"error\":{\"code\":\"CONFLICT\",\"message\":\"This conflicts with existing data\",\"details\":[],\"traceId\":\"2d9e6242-8d55-4fc4-8cf4-f1fb4d8d9880\"}}"
+        }
+      ],
+      "afterReload": "null",
+      "persisted": false
+    }
+  },
+  {
+    "k": "SAVE-ATTEMPT",
+    "v": {
+      "label": "address-jsonquoted",
+      "field": "address",
+      "typed": "\"12 Khayaban-e-Iqbal\"",
+      "before": "null",
+      "toasts": [
+        "Saved at 3:44:57 AM",
+        "Branch details saved."
+      ],
+      "network": [
+        {
+          "method": "PUT",
+          "url": "/api/v1/branches/34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "reqBody": "{\"address\":\"\\\"12 Khayaban-e-Iqbal\\\"\"}",
+          "status": 200,
+          "body": "{\"data\":{\"id\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"name\":\"Floating Terrace HQ\",\"isHq\":true,\"isActive\":true,\"address\":\"\\\"12 Khayaban-e-Iqbal\\\"\",\"fbrStrn\":null,\"ntn\":null,\"phone\":\"+92 21 4628872\",\"email\":\"\",\"timezone\":\"Asia/Karachi\",\"currencyConfig\":null,\"receiptConfig\":\"{\\\"fbr\\\": null, \\\"agent\\\": {\\\"lanUrl\\\": null, \\\"baseUrl\\\": \\\"http://127.0.0.1:7654\\\"}, \\\"footer\\\": null, \\\"header\\\": null, \\\"printers\\\": [{\\\"id\\\": \\\"kitchen-main\\\", \\\"cut\\\": \\\"F"
+        }
+      ],
+      "afterReload": "\"12 Khayaban-e-Iqbal\"",
+      "persisted": true
+    }
+  },
+  {
+    "k": "SAVE-ATTEMPT",
+    "v": {
+      "label": "phone",
+      "field": "phone",
+      "typed": "+92 51 111 2233",
+      "before": "+92 21 4628872",
+      "toasts": [
+        "Saved at 3:45:06 AM",
+        "Branch details saved."
+      ],
+      "network": [
+        {
+          "method": "PUT",
+          "url": "/api/v1/branches/34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "reqBody": "{\"phone\":\"+92 51 111 2233\"}",
+          "status": 200,
+          "body": "{\"data\":{\"id\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"name\":\"Floating Terrace HQ\",\"isHq\":true,\"isActive\":true,\"address\":\"\\\"12 Khayaban-e-Iqbal\\\"\",\"fbrStrn\":null,\"ntn\":null,\"phone\":\"+92 51 111 2233\",\"email\":\"\",\"timezone\":\"Asia/Karachi\",\"currencyConfig\":null,\"receiptConfig\":\"{\\\"fbr\\\": null, \\\"agent\\\": {\\\"lanUrl\\\": null, \\\"baseUrl\\\": \\\"http://127.0.0.1:7654\\\"}, \\\"footer\\\": null, \\\"header\\\": null, \\\"printers\\\": [{\\\"id\\\": \\\"kitchen-main\\\", \\\"cut\\\": \\\""
+        }
+      ],
+      "afterReload": "+92 51 111 2233",
+      "persisted": true
+    }
+  },
+  {
+    "k": "SAVE-ATTEMPT",
+    "v": {
+      "label": "email",
+      "field": "email",
+      "typed": "hq@floatingterrace.pk",
+      "before": "",
+      "toasts": [
+        "Saved at 3:45:15 AM",
+        "Branch details saved."
+      ],
+      "network": [
+        {
+          "method": "PUT",
+          "url": "/api/v1/branches/34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "reqBody": "{\"email\":\"hq@floatingterrace.pk\"}",
+          "status": 200,
+          "body": "{\"data\":{\"id\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"name\":\"Floating Terrace HQ\",\"isHq\":true,\"isActive\":true,\"address\":\"\\\"12 Khayaban-e-Iqbal\\\"\",\"fbrStrn\":null,\"ntn\":null,\"phone\":\"+92 51 111 2233\",\"email\":\"hq@floatingterrace.pk\",\"timezone\":\"Asia/Karachi\",\"currencyConfig\":null,\"receiptConfig\":\"{\\\"fbr\\\": null, \\\"agent\\\": {\\\"lanUrl\\\": null, \\\"baseUrl\\\": \\\"http://127.0.0.1:7654\\\"}, \\\"footer\\\": null, \\\"header\\\": null, \\\"printers\\\": [{\\\"id\\\": \\\"kitche"
+        }
+      ],
+      "afterReload": "hq@floatingterrace.pk",
+      "persisted": true
+    }
+  }
+]

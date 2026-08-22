@@ -1,0 +1,175 @@
+{
+  "vendorPage": {
+    "hasRTBAD": false,
+    "hasNotAnEmail": false,
+    "vendorCountLine": "6\nVendors",
+    "snippet": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nCollapse\nApp\nPurchasing\nVendors\nFloating Terrace HQ\nSearch…\n⌘K\n6\nVendors\nSuggested Orders\nPurchase Orders\nInvoices\nPayments\nAnalytics\nVendors\nAdd vendor\nFloating Terrace Supplies\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786468439 MANAGER\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786468439 OWNER\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786468624 MANAGER\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786468624 OWNER\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786468766 MANAGER\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-17"
+  },
+  "burgerFound": true,
+  "allButtonsAtMobile": [
+    {
+      "l": "Toggle mobile menu"
+    },
+    {
+      "l": "Search"
+    },
+    {
+      "l": "Switch to light mode"
+    },
+    {
+      "l": "Open profile menu"
+    }
+  ],
+  "burgerOpens": {
+    "visibleNavLinks": 37,
+    "sample": [
+      "Dashboard",
+      "POS",
+      "Kitchen Display",
+      "Till Review",
+      "Inventory",
+      "Menu Items"
+    ]
+  },
+  "tinyControls": [
+    {
+      "tag": "a",
+      "w": 75,
+      "h": 19,
+      "label": "3913C000"
+    },
+    {
+      "tag": "a",
+      "w": 76,
+      "h": 19,
+      "label": "CA6ED037"
+    },
+    {
+      "tag": "a",
+      "w": 75,
+      "h": 19,
+      "label": "9958FABA"
+    },
+    {
+      "tag": "a",
+      "w": 76,
+      "h": 19,
+      "label": "D43693CE"
+    },
+    {
+      "tag": "a",
+      "w": 76,
+      "h": 19,
+      "label": "4884829C"
+    },
+    {
+      "tag": "a",
+      "w": 77,
+      "h": 19,
+      "label": "99A80052"
+    },
+    {
+      "tag": "a",
+      "w": 70,
+      "h": 19,
+      "label": "DCDD1101"
+    },
+    {
+      "tag": "a",
+      "w": 75,
+      "h": 19,
+      "label": "8F32F62D"
+    },
+    {
+      "tag": "a",
+      "w": 77,
+      "h": 19,
+      "label": "C96E834A"
+    },
+    {
+      "tag": "a",
+      "w": 70,
+      "h": 19,
+      "label": "7121D2B0"
+    },
+    {
+      "tag": "a",
+      "w": 67,
+      "h": 19,
+      "label": "FA1160F6"
+    },
+    {
+      "tag": "a",
+      "w": 67,
+      "h": 19,
+      "label": "616120F3"
+    }
+  ],
+  "se": [
+    {
+      "route": "/app/inventory/ingredients",
+      "opened": true,
+      "w": 343,
+      "h": 691,
+      "vh": 667,
+      "clipTop": 12,
+      "clipBottom": 12,
+      "innerScrollable": false,
+      "submitVisible": true,
+      "submitLabel": "Add ingredient",
+      "pageScrollY": 0,
+      "docScrollable": false
+    },
+    {
+      "route": "/app/hr/employees",
+      "opened": true,
+      "w": 343,
+      "h": 600,
+      "vh": 667,
+      "clipTop": 0,
+      "clipBottom": 0,
+      "innerScrollable": true,
+      "submitVisible": false,
+      "submitLabel": "Add employee",
+      "pageScrollY": 0,
+      "docScrollable": false
+    },
+    {
+      "route": "/app/purchasing/purchase-orders",
+      "opened": true,
+      "w": 343,
+      "h": 622,
+      "vh": 667,
+      "clipTop": 0,
+      "clipBottom": 0,
+      "innerScrollable": false,
+      "submitVisible": true,
+      "submitLabel": "Create purchase order",
+      "pageScrollY": 0,
+      "docScrollable": false
+    }
+  ],
+  "toastLifetime": [
+    {
+      "tMs": 1006,
+      "toasts": 1
+    },
+    {
+      "tMs": 2010,
+      "toasts": 1
+    },
+    {
+      "tMs": 3012,
+      "toasts": 1
+    },
+    {
+      "tMs": 4013,
+      "toasts": 1
+    },
+    {
+      "tMs": 5016,
+      "toasts": 0
+    }
+  ],
+  "toastShape": null
+}

@@ -1,0 +1,217 @@
+### persona=owner
+login ok=true url=http://localhost:3000/app/dashboard
+token@login key=undefined totp_verified=undefined iat=undefined exp=undefined
+periods url=http://localhost:3000/app/finance/periods denied=false errored=false sessionLost=false
+--- periods body (first 1800) ---
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+Kitchen Display
+Till Review
+
+MENU
+
+Inventory
+Menu Items
+Tables
+Stations
+POS Terminals
+
+FINANCE
+
+Guide
+Takings
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+
+PURCHASING
+
+Purchasing
+
+PEOPLE
+
+HR
+Customers
+
+REPORTING
+
+Reports
+Realtime Dashboard
+Ask (NLQ)
+
+SETTINGS
+
+General
+Appearance
+Users
+Collapse
+App
+Finance
+Periods
+Floating Terrace HQ
+Search…
+⌘K
+6
+Takings
+Transactions
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+House Accounts
+AR Aging
+Guide
+Accounting Periods
+
+FY 2026–2027 (Jul – Jun)
+
+FY 2026–2027 (Jul – Jun)
+Provision Periods
+Period	Start Date	End Date	Status	Locked By	
+Period 1	2026-07-01	2026-07-31	LOCKED	9e11ef06-4bfa-4fc2-af4f-b2063b297662	
+Period 2	2026-08-01	2026-08-31	OPEN	—	Close Period
+Period 3	2026-09-01	2026-09-30	OPEN	—	Close Period
+Period 4	2026-10-01	2026-10-31	OPEN	—	Close Period
+Period 5	2026-11-01	2026-11-30	OPEN	—	Close Period
+Period 6	2026-12-01	2026-12-31	OPEN	—	Close Period
+Period 7	2027-01-01	2027-01-31	OPEN	—	Close Period
+Period 8	2027-02-01	2027-02-28	OPEN	—	Close Period
+Period 9	2027-03-01	2027-03-31	OPEN	—	Close Period
+Period 10	2027-04-01	2027-04-30	OPEN	—	Close Period
+Period 11	2027-05-01	2027-05-31	OPEN	—	Close Period
+Period 12	2027-06-01	2027-06-30	OPEN	—	Close Period
+Close Period buttons: 11
+token@before-click totp_verified=undefined iat=undefined
+dialog box: {"x":0,"y":0,"width":1600,"height":1100}
+--- dialog text ---
+Close Accounting Period
+
+2026-08-01 – 2026-08-31
+
+Warning: Closing a period locks it permanently. No new journal entries can be posted to a locked period.
+Close Period
+Cancel
+TOTP input inside dialog: 0
+confirm buttons in dialog: 1
+confirm disabled=false
+--- after confirm (first 1500) ---
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+Kitchen Display
+Till Review
+
+MENU
+
+Inventory
+Menu Items
+Tables
+Stations
+POS Terminals
+
+FINANCE
+
+Guide
+Takings
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+
+PURCHASING
+
+Purchasing
+
+PEOPLE
+
+HR
+Customers
+
+REPORTING
+
+Reports
+Realtime Dashboard
+Ask (NLQ)
+
+SETTINGS
+
+General
+Appearance
+Users
+Collapse
+App
+Finance
+Periods
+Floating Terrace HQ
+Search…
+⌘K
+6
+Takings
+Transactions
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+House Accounts
+AR Aging
+Guide
+Accounting Periods
+
+FY 2026–2027 (Jul – Jun)
+
+FY 2026–2027 (Jul – Jun)
+Provision Periods
+Period	Start Date	End Date	Status	Locked By	
+Period 1	2026-07-01	2026-07-31	LOCKED	9e11ef06-4bfa-4fc2-af4f-b2063b297662	
+Period 2	2026-08-01	2026-08-31	OPEN	—	Close Period
+Period 3	2026-09-01	2026-09-30	OPEN	—	Close Period
+Period 4	2026-10-01	2026-10-31	OPEN	—	Close Period
+Period 5	2026-11-01	2026-11-30	OPEN	—	Close Period
+Period 6	2026-12-01	2026-12-31	OPEN	—	Close Period
+Period 7	2027-01-01	2027-01-31	OPEN	—	Close Period
+Period 8	2027-02-01	2027-02-28	OPEN	—	Close Period
+Period 9	2027-03-01	2027-03-31	OPEN	—	Close Period
+Period 10	2027-04-01	2027-04-30	OPEN	—	Close Period
+Period 11	2027-05-01	2027-05-31	OPEN	—	Close Period
+Period 12	2027-06-01	2027-06-30	OPEN	—	Close Period
+Close Accounting Period
+
+2026-08-01 – 2026-08-31
+
+Warning: Closing a period locks it permanently. No new journal entries can be posted to a locked period.
+
+Verification expired
+
+To close th
+alerts: ["Verification expired\n\nTo close this period you need to sign in again with your authenticator code. Your session is still valid — this extra check expires about an hour after you sign in.\n\nSign in again",""]
+--- finance/auth network ---
+401 POST /api/v1/auth/login
+200 POST /api/v1/auth/login
+200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+200 POST /api/v1/auth/refresh
+200 GET /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8
+200 GET /api/v1/finance/periods?fiscalYear=2027
+200 GET /api/v1/finance/accounts/setup/status
+403 POST /api/v1/finance/periods/d5a01de9-ee35-46f4-9545-ba0c72f14741/close

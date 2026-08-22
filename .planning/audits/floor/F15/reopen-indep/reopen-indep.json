@@ -1,0 +1,913 @@
+{
+  "pass": 51,
+  "fail": 1,
+  "results": [
+    {
+      "label": "h1 is 'Report not found', not the URL slug",
+      "ok": true,
+      "detail": "Report not found"
+    },
+    {
+      "label": "not-found panel present and says it doesn't exist",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "panel names the code asked for",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "zero date inputs",
+      "ok": true,
+      "detail": "0"
+    },
+    {
+      "label": "zero run POSTs fired",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "label": "no unexplained [role=alert]",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "label": "PERSISTS after reload — still 'Report not found'",
+      "ok": true,
+      "detail": "Report not found"
+    },
+    {
+      "label": "PERSISTS after reload — still 0 date inputs",
+      "ok": true,
+      "detail": "0"
+    },
+    {
+      "label": "PERSISTS after reload — still 0 run POSTs",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "label": "clicking 'Back to all reports' lands on /app/reports",
+      "ok": true,
+      "detail": "http://localhost:3000/app/reports"
+    },
+    {
+      "label": "catalog shows report links",
+      "ok": true,
+      "detail": "8"
+    },
+    {
+      "label": "client-side into sales-by-day renders its title",
+      "ok": true,
+      "detail": "Sales by Day"
+    },
+    {
+      "label": "client-side into sales-by-day renders rows",
+      "ok": true,
+      "detail": "3"
+    },
+    {
+      "label": "warm-cache client-side nav to bogus → 'Report not found'",
+      "ok": true,
+      "detail": "Report not found"
+    },
+    {
+      "label": "warm-cache bogus → 0 date inputs",
+      "ok": true,
+      "detail": "0"
+    },
+    {
+      "label": "warm-cache bogus → 0 run POSTs",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "label": "from the not-found page, client-side to a REAL report recovers",
+      "ok": true,
+      "detail": "Purchases by Purchase Order"
+    },
+    {
+      "label": "...and actually runs it (>=1 run POST, 200)",
+      "ok": true,
+      "detail": "[\"200 purchases-by-po/run\"]"
+    },
+    {
+      "label": "...and renders rows",
+      "ok": true,
+      "detail": "25"
+    },
+    {
+      "label": "the walkthrough's own URL → not-found, no form, no run",
+      "ok": true,
+      "detail": "/app/reports/audit h1=Report not found dates=0 runs=0"
+    },
+    {
+      "label": "case variant of a REAL code → not-found, no form, no run",
+      "ok": true,
+      "detail": "/app/reports/Sales-By-Day h1=Report not found dates=0 runs=0"
+    },
+    {
+      "label": "real code with a suffix → not-found, no form, no run",
+      "ok": true,
+      "detail": "/app/reports/sales-by-day-x h1=Report not found dates=0 runs=0"
+    },
+    {
+      "label": "prefix of a real code → not-found, no form, no run",
+      "ok": true,
+      "detail": "/app/reports/sales h1=Report not found dates=0 runs=0"
+    },
+    {
+      "label": "path-traversal-ish segment → not-found, no form, no run",
+      "ok": true,
+      "detail": "/app/reports/..%2Fetc h1=Report not found dates=0 runs=0"
+    },
+    {
+      "label": "html in the code → not-found, no form, no run",
+      "ok": true,
+      "detail": "/app/reports/%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E h1=Report not found dates=0 runs=0"
+    },
+    {
+      "label": "interpolated code is escaped (no injected <img>)",
+      "ok": true,
+      "detail": "0"
+    },
+    {
+      "label": "/app/reports/fbr is NOT swallowed by the not-found branch",
+      "ok": true,
+      "detail": "FBR Tax Summary"
+    },
+    {
+      "label": "catalog 503 is NOT reported as 'report not found'",
+      "ok": true,
+      "detail": "false"
+    },
+    {
+      "label": "catalog 503 announces an outage via [role=alert]",
+      "ok": true,
+      "detail": "[\"The report catalog is unavailable right now.The part of RestaurantOS that handles the report catalog is not answering. This is not something you did, and nothing you have entered has been lost.Try a"
+    },
+    {
+      "label": "catalog 503 does not draw a date form",
+      "ok": true,
+      "detail": "0"
+    },
+    {
+      "label": "a REAL report whose run fails announces it",
+      "ok": true,
+      "detail": "[\"The Sales by Day report is unavailable right now.The part of RestaurantOS that handles the Sales by Day report is not answering. This is not something you did, and nothing you have entered has been lost. The rest of th"
+    },
+    {
+      "label": "a failed run is NOT a silent blank",
+      "ok": true,
+      "detail": "outage=true err=false"
+    },
+    {
+      "label": "a failed run still shows the report's real title",
+      "ok": true,
+      "detail": "Sales by Day"
+    },
+    {
+      "label": "cashier@terrace.local is REFUSED a real report (permission not widened)",
+      "ok": true,
+      "detail": "denied=true rows=0 h1=Access denied"
+    },
+    {
+      "label": "cashier@terrace.local sees no report rows",
+      "ok": true,
+      "detail": "0"
+    },
+    {
+      "label": "cashier@terrace.local on a bogus code is refused, not shown a product page",
+      "ok": true,
+      "detail": "denied=true notFound=false"
+    },
+    {
+      "label": "waiter@terrace.local is REFUSED a real report (permission not widened)",
+      "ok": true,
+      "detail": "denied=true rows=0 h1=Access denied"
+    },
+    {
+      "label": "waiter@terrace.local sees no report rows",
+      "ok": true,
+      "detail": "0"
+    },
+    {
+      "label": "waiter@terrace.local on a bogus code is refused, not shown a product page",
+      "ok": true,
+      "detail": "denied=true notFound=false"
+    },
+    {
+      "label": "tenant B: bogus code → 'Report not found'",
+      "ok": true,
+      "detail": "Report not found"
+    },
+    {
+      "label": "tenant B: real report renders its own title",
+      "ok": true,
+      "detail": "Sales by Day"
+    },
+    {
+      "label": "tenant B: sees NO Floating Terrace figures",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "purchases-by-po → real title, a date form, a 200 run, no alert",
+      "ok": true,
+      "detail": "h1=Purchases by Purchase Order dates=2 runs=[\"200 purchases-by-po/run\"] alerts=0 rows=25"
+    },
+    {
+      "label": "purchases-by-po has 1+ rows",
+      "ok": true,
+      "detail": "25"
+    },
+    {
+      "label": "sales-by-day → real title, a date form, a 200 run, no alert",
+      "ok": true,
+      "detail": "h1=Sales by Day dates=2 runs=[\"200 sales-by-day/run\"] alerts=0 rows=3"
+    },
+    {
+      "label": "sales-by-day has 1+ rows",
+      "ok": true,
+      "detail": "3"
+    },
+    {
+      "label": "sales-by-item → real title, a date form, a 200 run, no alert",
+      "ok": true,
+      "detail": "h1=Sales by Item dates=2 runs=[\"200 sales-by-item/run\"] alerts=0 rows=16"
+    },
+    {
+      "label": "sales-by-hour → real title, a date form, a 200 run, no alert",
+      "ok": false,
+      "detail": "h1=Sales by Hour (Peak Hours) dates=2 runs=[\"200 sales-by-hour/run\"] alerts=0 rows=14"
+    },
+    {
+      "label": "sales-by-order-type → real title, a date form, a 200 run, no alert",
+      "ok": true,
+      "detail": "h1=Sales by Order Type dates=2 runs=[\"200 sales-by-order-type/run\"] alerts=0 rows=2"
+    },
+    {
+      "label": "discount-summary → real title, a date form, a 200 run, no alert",
+      "ok": true,
+      "detail": "h1=Discount Summary dates=2 runs=[\"200 discount-summary/run\"] alerts=0 rows=5"
+    },
+    {
+      "label": "till-sessions → real title, a date form, a 200 run, no alert",
+      "ok": true,
+      "detail": "h1=Till Sessions dates=2 runs=[\"200 till-sessions/run\"] alerts=0 rows=8"
+    },
+    {
+      "label": "390px: not-found renders, no horizontal overflow",
+      "ok": true,
+      "detail": "notFound=true scrollW=390 innerW=390"
+    }
+  ],
+  "record": {
+    "bogus": {
+      "url": "http://localhost:3000/app/reports/definitely-not-a-report",
+      "h1": [
+        "Report not found"
+      ],
+      "dateInputs": 0,
+      "notFound": true,
+      "notFoundText": "This report doesn't exist\n\nNo report is registered under the code \"definitely-not-a-report\". The link may be out of date, or the code mistyped — nothing has gone wrong with your data.\n\nBack to all reports",
+      "outage": false,
+      "queryError": false,
+      "refusal": false,
+      "accessDenied": false,
+      "alerts": [],
+      "headers": [],
+      "rows": 0,
+      "bodySnippet": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branc",
+      "scrollW": 1440,
+      "innerW": 1440,
+      "runs": []
+    },
+    "bogusReload": {
+      "url": "http://localhost:3000/app/reports/definitely-not-a-report",
+      "h1": [
+        "Report not found"
+      ],
+      "dateInputs": 0,
+      "notFound": true,
+      "notFoundText": "This report doesn't exist\n\nNo report is registered under the code \"definitely-not-a-report\". The link may be out of date, or the code mistyped — nothing has gone wrong with your data.\n\nBack to all reports",
+      "outage": false,
+      "queryError": false,
+      "refusal": false,
+      "accessDenied": false,
+      "alerts": [],
+      "headers": [],
+      "rows": 0,
+      "bodySnippet": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branc",
+      "scrollW": 1440,
+      "innerW": 1440,
+      "runs": []
+    },
+    "catalog": {
+      "url": "http://localhost:3000/app/reports",
+      "links": [
+        "/app/reports/fbr",
+        "/app/reports/sales-by-day",
+        "/app/reports/sales-by-item",
+        "/app/reports/sales-by-hour",
+        "/app/reports/sales-by-order-type",
+        "/app/reports/discount-summary",
+        "/app/reports/till-sessions",
+        "/app/reports/purchases-by-po"
+      ]
+    },
+    "warmBogus": {
+      "url": "http://localhost:3000/app/reports/warm-cache-bogus",
+      "h1": [
+        "Report not found"
+      ],
+      "dateInputs": 0,
+      "notFound": true,
+      "notFoundText": "This report doesn't exist\n\nNo report is registered under the code \"warm-cache-bogus\". The link may be out of date, or the code mistyped — nothing has gone wrong with your data.\n\nBack to all reports",
+      "outage": false,
+      "queryError": false,
+      "refusal": false,
+      "accessDenied": false,
+      "alerts": [],
+      "headers": [],
+      "rows": 0,
+      "bodySnippet": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branc",
+      "scrollW": 1440,
+      "innerW": 1440,
+      "runs": []
+    },
+    "bogusThenReal": {
+      "url": "http://localhost:3000/app/reports/purchases-by-po",
+      "h1": [
+        "Purchases by Purchase Order"
+      ],
+      "dateInputs": 2,
+      "notFound": false,
+      "notFoundText": "",
+      "outage": false,
+      "queryError": false,
+      "refusal": false,
+      "accessDenied": false,
+      "alerts": [],
+      "headers": [
+        "Purchase Order Id",
+        "Business Date",
+        "Invoice Count",
+        "Spend Paisa",
+        "Input Tax Paisa"
+      ],
+      "rows": 25,
+      "bodySnippet": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branc",
+      "scrollW": 1440,
+      "innerW": 1440,
+      "runs": [
+        "200 purchases-by-po/run"
+      ]
+    },
+    "shapes": [
+      {
+        "route": "/app/reports/audit",
+        "why": "the walkthrough's own URL",
+        "url": "http://localhost:3000/app/reports/audit",
+        "h1": [
+          "Report not found"
+        ],
+        "dateInputs": 0,
+        "notFound": true,
+        "notFoundText": "This report doesn't exist\n\nNo report is registered under the code \"audit\". The link may be out of date, or the code mistyped — nothing has gone wrong with your data.\n\nBack to all reports",
+        "outage": false,
+        "queryError": false,
+        "refusal": false,
+        "accessDenied": false,
+        "alerts": [],
+        "headers": [],
+        "rows": 0,
+        "bodySnippet": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branc",
+        "scrollW": 1440,
+        "innerW": 1440,
+        "runs": []
+      },
+      {
+        "route": "/app/reports/Sales-By-Day",
+        "why": "case variant of a REAL code",
+        "url": "http://localhost:3000/app/reports/Sales-By-Day",
+        "h1": [
+          "Report not found"
+        ],
+        "dateInputs": 0,
+        "notFound": true,
+        "notFoundText": "This report doesn't exist\n\nNo report is registered under the code \"Sales-By-Day\". The link may be out of date, or the code mistyped — nothing has gone wrong with your data.\n\nBack to all reports",
+        "outage": false,
+        "queryError": false,
+        "refusal": false,
+        "accessDenied": false,
+        "alerts": [],
+        "headers": [],
+        "rows": 0,
+        "bodySnippet": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branc",
+        "scrollW": 1440,
+        "innerW": 1440,
+        "runs": []
+      },
+      {
+        "route": "/app/reports/sales-by-day-x",
+        "why": "real code with a suffix",
+        "url": "http://localhost:3000/app/reports/sales-by-day-x",
+        "h1": [
+          "Report not found"
+        ],
+        "dateInputs": 0,
+        "notFound": true,
+        "notFoundText": "This report doesn't exist\n\nNo report is registered under the code \"sales-by-day-x\". The link may be out of date, or the code mistyped — nothing has gone wrong with your data.\n\nBack to all reports",
+        "outage": false,
+        "queryError": false,
+        "refusal": false,
+        "accessDenied": false,
+        "alerts": [],
+        "headers": [],
+        "rows": 0,
+        "bodySnippet": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branc",
+        "scrollW": 1440,
+        "innerW": 1440,
+        "runs": []
+      },
+      {
+        "route": "/app/reports/sales",
+        "why": "prefix of a real code",
+        "url": "http://localhost:3000/app/reports/sales",
+        "h1": [
+          "Report not found"
+        ],
+        "dateInputs": 0,
+        "notFound": true,
+        "notFoundText": "This report doesn't exist\n\nNo report is registered under the code \"sales\". The link may be out of date, or the code mistyped — nothing has gone wrong with your data.\n\nBack to all reports",
+        "outage": false,
+        "queryError": false,
+        "refusal": false,
+        "accessDenied": false,
+        "alerts": [],
+        "headers": [],
+        "rows": 0,
+        "bodySnippet": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branc",
+        "scrollW": 1440,
+        "innerW": 1440,
+        "runs": []
+      },
+      {
+        "route": "/app/reports/..%2Fetc",
+        "why": "path-traversal-ish segment",
+        "url": "http://localhost:3000/app/reports/..%2Fetc",
+        "h1": [
+          "Report not found"
+        ],
+        "dateInputs": 0,
+        "notFound": true,
+        "notFoundText": "This report doesn't exist\n\nNo report is registered under the code \"..%2Fetc\". The link may be out of date, or the code mistyped — nothing has gone wrong with your data.\n\nBack to all reports",
+        "outage": false,
+        "queryError": false,
+        "refusal": false,
+        "accessDenied": false,
+        "alerts": [],
+        "headers": [],
+        "rows": 0,
+        "bodySnippet": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branc",
+        "scrollW": 1440,
+        "innerW": 1440,
+        "runs": []
+      },
+      {
+        "route": "/app/reports/%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E",
+        "why": "html in the code",
+        "url": "http://localhost:3000/app/reports/%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E",
+        "h1": [
+          "Report not found"
+        ],
+        "dateInputs": 0,
+        "notFound": true,
+        "notFoundText": "This report doesn't exist\n\nNo report is registered under the code \"%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E\". The link may be out of date, or the code mistyped — nothing has gone wrong with your data.\n\nBack to all reports",
+        "outage": false,
+        "queryError": false,
+        "refusal": false,
+        "accessDenied": false,
+        "alerts": [],
+        "headers": [],
+        "rows": 0,
+        "bodySnippet": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branc",
+        "scrollW": 1440,
+        "innerW": 1440,
+        "runs": []
+      }
+    ],
+    "fbr": {
+      "url": "http://localhost:3000/app/reports/fbr",
+      "h1": [
+        "FBR Tax Summary"
+      ],
+      "dateInputs": 2,
+      "notFound": false,
+      "notFoundText": "",
+      "outage": false,
+      "queryError": false,
+      "refusal": false,
+      "accessDenied": false,
+      "alerts": [],
+      "headers": [],
+      "rows": 0,
+      "bodySnippet": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branc",
+      "scrollW": 1440,
+      "innerW": 1440
+    },
+    "catalogOutage": {
+      "url": "http://localhost:3000/app/reports/definitely-not-a-report",
+      "h1": [
+        "Report"
+      ],
+      "dateInputs": 0,
+      "notFound": false,
+      "notFoundText": "",
+      "outage": true,
+      "queryError": false,
+      "refusal": false,
+      "accessDenied": false,
+      "alerts": [
+        "The report catalog is unavailable right now.The part of RestaurantOS that handles the report catalog is not answering. This is not something you did, and nothing you have entered has been lost.Try againSee which services are down"
+      ],
+      "headers": [],
+      "rows": 0,
+      "bodySnippet": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branc",
+      "scrollW": 1440,
+      "innerW": 1440,
+      "runs": []
+    },
+    "runFailure": {
+      "url": "http://localhost:3000/app/reports/sales-by-day",
+      "h1": [
+        "Sales by Day"
+      ],
+      "dateInputs": 2,
+      "notFound": false,
+      "notFoundText": "",
+      "outage": true,
+      "queryError": false,
+      "refusal": false,
+      "accessDenied": false,
+      "alerts": [
+        "The Sales by Day report is unavailable right now.The part of RestaurantOS that handles the Sales by Day report is not answering. This is not something you did, and nothing you have entered has been lost. The rest of the product is unaffecte"
+      ],
+      "headers": [],
+      "rows": 0,
+      "bodySnippet": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branc",
+      "scrollW": 1440,
+      "innerW": 1440
+    },
+    "persona_cashier@terrace.local": {
+      "bogus": {
+        "url": "http://localhost:3000/app/reports/definitely-not-a-report",
+        "h1": [
+          "Access denied"
+        ],
+        "dateInputs": 0,
+        "notFound": false,
+        "notFoundText": "",
+        "outage": false,
+        "queryError": false,
+        "refusal": false,
+        "accessDenied": true,
+        "alerts": [],
+        "headers": [],
+        "rows": 0,
+        "bodySnippet": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse App Reports Definitely Not A Report Floating Terrace HQ Search… ⌘K E Access denied You do not have permission to view this page. Back to dashboard",
+        "scrollW": 1440,
+        "innerW": 1440,
+        "runs": []
+      },
+      "real": {
+        "url": "http://localhost:3000/app/reports/sales-by-day",
+        "h1": [
+          "Access denied"
+        ],
+        "dateInputs": 0,
+        "notFound": false,
+        "notFoundText": "",
+        "outage": false,
+        "queryError": false,
+        "refusal": false,
+        "accessDenied": true,
+        "alerts": [],
+        "headers": [],
+        "rows": 0,
+        "bodySnippet": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse App Reports Sales By Day Floating Terrace HQ Search… ⌘K E Access denied You do not have permission to view this page. Back to dashboard",
+        "scrollW": 1440,
+        "innerW": 1440,
+        "runs": []
+      }
+    },
+    "persona_waiter@terrace.local": {
+      "bogus": {
+        "url": "http://localhost:3000/app/reports/definitely-not-a-report",
+        "h1": [
+          "Access denied"
+        ],
+        "dateInputs": 0,
+        "notFound": false,
+        "notFoundText": "",
+        "outage": false,
+        "queryError": false,
+        "refusal": false,
+        "accessDenied": true,
+        "alerts": [],
+        "headers": [],
+        "rows": 0,
+        "bodySnippet": "Floating Terrace OVERVIEW Dashboard ORDERS POS Kitchen Display MENU Service Charge Collapse App Reports Definitely Not A Report Floating Terrace HQ Search… ⌘K 6 Access denied You do not have permission to view this page. Back to dashboard",
+        "scrollW": 1440,
+        "innerW": 1440,
+        "runs": []
+      },
+      "real": {
+        "url": "http://localhost:3000/app/reports/sales-by-day",
+        "h1": [
+          "Access denied"
+        ],
+        "dateInputs": 0,
+        "notFound": false,
+        "notFoundText": "",
+        "outage": false,
+        "queryError": false,
+        "refusal": false,
+        "accessDenied": true,
+        "alerts": [],
+        "headers": [],
+        "rows": 0,
+        "bodySnippet": "Floating Terrace OVERVIEW Dashboard ORDERS POS Kitchen Display MENU Service Charge Collapse App Reports Sales By Day Floating Terrace HQ Search… ⌘K 6 Access denied You do not have permission to view this page. Back to dashboard",
+        "scrollW": 1440,
+        "innerW": 1440,
+        "runs": []
+      }
+    },
+    "controlTenant": {
+      "bogus": {
+        "url": "http://localhost:3000/app/reports/definitely-not-a-report",
+        "h1": [
+          "Report not found"
+        ],
+        "dateInputs": 0,
+        "notFound": true,
+        "notFoundText": "This report doesn't exist\n\nNo report is registered under the code \"definitely-not-a-report\". The link may be out of date, or the code mistyped — nothing has gone wrong with your data.\n\nBack to all reports",
+        "outage": false,
+        "queryError": false,
+        "refusal": false,
+        "accessDenied": false,
+        "alerts": [],
+        "headers": [],
+        "rows": 0,
+        "bodySnippet": "Control Bistro (isolation test tenant) OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR REPORTING Reports Realtime Dashboard SETTINGS General Branches Appearance Use",
+        "scrollW": 1440,
+        "innerW": 1440,
+        "runs": []
+      },
+      "real": {
+        "url": "http://localhost:3000/app/reports/sales-by-day",
+        "h1": [
+          "Sales by Day"
+        ],
+        "dateInputs": 2,
+        "notFound": false,
+        "notFoundText": "",
+        "outage": false,
+        "queryError": false,
+        "refusal": false,
+        "accessDenied": false,
+        "alerts": [],
+        "headers": [],
+        "rows": 0,
+        "bodySnippet": "Control Bistro (isolation test tenant) OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR REPORTING Reports Realtime Dashboard SETTINGS General Branches Appearance Use",
+        "scrollW": 1440,
+        "innerW": 1440,
+        "runs": [
+          "200 sales-by-day/run"
+        ]
+      }
+    },
+    "control_purchases-by-po": {
+      "url": "http://localhost:3000/app/reports/purchases-by-po",
+      "h1": [
+        "Purchases by Purchase Order"
+      ],
+      "dateInputs": 2,
+      "notFound": false,
+      "notFoundText": "",
+      "outage": false,
+      "queryError": false,
+      "refusal": false,
+      "accessDenied": false,
+      "alerts": [],
+      "headers": [
+        "Purchase Order Id",
+        "Business Date",
+        "Invoice Count",
+        "Spend Paisa",
+        "Input Tax Paisa"
+      ],
+      "rows": 25,
+      "bodySnippet": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branc",
+      "scrollW": 1440,
+      "innerW": 1440,
+      "runs": [
+        "200 purchases-by-po/run"
+      ]
+    },
+    "control_sales-by-day": {
+      "url": "http://localhost:3000/app/reports/sales-by-day",
+      "h1": [
+        "Sales by Day"
+      ],
+      "dateInputs": 2,
+      "notFound": false,
+      "notFoundText": "",
+      "outage": false,
+      "queryError": false,
+      "refusal": false,
+      "accessDenied": false,
+      "alerts": [],
+      "headers": [
+        "Business Date",
+        "Order Count",
+        "Subtotal Paisa",
+        "Discount Paisa",
+        "Tax Paisa",
+        "Total Paisa"
+      ],
+      "rows": 3,
+      "bodySnippet": "RestaurantOS Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branches ",
+      "scrollW": 1440,
+      "innerW": 1440,
+      "runs": [
+        "200 sales-by-day/run"
+      ]
+    },
+    "control_sales-by-item": {
+      "url": "http://localhost:3000/app/reports/sales-by-item",
+      "h1": [
+        "Sales by Item"
+      ],
+      "dateInputs": 2,
+      "notFound": false,
+      "notFoundText": "",
+      "outage": false,
+      "queryError": false,
+      "refusal": false,
+      "accessDenied": false,
+      "alerts": [],
+      "headers": [
+        "Menu Item Id",
+        "Item Name",
+        "Qty",
+        "Gross Revenue Paisa",
+        "Cogs Paisa",
+        "Gross Margin Paisa"
+      ],
+      "rows": 16,
+      "bodySnippet": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branc",
+      "scrollW": 1440,
+      "innerW": 1440,
+      "runs": [
+        "200 sales-by-item/run"
+      ]
+    },
+    "control_sales-by-hour": {
+      "url": "http://localhost:3000/app/reports/sales-by-hour",
+      "h1": [
+        "Sales by Hour (Peak Hours)"
+      ],
+      "dateInputs": 2,
+      "notFound": false,
+      "notFoundText": "",
+      "outage": false,
+      "queryError": false,
+      "refusal": false,
+      "accessDenied": false,
+      "alerts": [],
+      "headers": [
+        "Hour Of Day",
+        "Order Count",
+        "Revenue Paisa"
+      ],
+      "rows": 14,
+      "bodySnippet": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branc",
+      "scrollW": 1440,
+      "innerW": 1440,
+      "runs": [
+        "200 sales-by-hour/run"
+      ]
+    },
+    "control_sales-by-order-type": {
+      "url": "http://localhost:3000/app/reports/sales-by-order-type",
+      "h1": [
+        "Sales by Order Type"
+      ],
+      "dateInputs": 2,
+      "notFound": false,
+      "notFoundText": "",
+      "outage": false,
+      "queryError": false,
+      "refusal": false,
+      "accessDenied": false,
+      "alerts": [],
+      "headers": [
+        "Order Type",
+        "Order Count",
+        "Revenue Paisa"
+      ],
+      "rows": 2,
+      "bodySnippet": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branc",
+      "scrollW": 1440,
+      "innerW": 1440,
+      "runs": [
+        "200 sales-by-order-type/run"
+      ]
+    },
+    "control_discount-summary": {
+      "url": "http://localhost:3000/app/reports/discount-summary",
+      "h1": [
+        "Discount Summary"
+      ],
+      "dateInputs": 2,
+      "notFound": false,
+      "notFoundText": "",
+      "outage": false,
+      "queryError": false,
+      "refusal": false,
+      "accessDenied": false,
+      "alerts": [],
+      "headers": [
+        "Business Date",
+        "Order No",
+        "Scope",
+        "Item Name",
+        "Discount Type",
+        "Discount Value",
+        "Amount Paisa",
+        "Reason",
+        "Applied By",
+        "Closed At"
+      ],
+      "rows": 5,
+      "bodySnippet": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branc",
+      "scrollW": 1440,
+      "innerW": 1440,
+      "runs": [
+        "200 discount-summary/run"
+      ]
+    },
+    "control_till-sessions": {
+      "url": "http://localhost:3000/app/reports/till-sessions",
+      "h1": [
+        "Till Sessions"
+      ],
+      "dateInputs": 2,
+      "notFound": false,
+      "notFoundText": "",
+      "outage": false,
+      "queryError": false,
+      "refusal": false,
+      "accessDenied": false,
+      "alerts": [],
+      "headers": [
+        "Till Session Id",
+        "Cashier Id",
+        "Business Date",
+        "Expected Cash Paisa",
+        "Counted Cash Paisa",
+        "Variance Paisa",
+        "Closed At"
+      ],
+      "rows": 8,
+      "bodySnippet": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branc",
+      "scrollW": 1440,
+      "innerW": 1440,
+      "runs": [
+        "200 till-sessions/run"
+      ]
+    },
+    "mobile": {
+      "url": "http://localhost:3000/app/reports/definitely-not-a-report",
+      "h1": [
+        "Report not found"
+      ],
+      "dateInputs": 0,
+      "notFound": true,
+      "notFoundText": "This report doesn't exist\n\nNo report is registered under the code \"definitely-not-a-report\". The link may be out of date, or the code mistyped — nothing has gone wrong with your data.\n\nBack to all reports",
+      "outage": false,
+      "queryError": false,
+      "refusal": false,
+      "accessDenied": false,
+      "alerts": [],
+      "headers": [],
+      "rows": 0,
+      "bodySnippet": "6 ← All reports Report not found This report doesn't exist No report is registered under the code \"definitely-not-a-report\". The link may be out of date, or the code mistyped — nothing has gone wrong with your data. Back to all reports Dashboard Orders Menu Finance Settings",
+      "scrollW": 390,
+      "innerW": 390
+    }
+  }
+}

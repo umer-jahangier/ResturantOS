@@ -1,0 +1,155 @@
+===== B2. PERIOD CLOSE — following the step-up prompt to the end =====
+1st attempt API: 403 POST /api/v1/finance/periods/9ae618b4-f9c3-4358-8d47-97fa69ad0237/close
+"Sign in again" control present: 1
+after clicking it, url = http://localhost:3000/login?reason=step_up_required&next=%2Fapp%2Ffinance%2Fperiods
+--- what the user now sees ---
+Sign in to RestaurantOS
+
+Enter your email and password to continue
+
+That action needs a fresh authenticator code. Sign in again to continue — you'll be asked for your code, then taken back to where you were.
+
+Email
+Password
+Use a restaurant identifier instead
+Sign in
+inline TOTP field: 0
+thrown back to a FULL LOGIN form (email+password), not a step-up challenge
+url after full re-login: http://localhost:3000/app/finance/periods
+back on periods, Close buttons = 12, url=http://localhost:3000/app/finance/periods
+2nd attempt API: 403 POST /api/v1/finance/periods/9ae618b4-f9c3-4358-8d47-97fa69ad0237/close
+alerts: ["Verification expired\n\nTo close this period you need to sign in again with your authenticator code. Your session is still valid — this extra check expires about an hour after you sign in.\n\nSign in again",""]
+period table now:
+iods
+
+FY 2026–2027 (Jul – Jun)
+
+FY 2026–2027 (Jul – Jun)
+Provision Periods
+Period	Start Date	End Date	Status	Locked By	
+Period 1	2026-07-01	2026-07-31	OPEN	—	Close Period
+Period 2	2026-08-01	2026-08-31	OPEN	—	Close Period
+Period 3	2026-09-01	2026-09-30	OPEN	—	Close Period
+Period 4	2026-10-01	2026-10-31	OPEN	—	Close Period
+Period 5	2026-11-01	2026-11-30	OPEN	—	Close Period
+Period 6	2026-12-01	2026-12-31	OPEN	—	Close Period
+Period 7	2027-01-01	2027-01-31	OPEN	—	Close Period
+Period 8	2027-02-01	2027-02-28	OPEN	—	Close
+
+===== C2. JOURNAL ENTRY draft -> post =====
+url=http://localhost:3000/app/finance/journal-entries/new denied=false errored=false
+description field count: 0
+BODY:
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+FINANCE
+
+Guide
+Takings
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+
+PURCHASING
+
+Purchasing
+
+PEOPLE
+
+Customers
+
+REPORTING
+
+Reports
+Realtime Dashboard
+Ask (NLQ)
+Collapse
+Finance
+Journal Entries
+New
+Floating Terrace HQ
+Search…
+⌘K
+9
+Takings
+Transactions
+Accounts
+Journal Entries
+General Ledger
+Periods
+Expenses
+AP Aging
+House Accounts
+AR Aging
+Guide
+New Journal Entry
+
+Debits must equal credits before saving.
+
+Entry Date (open periods only)
+August 2026
+Su
+Mo
+Tu
+We
+Th
+Fr
+Sa
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+
+Selected: 2025-08-01
+
+Description
+Account
+Description
+Debit (paisa)
+Credit (paisa)
+×
+×
++ Add line
+Total DR: 0
+Total CR: 0
+Not balanced
+Save as Draft
+Cancel

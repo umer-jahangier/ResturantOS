@@ -1,0 +1,347 @@
+{
+  "name": "RTPERSIST312599",
+  "toast": [
+    "Added RTPERSIST312599"
+  ],
+  "listAfterCreateNoReload": {
+    "inDom": true,
+    "count": "6"
+  },
+  "afterReload": {
+    "inDom": false,
+    "text": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nCollapse\nApp\nPurchasing\nVendors\nFloating Terrace HQ\nSearch…\n⌘K\n6\nVendors\nSuggested Orders\nPurchase Orders\nInvoices\nPayments\nAnalytics\nVendors\nAdd vendor\nFloating Terrace Supplies\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786468439 MANAGER\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786468439 OWNER\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786468624 MANAGER\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786468624 OWNER\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786468766 MANAGER\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786468766 OWNER\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786468886 MANAGER\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786468886 OWNER\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786469011 MANAGER\nNET30\nManage catalog →\nEdit\nDrive Vendor p36-1786469011 OWNER\nNET30\nManage catalog →\nEdit\nDrive"
+  },
+  "network": [
+    {
+      "m": "POST",
+      "url": "/api/v1/purchasing/vendors",
+      "status": 200,
+      "body": "{\"data\":{\"id\":\"1e2c10ed-4ed5-4932-b0b2-d9eb850498ac\",\"name\":\"RTPERSIST312599\",\"contactPerson\":null,\"phone\":null,\"email\":\"still-not-an-email\",\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":null,\"active\":true},\"meta\":null,\"warnings\":[]}"
+    },
+    {
+      "m": "GET",
+      "url": "/api/v1/purchasing/vendors",
+      "status": 200,
+      "body": "{\"data\":[{\"id\":\"b6b79c85-6964-45b8-bd3c-e252399494bd\",\"name\":\"Floating Terrace Supplies\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":\"1234567-8\",\"strn\":\"12-34-5678-901-23\",\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"seed:d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"active\":true},{\"id\":\"f7ddb66d-f9ba-4144-b8f1-a6ac6006f903\",\"name\":\"Drive Vendor p36-1786468439 MANAGER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786468439\",\"active\":true},{\"id\":\"5fbf7f0e-454b-43df-934e-9eb4a24f932e\",\"name\":\"Drive Vendor p36-1786468439 OWNER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786468439\",\"active\":true},{\"id\":\"653ff10f-0d72-45f4-a83f-42467e939054\",\"name\":\"Drive Vendor p36-1786468624 MANAGER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786468624\",\"active\":true},{\"id\":\"f9434183-e1c9-4361-8b0b-f460ad505b39\",\"name\":\"Drive Vendor p36-1786468624 OWNER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786468624\",\"active\":true},{\"id\":\"6a72905e-7158-4b09-b4f0-fcc1b49292df\",\""
+    },
+    {
+      "m": "GET",
+      "url": "http://localhost:3000/app/purchasing/vendors",
+      "status": 200,
+      "body": "<!DOCTYPE html><html lang=\"en\" class=\"geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variable h-full antialiased\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"stylesheet\" href=\"/_next/static/chunks/%5Broot-of-the-server%5D__0cbk-n2._.css\" data-precedence=\"next_static/chunks/[root-of-the-server]__0cbk-n2._.css\"/><link rel=\"preload\" as=\"script\" fetchPriority=\"low\" href=\"/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_0hh8nta._.js\"/><script src=\"/_next/static/chunks/0fxd_next_dist_compiled_next-devtools_index_1_m2p5h.js\" async=\"\"></script><script src=\"/_next/static/chunks/0fxd_next_dist_compiled_react-dom_0hr_fid._.js\" async=\"\"></script><script src=\"/_next/static/chunks/0fxd_next_dist_compiled_react-server-dom-turbopack_1dou3i_._.js\" async=\"\"></script><script src=\"/_next/static/chunks/0fxd_next_dist_compiled_0guhjhi._.js\" async=\"\"></script><script src=\"/_next/static/chunks/0fxd_next_dist_client_0z-o077._.js\" async=\"\"></script><script src=\"/_next/static/chunks/0fxd_next_dist_1_jg8jr._.js\" async=\"\"></script><script src=\"/_next/static/chunks/0vvp_%40swc_helpers_cjs_0vb02wp._.js\" async=\"\"></script><script src=\"/_next/static/chunks/_1anvha4._.js\" async=\"\"></script><script src=\"/_next/static/chunks/turbopack-_11w6o2q._.js\" async=\"\"></script><script src=\"/_next/static/chunks/lib_repositories_session_repository_ts_04n8dg2._.js\" async=\"\"></script><script src=\"/_next/stat"
+    },
+    {
+      "m": "GET",
+      "url": "/api/v1/purchasing/vendors",
+      "status": 200,
+      "body": "{\"data\":[{\"id\":\"b6b79c85-6964-45b8-bd3c-e252399494bd\",\"name\":\"Floating Terrace Supplies\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":\"1234567-8\",\"strn\":\"12-34-5678-901-23\",\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"seed:d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"active\":true},{\"id\":\"f7ddb66d-f9ba-4144-b8f1-a6ac6006f903\",\"name\":\"Drive Vendor p36-1786468439 MANAGER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786468439\",\"active\":true},{\"id\":\"5fbf7f0e-454b-43df-934e-9eb4a24f932e\",\"name\":\"Drive Vendor p36-1786468439 OWNER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786468439\",\"active\":true},{\"id\":\"653ff10f-0d72-45f4-a83f-42467e939054\",\"name\":\"Drive Vendor p36-1786468624 MANAGER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786468624\",\"active\":true},{\"id\":\"f9434183-e1c9-4361-8b0b-f460ad505b39\",\"name\":\"Drive Vendor p36-1786468624 OWNER\",\"contactPerson\":null,\"phone\":null,\"email\":null,\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":\"p36-1786468624\",\"active\":true},{\"id\":\"6a72905e-7158-4b09-b4f0-fcc1b49292df\",\""
+    }
+  ],
+  "ingredientSE": {
+    "dialog": {
+      "h": 691,
+      "top": -12,
+      "bottom": 679,
+      "vh": 667
+    },
+    "dialogScrollable": false,
+    "overflowY": "visible",
+    "bodyScrollable": false,
+    "clippedElements": [
+      {
+        "tag": "select",
+        "text": "WeightVolumeCount",
+        "top": 646,
+        "bottom": 678
+      },
+      {
+        "tag": "label",
+        "text": "Stock unit",
+        "top": 694,
+        "bottom": 708
+      },
+      {
+        "tag": "button",
+        "text": "",
+        "top": 694,
+        "bottom": 708
+      },
+      {
+        "tag": "select",
+        "text": "Select…DOZEN · DozenEACH · EachPAI",
+        "top": 716,
+        "bottom": 748
+      },
+      {
+        "tag": "label",
+        "text": "Recipe unit",
+        "top": 764,
+        "bottom": 778
+      },
+      {
+        "tag": "button",
+        "text": "",
+        "top": 764,
+        "bottom": 778
+      },
+      {
+        "tag": "select",
+        "text": "Same as stock unitDOZEN · DozenEAC",
+        "top": 786,
+        "bottom": 818
+      },
+      {
+        "tag": "label",
+        "text": "Default yield %",
+        "top": 834,
+        "bottom": 848
+      },
+      {
+        "tag": "button",
+        "text": "",
+        "top": 834,
+        "bottom": 848
+      },
+      {
+        "tag": "input",
+        "text": "defaultYieldPct",
+        "top": 856,
+        "bottom": 888
+      },
+      {
+        "tag": "p",
+        "text": "Stock and recipe units are limited",
+        "top": 904,
+        "bottom": 984
+      },
+      {
+        "tag": "button",
+        "text": "",
+        "top": 1007,
+        "bottom": 1021
+      },
+      {
+        "tag": "button",
+        "text": "Add conversion",
+        "top": 1000,
+        "bottom": 1028
+      },
+      {
+        "tag": "label",
+        "text": "Par level",
+        "top": 1088,
+        "bottom": 1102
+      },
+      {
+        "tag": "button",
+        "text": "",
+        "top": 1088,
+        "bottom": 1102
+      },
+      {
+        "tag": "input",
+        "text": "parLevel",
+        "top": 1110,
+        "bottom": 1142
+      },
+      {
+        "tag": "label",
+        "text": "Reorder point",
+        "top": 1158,
+        "bottom": 1172
+      },
+      {
+        "tag": "button",
+        "text": "",
+        "top": 1158,
+        "bottom": 1172
+      },
+      {
+        "tag": "input",
+        "text": "reorderPoint",
+        "top": 1180,
+        "bottom": 1212
+      },
+      {
+        "tag": "label",
+        "text": "Storage location",
+        "top": 1228,
+        "bottom": 1242
+      },
+      {
+        "tag": "button",
+        "text": "",
+        "top": 1228,
+        "bottom": 1242
+      },
+      {
+        "tag": "select",
+        "text": "Not specified",
+        "top": 1250,
+        "bottom": 1282
+      },
+      {
+        "tag": "p",
+        "text": "No locations yet — add them under ",
+        "top": 1290,
+        "bottom": 1306
+      },
+      {
+        "tag": "label",
+        "text": "Shelf life (days)",
+        "top": 1322,
+        "bottom": 1336
+      },
+      {
+        "tag": "button",
+        "text": "",
+        "top": 1322,
+        "bottom": 1336
+      },
+      {
+        "tag": "input",
+        "text": "shelfLifeDays",
+        "top": 1344,
+        "bottom": 1376
+      },
+      {
+        "tag": "label",
+        "text": "Perishable",
+        "top": 1392,
+        "bottom": 1406
+      },
+      {
+        "tag": "button",
+        "text": "",
+        "top": 1392,
+        "bottom": 1406
+      },
+      {
+        "tag": "button",
+        "text": "Not perishable",
+        "top": 1414,
+        "bottom": 1444
+      },
+      {
+        "tag": "label",
+        "text": "Allergens",
+        "top": 1504,
+        "bottom": 1518
+      },
+      {
+        "tag": "button",
+        "text": "",
+        "top": 1504,
+        "bottom": 1518
+      },
+      {
+        "tag": "button",
+        "text": "Gluten",
+        "top": 1526,
+        "bottom": 1556
+      },
+      {
+        "tag": "button",
+        "text": "Crustaceans",
+        "top": 1526,
+        "bottom": 1556
+      },
+      {
+        "tag": "button",
+        "text": "Eggs",
+        "top": 1526,
+        "bottom": 1556
+      },
+      {
+        "tag": "button",
+        "text": "Fish",
+        "top": 1526,
+        "bottom": 1556
+      },
+      {
+        "tag": "button",
+        "text": "Peanuts",
+        "top": 1562,
+        "bottom": 1592
+      },
+      {
+        "tag": "button",
+        "text": "Soybeans",
+        "top": 1562,
+        "bottom": 1592
+      },
+      {
+        "tag": "button",
+        "text": "Milk",
+        "top": 1562,
+        "bottom": 1592
+      },
+      {
+        "tag": "button",
+        "text": "Tree nuts",
+        "top": 1598,
+        "bottom": 1628
+      },
+      {
+        "tag": "button",
+        "text": "Celery",
+        "top": 1598,
+        "bottom": 1628
+      },
+      {
+        "tag": "button",
+        "text": "Mustard",
+        "top": 1598,
+        "bottom": 1628
+      },
+      {
+        "tag": "button",
+        "text": "Sesame",
+        "top": 1634,
+        "bottom": 1664
+      },
+      {
+        "tag": "button",
+        "text": "Sulphites",
+        "top": 1634,
+        "bottom": 1664
+      },
+      {
+        "tag": "button",
+        "text": "Lupin",
+        "top": 1634,
+        "bottom": 1664
+      },
+      {
+        "tag": "button",
+        "text": "Molluscs",
+        "top": 1670,
+        "bottom": 1700
+      },
+      {
+        "tag": "button",
+        "text": "Close",
+        "top": -4,
+        "bottom": 24
+      }
+    ]
+  },
+  "ingredientSEAfterScroll": {
+    "top": -12,
+    "bottom": 679,
+    "scrollTop": 0,
+    "winY": 0
+  },
+  "hrSEBefore": {
+    "submitTop": 1002,
+    "submitBottom": 1034,
+    "vh": 667,
+    "scrollable": true
+  },
+  "hrSEAfterScroll": {
+    "submitTop": 545,
+    "submitBottom": 577,
+    "vh": 667,
+    "visible": true
+  }
+}

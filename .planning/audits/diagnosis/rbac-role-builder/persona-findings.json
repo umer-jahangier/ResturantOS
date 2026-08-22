@@ -1,0 +1,50 @@
+{
+  "superadmin": {
+    "tenantsListButtons": [
+      "Sign out",
+      "Create tenant",
+      "Show 4 purged tenants",
+      ""
+    ],
+    "url": "http://localhost:3000/platform/tenants",
+    "detailBody": "RestaurantOS\nPLATFORM\nOverview\nTenants\nSign out\nTenants\n\nEvery restaurant group on the platform, with the entitlements their tier grants.\n\nCreate tenant\nPlatform tenants\nTenant\tStatus\tTier\tBranches\tUsers\tStorage\tCreated\nDiag Bistro 696318\ndiag-bistro-696318\n\tActive\tENTERPRISE\tmax 50\tmax 500\t100 GB\t8/12/2026\nLume\ntest\n\tActive\tGROWTH\tmax 5\tmax 50\t20 GB\t6/30/2026\nSaffron Grill\nsaffron-grill\n\tActive\tSTARTER\tmax 1\tmax 10\t5 GB\t8/7/2026\nZaitoon Kitchen\nzaitoon-kitchen\n\tActive\tGROWTH\tmax 5\tmax 50\t20 GB\t8/7/2026\nMarina Bay Dining\nmarina-bay-dining\n\tActive\tENTERPRISE\tmax 50\tmax 500\t100 GB\t8/7/2026\nFloating Terrace\nfloating-terrace\n\tActive\tENTERPRISE\tmax 50\tmax 500\t100 GB\t8/7/2026\nControl Bistro (isolation test tenant)\ncontrol-bistro-isolation-test-tenant\n\tActive\tSTARTER\tmax 1\tmax 10\t5 GB\t8/7/2026\nGap Audit Bistro\ngap-audit-bistro\n\tActive\tGROWTH\tmax 5\tmax 50\t20 GB\t8/7/2026\nDemo Restaurant\ndemo\n\tActive\tGROWTH\tmax 5\tmax 50\t20 GB\t7/14/2026\nGA008 Verify Bistro\nga008-verify\n\tActive\tGROWTH\tmax 5\tmax 50\t20 GB\t8/7/2026\nGA008 Browser Bistro\nga008-browser\n\tActive\tGROWTH\tmax 5\tmax 50\t20 GB\t8/7/2026\nGA008 Browser Two\nga008-browser2\n\tActive\tGROWTH\tmax 5\tmax 50\t20 GB\t8/7/2026\nShow 4 purged tenants",
+    "switches": 0
+  },
+  "tenantAdmin": {
+    "/app/users": {
+      "is404": false,
+      "denied": false
+    },
+    "/app/settings": {
+      "is404": false,
+      "denied": false
+    },
+    "/app/roles": {
+      "is404": true,
+      "denied": false
+    },
+    "hasAssignButton": true,
+    "dialogWidth": 448,
+    "roleOptions": [
+      "Choose a branch…",
+      "Floating Terrace — Rooftop",
+      "Floating Terrace HQ (HQ)",
+      "Choose a role…",
+      "Accountant",
+      "Cashier",
+      "Inventory Manager",
+      "Kitchen Staff",
+      "Manager",
+      "Tenant Admin",
+      "Waiter"
+    ],
+    "checkboxes": 0,
+    "dialogText": "Assign a role to manager@terrace.local\n\nA user holds one role per branch. Assigning a role on a branch they already work at replaces the role they had there.\n\nBranch\nChoose a branch…\nFloating Terrace — Rooftop\nFloating Terrace HQ (HQ)\nRole\nChoose a role…\nAccountant\nCashier\nInventory Manager\nKitchen Staff\nManager\nTenant Admin\nWaiter\n\n1 more role is not listed. A role can only be granted by someone who already holds every permission it carries.\n\nCancel\nAssign role\nClose",
+    "platformReach": {
+      "url": "http://localhost:3000/platform/tenants",
+      "is404": false,
+      "denied": false,
+      "first200": "Platform console unavailable\n\nThe platform console is restricted to platform administrators. Your account is signed in to a tenant, so this area is not available to it.\n\nBack to your dashboard"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "startedAt": "2026-08-12T07:19:47.515Z",
+  "rung": {
+    "dineInAtTable": {
+      "orderNo": "ORD-20260812-0358",
+      "orderId": "d748479d-f654-4271-98e4-e38a3e6bac3c",
+      "type": "DINE_IN",
+      "tableName": "F2R-196205",
+      "cashierId": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+      "cashierName": "Terrace Manager",
+      "itemQuantity": 3,
+      "distinctItemCount": 2
+    }
+  },
+  "verdicts": [],
+  "LONG_REASON": "F2 re-open — table of four sent the whole order back: the biryani arrived cold, the second round of drinks never came, and the duty manager comped the entire check rather than argue at the pass in front of the room. Nothing had been paid, so this is a void and not a refund.",
+  "freshTable": "F2R-196205",
+  "fatal": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('[data-testid=order-type-dine_in]')\n",
+  "finishedAt": "2026-08-12T07:22:06.678Z",
+  "passed": 0,
+  "failed": 0
+}

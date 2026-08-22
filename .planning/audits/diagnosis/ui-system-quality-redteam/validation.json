@@ -1,0 +1,357 @@
+[
+  {
+    "key": "menu-item",
+    "route": "/app/menu/items",
+    "trigger": "Add item",
+    "field": "priceRupees",
+    "bad": "-100",
+    "fix": "450",
+    "nav": {
+      "attempt": 1,
+      "url": "http://localhost:3000/app/menu/items",
+      "refused": false,
+      "failed": false,
+      "ok": true
+    },
+    "opened": true,
+    "onOpen": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0,
+      "submitDisabled": false,
+      "submitLabel": "Add item",
+      "submitReason": null
+    },
+    "whileTyping": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0,
+      "submitDisabled": false,
+      "submitLabel": "Add item",
+      "submitReason": null
+    },
+    "afterBlur": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0,
+      "submitDisabled": false,
+      "submitLabel": "Add item",
+      "submitReason": null
+    },
+    "submitWasDisabled": false,
+    "afterSubmit": {
+      "open": true,
+      "n": 2,
+      "texts": [
+        "Name is required",
+        "Enter a price"
+      ],
+      "ariaInvalid": 2,
+      "submitDisabled": false,
+      "submitLabel": "Add item",
+      "submitReason": null
+    },
+    "toastAfterSubmit": [
+      {
+        "text": "",
+        "role": "status",
+        "live": "polite",
+        "hasClose": false
+      }
+    ],
+    "afterFixNoBlur": {
+      "open": true,
+      "n": 1,
+      "texts": [
+        "Name is required"
+      ],
+      "ariaInvalid": 1,
+      "submitDisabled": false,
+      "submitLabel": "Add item",
+      "submitReason": null
+    }
+  },
+  {
+    "key": "vendor",
+    "route": "/app/purchasing/vendors",
+    "trigger": "Add vendor",
+    "field": "email",
+    "bad": "not-an-email",
+    "fix": "a@b.com",
+    "nav": {
+      "attempt": 1,
+      "url": "http://localhost:3000/app/purchasing/vendors",
+      "refused": false,
+      "failed": false,
+      "ok": true
+    },
+    "opened": true,
+    "onOpen": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0,
+      "submitDisabled": false,
+      "submitLabel": "Add vendor",
+      "submitReason": null
+    },
+    "whileTyping": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0,
+      "submitDisabled": false,
+      "submitLabel": "Add vendor",
+      "submitReason": null
+    },
+    "afterBlur": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0,
+      "submitDisabled": false,
+      "submitLabel": "Add vendor",
+      "submitReason": null
+    },
+    "submitWasDisabled": false,
+    "afterSubmit": {
+      "open": true,
+      "n": 1,
+      "texts": [
+        "Vendor name is required"
+      ],
+      "ariaInvalid": 1,
+      "submitDisabled": false,
+      "submitLabel": "Add vendor",
+      "submitReason": null
+    },
+    "toastAfterSubmit": [
+      {
+        "text": "",
+        "role": "status",
+        "live": "polite",
+        "hasClose": false
+      }
+    ],
+    "afterFixNoBlur": {
+      "open": true,
+      "n": 1,
+      "texts": [
+        "Vendor name is required"
+      ],
+      "ariaInvalid": 1,
+      "submitDisabled": false,
+      "submitLabel": "Add vendor",
+      "submitReason": null
+    }
+  },
+  {
+    "key": "expense",
+    "route": "/app/finance/expenses",
+    "trigger": "New expense",
+    "field": "amountRupees",
+    "bad": "-9999",
+    "fix": "120",
+    "nav": {
+      "attempt": 1,
+      "url": "http://localhost:3000/app/finance/expenses",
+      "refused": false,
+      "failed": false,
+      "ok": true
+    },
+    "opened": true,
+    "onOpen": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0,
+      "submitDisabled": false,
+      "submitLabel": "Submit expense",
+      "submitReason": null
+    },
+    "whileTyping": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0,
+      "submitDisabled": false,
+      "submitLabel": "Submit expense",
+      "submitReason": null
+    },
+    "afterBlur": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0,
+      "submitDisabled": false,
+      "submitLabel": "Submit expense",
+      "submitReason": null
+    },
+    "submitWasDisabled": false,
+    "afterSubmit": {
+      "open": true,
+      "n": 2,
+      "texts": [
+        "Select an expense account",
+        "Enter an amount greater than zero"
+      ],
+      "ariaInvalid": 2,
+      "submitDisabled": false,
+      "submitLabel": "Submit expense",
+      "submitReason": null
+    },
+    "toastAfterSubmit": [
+      {
+        "text": "",
+        "role": "status",
+        "live": "polite",
+        "hasClose": false
+      }
+    ],
+    "afterFixNoBlur": {
+      "open": true,
+      "n": 1,
+      "texts": [
+        "Select an expense account"
+      ],
+      "ariaInvalid": 1,
+      "submitDisabled": false,
+      "submitLabel": "Submit expense",
+      "submitReason": null
+    }
+  },
+  {
+    "key": "user",
+    "route": "/app/users",
+    "trigger": "Add user",
+    "field": "email",
+    "bad": "zzz",
+    "fix": "zzz@x.com",
+    "nav": {
+      "attempt": 1,
+      "url": "http://localhost:3000/app/users",
+      "refused": false,
+      "failed": false,
+      "ok": true
+    },
+    "opened": true,
+    "onOpen": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0,
+      "submitDisabled": false,
+      "submitLabel": "Create user",
+      "submitReason": null
+    },
+    "whileTyping": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0,
+      "submitDisabled": false,
+      "submitLabel": "Create user",
+      "submitReason": null
+    },
+    "afterBlur": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0,
+      "submitDisabled": false,
+      "submitLabel": "Create user",
+      "submitReason": null
+    },
+    "submitWasDisabled": false,
+    "afterSubmit": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0,
+      "submitDisabled": false,
+      "submitLabel": "Create user",
+      "submitReason": null
+    },
+    "toastAfterSubmit": [
+      {
+        "text": "",
+        "role": "status",
+        "live": "polite",
+        "hasClose": false
+      }
+    ],
+    "afterFixNoBlur": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0,
+      "submitDisabled": false,
+      "submitLabel": "Create user",
+      "submitReason": null
+    }
+  },
+  {
+    "key": "employee",
+    "route": "/app/hr/employees",
+    "trigger": "New employee",
+    "field": "cnic",
+    "bad": "abc",
+    "fix": "1234567890123",
+    "nav": {
+      "attempt": 1,
+      "url": "http://localhost:3000/app/hr/employees",
+      "refused": false,
+      "failed": false,
+      "ok": true
+    },
+    "opened": true,
+    "onOpen": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0,
+      "submitDisabled": false,
+      "submitLabel": "Add employee",
+      "submitReason": null
+    },
+    "whileTyping": {
+      "open": true,
+      "n": 1,
+      "texts": [
+        "Enter the employee number"
+      ],
+      "ariaInvalid": 1,
+      "submitDisabled": true,
+      "submitLabel": "Add employee",
+      "submitReason": "Fix employee no to continue"
+    },
+    "afterBlur": {
+      "open": true,
+      "n": 2,
+      "texts": [
+        "Enter the employee number",
+        "A CNIC is 13 digits, with or without dashes"
+      ],
+      "ariaInvalid": 2,
+      "submitDisabled": true,
+      "submitLabel": "Add employee",
+      "submitReason": "Fix employee no and cnic to continue"
+    },
+    "submitWasDisabled": true,
+    "blockedBeforeSubmit": {
+      "open": true,
+      "n": 2,
+      "texts": [
+        "Enter the employee number",
+        "A CNIC is 13 digits, with or without dashes"
+      ],
+      "ariaInvalid": 2,
+      "submitDisabled": true,
+      "submitLabel": "Add employee",
+      "submitReason": "Fix employee no and cnic to continue"
+    }
+  }
+]

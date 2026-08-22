@@ -1,0 +1,203 @@
+{
+  "branches": [
+    {
+      "id": "c2d74ade-7ff8-4167-8cd0-131bfbdf4fba",
+      "name": "Floating Terrace — Rooftop"
+    },
+    {
+      "id": "852a242c-b110-4b28-be25-ad46c9a3149a",
+      "name": "S4 Reopen Probe 532004"
+    },
+    {
+      "id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "name": "Floating Terrace HQ"
+    },
+    {
+      "id": "2e57509d-c773-4a67-980c-512bc054327b",
+      "name": "Reopen Branch 28265 — Annexe"
+    },
+    {
+      "id": "1dd7022c-db6a-4ea2-a686-338bf87890f9",
+      "name": "Reopen Branch 51070 — Annexe"
+    },
+    {
+      "id": "bf2b9f72-2d99-4f88-9c17-b6ff753be1d4",
+      "name": "Admin Branch 51070"
+    }
+  ],
+  "ownerBranchId": "c2d74ade-7ff8-4167-8cd0-131bfbdf4fba",
+  "owner-get-Floating Terrace — Rooftop": {
+    "status": 200,
+    "body": {
+      "data": {
+        "branchId": "c2d74ade-7ff8-4167-8cd0-131bfbdf4fba",
+        "enabled": false,
+        "ratePct": 0,
+        "label": "Service charge",
+        "dineIn": true,
+        "takeaway": false,
+        "pickup": false,
+        "canManage": true
+      },
+      "meta": null,
+      "warnings": []
+    }
+  },
+  "owner-get-S4 Reopen Probe 532004": {
+    "status": 200,
+    "body": {
+      "data": {
+        "branchId": "852a242c-b110-4b28-be25-ad46c9a3149a",
+        "enabled": false,
+        "ratePct": 0,
+        "label": "Service charge",
+        "dineIn": true,
+        "takeaway": false,
+        "pickup": false,
+        "canManage": true
+      },
+      "meta": null,
+      "warnings": []
+    }
+  },
+  "owner-get-Floating Terrace HQ": {
+    "status": 200,
+    "body": {
+      "data": {
+        "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "enabled": true,
+        "ratePct": 5,
+        "label": "Service charge",
+        "dineIn": true,
+        "takeaway": false,
+        "pickup": false,
+        "canManage": true
+      },
+      "meta": null,
+      "warnings": []
+    }
+  },
+  "owner-get-Reopen Branch 28265 — Annexe": {
+    "status": 200,
+    "body": {
+      "data": {
+        "branchId": "2e57509d-c773-4a67-980c-512bc054327b",
+        "enabled": false,
+        "ratePct": 0,
+        "label": "Service charge",
+        "dineIn": true,
+        "takeaway": false,
+        "pickup": false,
+        "canManage": true
+      },
+      "meta": null,
+      "warnings": []
+    }
+  },
+  "owner-get-Reopen Branch 51070 — Annexe": {
+    "status": 200,
+    "body": {
+      "data": {
+        "branchId": "1dd7022c-db6a-4ea2-a686-338bf87890f9",
+        "enabled": false,
+        "ratePct": 0,
+        "label": "Service charge",
+        "dineIn": true,
+        "takeaway": false,
+        "pickup": false,
+        "canManage": true
+      },
+      "meta": null,
+      "warnings": []
+    }
+  },
+  "owner-get-Admin Branch 51070": {
+    "status": 200,
+    "body": {
+      "data": {
+        "branchId": "bf2b9f72-2d99-4f88-9c17-b6ff753be1d4",
+        "enabled": false,
+        "ratePct": 0,
+        "label": "Service charge",
+        "dineIn": true,
+        "takeaway": false,
+        "pickup": false,
+        "canManage": true
+      },
+      "meta": null,
+      "warnings": []
+    }
+  },
+  "owner-put-unknown-branch": {
+    "status": 200,
+    "body": {
+      "data": {
+        "branchId": "00000000-0000-4000-8000-000000000999",
+        "enabled": true,
+        "ratePct": 99,
+        "label": "Bogus branch charge",
+        "dineIn": true,
+        "takeaway": true,
+        "pickup": true,
+        "canManage": true
+      },
+      "meta": null,
+      "warnings": []
+    }
+  },
+  "manager-get": {
+    "status": 200
+  },
+  "manager-put": {
+    "status": 403,
+    "body": {
+      "error": {
+        "code": "PERMISSION_DENIED",
+        "message": "You do not have permission to perform this action",
+        "details": [],
+        "traceId": "83c4ee41-eac4-43f3-bbb7-09f68112bf7f"
+      }
+    }
+  },
+  "manager-screen": {
+    "url": "/app/settings/service-charge",
+    "denied": false,
+    "head": "RestaurantOS Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Service Charge FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse App Settings Service Charge Floating Terrace HQ Search… ⌘K F Service charge What this branch add"
+  },
+  "cashier-get": {
+    "status": 200
+  },
+  "cashier-put": {
+    "status": 403,
+    "body": {
+      "error": {
+        "code": "PERMISSION_DENIED",
+        "message": "You do not have permission to perform this action",
+        "details": [],
+        "traceId": "783072c7-aea7-4a91-8994-469f752dc7a8"
+      }
+    }
+  },
+  "cashier-screen": {
+    "url": "/app/settings/service-charge",
+    "denied": false,
+    "head": "RestaurantOS OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse App Settings Service Charge Floating Terrace HQ Search… ⌘K E Service charge What this branch adds to a check for table service, and which channels it applies to. Service charge A percentage added to every check at this branch, before tax. It is your money, not a tax — it is booked to its own revenue account an"
+  },
+  "owner-final": {
+    "status": 200,
+    "body": {
+      "data": {
+        "branchId": "c2d74ade-7ff8-4167-8cd0-131bfbdf4fba",
+        "enabled": false,
+        "ratePct": 0,
+        "label": "Service charge",
+        "dineIn": true,
+        "takeaway": false,
+        "pickup": false,
+        "canManage": true
+      },
+      "meta": null,
+      "warnings": []
+    }
+  }
+}

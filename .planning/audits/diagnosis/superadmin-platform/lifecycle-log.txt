@@ -1,0 +1,312 @@
+target tenant: http://localhost:3000/platform/tenants/166740c9-b761-43d7-90b1-78edcb34e3d5
+  [shot] 20-target-detail
+DETAIL TEXT (2000):
+All tenants
+Diag Bistro 696318
+diag-bistro-696318
+Active
+STARTER
+Suspend
+Subscription
+Edit
+Billing reference
+Not set
+Trial ends
+Not set
+Renews
+Not set
+Branch limit
+1
+User limit
+10
+NLQ quota
+1,000 / month
+Change tier
+STARTER
+GROWTH
+ENTERPRISE
+CUSTOM
+Move to STARTER
+
+Re-applies the tier's limits and reconciles modules. Modules you overrode explicitly are left alone in both directions. Nothing is deleted.
+
+Usage against entitlement
+Branches
+1 / 1 branches
+
+Over the tier ceiling by 0 branches.
+
+Users
+Limit 10 users
+
+Not metered — auth-service exposes no per-tenant user count; the users table lives in auth_db
+
+Storage
+Limit 5 GB
+
+Not metered — no producer records storage usage — file-service emits no usage events
+
+NLQ queries
+Limit 1,000 queries
+
+Not metered — no counter exists — nlq-service has never incremented nlq_quota:{tenantId}:monthly_count for this tenant
+
+Modules
+
+Defaults shown for the STARTER tier
+
+Modules for Diag Bistro 696318, showing whether each value comes from the tenant's tier or from an explicit override
+Module	State	Source	Actions
+FEATURE_ANALYTICS	Off	
+Not in tier
+	
+Enable
+
+FEATURE_AUDIT_EXPORT	Off	
+Not in tier
+	
+Enable
+
+FEATURE_CONSOLIDATED_REPORTING	Off	
+Not in tier
+	
+Enable
+
+FEATURE_CRM	On	
+Included in tier
+	
+Disable
+
+FEATURE_CUSTOM_ROLES	Off	
+Not in tier
+	
+Enable
+
+FEATURE_ECOMMERCE	Off	
+Not in tier
+	
+Enable
+
+FEATURE_FINANCE	On	
+Included in tier
+	
+Disable
+
+FEATURE_HR	On	
+Included in tier
+	
+Disable
+
+FEATURE_INVENTORY	On	
+Included in tier
+	
+Disable
+
+FEATURE_KDS	On	
+Included in tier
+	
+Disable
+
+FEATURE_LOT_TRACKING	Off	
+Not in tier
+	
+Enable
+
+FEATURE_LOYALTY	On	
+Included in tier
+	
+Disable
+
+FEATURE_MULTI_BRANCH	Off	
+Not in tier
+	
+Enable
+
+FEATURE_NLQ	Off	
+Not in tier
+	
+Enable
+
+FEATURE_PAYROLL	On	
+Included in tier
+	
+Disable
+
+FEATURE_POS	On	
+Included in tier
+	
+Disable
+
+FEATURE_REPORTING_ADVANCED	Off	
+Not in tier
+	
+Enable
+
+FEATURE_VENDOR	On	
+Included in tier
+	
+Disable
+
+FEATURE_WHATSAPP_NOTIFICATIONS	Off	
+Not in tier
+	
+Enable
+
+FEATURE_WHITE_LABEL_DOMAIN	Off
+
+=== Billing / subscription state tokens present in detail ===
+found: ["Trial","Billing"]
+
+STATUS/TIER region: All tenants
+Diag Bistro 696318
+diag-bistro-696318
+Active
+STARTER
+Suspend
+Subscription
+Edit
+Billing reference
+Not set
+Trial ends
+Not set
+Renews
+Not set
+Branch limit
+1
+User limit
+10
+NLQ quota
+1,000 / month
+Change tier
+STARTER
+GROWTH
+ENTERPRISE
+CUSTOM
+Move to STARTER
+
+Re-applies the tier's limits and reconciles modules. Modules you overrode explicitly are left alone in both directions. Nothing is deleted.
+
+
+
+=== Change tier ===
+selected ENTERPRISE via select
+submit enabled? true
+clicking: Move to ENTERPRISE
+after tier:
+All tenants
+Diag Bistro 696318
+diag-bistro-696318
+Active
+ENTERPRISE
+Suspend
+Subscription
+Edit
+Billing reference
+Not set
+Trial ends
+Not set
+Renews
+Not set
+Branch limit
+50
+User limit
+500
+NLQ quota
+50,000 / month
+Change tier
+STARTER
+GROWTH
+ENTERPRISE
+CUSTOM
+Move to ENTERPRISE
+
+Re-applies the tier's limits and reconciles modules. Modules you overrode explicitly are left alone in both directions. Nothing is deleted.
+
+Moved from STARTER to ENTERPRISE. 11 module(s) changed: FEATURE_LOT_TRACKING, FEATUR
+  [shot] 22-after-tier
+
+=== Toggle FEATURE_CRM ===
+before: FEATURE_CRM	On | Included in tier | Disable
+clicked "Disable" -> after: FEATURE_CRM	On | Included in tier | Disable
+  [shot] 23-crm-toggled
+FEATURE_CRM row buttons now: ["Disable"]
+
+=== Impersonation & tenant user controls ===
+EVERY control on tenant detail: ["All tenants","Suspend","Edit","Move to ENTERPRISE","Disable"]
+impersonate present: false
+reset-password present: false
+tenant users list present: false
+delete present: false
+
+=== Suspend ===
+suspend dialog box: {"x":558,"y":348.5,"width":384,"height":403}
+suspend dialog:
+Suspend Diag Bistro 696318?
+
+Every user of Diag Bistro 696318 is locked out immediately. Orders in progress cannot be completed and the point of sale stops working at all 50 branches.
+
+Nothing is deleted. Reactivating restores the tenant exactly as it was.
+
+Type
+Diag Bistro 696318
+to confirm
+Reason for suspension
+
+Recorded against this tenant. Write what a colleague would need to understand the decision in six months.
+
+Cancel
+Suspend tenant
+Close
+suspend fields: ["INPUT#confirm-phrase[]","INPUT#confirm-reason[]"]
+  [shot] 24-suspend-dialog
+click fail locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiti
+after suspend:
+All tenants
+Diag Bistro 696318
+diag-bistro-696318
+Active
+ENTERPRISE
+Suspend
+Subscription
+Edit
+Billing reference
+Not set
+Trial ends
+Not set
+Renews
+Not set
+Branch limit
+50
+User limit
+500
+NLQ quota
+50,000 / month
+Change tier
+STARTER
+GROWTH
+ENTERPRISE
+CUSTOM
+Move to ENTERPRISE
+
+Re-applies the tier's limits and reconciles modules. Modules you overrode explicitly are left alone in both directions. Nothing is deleted.
+
+Moved from STARTER to ENTERPRISE. 11 module(s) changed: FEATURE_LOT_TRACKING, FEATUR
+  [shot] 25-after-suspend
+
+=== Reactivate ===
+!! NO reactivate control after suspending
+
+=== Delete ===
+!! NO delete control on tenant detail
+
+=== Platform-wide routes ===
+  /platform/audit -> HTTP 404 | 404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data
+  /platform/health -> HTTP 404 | 404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data
+  /platform/users -> HTTP 404 | 404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data
+  /platform/settings -> HTTP 404 | 404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data
+  /platform/billing -> HTTP 404 | 404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data
+  /platform/plans -> HTTP 404 | 404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data
+  /platform/usage -> HTTP 404 | 404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data
+  /platform/tiers -> HTTP 404 | Sign in to RestaurantOS Enter your email and password to continue Your session expired. Please sign in again. Email Password Use a

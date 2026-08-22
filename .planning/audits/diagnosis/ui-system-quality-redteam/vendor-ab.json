@@ -1,0 +1,49 @@
+{
+  "A": "RTGOOD702060",
+  "B": "RTBADMAIL702060",
+  "posts": [
+    {
+      "status": 200,
+      "body": "{\"data\":{\"id\":\"c9f7e881-bcdc-4cab-bf46-32055c6a035d\",\"name\":\"RTGOOD702060\",\"contactPerson\":null,\"phone\":null,\"email\":\"ok702060@vendor.pk\",\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":null,\"active\":true},\"meta\":null,\"warnings\":[]}"
+    },
+    {
+      "status": 200,
+      "body": "{\"data\":{\"id\":\"9687a111-85ae-4df7-aa50-65f41f236a81\",\"name\":\"RTBADMAIL702060\",\"contactPerson\":null,\"phone\":null,\"email\":\"not-an-email\",\"address\":null,\"paymentTerms\":\"NET30\",\"ntn\":null,\"strn\":null,\"leadTimeDays\":null,\"bankAccountLast4\":null,\"notes\":null,\"active\":true},\"meta\":null,\"warnings\":[]}"
+    }
+  ],
+  "toasts": {
+    "RTGOOD702060": [
+      "Added RTGOOD702060"
+    ],
+    "RTBADMAIL702060": [
+      "Added RTBADMAIL702060"
+    ]
+  },
+  "apiNames": [
+    "Floating Terrace Supplies",
+    "Drive Vendor p36-1786468439 MANAGER",
+    "Drive Vendor p36-1786468439 OWNER",
+    "Drive Vendor p36-1786468624 MANAGER",
+    "Drive Vendor p36-1786468624 OWNER",
+    "Drive Vendor p36-1786468766 MANAGER",
+    "Drive Vendor p36-1786468766 OWNER",
+    "Drive Vendor p36-1786468886 MANAGER",
+    "Drive Vendor p36-1786468886 OWNER",
+    "Drive Vendor p36-1786469011 MANAGER",
+    "Drive Vendor p36-1786469011 OWNER",
+    "Drive Vendor p36-1786469957 MANAGER",
+    "Drive Vendor p36-1786469957 OWNER",
+    "Drive Vendor p36-1786473907 MANAGER",
+    "Drive Vendor p36-1786473907 OWNER",
+    "Drive Vendor p36-1786474157 MANAGER",
+    "Drive Vendor p36-1786474157 OWNER",
+    "Drive Vendor p36-1786474959 MANAGER",
+    "Drive Vendor p36-1786474959 OWNER",
+    "Drive Vendor p36-1786475519 MANAGER"
+  ],
+  "aSurvived": false,
+  "bSurvived": false,
+  "uiText": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nCollapse\nApp\nPurchasing\nVendors\nFloating Terrace HQ\nSearch…\n⌘K\n6\nVendors\nSuggested Orders\nPurchase Orders\nInvoices\nPayments\nAnalytics\nVendors\n",
+  "uiHasA": false,
+  "uiHasB": false
+}

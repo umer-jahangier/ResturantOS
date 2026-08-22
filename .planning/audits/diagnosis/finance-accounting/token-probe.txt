@@ -1,0 +1,14 @@
+RESP 401 POST /api/v1/auth/login
+RESP 200 POST /api/v1/auth/login
+logged in with TOTP
+token right after TOTP login: totp_verified=true iat=1786486485 exp=1786487385
+RESP 200 POST /api/v1/auth/refresh
+RESP 403 POST /api/v1/finance/periods/83437c8d-c489-4695-ab64-98715ff7a163/close
+
+TOKEN SENT ON THE CLOSE CALL:
+  totp_verified = false
+  roles         = ["ACCOUNTANT"]
+  iat/exp       = 1786486489/1786487389
+  has finance.period.close permission = true
+
+alerts: ["Verification expired\n\nTo close this period you need to sign in again with your authenticator code. Your session is still valid — this extra check expires about an hour after you sign in.\n\nSign in again",""]

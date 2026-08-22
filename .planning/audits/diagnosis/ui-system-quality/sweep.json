@@ -1,0 +1,1987 @@
+{
+  "results": [
+    {
+      "name": "dashboard",
+      "route": "/app/dashboard",
+      "state": {
+        "attempt": 1,
+        "alerts": 1,
+        "refused": false,
+        "failed": false,
+        "url": "http://localhost:3000/app/dashboard",
+        "clean": true
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Is the business healthy?"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 4,
+          "heights": {
+            "44": 4
+          },
+          "radii": {
+            "6.4px": 3,
+            "3.35544e+07px": 1
+          },
+          "fontSizes": {
+            "14": 2,
+            "16": 2
+          }
+        },
+        "fontSizes": {
+          "11": 13,
+          "12": 11,
+          "13": 15,
+          "14": 29,
+          "15": 14,
+          "16": 10,
+          "30": 5
+        },
+        "distinctFontSizes": 7,
+        "fontFamilies": {
+          "Geist": 97
+        },
+        "tables": {
+          "n": 1,
+          "dataGrids": 0
+        },
+        "tableRadii": {
+          "0px": 1
+        },
+        "badges": {
+          "n": 1,
+          "radii": {
+            "3.35544e+07px": 1
+          }
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 0,
+        "inputs": {
+          "n": 0,
+          "rawSelects": 0,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {}
+        },
+        "touchTargets": {
+          "n": 37,
+          "under44": 26,
+          "under24": 0
+        }
+      },
+      "newConsoleErrors": 0
+    },
+    {
+      "name": "pos",
+      "route": "/app/pos",
+      "state": {
+        "attempt": 1,
+        "alerts": 1,
+        "refused": false,
+        "failed": false,
+        "url": "http://localhost:3000/app/pos",
+        "clean": true
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Point of sale"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 8,
+          "heights": {
+            "44": 8
+          },
+          "radii": {
+            "6.4px": 4,
+            "0px": 3,
+            "3.35544e+07px": 1
+          },
+          "fontSizes": {
+            "13": 1,
+            "14": 2,
+            "16": 2,
+            "17": 3
+          }
+        },
+        "fontSizes": {
+          "12": 11,
+          "13": 3,
+          "14": 30,
+          "16": 3,
+          "17": 3
+        },
+        "distinctFontSizes": 5,
+        "fontFamilies": {
+          "Geist": 50
+        },
+        "tables": {
+          "n": 0,
+          "dataGrids": 0
+        },
+        "tableRadii": {},
+        "badges": {
+          "n": 1,
+          "radii": {
+            "3.35544e+07px": 1
+          }
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 0,
+        "inputs": {
+          "n": 0,
+          "rawSelects": 0,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {}
+        },
+        "touchTargets": {
+          "n": 34,
+          "under44": 26,
+          "under24": 0
+        }
+      },
+      "newConsoleErrors": 0
+    },
+    {
+      "name": "pos-tills",
+      "route": "/app/pos/tills",
+      "state": {
+        "attempt": 1,
+        "alerts": 1,
+        "refused": false,
+        "failed": false,
+        "url": "http://localhost:3000/app/pos/tills",
+        "clean": true
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Till Review"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 12,
+          "heights": {
+            "16": 4,
+            "28": 1,
+            "34": 3,
+            "44": 4
+          },
+          "radii": {
+            "6.4px": 4,
+            "3.35544e+07px": 4,
+            "0px": 4
+          },
+          "fontSizes": {
+            "12": 7,
+            "13": 1,
+            "14": 2,
+            "16": 2
+          }
+        },
+        "fontSizes": {
+          "12": 54,
+          "13": 1,
+          "14": 44,
+          "16": 1,
+          "18": 1
+        },
+        "distinctFontSizes": 5,
+        "fontFamilies": {
+          "Geist": 97,
+          "Geist Mono": 4
+        },
+        "tables": {
+          "n": 1,
+          "dataGrids": 0
+        },
+        "tableRadii": {
+          "0px": 1
+        },
+        "badges": {
+          "n": 1,
+          "radii": {
+            "3.35544e+07px": 1
+          }
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 0,
+        "inputs": {
+          "n": 0,
+          "rawSelects": 0,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {}
+        },
+        "touchTargets": {
+          "n": 38,
+          "under44": 34,
+          "under24": 4
+        }
+      },
+      "newConsoleErrors": 0
+    },
+    {
+      "name": "kitchen",
+      "route": "/app/kitchen",
+      "state": {
+        "attempt": 2,
+        "alerts": 1,
+        "refused": false,
+        "failed": false,
+        "url": "http://localhost:3000/app/kitchen",
+        "clean": true
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Kitchen — Stations"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 6,
+          "heights": {
+            "44": 4,
+            "262": 2
+          },
+          "radii": {
+            "6.4px": 3,
+            "11.2px": 2,
+            "3.35544e+07px": 1
+          },
+          "fontSizes": {
+            "14": 2,
+            "16": 4
+          }
+        },
+        "fontSizes": {
+          "11": 10,
+          "12": 11,
+          "13": 8,
+          "14": 29,
+          "16": 9,
+          "20": 3
+        },
+        "distinctFontSizes": 6,
+        "fontFamilies": {
+          "Geist": 70
+        },
+        "tables": {
+          "n": 0,
+          "dataGrids": 0
+        },
+        "tableRadii": {},
+        "badges": {
+          "n": 3,
+          "radii": {
+            "3.35544e+07px": 3
+          }
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 0,
+        "inputs": {
+          "n": 0,
+          "rawSelects": 0,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {}
+        },
+        "touchTargets": {
+          "n": 32,
+          "under44": 26,
+          "under24": 0
+        }
+      },
+      "newConsoleErrors": 2
+    },
+    {
+      "name": "tables",
+      "route": "/app/tables",
+      "state": {
+        "attempt": 2,
+        "alerts": 1,
+        "refused": false,
+        "failed": false,
+        "url": "http://localhost:3000/app/tables",
+        "clean": true
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Tables"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 10,
+          "heights": {
+            "28": 5,
+            "32": 1,
+            "44": 4
+          },
+          "radii": {
+            "6.4px": 8,
+            "3.35544e+07px": 1,
+            "8px": 1
+          },
+          "fontSizes": {
+            "14": 8,
+            "16": 2
+          }
+        },
+        "fontSizes": {
+          "11": 5,
+          "12": 11,
+          "13": 14,
+          "14": 30,
+          "15": 1,
+          "16": 4,
+          "20": 1
+        },
+        "distinctFontSizes": 7,
+        "fontFamilies": {
+          "Geist": 66
+        },
+        "tables": {
+          "n": 0,
+          "dataGrids": 0
+        },
+        "tableRadii": {},
+        "badges": {
+          "n": 6,
+          "radii": {
+            "3.35544e+07px": 6
+          }
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 0,
+        "inputs": {
+          "n": 1,
+          "rawSelects": 0,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {
+            "16": 1
+          }
+        },
+        "touchTargets": {
+          "n": 37,
+          "under44": 33,
+          "under24": 1
+        }
+      },
+      "newConsoleErrors": 3
+    },
+    {
+      "name": "menu-items",
+      "route": "/app/menu/items",
+      "state": {
+        "attempt": 1,
+        "alerts": 1,
+        "refused": false,
+        "failed": false,
+        "url": "http://localhost:3000/app/menu/items",
+        "clean": true
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Menu Items"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 31,
+          "heights": {
+            "28": 25,
+            "32": 2,
+            "44": 4
+          },
+          "radii": {
+            "6.4px": 28,
+            "8px": 2,
+            "3.35544e+07px": 1
+          },
+          "fontSizes": {
+            "13": 7,
+            "14": 22,
+            "16": 2
+          }
+        },
+        "fontSizes": {
+          "12": 11,
+          "13": 7,
+          "14": 59,
+          "16": 8,
+          "24": 1
+        },
+        "distinctFontSizes": 5,
+        "fontFamilies": {
+          "Geist": 86
+        },
+        "tables": {
+          "n": 0,
+          "dataGrids": 0
+        },
+        "tableRadii": {},
+        "badges": {
+          "n": 1,
+          "radii": {
+            "3.35544e+07px": 1
+          }
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 0,
+        "inputs": {
+          "n": 1,
+          "rawSelects": 0,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {
+            "16": 1
+          }
+        },
+        "touchTargets": {
+          "n": 58,
+          "under44": 54,
+          "under24": 1
+        }
+      },
+      "newConsoleErrors": 1
+    },
+    {
+      "name": "inventory",
+      "route": "/app/inventory",
+      "state": {
+        "attempt": 1,
+        "alerts": 1,
+        "refused": false,
+        "failed": false,
+        "url": "http://localhost:3000/app/inventory",
+        "clean": true
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Inventory"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 4,
+          "heights": {
+            "44": 4
+          },
+          "radii": {
+            "6.4px": 3,
+            "3.35544e+07px": 1
+          },
+          "fontSizes": {
+            "14": 2,
+            "16": 2
+          }
+        },
+        "fontSizes": {
+          "12": 11,
+          "14": 37,
+          "16": 3,
+          "20": 1
+        },
+        "distinctFontSizes": 4,
+        "fontFamilies": {
+          "Geist": 52
+        },
+        "tables": {
+          "n": 0,
+          "dataGrids": 0
+        },
+        "tableRadii": {},
+        "badges": {
+          "n": 1,
+          "radii": {
+            "3.35544e+07px": 1
+          }
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 0,
+        "inputs": {
+          "n": 0,
+          "rawSelects": 0,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {}
+        },
+        "touchTargets": {
+          "n": 38,
+          "under44": 32,
+          "under24": 0
+        }
+      },
+      "newConsoleErrors": 0
+    },
+    {
+      "name": "inv-ingredients",
+      "route": "/app/inventory/ingredients",
+      "state": {
+        "attempt": 1,
+        "evicted": true,
+        "clean": false,
+        "url": "http://localhost:3000/login",
+        "why": "still on http://localhost:3000/login"
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Sign in to RestaurantOS"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 2,
+          "heights": {
+            "20": 1,
+            "32": 1
+          },
+          "radii": {
+            "0px": 1,
+            "8px": 1
+          },
+          "fontSizes": {
+            "14": 2
+          }
+        },
+        "fontSizes": {
+          "14": 7,
+          "18": 1
+        },
+        "distinctFontSizes": 2,
+        "fontFamilies": {
+          "Geist": 8
+        },
+        "tables": {
+          "n": 0,
+          "dataGrids": 0
+        },
+        "tableRadii": {},
+        "badges": {
+          "n": 0,
+          "radii": {}
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 1,
+        "inputs": {
+          "n": 2,
+          "rawSelects": 0,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {
+            "32": 2
+          }
+        },
+        "touchTargets": {
+          "n": 4,
+          "under44": 4,
+          "under24": 1
+        }
+      },
+      "newConsoleErrors": 2
+    },
+    {
+      "name": "inv-stock",
+      "route": "/app/inventory/stock",
+      "state": {
+        "attempt": 1,
+        "evicted": true,
+        "clean": false,
+        "url": "http://localhost:3000/login",
+        "why": "still on http://localhost:3000/login"
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Sign in to RestaurantOS"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 2,
+          "heights": {
+            "20": 1,
+            "32": 1
+          },
+          "radii": {
+            "0px": 1,
+            "8px": 1
+          },
+          "fontSizes": {
+            "14": 2
+          }
+        },
+        "fontSizes": {
+          "14": 7,
+          "18": 1
+        },
+        "distinctFontSizes": 2,
+        "fontFamilies": {
+          "Geist": 8
+        },
+        "tables": {
+          "n": 0,
+          "dataGrids": 0
+        },
+        "tableRadii": {},
+        "badges": {
+          "n": 0,
+          "radii": {}
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 1,
+        "inputs": {
+          "n": 2,
+          "rawSelects": 0,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {
+            "32": 2
+          }
+        },
+        "touchTargets": {
+          "n": 4,
+          "under44": 4,
+          "under24": 1
+        }
+      },
+      "newConsoleErrors": 1
+    },
+    {
+      "name": "inv-recipes",
+      "route": "/app/inventory/recipes",
+      "state": {
+        "attempt": 2,
+        "alerts": 1,
+        "refused": false,
+        "failed": false,
+        "url": "http://localhost:3000/app/inventory/recipes",
+        "clean": true
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Recipes"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 5,
+          "heights": {
+            "32": 1,
+            "44": 4
+          },
+          "radii": {
+            "6.4px": 3,
+            "3.35544e+07px": 1,
+            "8px": 1
+          },
+          "fontSizes": {
+            "14": 3,
+            "16": 2
+          }
+        },
+        "fontSizes": {
+          "12": 23,
+          "14": 63,
+          "16": 1,
+          "24": 1
+        },
+        "distinctFontSizes": 4,
+        "fontFamilies": {
+          "Geist": 88
+        },
+        "tables": {
+          "n": 1,
+          "dataGrids": 0
+        },
+        "tableRadii": {
+          "0px": 1
+        },
+        "badges": {
+          "n": 12,
+          "radii": {
+            "3.35544e+07px": 12
+          }
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 0,
+        "inputs": {
+          "n": 1,
+          "rawSelects": 1,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {
+            "36": 1
+          }
+        },
+        "touchTargets": {
+          "n": 49,
+          "under44": 45,
+          "under24": 11
+        }
+      },
+      "newConsoleErrors": 1
+    },
+    {
+      "name": "purchasing",
+      "route": "/app/purchasing",
+      "state": {
+        "attempt": 2,
+        "alerts": 1,
+        "refused": false,
+        "failed": false,
+        "url": "http://localhost:3000/app/purchasing",
+        "clean": true
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Purchasing"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 4,
+          "heights": {
+            "44": 4
+          },
+          "radii": {
+            "6.4px": 3,
+            "3.35544e+07px": 1
+          },
+          "fontSizes": {
+            "14": 2,
+            "16": 2
+          }
+        },
+        "fontSizes": {
+          "12": 11,
+          "14": 40,
+          "16": 6,
+          "20": 1
+        },
+        "distinctFontSizes": 4,
+        "fontFamilies": {
+          "Geist": 58
+        },
+        "tables": {
+          "n": 0,
+          "dataGrids": 0
+        },
+        "tableRadii": {},
+        "badges": {
+          "n": 1,
+          "radii": {
+            "3.35544e+07px": 1
+          }
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 0,
+        "inputs": {
+          "n": 0,
+          "rawSelects": 0,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {}
+        },
+        "touchTargets": {
+          "n": 41,
+          "under44": 32,
+          "under24": 0
+        }
+      },
+      "newConsoleErrors": 3
+    },
+    {
+      "name": "pur-vendors",
+      "route": "/app/purchasing/vendors",
+      "state": {
+        "attempt": 1,
+        "alerts": 1,
+        "refused": false,
+        "failed": false,
+        "url": "http://localhost:3000/app/purchasing/vendors",
+        "clean": true
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Vendors"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 25,
+          "heights": {
+            "28": 20,
+            "32": 1,
+            "44": 4
+          },
+          "radii": {
+            "6.4px": 23,
+            "3.35544e+07px": 1,
+            "8px": 1
+          },
+          "fontSizes": {
+            "13": 20,
+            "14": 3,
+            "16": 2
+          }
+        },
+        "fontSizes": {
+          "12": 11,
+          "13": 60,
+          "14": 37,
+          "16": 21,
+          "20": 1
+        },
+        "distinctFontSizes": 5,
+        "fontFamilies": {
+          "Geist": 130
+        },
+        "tables": {
+          "n": 0,
+          "dataGrids": 0
+        },
+        "tableRadii": {},
+        "badges": {
+          "n": 1,
+          "radii": {
+            "3.35544e+07px": 1
+          }
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 0,
+        "inputs": {
+          "n": 0,
+          "rawSelects": 0,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {}
+        },
+        "touchTargets": {
+          "n": 77,
+          "under44": 73,
+          "under24": 20
+        }
+      },
+      "newConsoleErrors": 1
+    },
+    {
+      "name": "pur-pos",
+      "route": "/app/purchasing/purchase-orders",
+      "state": {
+        "attempt": 1,
+        "alerts": 1,
+        "refused": false,
+        "failed": false,
+        "url": "http://localhost:3000/app/purchasing/purchase-orders",
+        "clean": true
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Purchase orders"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 11,
+          "heights": {
+            "32": 3,
+            "44": 8
+          },
+          "radii": {
+            "0px": 4,
+            "6.4px": 3,
+            "8px": 3,
+            "3.35544e+07px": 1
+          },
+          "fontSizes": {
+            "11": 4,
+            "14": 5,
+            "16": 2
+          }
+        },
+        "fontSizes": {
+          "11": 4,
+          "12": 36,
+          "13": 52,
+          "14": 39,
+          "16": 1,
+          "20": 1
+        },
+        "distinctFontSizes": 6,
+        "fontFamilies": {
+          "Geist": 133
+        },
+        "tables": {
+          "n": 1,
+          "dataGrids": 0
+        },
+        "tableRadii": {
+          "0px": 1
+        },
+        "badges": {
+          "n": 1,
+          "radii": {
+            "3.35544e+07px": 1
+          }
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 0,
+        "inputs": {
+          "n": 2,
+          "rawSelects": 2,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {
+            "32": 1,
+            "44": 1
+          }
+        },
+        "touchTargets": {
+          "n": 45,
+          "under44": 36,
+          "under24": 0
+        }
+      },
+      "newConsoleErrors": 1
+    },
+    {
+      "name": "finance",
+      "route": "/app/finance",
+      "state": {
+        "attempt": 1,
+        "alerts": 1,
+        "refused": false,
+        "failed": false,
+        "url": "http://localhost:3000/app/finance/takings",
+        "clean": true
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Takings"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 4,
+          "heights": {
+            "44": 4
+          },
+          "radii": {
+            "6.4px": 3,
+            "3.35544e+07px": 1
+          },
+          "fontSizes": {
+            "14": 2,
+            "16": 2
+          }
+        },
+        "fontSizes": {
+          "12": 33,
+          "14": 58,
+          "16": 1,
+          "20": 4,
+          "24": 2
+        },
+        "distinctFontSizes": 5,
+        "fontFamilies": {
+          "Geist": 87,
+          "Geist Mono": 11
+        },
+        "tables": {
+          "n": 2,
+          "dataGrids": 0
+        },
+        "tableRadii": {
+          "0px": 2
+        },
+        "badges": {
+          "n": 1,
+          "radii": {
+            "3.35544e+07px": 1
+          }
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 0,
+        "inputs": {
+          "n": 1,
+          "rawSelects": 0,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {
+            "30": 1
+          }
+        },
+        "touchTargets": {
+          "n": 42,
+          "under44": 38,
+          "under24": 0
+        }
+      },
+      "newConsoleErrors": 0
+    },
+    {
+      "name": "fin-expenses",
+      "route": "/app/finance/expenses",
+      "state": {
+        "attempt": 1,
+        "alerts": 1,
+        "refused": false,
+        "failed": false,
+        "url": "http://localhost:3000/app/finance/expenses",
+        "clean": true
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Expenses"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 5,
+          "heights": {
+            "32": 1,
+            "44": 4
+          },
+          "radii": {
+            "6.4px": 3,
+            "3.35544e+07px": 1,
+            "8px": 1
+          },
+          "fontSizes": {
+            "14": 3,
+            "16": 2
+          }
+        },
+        "fontSizes": {
+          "12": 11,
+          "14": 44,
+          "16": 1,
+          "18": 1,
+          "24": 1
+        },
+        "distinctFontSizes": 5,
+        "fontFamilies": {
+          "Geist": 58
+        },
+        "tables": {
+          "n": 0,
+          "dataGrids": 0
+        },
+        "tableRadii": {},
+        "badges": {
+          "n": 1,
+          "radii": {
+            "3.35544e+07px": 1
+          }
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 0,
+        "inputs": {
+          "n": 1,
+          "rawSelects": 1,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {
+            "32": 1
+          }
+        },
+        "touchTargets": {
+          "n": 43,
+          "under44": 39,
+          "under24": 0
+        }
+      },
+      "newConsoleErrors": 0
+    },
+    {
+      "name": "fin-je",
+      "route": "/app/finance/journal-entries",
+      "state": {
+        "attempt": 1,
+        "alerts": 1,
+        "refused": false,
+        "failed": false,
+        "url": "http://localhost:3000/app/finance/journal-entries",
+        "clean": true
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Journal Entries"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 4,
+          "heights": {
+            "44": 4
+          },
+          "radii": {
+            "6.4px": 3,
+            "3.35544e+07px": 1
+          },
+          "fontSizes": {
+            "14": 2,
+            "16": 2
+          }
+        },
+        "fontSizes": {
+          "12": 11,
+          "14": 349,
+          "16": 1,
+          "24": 1
+        },
+        "distinctFontSizes": 4,
+        "fontFamilies": {
+          "Geist": 212,
+          "Geist Mono": 150
+        },
+        "tables": {
+          "n": 1,
+          "dataGrids": 0
+        },
+        "tableRadii": {
+          "0px": 1
+        },
+        "badges": {
+          "n": 1,
+          "radii": {
+            "3.35544e+07px": 1
+          }
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 0,
+        "inputs": {
+          "n": 0,
+          "rawSelects": 0,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {}
+        },
+        "touchTargets": {
+          "n": 42,
+          "under44": 38,
+          "under24": 0
+        }
+      },
+      "newConsoleErrors": 0
+    },
+    {
+      "name": "hr-employees",
+      "route": "/app/hr/employees",
+      "state": {
+        "attempt": 1,
+        "alerts": 1,
+        "refused": false,
+        "failed": false,
+        "url": "http://localhost:3000/app/hr/employees",
+        "clean": true
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Employees"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 13,
+          "heights": {
+            "28": 8,
+            "32": 1,
+            "44": 4
+          },
+          "radii": {
+            "6.4px": 11,
+            "3.35544e+07px": 1,
+            "8px": 1
+          },
+          "fontSizes": {
+            "13": 8,
+            "14": 3,
+            "16": 2
+          }
+        },
+        "fontSizes": {
+          "12": 11,
+          "13": 8,
+          "14": 73,
+          "16": 1,
+          "18": 1
+        },
+        "distinctFontSizes": 5,
+        "fontFamilies": {
+          "Geist": 94
+        },
+        "tables": {
+          "n": 1,
+          "dataGrids": 0
+        },
+        "tableRadii": {
+          "0px": 1
+        },
+        "badges": {
+          "n": 1,
+          "radii": {
+            "3.35544e+07px": 1
+          }
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 0,
+        "inputs": {
+          "n": 3,
+          "rawSelects": 1,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {
+            "13": 1,
+            "32": 2
+          }
+        },
+        "touchTargets": {
+          "n": 47,
+          "under44": 43,
+          "under24": 1
+        }
+      },
+      "newConsoleErrors": 0
+    },
+    {
+      "name": "hr-attendance",
+      "route": "/app/hr/attendance",
+      "state": {
+        "attempt": 1,
+        "alerts": 1,
+        "refused": false,
+        "failed": false,
+        "url": "http://localhost:3000/app/hr/attendance",
+        "clean": true
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [],
+        "h1Count": 0,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 9,
+          "heights": {
+            "28": 5,
+            "44": 4
+          },
+          "radii": {
+            "6.4px": 8,
+            "3.35544e+07px": 1
+          },
+          "fontSizes": {
+            "13": 5,
+            "14": 2,
+            "16": 2
+          }
+        },
+        "fontSizes": {
+          "12": 11,
+          "13": 5,
+          "14": 40,
+          "16": 4
+        },
+        "distinctFontSizes": 4,
+        "fontFamilies": {
+          "Geist": 60
+        },
+        "tables": {
+          "n": 1,
+          "dataGrids": 0
+        },
+        "tableRadii": {
+          "0px": 1
+        },
+        "badges": {
+          "n": 1,
+          "radii": {
+            "3.35544e+07px": 1
+          }
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 0,
+        "inputs": {
+          "n": 6,
+          "rawSelects": 3,
+          "unlabelled": 6,
+          "unlabelledDetail": [
+            "select[select-one]",
+            "select[select-one]",
+            "select[select-one]",
+            "input[date]",
+            "input[date]",
+            "input[text]"
+          ],
+          "placeholderAsLabel": 1,
+          "heights": {
+            "30": 3,
+            "32": 3
+          }
+        },
+        "touchTargets": {
+          "n": 46,
+          "under44": 42,
+          "under24": 0
+        }
+      },
+      "newConsoleErrors": 0
+    },
+    {
+      "name": "reports",
+      "route": "/app/reports",
+      "state": {
+        "attempt": 1,
+        "alerts": 1,
+        "refused": false,
+        "failed": false,
+        "url": "http://localhost:3000/app/reports",
+        "clean": true
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Reports"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 4,
+          "heights": {
+            "44": 4
+          },
+          "radii": {
+            "6.4px": 3,
+            "3.35544e+07px": 1
+          },
+          "fontSizes": {
+            "14": 2,
+            "16": 2
+          }
+        },
+        "fontSizes": {
+          "11": 3,
+          "12": 11,
+          "13": 8,
+          "14": 29,
+          "15": 1,
+          "16": 8,
+          "20": 1
+        },
+        "distinctFontSizes": 7,
+        "fontFamilies": {
+          "Geist": 61
+        },
+        "tables": {
+          "n": 0,
+          "dataGrids": 0
+        },
+        "tableRadii": {},
+        "badges": {
+          "n": 1,
+          "radii": {
+            "3.35544e+07px": 1
+          }
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 0,
+        "inputs": {
+          "n": 0,
+          "rawSelects": 0,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {}
+        },
+        "touchTargets": {
+          "n": 38,
+          "under44": 27,
+          "under24": 1
+        }
+      },
+      "newConsoleErrors": 0
+    },
+    {
+      "name": "crm",
+      "route": "/app/crm",
+      "state": {
+        "attempt": 1,
+        "alerts": 1,
+        "refused": false,
+        "failed": false,
+        "url": "http://localhost:3000/app/crm",
+        "clean": true
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Customers"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 5,
+          "heights": {
+            "44": 4,
+            "68": 1
+          },
+          "radii": {
+            "6.4px": 3,
+            "3.35544e+07px": 1,
+            "0px": 1
+          },
+          "fontSizes": {
+            "14": 2,
+            "16": 3
+          }
+        },
+        "fontSizes": {
+          "12": 12,
+          "14": 34,
+          "16": 2,
+          "20": 1
+        },
+        "distinctFontSizes": 4,
+        "fontFamilies": {
+          "Geist": 49
+        },
+        "tables": {
+          "n": 0,
+          "dataGrids": 0
+        },
+        "tableRadii": {},
+        "badges": {
+          "n": 2,
+          "radii": {
+            "3.35544e+07px": 2
+          }
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 0,
+        "inputs": {
+          "n": 1,
+          "rawSelects": 0,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {
+            "32": 1
+          }
+        },
+        "touchTargets": {
+          "n": 32,
+          "under44": 27,
+          "under24": 0
+        }
+      },
+      "newConsoleErrors": 1
+    },
+    {
+      "name": "users",
+      "route": "/app/users",
+      "state": {
+        "attempt": 1,
+        "alerts": 1,
+        "refused": false,
+        "failed": false,
+        "url": "http://localhost:3000/app/users",
+        "clean": true
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Users"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 23,
+          "heights": {
+            "32": 1,
+            "44": 4,
+            "68": 18
+          },
+          "radii": {
+            "0px": 18,
+            "6.4px": 3,
+            "3.35544e+07px": 1,
+            "8px": 1
+          },
+          "fontSizes": {
+            "14": 3,
+            "16": 20
+          }
+        },
+        "fontSizes": {
+          "12": 56,
+          "14": 52,
+          "16": 19,
+          "20": 1
+        },
+        "distinctFontSizes": 4,
+        "fontFamilies": {
+          "Geist": 128
+        },
+        "tables": {
+          "n": 0,
+          "dataGrids": 0
+        },
+        "tableRadii": {},
+        "badges": {
+          "n": 25,
+          "radii": {
+            "3.35544e+07px": 25
+          }
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 0,
+        "inputs": {
+          "n": 2,
+          "rawSelects": 0,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {
+            "16": 1,
+            "32": 1
+          }
+        },
+        "touchTargets": {
+          "n": 51,
+          "under44": 29,
+          "under24": 1
+        }
+      },
+      "newConsoleErrors": 1
+    },
+    {
+      "name": "settings",
+      "route": "/app/settings",
+      "state": {
+        "attempt": 1,
+        "alerts": 1,
+        "refused": false,
+        "failed": false,
+        "url": "http://localhost:3000/app/settings",
+        "clean": true
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Settings"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 5,
+          "heights": {
+            "32": 1,
+            "44": 4
+          },
+          "radii": {
+            "6.4px": 3,
+            "3.35544e+07px": 1,
+            "8px": 1
+          },
+          "fontSizes": {
+            "14": 3,
+            "16": 2
+          }
+        },
+        "fontSizes": {
+          "12": 14,
+          "14": 45,
+          "16": 4,
+          "20": 1
+        },
+        "distinctFontSizes": 4,
+        "fontFamilies": {
+          "Geist": 64
+        },
+        "tables": {
+          "n": 0,
+          "dataGrids": 0
+        },
+        "tableRadii": {},
+        "badges": {
+          "n": 1,
+          "radii": {
+            "3.35544e+07px": 1
+          }
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 0,
+        "inputs": {
+          "n": 6,
+          "rawSelects": 0,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {
+            "32": 6
+          }
+        },
+        "touchTargets": {
+          "n": 39,
+          "under44": 35,
+          "under24": 2
+        }
+      },
+      "newConsoleErrors": 1
+    },
+    {
+      "name": "stations",
+      "route": "/app/stations",
+      "state": {
+        "attempt": 1,
+        "evicted": true,
+        "clean": false,
+        "url": "http://localhost:3000/login",
+        "why": "still on http://localhost:3000/login"
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "Sign in to RestaurantOS"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 2,
+          "heights": {
+            "20": 1,
+            "32": 1
+          },
+          "radii": {
+            "0px": 1,
+            "8px": 1
+          },
+          "fontSizes": {
+            "14": 2
+          }
+        },
+        "fontSizes": {
+          "14": 7,
+          "18": 1
+        },
+        "distinctFontSizes": 2,
+        "fontFamilies": {
+          "Geist": 8
+        },
+        "tables": {
+          "n": 0,
+          "dataGrids": 0
+        },
+        "tableRadii": {},
+        "badges": {
+          "n": 0,
+          "radii": {}
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 1,
+        "inputs": {
+          "n": 2,
+          "rawSelects": 0,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {
+            "32": 2
+          }
+        },
+        "touchTargets": {
+          "n": 4,
+          "under44": 4,
+          "under24": 1
+        }
+      },
+      "newConsoleErrors": 2
+    },
+    {
+      "name": "terminals",
+      "route": "/app/terminals",
+      "state": {
+        "attempt": 2,
+        "alerts": 1,
+        "refused": false,
+        "failed": false,
+        "url": "http://localhost:3000/app/terminals",
+        "clean": true
+      },
+      "probe": {
+        "title": "RestaurantOS",
+        "h1": [
+          "POS Terminals"
+        ],
+        "h1Count": 1,
+        "dark": false,
+        "scrollW": 1440,
+        "clientW": 1440,
+        "overflowX": 0,
+        "widestOverflower": null,
+        "buttons": {
+          "n": 7,
+          "heights": {
+            "28": 2,
+            "32": 1,
+            "44": 4
+          },
+          "radii": {
+            "6.4px": 5,
+            "3.35544e+07px": 1,
+            "8px": 1
+          },
+          "fontSizes": {
+            "14": 5,
+            "16": 2
+          }
+        },
+        "fontSizes": {
+          "12": 15,
+          "14": 34,
+          "16": 1,
+          "24": 1
+        },
+        "distinctFontSizes": 4,
+        "fontFamilies": {
+          "Geist": 51
+        },
+        "tables": {
+          "n": 0,
+          "dataGrids": 0
+        },
+        "tableRadii": {},
+        "badges": {
+          "n": 1,
+          "radii": {
+            "3.35544e+07px": 1
+          }
+        },
+        "skeletons": 0,
+        "spinners": 0,
+        "emptyStates": 0,
+        "alerts": 0,
+        "inputs": {
+          "n": 1,
+          "rawSelects": 0,
+          "unlabelled": 0,
+          "unlabelledDetail": [],
+          "placeholderAsLabel": 0,
+          "heights": {
+            "16": 1
+          }
+        },
+        "touchTargets": {
+          "n": 34,
+          "under44": 30,
+          "under24": 1
+        }
+      },
+      "newConsoleErrors": 2
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+  ]
+}

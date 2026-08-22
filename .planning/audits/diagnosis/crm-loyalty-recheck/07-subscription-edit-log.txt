@@ -1,0 +1,4 @@
+'Edit' (Subscription) buttons: 1
+dialog count: 0
+   shot: 60-subscription-edit-dialog.png
+dialog after Escape: 0 (nothing saved)

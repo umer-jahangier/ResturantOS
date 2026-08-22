@@ -1,0 +1,18 @@
+CREATE API: 200 POST /api/v1/finance/expenses | 200 GET /api/v1/finance/expenses?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&status%5B%5D=PENDING_APPROVAL
+alerts: [""]
+--- expenses list ---
+RestaurantOS
+Create, approve and reject expenses. Approvals respect your OPA approval limit.
+Pending approval
+Approved
+Rejected
+All statuses
+New expense
+Date	Account	Description	Amount	Status	Requested by	Actions
+2026-08-11	6200	DIAG probe expense - finance audit	Rs 1.00	Pending approval	9e11ef06…	
+Approve
+Reject
+Approve button: 1
+APPROVE API: 200 POST /api/v1/finance/expenses/8ff58095-345b-4bbb-9b5e-a7d768972b88/approve | 200 GET /api/v1/finance/expenses?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&status%5B%5D=PENDING_APPROVAL
+alerts: [""]
+list now: shows APPROVED

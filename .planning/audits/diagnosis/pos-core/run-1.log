@@ -1,0 +1,163 @@
+SIGNED IN as cashier -> http://localhost:3000/app/dashboard
+  shot: 01-after-login
+NAV: ["OVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\n\nPEOPLE\n\nCustomers","App\nDashboard","DashboardOrders"]
+  shot: 02-pos-terminal
+POS PAGE TEXT >>>
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+PEOPLE
+
+Customers
+Collapse
+App
+POS
+Floating Terrace HQ
+Search…
+⌘K
+E
+Point of sale
+Till OPEN
+Float: Rs 5,000.00
+Cash: Rs 37,307.00
+Orders: 32
+Close Till
+POS Terminal
+Floor View
+Order Management
+Live
+All
+Starters
+Mains
+Drinks
+Soft Drinks
+Audit Item 52235
+Rs 499.00
+Audit Item 60568
+Rs 499.00
+Butter Naan
+Rs 80.00
+Chicken Karahi
+Rs 1,450.00
+Chicken Samosa
+Rs 250.00
+Fresh Lime
+Rs 220.00
+Mutton Biryani
+Rs 1,250.00
+Photo Dish 50585
+Rs 725.00
+Pinacolada
+Rs 700.00
+Seekh Kebab
+Rs 450.00
+Add customer
+Dine-in
+Takeaway
+Pickup
+No table (optional)
+
+Add items to start an order
+
+Tap a menu item to build the cart — nothing is saved until Send to Kitchen or Charge.
+
+Send to Kitchen
+Save as Draft
+Charge Now
+<<<
+MENU GRID IMAGE PROBE: {
+ "found": true,
+ "tiles": 10,
+ "imgs": 0,
+ "svgs": 0,
+ "bgImages": 0,
+ "first": "Audit Item 52235\nRs 499.00",
+ "firstHtml": "<div class=\"relative\"><button type=\"button\" data-testid=\"menu-item-first\" aria-pressed=\"false\" class=\"min-h-[100px] min-w-[100px] w-full rounded-xl p-3 text-left transition-colors flex flex-col justify-between active:scale-95 border bg-card hover:bg-accent hover:border-primary\"><span class=\"font-medium text-sm line-clamp-2\">Audit Item 52235</span><span class=\"tabular-nums font-medium text-sm text-muted-foreground font-mono\">Rs 499.00</span></button></div>"
+}
+ORDER TYPES OFFERED: ["Dine-in","Takeaway","Pickup"]
+POS BUTTONS: ["Collapse","Toggle mobile menu","Search…\n⌘K","Search","Switch to light mode","E","Close Till","POS Terminal","Floor View","Order Management","All","Starters","Mains","Drinks","Soft Drinks","Audit Item 52235\nRs 499.00","Audit Item 60568\nRs 499.00","Butter Naan\nRs 80.00","Chicken Karahi\nRs 1,450.00","Chicken Samosa\nRs 250.00","Fresh Lime\nRs 220.00","Mutton Biryani\nRs 1,250.00","Photo Dish 50585\nRs 725.00","Pinacolada\nRs 700.00","Seekh Kebab\nRs 450.00","Add customer","Dine-in","Takeaway","Pickup","No table (optional)","Send to Kitchen","Save as Draft","Charge Now"]
+TAPPED ITEM: Audit Item 52235 | Rs 499.00
+  shot: 03-item-in-cart
+MODIFIER DIALOG AFTER TAP? dialogs= 0
+  shot: 04-cart-two-items
+CART PANEL TEXT >>>
+Floating Terrace
+
+OVERVIEW
+
+Dashboard
+
+ORDERS
+
+POS
+
+PEOPLE
+
+Customers
+Collapse
+App
+POS
+Floating Terrace HQ
+Search…
+⌘K
+E
+Point of sale
+Till OPEN
+Float: Rs 5,000.00
+Cash: Rs 37,307.00
+Orders: 32
+Close Till
+POS Terminal
+Floor View
+Order Management
+Live
+All
+Starters
+Mains
+Drinks
+Soft Drinks
+Audit Item 52235
+Rs 499.00
+Audit Item 60568
+Rs 499.00
+Butter Naan
+Rs 80.00
+Chicken Karahi
+Rs 1,450.00
+Chicken Samosa
+Rs 250.00
+Fresh Lime
+Rs 220.00
+Mutton Biryani
+Rs 1,250.00
+Photo Dish 50585
+Rs 725.00
+Pinacolada
+Rs 700.00
+Seekh Kebab
+Rs 450.00
+Add customer
+Dine-in
+Takeaway
+Pickup
+No table (optional)
+
+Add items to start an order
+
+Tap a menu item to build the cart — nothing is saved until Send to Kitchen or Charge.
+
+Send to Kitchen
+Save as Draft
+Charge Now
+<<<
+CUSTOMER CONTROL: {"tag":"BUTTON","text":"Add customer"}
+  shot: 05-customer-picker
+CUSTOMER DIALOG DIMS: null
+done

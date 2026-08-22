@@ -1,0 +1,43 @@
+target: Verify Bistro 289409 / verify-bistro-289409 / 770c2dfd-ffef-4faa-b4d3-a7d168f909b3
+
+=== TIER CHANGE: GROWTH -> STARTER ===
+  limits before: Billing reference Not set Trial ends Not set Renews Not set Branch limit 5 User limit 50 NLQ quota 5,000 / month Change tier STARTER GROWTH ENTERPRISE CUSTOM Move to GROWTH Re-applies the tier's limits and r
+  button: Move to STARTER | enabled: true
+     shot: 08-after-tier-click
+  result: Moved from GROWTH to STARTER. 9 module(s) changed: FEATURE_LOT_TRACKING, FEATURE_WHATSAPP_NOTIFICATIONS, FEATURE_ECOMMERCE, FEATURE_AUDIT_EXPORT, FEATURE_NLQ, FEATURE_MULTI_BRANCH, FEATURE_CUSTOM_ROLES, FEATURE_REPORTING_ADVANCED, FEATURE_ANALYTICS.
+  --- RELOAD ---
+  limits after reload: Billing reference Not set Trial ends Not set Renews Not set Branch limit 1 User limit 10 NLQ quota 1,000 / month Change tier STARTER GROWTH ENTERPRISE CUSTOM Move to STARTER Re-applies the tier's limits and 
+  tier badge now: STARTER
+     shot: 08-tier-persisted
+
+=== MODULE TOGGLE (disable one, reload, re-enable) ===
+  buttons before: Enable,Enable,Enable,Disable,Enable,Enable,Disable,Disable,Disable,Disable,Enable,Disable,Enable,Enable,Disable,Disable,Enable,Disable,Enable,Enable
+  disabling: FEATURE_CRM On Included in tier Disable
+  dialog: Disable FEATURE_CRM? Every user of Verify Bistro 289409 loses access to this module immediately — its screens stop loading and its API calls are refused on the next request. Nothing is deleted. All of the module's existing records are kept and re-enabling rest
+  dialog size: {"w":384,"h":365}
+  reason field present: false
+  submit enabled after typing brand: true
+     shot: 08-module-dialog
+     shot: 08-module-after
+  --- RELOAD ---
+  buttons after reload: Revert,Enable,Enable,Enable,Enable,Enable,Enable,Disable,Disable,Disable,Disable,Enable,Disable,Enable,Enable,Disable,Disable,Enable,Disable,Enable,Enable
+  changed? true
+  override wording: no 'override' wording
+
+=== SUBSCRIPTION EDIT ===
+  inputs: ["billing-ref(text)","renews-at(date)"]
+     shot: 08-sub-edit
+  --- RELOAD ---
+  subscription after reload: Billing reference DIAG-REF-001 Trial ends Not set Renews 1/31/2027 Branch limit 1 User limit 10 NLQ quota 1,000 / month Change tier STARTER GROWTH ENTERPRISE CUSTOM Move to STARTER Re-applies the tier's limi
+     shot: 08-sub-persisted
+
+=== SUSPEND VIA UI ===
+  suspend dialog says: Suspend Verify Bistro 289409? Every user of Verify Bistro 289409 is locked out immediately. Orders in progress cannot be completed and the point of sale stops working at all 1 branches. Nothing is deleted. Reactivating restores the tenant exactly as it was. Type Verify Bistro 289409 to confirm Reason for suspension Recorded against this tenant. Write what a colleague would need to understand the d
+     shot: 08-suspend-dialog
+     shot: 08-after-suspend
+  list row now: Verify Bistro 289409 verify-bistro-289409 Suspended STARTER max 1 max 10 5 GB 8/12/2026
+  dashboard: RestaurantOS PLATFORM Overview Tenants Sign out Platform Dashboard Every action taken here affects a whole restaurant group, not one branch. Tenants 13 Excluding purged Active 12 Suspended 1 Provisioning failed 0 By tier STARTER 3 GROWTH 8 ENTERPRISE 2 CUSTOM 0 Manage tenants →
+     shot: 08-dashboard-suspended
+
+=== CONTROL INVENTORY on a SUSPENDED tenant ===
+  ["Sign out","Reactivate","Edit","Move to STARTER","Revert","Enable","Disable"]

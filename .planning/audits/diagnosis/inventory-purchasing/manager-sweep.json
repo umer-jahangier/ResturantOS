@@ -1,0 +1,195 @@
+[
+  {
+    "name": "inv-root",
+    "route": "/app/inventory",
+    "url": "http://localhost:3000/app/inventory",
+    "errorState": false,
+    "calls": [
+      "200 /api/v1/auth/refresh",
+      "200 /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8",
+      "200 /api/v1/feature-flags",
+      "200 /api/v1/branches/mine"
+    ],
+    "text": "Floating Terrace\nFloating Terrace HQ\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\nCollapse\nApp\nInventory\nFloating Terrace HQ\nSearch…\n⌘K\nF\nIngredients\nCategories\nRecipes\nCoverage\nStock\nSetup\nInventory\nRecipe Builder\nAuthor versioned recipes for your synced menu items.\nCoverage\nSee which active menu items still need a recipe."
+  },
+  {
+    "name": "inv-ingredients",
+    "route": "/app/inventory/ingredients",
+    "url": "http://localhost:3000/app/inventory/ingredients",
+    "errorState": false,
+    "calls": [
+      "200 /api/v1/auth/refresh",
+      "200 /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8",
+      "200 /api/v1/feature-flags",
+      "200 /api/v1/branches/mine",
+      "200 /api/v1/inventory/storage-locations",
+      "200 /api/v1/inventory/recipes/options",
+      "200 /api/v1/inventory/categories",
+      "200 /api/v1/inventory/uom",
+      "200 /api/v1/inventory/ingredients"
+    ],
+    "text": "Floating Terrace\nFloating Terrace HQ\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\nCollapse\nApp\nInventory\nIngredients\nFloating Terrace HQ\nSearch…\n⌘K\nF\nIngredients\nCategories\nRecipes\nCoverage\nStock\nSetup\nIngredients\n\nCreate, search, edit and archive the ingredients your recipes and purchase orders draw from.\n\nAdd ingredient\nAll categories\nRaw Materials\nActive\nArchived\nAll\nAllergens\nGluten\nCrustaceans\nEggs\nFish\nPeanuts\nSoybeans\nMilk\nTree nuts\nCelery\nMustard\nSesame\nSulphites\nLupin\nMolluscs\nNAME\n\t\nCATEGORY\n\t\nSTOCK UNIT\n\t\nPAR LEVEL\n\t\nREORDER POINT\n\t\nSTORAGE LOCATION\n\tSTATUS\tACTIONS\n\nAudit Test Olive Oil\n\tRaw Materials\tEACH\t0\t10\t—\tActive\t\n\n\nBasmati Rice\n\tRaw Materials\tKG\t25\t5\t—\tActive\t\n\n\nChicken\n\tRaw Materials\tKG\t25\t5\t—\tActive\t\n\n\nConversion Probe Rice 178647379178\n\tRaw Materials\tKG\t0\t1\t—\tActive\t\n\n\nConversion Probe Rice 178647558945\n\tRaw Materials\tKG\t0\t1\t—\tActive\t\n\n\nDrive Ingredient p36-1786468439 (edited)\n\tRaw Materials\tKG\t0\t9\t—\tActive\t\n\n\nDrive Ingredient p36-1786468624 (edited)\n\tRaw Materials\tKG\t0\t9\t—\tActive\t\n\n\nDrive Ingredient p36-1786468766 (edited)\n\tRaw Materials\tKG\t0\t9\t—\tActive\t\n\n\nDrive Ingredient p36-1786468886 (edited)\n\tRaw Materials\tKG\t0\t9\t—\tActive\t\n\n\nDrive Ingredient p36-1786469011 (edited)\n\tRaw Materials\tKG\t0\t9\t—\tActive\t\n\n\nDrive Ingredient p36-1786469957 (edited)\n\tRaw Materials\tKG\t0\t9\t—\tActive\t\n\n\nDrive Ingredient p36-1786473907 (edited)\n\tRaw Materials\tKG\t0\t9\t—\tActive\t\n\n\nDrive Ingredient p36-1786474157 (edited)\n\tRaw Materials\tKG\t0\t9\t—\tActive\t\n\n\nDrive Ingredient p36-1786474959 (edited)\n\tRaw Materials\tKG\t0\t9\t—\tActive\t\n\n\nDrive Ingredient p36-1786475519 (edited)\n\tRaw Materials\tKG\t0\t9\t—\tActive\t\n\n\nMD Drive Ingredient 178647294050 (edited)\n\tRaw Materials\tKG\t40\t12\t—\tActive\t\n\n\nMD Drive Ingredient 178647558342 (edited)\n\tRaw Materials\tKG\t40\t12\t—\tActive\t\n\n\nPotato\npotato\n\tRaw Materials\tG\t20\t5\t—\tActive\t\n\n\nSpice Mix\n\tRaw Materials\tKG\t25\t5\t—\tActive\t\n\n19 rows"
+  },
+  {
+    "name": "inv-categories",
+    "route": "/app/inventory/categories",
+    "url": "http://localhost:3000/app/inventory/categories",
+    "errorState": false,
+    "calls": [
+      "200 /api/v1/auth/refresh",
+      "200 /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8",
+      "200 /api/v1/branches/mine",
+      "200 /api/v1/feature-flags",
+      "200 /api/v1/inventory/categories/tree",
+      "200 /api/v1/inventory/categories"
+    ],
+    "text": "Floating Terrace\nFloating Terrace HQ\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\nCollapse\nApp\nInventory\nCategories\nFloating Terrace HQ\nSearch…\n⌘K\nF\nIngredients\nCategories\nRecipes\nCoverage\nStock\nSetup\nCategories\n\nOrganize ingredients into up to three levels — categories drive default GL account codes.\n\nAdd category\nShow archived\nRaw Materials\n19 ingredients"
+  },
+  {
+    "name": "inv-recipes",
+    "route": "/app/inventory/recipes",
+    "url": "http://localhost:3000/app/inventory/recipes",
+    "errorState": false,
+    "calls": [
+      "200 /api/v1/auth/refresh",
+      "200 /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8",
+      "200 /api/v1/feature-flags",
+      "200 /api/v1/branches/mine",
+      "200 /api/v1/pos/menu/categories",
+      "200 /api/v1/inventory/menu-items",
+      "200 /api/v1/inventory/uom",
+      "200 /api/v1/inventory/recipes/coverage",
+      "200 /api/v1/inventory/ingredients",
+      "200 /api/v1/inventory/recipes"
+    ],
+    "text": "Floating Terrace\nFloating Terrace HQ\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\nCollapse\nApp\nInventory\nRecipes\nFloating Terrace HQ\nSearch…\n⌘K\nF\nIngredients\nCategories\nRecipes\nCoverage\nStock\nSetup\nRecipes\n\nPick a menu item to view its recipe history, author a revision, and see the live plate cost.\n\nNew recipe version\nSelect a menu item…\nAudit Item 52235\nAudit Item 60568\nButter Naan\nChicken Karahi\nChicken Samosa\nFresh Lime\nMutton Biryani\nPhoto Dish 50585\nPinacolada\nSeekh Kebab\n\nRevision authoring now lives on each recipe's detail page — open a menu item below to view its version history and author a new revision.\n\nMenu item\tCoverage\tVersions\nAudit Item 52235\t\nNo recipe\n\t0\nAudit Item 60568\t\nNo recipe\n\t0\nButter Naan\t\nNo recipe\n\t0\nChicken Karahi\t\nCovered\n\t1\nChicken Samosa\t\nCovered\n\t8\nFresh Lime\t\nNo recipe\n\t0\nMutton Biryani\t\nNo recipe\n\t0\nPhoto Dish 50585\t\nNo recipe\n\t0\nPinacolada\t\nNo recipe\n\t0\nSeekh Kebab\t\nNo recipe\n\t0"
+  },
+  {
+    "name": "inv-coverage",
+    "route": "/app/inventory/coverage",
+    "url": "http://localhost:3000/app/inventory/coverage",
+    "errorState": false,
+    "calls": [
+      "200 /api/v1/auth/refresh",
+      "200 /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8",
+      "200 /api/v1/feature-flags",
+      "200 /api/v1/branches/mine",
+      "200 /api/v1/inventory/recipes/coverage"
+    ],
+    "text": "Floating Terrace\nFloating Terrace HQ\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\nCollapse\nApp\nInventory\nCoverage\nFloating Terrace HQ\nSearch…\n⌘K\nF\nIngredients\nCategories\nRecipes\nCoverage\nStock\nSetup\nRecipe Coverage\n\nWhich active menu items currently resolve an effective recipe — covered, scheduled for a future date, or with no recipe at all.\n\n10\nTotal Active Menu Items\n2\nCovered\n0\nScheduled\n8\nNo Recipe\n\nShowing menu items that still need attention — a coverage report is a worklist.\n\nShow all\nMenu item\tCoverage\nAudit Item 52235\t\nNo recipe\n\nAudit Item 60568\t\nNo recipe\n\nButter Naan\t\nNo recipe\n\nFresh Lime\t\nNo recipe\n\nMutton Biryani\t\nNo recipe\n\nPhoto Dish 50585\t\nNo recipe\n\nPinacolada\t\nNo recipe\n\nSeekh Kebab\t\nNo recipe"
+  },
+  {
+    "name": "inv-stock",
+    "route": "/app/inventory/stock",
+    "url": "http://localhost:3000/login?reason=session_expired",
+    "errorState": false,
+    "calls": [
+      "429 /api/v1/auth/refresh"
+    ],
+    "text": "Sign in to RestaurantOS\n\nEnter your email and password to continue\n\nYour session expired. Please sign in again.\n\nEmail\nPassword\nUse a restaurant identifier instead\nSign in"
+  },
+  {
+    "name": "inv-setup",
+    "route": "/app/inventory/setup",
+    "url": "http://localhost:3000/login",
+    "errorState": false,
+    "calls": [],
+    "text": "Sign in to RestaurantOS\n\nEnter your email and password to continue\n\nEmail\nPassword\nUse a restaurant identifier instead\nSign in"
+  },
+  {
+    "name": "pur-root",
+    "route": "/app/purchasing",
+    "url": "http://localhost:3000/login",
+    "errorState": false,
+    "calls": [],
+    "text": "Sign in to RestaurantOS\n\nEnter your email and password to continue\n\nEmail\nPassword\nUse a restaurant identifier instead\nSign in"
+  },
+  {
+    "name": "pur-vendors",
+    "route": "/app/purchasing/vendors",
+    "url": "http://localhost:3000/login",
+    "errorState": false,
+    "calls": [],
+    "text": "Sign in to RestaurantOS\n\nEnter your email and password to continue\n\nEmail\nPassword\nUse a restaurant identifier instead\nSign in"
+  },
+  {
+    "name": "pur-suggestions",
+    "route": "/app/purchasing/order-suggestions",
+    "url": "http://localhost:3000/login",
+    "errorState": false,
+    "calls": [],
+    "text": "Sign in to RestaurantOS\n\nEnter your email and password to continue\n\nEmail\nPassword\nUse a restaurant identifier instead\nSign in"
+  },
+  {
+    "name": "pur-pos",
+    "route": "/app/purchasing/purchase-orders",
+    "url": "http://localhost:3000/login",
+    "errorState": false,
+    "calls": [],
+    "text": "Sign in to RestaurantOS\n\nEnter your email and password to continue\n\nEmail\nPassword\nUse a restaurant identifier instead\nSign in"
+  },
+  {
+    "name": "pur-invoices",
+    "route": "/app/purchasing/invoices",
+    "url": "http://localhost:3000/login",
+    "errorState": false,
+    "calls": [],
+    "text": "Sign in to RestaurantOS\n\nEnter your email and password to continue\n\nEmail\nPassword\nUse a restaurant identifier instead\nSign in"
+  },
+  {
+    "name": "pur-payments",
+    "route": "/app/purchasing/payments",
+    "url": "http://localhost:3000/login",
+    "errorState": false,
+    "calls": [],
+    "text": "Sign in to RestaurantOS\n\nEnter your email and password to continue\n\nEmail\nPassword\nUse a restaurant identifier instead\nSign in"
+  },
+  {
+    "name": "pur-analytics",
+    "route": "/app/purchasing/analytics",
+    "url": "http://localhost:3000/login",
+    "errorState": false,
+    "calls": [],
+    "text": "Sign in to RestaurantOS\n\nEnter your email and password to continue\n\nEmail\nPassword\nUse a restaurant identifier instead\nSign in"
+  },
+  {
+    "name": "x-wastage",
+    "route": "/app/inventory/wastage",
+    "url": "http://localhost:3000/login",
+    "errorState": false,
+    "calls": [],
+    "text": "Sign in to RestaurantOS\n\nEnter your email and password to continue\n\nEmail\nPassword\nUse a restaurant identifier instead\nSign in"
+  },
+  {
+    "name": "x-transfers",
+    "route": "/app/inventory/transfers",
+    "url": "http://localhost:3000/login",
+    "errorState": false,
+    "calls": [],
+    "text": "Sign in to RestaurantOS\n\nEnter your email and password to continue\n\nEmail\nPassword\nUse a restaurant identifier instead\nSign in"
+  },
+  {
+    "name": "x-counts",
+    "route": "/app/inventory/counts",
+    "url": "http://localhost:3000/login",
+    "errorState": false,
+    "calls": [],
+    "text": "Sign in to RestaurantOS\n\nEnter your email and password to continue\n\nEmail\nPassword\nUse a restaurant identifier instead\nSign in"
+  },
+  {
+    "name": "x-valuation",
+    "route": "/app/inventory/valuation",
+    "url": "http://localhost:3000/login",
+    "errorState": false,
+    "calls": [],
+    "text": "Sign in to RestaurantOS\n\nEnter your email and password to continue\n\nEmail\nPassword\nUse a restaurant identifier instead\nSign in"
+  },
+  {
+    "name": "x-grn",
+    "route": "/app/purchasing/goods-receipt",
+    "url": "http://localhost:3000/login",
+    "errorState": false,
+    "calls": [],
+    "text": "Sign in to RestaurantOS\n\nEnter your email and password to continue\n\nEmail\nPassword\nUse a restaurant identifier instead\nSign in"
+  }
+]

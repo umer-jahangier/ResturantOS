@@ -1,0 +1,29 @@
+
+===== A: 6 hard navs, all VALID routes =====
+login -> http://localhost:3000/platform/dashboard
+  nav#1 /platform/dashboard -> OK: RestaurantOS PLATFORM Overview Tenants Sign out Platform Dashboard Eve
+  nav#2 /platform/tenants -> OK: RestaurantOS PLATFORM Overview Tenants Sign out Tenants Every restaura
+  nav#3 /platform/dashboard -> OK: RestaurantOS PLATFORM Overview Tenants Sign out Platform Dashboard Eve
+  nav#4 /platform/tenants -> OK: RestaurantOS PLATFORM Overview Tenants Sign out Tenants Every restaura
+  nav#5 /platform/dashboard -> OK: RestaurantOS PLATFORM Overview Tenants Sign out Platform Dashboard Eve
+  nav#6 /platform/tenants -> OK: RestaurantOS PLATFORM Overview Tenants Sign out Tenants Every restaura
+
+===== B: hard navs to NON-EXISTENT platform routes =====
+login -> http://localhost:3000/platform/dashboard
+  nav#1 /platform/health -> 404_PAGE
+  nav#2 /platform/users -> 404_PAGE
+  nav#3 /platform/settings -> 404_PAGE
+  nav#4 /platform/billing -> 404_PAGE
+
+===== C: valid -> 404 -> valid (recovery?) =====
+login -> http://localhost:3000/platform/dashboard
+  nav#1 /platform/dashboard -> OK: RestaurantOS PLATFORM Overview Tenants Sign out Platform Dashboard Eve
+  nav#2 /platform/health -> 404_PAGE
+  nav#3 /platform/dashboard -> LOGIN_PAGE (session expired)
+  nav#4 /platform/users -> LOGIN_PAGE
+  nav#5 /platform/tenants -> LOGIN_PAGE
+
+===== D: one 404 then valid =====
+login -> http://localhost:3000/platform/dashboard
+  nav#1 /platform/nonexistent-xyz -> 404_PAGE
+  nav#2 /platform/dashboard -> OK: RestaurantOS PLATFORM Overview Tenants Sign out Platform Dashboard Eve

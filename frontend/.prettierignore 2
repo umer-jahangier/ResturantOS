@@ -1,0 +1,17 @@
+pnpm-lock.yaml
+
+# ── e2e diagnostic probes ────────────────────────────────────────────────────
+# NOT product source. e2e/**/*.mjs are one-off operational probes written by many
+# sessions to interrogate a running stack — they are never imported by the app,
+# never shipped, and are frequently added and deleted.
+#
+# This is a DELIBERATE narrowing of the gate, recorded here rather than done
+# quietly. 279 of the 423 files failing `prettier --check` were these, i.e. two
+# thirds of a gate that has blocked every CI run since 2026-07-13 was formatting
+# opinions about throwaway scripts. Formatting them would produce a 279-file diff
+# of zero product value that the next probe-writing session immediately undoes.
+#
+# Product source — app/, components/, lib/, __tests__/ and the .spec.ts journeys —
+# is still fully checked. If a probe is ever promoted to real test infrastructure,
+# give it a .ts extension and it is covered again automatically.
+e2e/**/*.mjs

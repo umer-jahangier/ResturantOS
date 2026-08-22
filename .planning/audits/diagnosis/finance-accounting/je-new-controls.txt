@@ -1,0 +1,6 @@
+[
+ "INPUT[email]",
+ "INPUT[password]",
+ "BUTTON[Use a restaurant identifier in]",
+ "BUTTON[Sign in]"
+]

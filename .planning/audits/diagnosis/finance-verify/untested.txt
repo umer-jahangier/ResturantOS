@@ -1,0 +1,44 @@
+login accountant=true url=http://localhost:3000/app/dashboard
+
+===== A. CHART OF ACCOUNTS: create =====
+url=http://localhost:3000/app/finance/accounts denied=false errored=false
+buttons: ["Collapse","Search…\n⌘K","9"]
+
+===== B. JOURNAL ENTRY: reverse a posted entry =====
+url=http://localhost:3000/app/finance/journal-entries errored=false
+buttons: ["Collapse","Search…\n⌘K","9"]
+JE rows: 50
+after row click url=http://localhost:3000/app/finance/journal-entries/7ef691cb-96f0-4519-8929-61d9db1af771
+detail buttons: ["Collapse","Search…\n⌘K","9","Reverse"]
+detail body(900): Floating Terrace |  | OVERVIEW |  | Dashboard |  | ORDERS |  | POS |  | FINANCE |  | Guide | Takings | Accounts | Journal Entries | General Ledger | Periods | Expenses | AP Aging |  | PURCHASING |  | Purchasing |  | PEOPLE |  | Customers |  | REPORTING |  | Reports | Realtime Dashboard | Ask (NLQ) | Collapse | Finance | Journal Entries | Journal Entry | Floating Terrace HQ | Search… | ⌘K | 9 | Takings | Transactions | Accounts | Journal Entries | General Ledger | Periods | Expenses | AP Aging | House Accounts | AR Aging | Guide | JE-2027-000001 |  | 2026-08-06 · Order revenue 5e98e671-908c-4829-b2d0-4e6865c4c3b7 |  | Reverse |  | STATUS |  | POSTED |  | TOTAL DEBIT |  | Rs 290.00 |  | TOTAL CREDIT |  | Rs 290.00 |  | Account	Description	Debit	Credit | 1010	CASH payment	Rs 290.00	— | 4100	Sales revenue	—	Rs 250.00 | 2200	Output tax	—	Rs 40.00
+Reverse button count: 1
+reverse dialog present: 0
+
+===== C. HOUSE ACCOUNTS =====
+url=http://localhost:3000/app/finance/house-accounts errored=false denied=false
+buttons: ["Collapse","Search…\n⌘K","9","New house account"]
+body(900): Floating Terrace |  | OVERVIEW |  | Dashboard |  | ORDERS |  | POS |  | FINANCE |  | Guide | Takings | Accounts | Journal Entries | General Ledger | Periods | Expenses | AP Aging |  | PURCHASING |  | Purchasing |  | PEOPLE |  | Customers |  | REPORTING |  | Reports | Realtime Dashboard | Ask (NLQ) | Collapse | App | Finance | House Accounts | Floating Terrace HQ | Search… | ⌘K | 9 | Takings | Transactions | Accounts | Journal Entries | General Ledger | Periods | Expenses | AP Aging | House Accounts | AR Aging | Guide | House Accounts |  | Corporate clients and regulars billed on account — catering invoices, phone orders, month-end billing, settled later. |  | New house account |  | No house accounts yet |  | Create one to bill a corporate client on account.
+
+===== D. FBR TAX SUMMARY =====
+url=http://localhost:3000/app/reports/fbr errored=false denied=false
+buttons: ["Collapse","Search…\n⌘K","9"]
+exports: []
+body(1400): Floating Terrace |  | OVERVIEW |  | Dashboard |  | ORDERS |  | POS |  | FINANCE |  | Guide | Takings | Accounts | Journal Entries | General Ledger | Periods | Expenses | AP Aging |  | PURCHASING |  | Purchasing |  | PEOPLE |  | Customers |  | REPORTING |  | Reports | Realtime Dashboard | Ask (NLQ) | Collapse | App | Reports | FBR | Floating Terrace HQ | Search… | ⌘K | 9 | ← All reports | FBR Tax Summary |  | Output tax vs input tax vs net payable — internal bookkeeping figures, not an FBR/IRIS e-filing submission. |  | From | To | Floating Terrace HQ |  | Branch tax registration unavailable — figures below are unaffected. |  | 2026-07-31 to 2026-08-30 |  | Taxable sales |  | Rs 27,552.00 |  | Output tax: Rs 3,703.60 |  | 15 orders |  | Taxable purchases |  | Rs 381,035.00 |  | Input tax: Rs 4,565.00 |  | 25 invoices |  | Refundable input-tax credit |  | Rs 861.40 |  | Input tax exceeded output tax for this period — this is a credit, not an amount owed.
+
+===== E. EXPENSES =====
+url=http://localhost:3000/app/finance/expenses errored=false
+buttons: ["Collapse","Search…\n⌘K","9","New expense"]
+body(1200): Floating Terrace |  | OVERVIEW |  | Dashboard |  | ORDERS |  | POS |  | FINANCE |  | Guide | Takings | Accounts | Journal Entries | General Ledger | Periods | Expenses | AP Aging |  | PURCHASING |  | Purchasing |  | PEOPLE |  | Customers |  | REPORTING |  | Reports | Realtime Dashboard | Ask (NLQ) | Collapse | App | Finance | Expenses | Floating Terrace HQ | Search… | ⌘K | 9 | Takings | Transactions | Accounts | Journal Entries | General Ledger | Periods | Expenses | AP Aging | House Accounts | AR Aging | Guide | Expenses |  | Create, approve and reject expenses. Approvals respect your OPA approval limit. |  | Pending approval | Approved | Rejected | All statuses | New expense |  | No expenses |  | Use "New expense" to submit the first expense for approval.
+
+--- non-GET network ---
+401 POST /api/v1/auth/login
+200 POST /api/v1/auth/login
+200 POST /api/v1/reporting/reports/sales-by-day/run
+200 POST /api/v1/reporting/reports/sales-by-day/run
+200 POST /api/v1/reporting/reports/sales-by-item/run
+200 POST /api/v1/auth/refresh
+200 POST /api/v1/auth/refresh
+201 POST /api/v1/finance/journal-entries/7ef691cb-96f0-4519-8929-61d9db1af771/reverse
+200 POST /api/v1/auth/refresh
+200 POST /api/v1/auth/refresh
+200 POST /api/v1/auth/refresh

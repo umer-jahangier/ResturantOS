@@ -1,0 +1,8 @@
+BEFORE: {"url":"http://localhost:3000/platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8","dialogs":0,"inputs":["SELECT:"],"subscriptionSection":"Subscription | Edit"}
+Edit button box: {"x":1395.8125,"y":231,"width":63.1875,"height":28} visible: true enabled: true
+AFTER : {"url":"http://localhost:3000/platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8","dialogs":0,"inputs":["INPUT:","INPUT:","SELECT:"],"subscriptionSection":"Subscription | Cancel"}
+URL changed: false
+dialog appeared: false
+new inputs appeared: true (1 -> 3)
+page errors: []
+   shot: 61-after-edit-click.png

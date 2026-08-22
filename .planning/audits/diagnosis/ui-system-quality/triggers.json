@@ -1,0 +1,292 @@
+{
+  "/app/tables": {
+    "clean": true,
+    "refused": false,
+    "buttons": [
+      "General Ledger",
+      "Periods",
+      "AP Aging",
+      "General",
+      "Appearance",
+      "Search…⌘K",
+      "6",
+      "Add table"
+    ]
+  },
+  "/app/menu/items": {
+    "clean": true,
+    "refused": false,
+    "buttons": [
+      "General Ledger",
+      "Periods",
+      "AP Aging",
+      "General",
+      "Appearance",
+      "Search…⌘K",
+      "6",
+      "Add category",
+      "Add item"
+    ]
+  },
+  "/app/inventory/ingredients": {
+    "clean": true,
+    "refused": false,
+    "buttons": [
+      "General Ledger",
+      "Periods",
+      "AP Aging",
+      "General",
+      "Appearance",
+      "Search…⌘K",
+      "6",
+      "Ingredients",
+      "Categories",
+      "Recipes",
+      "Coverage",
+      "Stock",
+      "Setup",
+      "Add ingredient",
+      "Gluten",
+      "Crustaceans",
+      "Eggs",
+      "Fish",
+      "Peanuts",
+      "Soybeans",
+      "Milk",
+      "Tree nuts",
+      "Celery",
+      "Mustard",
+      "Sesame",
+      "Sulphites",
+      "Lupin",
+      "Molluscs",
+      "Name",
+      "Category",
+      "Stock unit",
+      "Par level",
+      "Reorder point",
+      "Storage location",
+      "Raw Materials"
+    ]
+  },
+  "/app/inventory/setup": {
+    "clean": true,
+    "refused": false,
+    "buttons": [
+      "General Ledger",
+      "Periods",
+      "AP Aging",
+      "General",
+      "Appearance",
+      "Search…⌘K",
+      "6",
+      "Ingredients",
+      "Categories",
+      "Recipes",
+      "Coverage",
+      "Stock",
+      "Setup",
+      "Add unit",
+      "Restore",
+      "Edit",
+      "Retire",
+      "Add location"
+    ]
+  },
+  "/app/inventory/stock": {
+    "clean": true,
+    "refused": false,
+    "buttons": [
+      "General Ledger",
+      "Periods",
+      "AP Aging",
+      "General",
+      "Appearance",
+      "Search…⌘K",
+      "6",
+      "Ingredients",
+      "Categories",
+      "Recipes",
+      "Coverage",
+      "Stock",
+      "Setup",
+      "Opening balance",
+      "Receipt",
+      "Transfer",
+      "Count",
+      "Ingredient",
+      "Category",
+      "On hand",
+      "Reorder point",
+      "Avg cost",
+      "Stock value",
+      "Last counted"
+    ]
+  },
+  "/app/purchasing/vendors": {
+    "clean": true,
+    "refused": false,
+    "buttons": [
+      "General Ledger",
+      "Periods",
+      "AP Aging",
+      "General",
+      "Appearance",
+      "Search…⌘K",
+      "6",
+      "Vendors",
+      "Suggested Orders",
+      "Purchase Orders",
+      "Invoices",
+      "Payments",
+      "Analytics",
+      "Add vendor",
+      "Manage catalog →",
+      "Edit"
+    ]
+  },
+  "/app/purchasing/purchase-orders": {
+    "clean": true,
+    "refused": false,
+    "buttons": [
+      "General Ledger",
+      "Periods",
+      "AP Aging",
+      "General",
+      "Appearance",
+      "Search…⌘K",
+      "6",
+      "Vendors",
+      "Suggested Orders",
+      "Purchase Orders",
+      "Invoices",
+      "Payments",
+      "Analytics",
+      "New Purchase Order",
+      "Submitted",
+      "Expected date",
+      "Total",
+      "Status",
+      "Previous",
+      "Next"
+    ]
+  },
+  "/app/finance/expenses": {
+    "clean": true,
+    "refused": false,
+    "buttons": [
+      "General Ledger",
+      "Periods",
+      "AP Aging",
+      "General",
+      "Appearance",
+      "Search…⌘K",
+      "6",
+      "Transactions",
+      "House Accounts",
+      "AR Aging",
+      "New expense"
+    ]
+  },
+  "/app/finance/house-accounts": {
+    "clean": false,
+    "buttons": [
+      "Use a restaurant identifier instead",
+      "Sign in"
+    ]
+  },
+  "/app/hr/employees": {
+    "clean": true,
+    "refused": false,
+    "buttons": [
+      "General Ledger",
+      "Periods",
+      "AP Aging",
+      "General",
+      "Appearance",
+      "Search…⌘K",
+      "6",
+      "Attendance & Leave",
+      "New employee",
+      "Edit",
+      "Deactivate"
+    ]
+  },
+  "/app/users": {
+    "clean": true,
+    "refused": false,
+    "buttons": [
+      "General Ledger",
+      "Periods",
+      "AP Aging",
+      "General",
+      "Appearance",
+      "Search…⌘K",
+      "6",
+      "Add user"
+    ]
+  },
+  "/app/stations": {
+    "clean": true,
+    "refused": false,
+    "buttons": [
+      "General Ledger",
+      "Periods",
+      "AP Aging",
+      "General",
+      "Appearance",
+      "Search…⌘K",
+      "6",
+      "Add station"
+    ]
+  },
+  "/app/terminals": {
+    "clean": true,
+    "refused": false,
+    "buttons": [
+      "General Ledger",
+      "Periods",
+      "AP Aging",
+      "General",
+      "Appearance",
+      "Search…⌘K",
+      "6",
+      "Add terminal"
+    ]
+  },
+  "/app/pos": {
+    "clean": true,
+    "refused": false,
+    "buttons": [
+      "General Ledger",
+      "Periods",
+      "AP Aging",
+      "General",
+      "Appearance",
+      "Search…⌘K",
+      "6",
+      "Open Till",
+      "POS Terminal",
+      "Floor View",
+      "Order Management"
+    ]
+  },
+  "/app/finance/periods": {
+    "clean": true,
+    "refused": false,
+    "buttons": [
+      "General Ledger",
+      "Periods",
+      "AP Aging",
+      "General",
+      "Appearance",
+      "Search…⌘K",
+      "6",
+      "Transactions",
+      "House Accounts",
+      "AR Aging",
+      "Provision Periods",
+      "Close Period"
+    ]
+  }
+}

@@ -1,0 +1,80 @@
+[
+  {
+    "k": "granted",
+    "v": "owner now has a Rooftop role"
+  },
+  {
+    "k": "owner-switcher-present",
+    "v": 1
+  },
+  {
+    "k": "label-after-switch",
+    "v": "Floating Terrace — Rooftop"
+  },
+  {
+    "k": "settings-values-after-CLIENTSIDE-switch",
+    "v": [
+      {
+        "name": "name",
+        "value": "Floating Terrace — Rooftop"
+      },
+      {
+        "name": "address",
+        "value": ""
+      },
+      {
+        "name": "phone",
+        "value": ""
+      },
+      {
+        "name": "email",
+        "value": ""
+      },
+      {
+        "name": "timezone",
+        "value": "Asia/Karachi"
+      },
+      {
+        "name": "openedOn",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "k": "label-on-settings",
+    "v": "Floating Terrace — Rooftop"
+  },
+  {
+    "k": "settings-values-after-F5",
+    "v": [
+      {
+        "name": "name",
+        "value": "Floating Terrace HQ"
+      },
+      {
+        "name": "address",
+        "value": "null"
+      },
+      {
+        "name": "phone",
+        "value": "+92 21 4628872"
+      },
+      {
+        "name": "email",
+        "value": "null"
+      },
+      {
+        "name": "timezone",
+        "value": "Asia/Karachi"
+      },
+      {
+        "name": "openedOn",
+        "value": "2024-01-15"
+      }
+    ]
+  },
+  {
+    "k": "label-after-F5",
+    "v": "Floating Terrace HQ"
+  }
+]

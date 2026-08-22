@@ -1,0 +1,1150 @@
+{
+  "A1_navMatches": [
+    {
+      "t": "Audit log",
+      "h": "/app/settings/audit"
+    }
+  ],
+  "A2_health": {
+    "bad": [],
+    "alerts": []
+  },
+  "A2_screen": {
+    "url": "http://localhost:3000/app/settings/audit",
+    "h1": "Audit log",
+    "zoneNote": "Times are shown in Asia/Karachi — this branch's time zone. Dates you pick above are whole days in that zone.",
+    "summary": "Showing 1–50 of 5,675 events",
+    "headers": [
+      "When",
+      "Event",
+      "Who",
+      "What",
+      "Reason",
+      ""
+    ],
+    "rowCount": 50,
+    "prevDisabled": true,
+    "nextDisabled": false
+  },
+  "A2_firstRows": [
+    [
+      "12 Aug 2026, 03:48:27 pm",
+      "User login succeeded USER_LOGIN_SUCCEEDED",
+      "owner@terrace.local",
+      "USER",
+      "—",
+      "Details"
+    ],
+    [
+      "12 Aug 2026, 03:48:24 pm",
+      "User login failed USER_LOGIN_FAILED",
+      "owner@terrace.local",
+      "USER",
+      "—",
+      "Details"
+    ],
+    [
+      "12 Aug 2026, 03:48:21 pm",
+      "User login succeeded USER_LOGIN_SUCCEEDED",
+      "Terrace Cashier",
+      "USER",
+      "—",
+      "Details"
+    ]
+  ],
+  "A3_afterReload": {
+    "h1": "Audit log",
+    "summary": "Showing 1–50 of 5,676 events",
+    "rowCount": 50,
+    "zoneNote": "Times are shown in Asia/Karachi — this branch's time zone. Dates you pick above are whole days in that zone.",
+    "health": {
+      "bad": [],
+      "alerts": []
+    }
+  },
+  "A4_zoneMath": {
+    "storedUtc": "2026-08-12T10:48:39.766382Z",
+    "browserZone": "Europe/Lisbon",
+    "utc": "10:48:39",
+    "karachi": "15:48:39",
+    "lisbon": "11:48:39",
+    "renderedTopCell": "12 Aug 2026, 03:48:39 pm",
+    "topRowActor": {
+      "id": null,
+      "name": null,
+      "action": "JOURNAL_POSTED"
+    }
+  },
+  "A5_facets": {
+    "status": 200,
+    "actions": 26,
+    "resourceTypes": [
+      "ADMIN",
+      "AP",
+      "JOURNAL",
+      "KDS",
+      "ORDER",
+      "PASSWORD",
+      "PAYROLL",
+      "PERIOD",
+      "PO",
+      "ROLE",
+      "TENANT",
+      "TILL",
+      "USER",
+      "VENDOR"
+    ]
+  },
+  "A5_actionFilter": {
+    "summary": "Showing 1–50 of 133 events",
+    "rowCount": 50,
+    "distinctEvent": [
+      "Order voided ORDER_VOIDED"
+    ],
+    "everyRowIsVoid": true,
+    "health": {
+      "bad": [],
+      "alerts": []
+    }
+  },
+  "A6_resourceFilter": {
+    "summary": "Showing 1–50 of 151 events",
+    "rowCount": 50,
+    "everyWhatIsOrder": true,
+    "anyUserLogin": false,
+    "distinctActions": [
+      "ORDER_VOIDED"
+    ],
+    "health": {
+      "bad": [],
+      "alerts": []
+    }
+  },
+  "A7_contradictory": {
+    "summary": "0 events",
+    "rowCount": 0,
+    "saysNothingRecorded": false,
+    "health": {
+      "bad": [],
+      "alerts": []
+    }
+  },
+  "A8_afterClear": "Showing 1–50 of 5,676 events",
+  "A9_paging": [
+    {
+      "page": "Page 1",
+      "summary": "Showing 1–50 of 5,676 events",
+      "first": "12 Aug 2026, 03:48:39 pm",
+      "last": "12 Aug 2026, 12:19:58 pm",
+      "prevDisabled": true
+    },
+    {
+      "page": "Page 2",
+      "summary": "Showing 51–100 of 5,679 events",
+      "first": "12 Aug 2026, 12:20:09 pm",
+      "last": "12 Aug 2026, 12:16:37 pm",
+      "prevDisabled": false
+    },
+    {
+      "page": "Page 3",
+      "summary": "Showing 101–150 of 5,680 events",
+      "first": "12 Aug 2026, 12:16:37 pm",
+      "last": "12 Aug 2026, 12:12:47 pm",
+      "prevDisabled": false
+    }
+  ],
+  "A10_walk": {
+    "statedTotal": 133,
+    "distinctIdsCollected": 133,
+    "duplicateRowsAcrossPages": 0,
+    "pagesWalked": 3,
+    "everyRowIsOrderVoided": true,
+    "everyRowHasResourceTypeOrder": true,
+    "rowsWithAName": 133,
+    "rowsWithoutAName": 0,
+    "namelessSample": []
+  },
+  "A11_backwards": {
+    "rangeError": "From is 2026-08-12, which is after To (2026-08-01). No day can be in both, so this range has not been applied — the list below still shows the last range that could match. Move one of the two dates.",
+    "rowsStillOnScreen": 50,
+    "fromInvalid": "true",
+    "toInvalid": "true",
+    "requestsSentSince": [
+      "/api/v1/audit/facets?from=2026-08-12&zone=Asia%2FKarachi",
+      "/api/v1/audit/events?page=0&size=50&from=2026-08-12&zone=Asia%2FKarachi",
+      "/api/v1/audit/events?page=0&size=50&zone=Asia%2FKarachi"
+    ]
+  },
+  "A12_size25": {
+    "summary": "Showing 1–25 of 5,681 events",
+    "rowCount": 25,
+    "pageLabel": "Page 1"
+  },
+  "A13_detailPanel": "Journal posted 12 Aug 2026, 03:49:25 pm · by Not recorded Close jeId acb7b870-263e-4510-a59f-5b69d57d90e5 entryNo JE-2027-000317 sourceId 51242002-bf45-4f8c-8644-756215a17971 sourceType ORDER_REVENUE totalDebitPaisa 9280 totalCreditPaisa 9280",
+  "A14_consoleErrors": [
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  ],
+  "A15_auditCalls": [
+    {
+      "s": 200,
+      "u": "/api/v1/audit/facets?zone=Asia%2FKarachi"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?page=0&size=50&action=ORDER_VOIDED&zone=Asia%2FKarachi"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?page=0&size=50&resourceType=ORDER&zone=Asia%2FKarachi"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?page=0&size=50&action=USER_LOGIN_SUCCEEDED&resourceType=ORDER&zone=Asia%2FKarachi"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?page=1&size=50&zone=Asia%2FKarachi"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?page=2&size=50&zone=Asia%2FKarachi"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?action=ORDER_VOIDED&size=50&page=0&zone=Asia%2FKarachi"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?action=ORDER_VOIDED&size=50&page=1&zone=Asia%2FKarachi"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?action=ORDER_VOIDED&size=50&page=2&zone=Asia%2FKarachi"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?page=2&size=50&from=2026-08-12&zone=Asia%2FKarachi"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/facets?from=2026-08-12&zone=Asia%2FKarachi"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?page=0&size=50&from=2026-08-12&zone=Asia%2FKarachi"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?page=0&size=50&zone=Asia%2FKarachi"
+    },
+    {
+      "s": 200,
+      "u": "/api/v1/audit/events?page=0&size=25&zone=Asia%2FKarachi"
+    }
+  ],
+  "A16_bearerCaptured": true,
+  "B1_void": {
+    "no": "ORD-20260812-0377",
+    "err": null,
+    "saysVoided": true,
+    "reason": "F4 RECHECK verifier 11:01:40 qgkvul"
+  },
+  "B2_ownerHealth": {
+    "bad": [],
+    "alerts": []
+  },
+  "B3_rowOnScreen": {
+    "found": true,
+    "cells": [
+      "12 Aug 2026, 04:02:44 pm",
+      "Order voided ORDER_VOIDED",
+      "Terrace Manager",
+      "ORDER f0edf02e-c71e-4b83-b3ae-1f6b8f4b5356",
+      "F4 RECHECK verifier 11:01:40 qgkvul",
+      "Details"
+    ],
+    "summary": "Showing 1–50 of 134 events",
+    "rowsSearched": 50
+  },
+  "C_cashier": {
+    "navEntries": [],
+    "h1": "You cannot read the audit log",
+    "namesThePermission": true,
+    "saysEmptyLog": false,
+    "tableRows": 0,
+    "eventsStatus": 403,
+    "eventsRows": null,
+    "eventsTotal": null,
+    "facetsStatus": 403,
+    "facetsActions": null,
+    "health": {
+      "bad": [
+        "access-denied"
+      ],
+      "alerts": []
+    }
+  },
+  "C_waiter": {
+    "navEntries": [],
+    "h1": "You cannot read the audit log",
+    "namesThePermission": true,
+    "saysEmptyLog": false,
+    "tableRows": 0,
+    "eventsStatus": 403,
+    "eventsRows": null,
+    "eventsTotal": null,
+    "facetsStatus": 403,
+    "facetsActions": null,
+    "health": {
+      "bad": [
+        "access-denied"
+      ],
+      "alerts": []
+    }
+  },
+  "C_manager": {
+    "navEntries": [],
+    "h1": "You cannot read the audit log",
+    "namesThePermission": true,
+    "saysEmptyLog": false,
+    "tableRows": 0,
+    "eventsStatus": 403,
+    "eventsRows": null,
+    "eventsTotal": null,
+    "facetsStatus": 403,
+    "facetsActions": null,
+    "health": {
+      "bad": [
+        "access-denied"
+      ],
+      "alerts": []
+    }
+  },
+  "C_accountant": {
+    "navEntries": [],
+    "h1": "You cannot read the audit log",
+    "namesThePermission": true,
+    "saysEmptyLog": false,
+    "tableRows": 0,
+    "eventsStatus": 403,
+    "eventsRows": null,
+    "eventsTotal": null,
+    "facetsStatus": 403,
+    "facetsActions": null,
+    "health": {
+      "bad": [
+        "access-denied"
+      ],
+      "alerts": []
+    }
+  },
+  "C_storekeeper": {
+    "navEntries": [],
+    "h1": "You cannot read the audit log",
+    "namesThePermission": true,
+    "saysEmptyLog": false,
+    "tableRows": 0,
+    "eventsStatus": 403,
+    "eventsRows": null,
+    "eventsTotal": null,
+    "facetsStatus": 403,
+    "facetsActions": null,
+    "health": {
+      "bad": [
+        "access-denied"
+      ],
+      "alerts": []
+    }
+  },
+  "C_admin": {
+    "navEntries": [
+      {
+        "t": "Audit log",
+        "h": "/app/settings/audit"
+      }
+    ],
+    "h1": "Audit log",
+    "namesThePermission": false,
+    "saysEmptyLog": false,
+    "tableRows": 50,
+    "eventsStatus": 200,
+    "eventsRows": 5,
+    "eventsTotal": 5768,
+    "facetsStatus": 200,
+    "facetsActions": 26,
+    "health": {
+      "bad": [],
+      "alerts": []
+    }
+  },
+  "D1_controlNav": [
+    {
+      "t": "Audit log",
+      "h": "/app/settings/audit"
+    }
+  ],
+  "D2_controlScreen": {
+    "h1": "Audit log",
+    "summary": "Showing 1–50 of 311 events",
+    "zoneNote": "Times are shown in Asia/Karachi — this branch's time zone. Dates you pick above are whole days in that zone.",
+    "rowCount": 50,
+    "health": {
+      "bad": [],
+      "alerts": []
+    },
+    "firstRow": [
+      "12 Aug 2026, 03:58:25 pm",
+      "User login succeeded USER_LOGIN_SUCCEEDED",
+      "owner@control.local",
+      "USER",
+      "—",
+      "Details"
+    ]
+  },
+  "D3_controlRows": {
+    "status": 200,
+    "total": 311,
+    "returned": 200,
+    "distinctActors": [
+      "owner@control.local",
+      "Control Accountant",
+      "Control Cashier",
+      "Control Admin",
+      "Control Kitchen",
+      "Control Manager",
+      "Control Waiter",
+      "Control Storekeeper"
+    ],
+    "anyTerraceActor": []
+  },
+  "D4_injections": {
+    "/api/v1/audit/events?tenantId=00000000-0000-0000-0000-000000000000&size=3": {
+      "status": 200,
+      "rows": 3,
+      "total": 311,
+      "code": null,
+      "anyTerrace": false
+    },
+    "/api/v1/audit/events?tenant_id=00000000-0000-0000-0000-000000000000&size=3": {
+      "status": 200,
+      "rows": 3,
+      "total": 311,
+      "code": null,
+      "anyTerrace": false
+    },
+    "/api/v1/audit/events?size=3&sort=occurredAt,asc": {
+      "status": 200,
+      "rows": 3,
+      "total": 311,
+      "code": null,
+      "anyTerrace": false
+    },
+    "/api/v1/audit/events?size=99999": {
+      "status": 200,
+      "rows": 200,
+      "total": 311,
+      "code": null,
+      "anyTerrace": false
+    },
+    "/api/v1/audit/events?page=-5&size=3": {
+      "status": 200,
+      "rows": 3,
+      "total": 311,
+      "code": null,
+      "anyTerrace": false
+    },
+    "/api/v1/audit/events?zone=Mars%2FOlympus&size=3": {
+      "status": 422,
+      "rows": null,
+      "total": null,
+      "code": "INVALID_TIME_ZONE",
+      "anyTerrace": false
+    },
+    "/api/v1/audit/events?resourceType=NOT_A_THING&size=3": {
+      "status": 200,
+      "rows": 0,
+      "total": 0,
+      "code": null,
+      "anyTerrace": false
+    },
+    "/api/v1/audit/events?action=%27%20OR%201%3D1--&size=3": {
+      "status": 200,
+      "rows": 0,
+      "total": 0,
+      "code": null,
+      "anyTerrace": false
+    }
+  },
+  "D5_noBearer": {
+    "status": 401,
+    "rows": null
+  },
+  "D6_consoleErrors": [
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)"
+  ],
+  "B4_apiRow": {
+    "id": 11299,
+    "action": "ORDER_VOIDED",
+    "resourceType": "ORDER",
+    "resourceId": "f0edf02e-c71e-4b83-b3ae-1f6b8f4b5356",
+    "userId": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+    "userName": "Terrace Manager",
+    "occurredAt": "2026-08-12T11:02:44.707783Z"
+  },
+  "B5_zoneMath": {
+    "browserZone": "Europe/Lisbon",
+    "utc": "11:02:44",
+    "karachi": "16:02:44",
+    "lisbon": "12:02:44",
+    "renderedOnScreen": "12 Aug 2026, 04:02:44 pm"
+  },
+  "B6_detail": "Order voided 12 Aug 2026, 04:02:44 pm · by Terrace Manager (fefd7187-dbe2-4c12-a532-3c1cc8f3d322) Close reason F4 RECHECK verifier 11:01:40 qgkvul orderId f0edf02e-c71e-4b83-b3ae-1f6b8f4b5356 voidedBy fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+  "B7_actionSweep": [
+    {
+      "action": "ADMIN_PASSWORD_RESET",
+      "status": 200,
+      "total": 5,
+      "rows": 5,
+      "allSameAction": true,
+      "resourceTypes": [
+        "ADMIN"
+      ],
+      "withActorId": 5,
+      "named": 5,
+      "unnamedWithAnId": 0,
+      "sampleName": "owner@terrace.local"
+    },
+    {
+      "action": "AP_PAYMENT_PROCESSED",
+      "status": 200,
+      "total": 19,
+      "rows": 19,
+      "allSameAction": true,
+      "resourceTypes": [
+        "AP"
+      ],
+      "withActorId": 19,
+      "named": 19,
+      "unnamedWithAnId": 0,
+      "sampleName": "owner@terrace.local"
+    },
+    {
+      "action": "JOURNAL_POSTED",
+      "status": 200,
+      "total": 324,
+      "rows": 25,
+      "allSameAction": true,
+      "resourceTypes": [
+        "JOURNAL"
+      ],
+      "withActorId": 2,
+      "named": 2,
+      "unnamedWithAnId": 0,
+      "sampleName": "Terrace Accountant"
+    },
+    {
+      "action": "KDS_STALE_TICKETS_CLEARED",
+      "status": 200,
+      "total": 2,
+      "rows": 2,
+      "allSameAction": true,
+      "resourceTypes": [
+        "KDS"
+      ],
+      "withActorId": 2,
+      "named": 2,
+      "unnamedWithAnId": 0,
+      "sampleName": "Terrace Kitchen"
+    },
+    {
+      "action": "ORDER_REFUNDED",
+      "status": 200,
+      "total": 19,
+      "rows": 19,
+      "allSameAction": true,
+      "resourceTypes": [
+        "ORDER"
+      ],
+      "withActorId": 19,
+      "named": 19,
+      "unnamedWithAnId": 0,
+      "sampleName": "Terrace Manager"
+    },
+    {
+      "action": "ORDER_VOIDED",
+      "status": 200,
+      "total": 134,
+      "rows": 25,
+      "allSameAction": true,
+      "resourceTypes": [
+        "ORDER"
+      ],
+      "withActorId": 25,
+      "named": 25,
+      "unnamedWithAnId": 0,
+      "sampleName": "Terrace Manager"
+    },
+    {
+      "action": "PASSWORD_CHANGED",
+      "status": 200,
+      "total": 99,
+      "rows": 25,
+      "allSameAction": true,
+      "resourceTypes": [
+        "PASSWORD"
+      ],
+      "withActorId": 25,
+      "named": 25,
+      "unnamedWithAnId": 0,
+      "sampleName": "S2 Reopen Subject"
+    },
+    {
+      "action": "PASSWORD_RESET_REQUESTED",
+      "status": 200,
+      "total": 1,
+      "rows": 1,
+      "allSameAction": true,
+      "resourceTypes": [
+        "PASSWORD"
+      ],
+      "withActorId": 1,
+      "named": 1,
+      "unnamedWithAnId": 0,
+      "sampleName": "owner@terrace.local"
+    },
+    {
+      "action": "PAYROLL_RUN_APPROVED",
+      "status": 200,
+      "total": 2,
+      "rows": 2,
+      "allSameAction": true,
+      "resourceTypes": [
+        "PAYROLL"
+      ],
+      "withActorId": 2,
+      "named": 2,
+      "unnamedWithAnId": 0,
+      "sampleName": "owner@terrace.local"
+    },
+    {
+      "action": "PAYROLL_RUN_PAID",
+      "status": 200,
+      "total": 2,
+      "rows": 2,
+      "allSameAction": true,
+      "resourceTypes": [
+        "PAYROLL"
+      ],
+      "withActorId": 2,
+      "named": 2,
+      "unnamedWithAnId": 0,
+      "sampleName": "owner@terrace.local"
+    },
+    {
+      "action": "PERIOD_CLOSED",
+      "status": 200,
+      "total": 2,
+      "rows": 2,
+      "allSameAction": true,
+      "resourceTypes": [
+        "PERIOD"
+      ],
+      "withActorId": 2,
+      "named": 2,
+      "unnamedWithAnId": 0,
+      "sampleName": "Terrace Accountant"
+    },
+    {
+      "action": "PO_APPROVED",
+      "status": 200,
+      "total": 63,
+      "rows": 25,
+      "allSameAction": true,
+      "resourceTypes": [
+        "PO"
+      ],
+      "withActorId": 25,
+      "named": 25,
+      "unnamedWithAnId": 0,
+      "sampleName": "Terrace Manager"
+    },
+    {
+      "action": "PO_CLOSED",
+      "status": 200,
+      "total": 3,
+      "rows": 3,
+      "allSameAction": true,
+      "resourceTypes": [
+        "PO"
+      ],
+      "withActorId": 3,
+      "named": 3,
+      "unnamedWithAnId": 0,
+      "sampleName": "Terrace Manager"
+    },
+    {
+      "action": "ROLE_GRANTED",
+      "status": 200,
+      "total": 228,
+      "rows": 25,
+      "allSameAction": true,
+      "resourceTypes": [
+        "ROLE"
+      ],
+      "withActorId": 25,
+      "named": 25,
+      "unnamedWithAnId": 0,
+      "sampleName": "owner@terrace.local"
+    },
+    {
+      "action": "ROLE_REVOKED",
+      "status": 200,
+      "total": 28,
+      "rows": 25,
+      "allSameAction": true,
+      "resourceTypes": [
+        "ROLE"
+      ],
+      "withActorId": 15,
+      "named": 15,
+      "unnamedWithAnId": 0,
+      "sampleName": "owner@terrace.local"
+    },
+    {
+      "action": "TENANT_PROVISIONED",
+      "status": 200,
+      "total": 1,
+      "rows": 1,
+      "allSameAction": true,
+      "resourceTypes": [
+        "TENANT"
+      ],
+      "withActorId": 0,
+      "named": 0,
+      "unnamedWithAnId": 0,
+      "sampleName": null
+    },
+    {
+      "action": "TILL_CLOSED",
+      "status": 200,
+      "total": 9,
+      "rows": 9,
+      "allSameAction": true,
+      "resourceTypes": [
+        "TILL"
+      ],
+      "withActorId": 9,
+      "named": 9,
+      "unnamedWithAnId": 0,
+      "sampleName": "Shift Cashier 984155"
+    },
+    {
+      "action": "TILL_OPENED",
+      "status": 200,
+      "total": 12,
+      "rows": 12,
+      "allSameAction": true,
+      "resourceTypes": [
+        "TILL"
+      ],
+      "withActorId": 10,
+      "named": 10,
+      "unnamedWithAnId": 0,
+      "sampleName": "Shift Cashier 984155"
+    },
+    {
+      "action": "TILL_REVIEWED",
+      "status": 200,
+      "total": 2,
+      "rows": 2,
+      "allSameAction": true,
+      "resourceTypes": [
+        "TILL"
+      ],
+      "withActorId": 2,
+      "named": 2,
+      "unnamedWithAnId": 0,
+      "sampleName": "owner@terrace.local"
+    },
+    {
+      "action": "USER_CREATED",
+      "status": 200,
+      "total": 128,
+      "rows": 25,
+      "allSameAction": true,
+      "resourceTypes": [
+        "USER"
+      ],
+      "withActorId": 25,
+      "named": 25,
+      "unnamedWithAnId": 0,
+      "sampleName": "owner@terrace.local"
+    },
+    {
+      "action": "USER_DEACTIVATED",
+      "status": 200,
+      "total": 13,
+      "rows": 13,
+      "allSameAction": true,
+      "resourceTypes": [
+        "USER"
+      ],
+      "withActorId": 13,
+      "named": 13,
+      "unnamedWithAnId": 0,
+      "sampleName": "owner@terrace.local"
+    },
+    {
+      "action": "USER_LOGIN_FAILED",
+      "status": 200,
+      "total": 886,
+      "rows": 25,
+      "allSameAction": true,
+      "resourceTypes": [
+        "USER"
+      ],
+      "withActorId": 25,
+      "named": 25,
+      "unnamedWithAnId": 0,
+      "sampleName": "Terrace Accountant"
+    },
+    {
+      "action": "USER_LOGIN_SUCCEEDED",
+      "status": 200,
+      "total": 3815,
+      "rows": 25,
+      "allSameAction": true,
+      "resourceTypes": [
+        "USER"
+      ],
+      "withActorId": 25,
+      "named": 25,
+      "unnamedWithAnId": 0,
+      "sampleName": "Terrace Cashier"
+    },
+    {
+      "action": "USER_REACTIVATED",
+      "status": 200,
+      "total": 1,
+      "rows": 1,
+      "allSameAction": true,
+      "resourceTypes": [
+        "USER"
+      ],
+      "withActorId": 1,
+      "named": 1,
+      "unnamedWithAnId": 0,
+      "sampleName": "Terrace Admin"
+    },
+    {
+      "action": "USER_UPDATED",
+      "status": 200,
+      "total": 2,
+      "rows": 2,
+      "allSameAction": true,
+      "resourceTypes": [
+        "USER"
+      ],
+      "withActorId": 2,
+      "named": 2,
+      "unnamedWithAnId": 0,
+      "sampleName": "Terrace Admin"
+    },
+    {
+      "action": "VENDOR_INVOICE_MATCHED",
+      "status": 200,
+      "total": 25,
+      "rows": 25,
+      "allSameAction": true,
+      "resourceTypes": [
+        "VENDOR"
+      ],
+      "withActorId": 25,
+      "named": 25,
+      "unnamedWithAnId": 0,
+      "sampleName": "owner@terrace.local"
+    }
+  ],
+  "B7_summary": {
+    "actionsChecked": 26,
+    "anyFilterLeaked": [],
+    "anyNullResourceType": [],
+    "actionsWithAnIdButNoName": []
+  },
+  "B8_resourceSweep": [
+    {
+      "resourceType": "ADMIN",
+      "total": 5,
+      "rows": 5,
+      "allMatch": true
+    },
+    {
+      "resourceType": "AP",
+      "total": 19,
+      "rows": 19,
+      "allMatch": true
+    },
+    {
+      "resourceType": "JOURNAL",
+      "total": 324,
+      "rows": 25,
+      "allMatch": true
+    },
+    {
+      "resourceType": "KDS",
+      "total": 2,
+      "rows": 2,
+      "allMatch": true
+    },
+    {
+      "resourceType": "ORDER",
+      "total": 153,
+      "rows": 25,
+      "allMatch": true
+    },
+    {
+      "resourceType": "PASSWORD",
+      "total": 100,
+      "rows": 25,
+      "allMatch": true
+    },
+    {
+      "resourceType": "PAYROLL",
+      "total": 4,
+      "rows": 4,
+      "allMatch": true
+    },
+    {
+      "resourceType": "PERIOD",
+      "total": 2,
+      "rows": 2,
+      "allMatch": true
+    },
+    {
+      "resourceType": "PO",
+      "total": 66,
+      "rows": 25,
+      "allMatch": true
+    },
+    {
+      "resourceType": "ROLE",
+      "total": 256,
+      "rows": 25,
+      "allMatch": true
+    },
+    {
+      "resourceType": "TENANT",
+      "total": 1,
+      "rows": 1,
+      "allMatch": true
+    },
+    {
+      "resourceType": "TILL",
+      "total": 23,
+      "rows": 23,
+      "allMatch": true
+    },
+    {
+      "resourceType": "USER",
+      "total": 4846,
+      "rows": 25,
+      "allMatch": true
+    },
+    {
+      "resourceType": "VENDOR",
+      "total": 25,
+      "rows": 25,
+      "allMatch": true
+    }
+  ],
+  "B8_leaks": [],
+  "B9_consoleErrors": [
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  ],
+  "E0_health": {
+    "bad": [],
+    "alerts": []
+  },
+  "E1_karachiToday": "2026-08-12",
+  "E2_totals": {
+    "karachiCutTotal": 4973,
+    "utcCutTotal": 3735,
+    "theyDiffer": true
+  },
+  "E3_discriminatingRow": {
+    "id": 7664,
+    "occurredAt": "2026-08-11T23:42:48.965318Z",
+    "action": "USER_LOGIN_SUCCEEDED"
+  },
+  "E4_membership": {
+    "rowId": 7664,
+    "storedUtc": "2026-08-11T23:42:48.965318Z",
+    "isInKarachiCutDay": true,
+    "isInUtcCutDay": false,
+    "karachiWindowSize": 4973,
+    "utcWindowSize": 3735,
+    "firstPageContained": false,
+    "verdict": "cut on the BRANCH zone"
+  },
+  "E5_onScreen": {
+    "summary": null,
+    "rowCount": 0,
+    "lastRequest": "/api/v1/audit/events?page=0&size=50&from=2026-08-12&to=2026-08-12&zone=Asia%2FKarachi",
+    "everyRowIsThatKarachiDay": false,
+    "health": {
+      "bad": [
+        "load-failure"
+      ],
+      "alerts": [
+        "The audit log is unavailable right now.The part of RestaurantOS that handles the audit log is not answering. This is not something you did, and nothing you have entered has been lost. The till, the kitchen board and the rest of the product are unaffected — onl"
+      ]
+    }
+  },
+  "E6_390_light": {
+    "h1": "Audit log",
+    "summary": "Showing 1–50 of 5,993 events",
+    "rowsOrCards": 50,
+    "tablesVisible": 0,
+    "noHorizontalOverflow": true,
+    "bodyScrollW": 390,
+    "viewportW": 390,
+    "bg": "oklch(1 0 195)",
+    "health": {
+      "bad": [],
+      "alerts": []
+    }
+  },
+  "E6_390_dark": {
+    "h1": "Audit log",
+    "summary": "Showing 1–50 of 5,997 events",
+    "rowsOrCards": 50,
+    "tablesVisible": 0,
+    "noHorizontalOverflow": true,
+    "bodyScrollW": 390,
+    "viewportW": 390,
+    "bg": "oklch(0.132 0.006 195)",
+    "health": {
+      "bad": [],
+      "alerts": []
+    }
+  },
+  "E6_768_light": {
+    "h1": "Audit log",
+    "summary": "Showing 1–50 of 6,000 events",
+    "rowsOrCards": 50,
+    "tablesVisible": 1,
+    "noHorizontalOverflow": true,
+    "bodyScrollW": 768,
+    "viewportW": 768,
+    "bg": "oklch(1 0 195)",
+    "health": {
+      "bad": [],
+      "alerts": []
+    }
+  },
+  "E6_1440_dark": {
+    "h1": "Audit log",
+    "summary": "Showing 1–50 of 6,004 events",
+    "rowsOrCards": 50,
+    "tablesVisible": 1,
+    "noHorizontalOverflow": true,
+    "bodyScrollW": 1440,
+    "viewportW": 1440,
+    "bg": "oklch(0.132 0.006 195)",
+    "health": {
+      "bad": [],
+      "alerts": []
+    }
+  },
+  "F1_apiTimings": [
+    {
+      "ms": 120,
+      "status": 200,
+      "total": 5014,
+      "rows": 50
+    },
+    {
+      "ms": 36,
+      "status": 200,
+      "total": 5014,
+      "rows": 50
+    },
+    {
+      "ms": 38,
+      "status": 200,
+      "total": 5014,
+      "rows": 50
+    },
+    {
+      "ms": 80,
+      "status": 200,
+      "total": 5014,
+      "rows": 50
+    },
+    {
+      "ms": 43,
+      "status": 200,
+      "total": 5015,
+      "rows": 50
+    },
+    {
+      "ms": 32,
+      "status": 200,
+      "total": 5015,
+      "rows": 50
+    }
+  ],
+  "F2_unfilteredTimings": [
+    {
+      "ms": 42,
+      "status": 200,
+      "total": 6025
+    },
+    {
+      "ms": 39,
+      "status": 200,
+      "total": 6025
+    },
+    {
+      "ms": 32,
+      "status": 200,
+      "total": 6025
+    }
+  ],
+  "F3_onScreenAttempts": [
+    {
+      "attempt": 1,
+      "summary": "Showing 1–50 of 5,018 events",
+      "rowCount": 50,
+      "bad": [],
+      "saysUnavailable": false,
+      "saysNothingRecorded": false,
+      "everyRowIsThatDay": true
+    },
+    {
+      "attempt": 2,
+      "summary": "Showing 1–50 of 5,020 events",
+      "rowCount": 50,
+      "bad": [],
+      "saysUnavailable": false,
+      "saysNothingRecorded": false,
+      "everyRowIsThatDay": true
+    },
+    {
+      "attempt": 3,
+      "summary": "Showing 1–50 of 5,024 events",
+      "rowCount": 50,
+      "bad": [],
+      "saysUnavailable": false,
+      "saysNothingRecorded": false,
+      "everyRowIsThatDay": true
+    }
+  ],
+  "F4_verdict": {
+    "screenSucceededAtLeastOnce": true,
+    "screenEverLiedAboutEmpty": false,
+    "failures": 0
+  }
+}

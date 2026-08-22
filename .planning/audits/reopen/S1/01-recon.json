@@ -1,0 +1,298 @@
+{
+  "landed": {
+    "url": "http://localhost:3000/app/menu/routing",
+    "h1": "Station Routing",
+    "summary": "35 of 44 sellable items have no station — their tickets print on the DEFAULT board.",
+    "alerts": [],
+    "catCount": 8,
+    "rowCount": 44,
+    "cats": [
+      {
+        "name": "Starters",
+        "select": "53086ba0-6f16-412f-b409-fb65eb898c76",
+        "selectText": "Cold prep (PANTRY1)"
+      },
+      {
+        "name": "Diag Cat 683566",
+        "select": "",
+        "selectText": "Not routed — DEFAULT board"
+      },
+      {
+        "name": "Diag Cat 785508",
+        "select": "",
+        "selectText": "Not routed — DEFAULT board"
+      },
+      {
+        "name": "F16 Mains 166428",
+        "select": "",
+        "selectText": "Not routed — DEFAULT board"
+      },
+      {
+        "name": "Mains",
+        "select": "",
+        "selectText": "Not routed — DEFAULT board"
+      },
+      {
+        "name": "Drinks",
+        "select": "789ce266-5808-48ec-a39a-9c7755961b44",
+        "selectText": "Main bar (BAR)"
+      },
+      {
+        "name": "Soft Drinks",
+        "select": "",
+        "selectText": "Not routed — DEFAULT board"
+      },
+      {
+        "name": "ZZ Till",
+        "select": "",
+        "selectText": "Not routed — DEFAULT board"
+      }
+    ],
+    "rows": [
+      {
+        "name": "Audit Item 52235",
+        "eff": "PANTRY1",
+        "src": "CATEGORY"
+      },
+      {
+        "name": "Audit Item 60568",
+        "eff": "PANTRY1",
+        "src": "CATEGORY"
+      },
+      {
+        "name": "Chicken Samosa",
+        "eff": "PANTRY1",
+        "src": "CATEGORY"
+      },
+      {
+        "name": "Photo Dish 50585",
+        "eff": "PANTRY1",
+        "src": "CATEGORY"
+      },
+      {
+        "name": "Seekh Kebab",
+        "eff": "GRILL",
+        "src": "ITEM"
+      },
+      {
+        "name": "F16 Biryani 166428",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "F16 Karahi 166428",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "F16 Lime 166428",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "F16 Naan 166428",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "Butter Naan",
+        "eff": "GRILL",
+        "src": "ITEM"
+      },
+      {
+        "name": "Chicken Karahi",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "Mutton Biryani",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "Fresh Lime",
+        "eff": "BAR",
+        "src": "CATEGORY"
+      },
+      {
+        "name": "Pinacolada",
+        "eff": "BAR",
+        "src": "CATEGORY"
+      },
+      {
+        "name": "ZZ-01",
+        "eff": "BAR",
+        "src": "LEGACY"
+      },
+      {
+        "name": "ZZ-02",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-03",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-04",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-05",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-06",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-07",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-08",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-09",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-10",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-11",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-12",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-13",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-14",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-15",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-16",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-17",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-18",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-19",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-20",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-21",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-22",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-23",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-24",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-25",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-26",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-27",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-28",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-29",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      },
+      {
+        "name": "ZZ-30",
+        "eff": "DEFAULT",
+        "src": "NONE"
+      }
+    ]
+  },
+  "trouble": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/menu/routing"
+  },
+  "branchId": null,
+  "tenantId": null,
+  "stations": [],
+  "branches": [
+    {
+      "id": "c2d74ade-7ff8-4167-8cd0-131bfbdf4fba",
+      "name": "Floating Terrace — Rooftop"
+    },
+    {
+      "id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "name": "Floating Terrace HQ"
+    }
+  ],
+  "apiCategories": [],
+  "apiItems": [],
+  "orphanItems": [],
+  "domRowCount": 44,
+  "apiActiveItemCount": 0,
+  "apiItemCount": 0
+}

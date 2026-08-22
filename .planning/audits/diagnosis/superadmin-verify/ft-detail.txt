@@ -1,0 +1,154 @@
+RestaurantOS
+PLATFORM
+Overview
+Tenants
+Sign out
+All tenants
+Floating Terrace
+floating-terrace
+Active
+ENTERPRISE
+Suspend
+Subscription
+Edit
+Billing reference
+Not set
+Trial ends
+Not set
+Renews
+Not set
+Branch limit
+50
+User limit
+500
+NLQ quota
+50,000 / month
+Change tier
+STARTER
+GROWTH
+ENTERPRISE
+CUSTOM
+Move to ENTERPRISE
+
+Re-applies the tier's limits and reconciles modules. Modules you overrode explicitly are left alone in both directions. Nothing is deleted.
+
+Usage against entitlement
+Branches
+2 / 50 branches
+Users
+Limit 500 users
+
+Not metered — auth-service exposes no per-tenant user count; the users table lives in auth_db
+
+Storage
+Limit 100 GB
+
+Not metered — no producer records storage usage — file-service emits no usage events
+
+NLQ queries
+0 / 50,000 queries
+Modules
+
+Defaults shown for the ENTERPRISE tier
+
+Modules for Floating Terrace, showing whether each value comes from the tenant's tier or from an explicit override
+Module	State	Source	Actions
+FEATURE_ANALYTICS	On	
+Included in tier
+	
+Disable
+
+FEATURE_AUDIT_EXPORT	On	
+Included in tier
+	
+Disable
+
+FEATURE_CONSOLIDATED_REPORTING	On	
+Included in tier
+	
+Disable
+
+FEATURE_CRM	On	
+Included in tier
+	
+Disable
+
+FEATURE_CUSTOM_ROLES	On	
+Included in tier
+	
+Disable
+
+FEATURE_ECOMMERCE	On	
+Included in tier
+	
+Disable
+
+FEATURE_FINANCE	On	
+Included in tier
+	
+Disable
+
+FEATURE_HR	On	
+Included in tier
+	
+Disable
+
+FEATURE_INVENTORY	On	
+Included in tier
+	
+Disable
+
+FEATURE_KDS	On	
+Included in tier
+	
+Disable
+
+FEATURE_LOT_TRACKING	On	
+Included in tier
+	
+Disable
+
+FEATURE_LOYALTY	On	
+Included in tier
+	
+Disable
+
+FEATURE_MULTI_BRANCH	On	
+Included in tier
+	
+Disable
+
+FEATURE_NLQ	On	
+Included in tier
+	
+Disable
+
+FEATURE_PAYROLL	On	
+Included in tier
+	
+Disable
+
+FEATURE_POS	On	
+Included in tier
+	
+Disable
+
+FEATURE_REPORTING_ADVANCED	On	
+Included in tier
+	
+Disable
+
+FEATURE_VENDOR	On	
+Included in tier
+	
+Disable
+
+FEATURE_WHATSAPP_NOTIFICATIONS	On	
+Included in tier
+	
+Disable
+
+FEATURE_WHITE_LABEL_DOMAIN	On	
+Included in tier
+	
+Disable

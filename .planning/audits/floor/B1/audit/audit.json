@@ -1,0 +1,140 @@
+{
+  "clock": {
+    "utc": "2026-08-12T06:34:28.397Z",
+    "karachi": "12/08/2026, 11:34:28"
+  },
+  "posTrouble": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/pos"
+  },
+  "rung": {
+    "orderNos": [
+      "ORD-20260812-0304"
+    ],
+    "alerts": []
+  },
+  "order": {
+    "orderNo": "ORD-20260812-0304",
+    "orderId": "a4295e44-03d1-44de-ab59-7b6a18b6dfcd"
+  },
+  "amountField": "1774.80",
+  "afterPayment": {
+    "err": null,
+    "rows": [
+      "CASH Aug 12, 2026, 11:35 AM Rs 1,774.80"
+    ]
+  },
+  "takingsDefaultTrouble": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/takings"
+  },
+  "takingsDefault": {
+    "dateBox": "2026-08-12",
+    "orderLine": "58 orders closed on this trading day",
+    "gross": "Rs 73,026.00",
+    "cashTender": "CASH COUNTED CASH VARIANCE Cashier bc0d9897 Opened 8/12/26, 7:50 AM · closed 8/12/26, 8:16 AM Matched Rs 5,0",
+    "empty": false,
+    "alerts": []
+  },
+  "takingsAfterReload": {
+    "dateBox": "2026-08-12",
+    "orderLine": "58 orders closed on this trading day",
+    "gross": "Rs 73,026.00",
+    "cashTender": "CASH COUNTED CASH VARIANCE Cashier bc0d9897 Opened 8/12/26, 7:50 AM · closed 8/12/26, 8:16 AM Matched Rs 5,0",
+    "empty": false,
+    "alerts": []
+  },
+  "takingsYesterdayTrouble": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/takings?date=2026-08-11"
+  },
+  "takingsYesterday": {
+    "asked": "2026-08-11",
+    "dateBox": "2026-08-11",
+    "orderLine": "10 orders closed on this trading day",
+    "gross": "Rs 17,949.00",
+    "cashTender": "CASH COUNTED CASH VARIANCE Cashier fefd7187 Opened 8/11/26, 5:52 PM · not closed Still open Rs 5,000.00 Not",
+    "empty": false,
+    "alerts": []
+  },
+  "takings_2026-08-11": {
+    "dateBox": "2026-08-11",
+    "orderLine": "10 orders closed on this trading day",
+    "gross": "Rs 17,949.00",
+    "cashTender": "CASH COUNTED CASH VARIANCE Cashier fefd7187 Opened 8/11/26, 5:52 PM · not closed Still open Rs 5,000.00 Not",
+    "empty": false,
+    "alerts": []
+  },
+  "takings_2026-08-12": {
+    "dateBox": "2026-08-12",
+    "orderLine": "58 orders closed on this trading day",
+    "gross": "Rs 73,026.00",
+    "cashTender": "CASH COUNTED CASH VARIANCE Cashier bc0d9897 Opened 8/12/26, 7:50 AM · closed 8/12/26, 8:16 AM Matched Rs 5,0",
+    "empty": false,
+    "alerts": []
+  },
+  "cashierTakings": {
+    "bad": [
+      "access-denied"
+    ],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/takings"
+  },
+  "cashierJournal": {
+    "bad": [
+      "access-denied"
+    ],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/journal-entries"
+  },
+  "cashierTransactions": {
+    "bad": [
+      "access-denied"
+    ],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/transactions"
+  },
+  "txTrouble": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/transactions"
+  },
+  "txForMyOrder": {
+    "found": true,
+    "around": [
+      "When\tType\tOrder\tTender\tAmount\tOrder total\tTrace",
+      "8/12/2026, 11:36:44 AM\tVoid\tORD-20260812-0306\t—\t-Rs 2,054.85\tRs 2,054.85\tOpen",
+      "8/12/2026, 11:35:46 AM\tPayment\tORD-20260812-0305\tCASH\tRs 1,289.40\tRs 1,289.40\tOpen",
+      "8/12/2026, 11:35:07 AM\tPayment\tORD-20260812-0303\tCASH\tRs 2,430.80\tRs 2,430.80\tOpen",
+      "8/12/2026, 11:35:07 AM\tPayment\tORD-20260812-0304\tCASH\tRs 1,774.80\tRs 1,774.80\tOpen",
+      "8/12/2026, 11:33:49 AM\tPayment\tORD-20260812-0301\tCARD\tRs 1,047.90\tRs 1,047.90\tOpen",
+      "8/12/2026, 11:33:05 AM\tVoid\tORD-20260812-0298\t—\t-Rs 2,054.85\tRs 2,054.85\tOpen",
+      "8/12/2026, 11:32:19 AM\tPayment\tORD-20260812-0297\tCASH\tRs 681.45\tRs 681.45\tOpen",
+      "8/12/2026, 11:30:32 AM\tPayment\tORD-20260812-0296\tCARD\tRs 1,047.90\tRs 1,047.90\tOpen"
+    ]
+  },
+  "jeTrouble": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/journal-entries"
+  },
+  "je_myOrder": {
+    "count": "1 entry matches “ORD-20260812-0304”",
+    "rows": [
+      "JE-2027-000299 | 2026-08-12 | Order revenue ORD-20260812-0304 | POSTED | Rs 1,774.80 | Rs 1,774.80"
+    ]
+  },
+  "je_0164": {
+    "count": "0 entries match “ORD-20260812-0164”",
+    "rows": []
+  },
+  "je_254": {
+    "count": "1 entry matches “JE-2027-000254”",
+    "rows": [
+      "JE-2027-000254 | 2026-08-11 | Order revenue 7b979100-52ca-4be6-8f80-b2383b475148 | POSTED | Rs 1,682.60 | Rs 1,682.60"
+    ]
+  }
+}

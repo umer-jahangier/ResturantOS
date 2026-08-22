@@ -1,0 +1,52 @@
+{
+  "stamp": "80012",
+  "cashier": {
+    "mineStatus": 200,
+    "post": {
+      "status": 403,
+      "code": "PERMISSION_DENIED"
+    },
+    "put": {
+      "status": 403,
+      "code": "PERMISSION_DENIED"
+    },
+    "del": {
+      "status": 403,
+      "code": "PERMISSION_DENIED"
+    }
+  },
+  "manager": {
+    "mineStatus": 200,
+    "post": {
+      "status": 403,
+      "code": "PERMISSION_DENIED"
+    },
+    "put": {
+      "status": 403,
+      "code": "PERMISSION_DENIED"
+    },
+    "del": {
+      "status": 403,
+      "code": "PERMISSION_DENIED"
+    }
+  },
+  "kitchen": {
+    "mineStatus": 200,
+    "post": {
+      "status": 403,
+      "code": "PERMISSION_DENIED"
+    },
+    "put": {
+      "status": 403,
+      "code": "PERMISSION_DENIED"
+    },
+    "del": {
+      "status": 403,
+      "code": "PERMISSION_DENIED"
+    }
+  },
+  "hqAfterAllAttempts": {
+    "name": "Floating Terrace HQ",
+    "isActive": true
+  }
+}

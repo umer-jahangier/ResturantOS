@@ -1,0 +1,65 @@
+{
+  "S": "988362",
+  "CAT": "e910df58-ed7a-4bee-af38-0fe7060d4c47",
+  "bareCat": "4da56c79-c0b8-4a2c-b142-863938e88d04",
+  "LEG": "be1bda86-90ad-471c-afcc-183487aa1534",
+  "F": {
+    "before": {
+      "eff": 0,
+      "code": "RO-ZERO-988362",
+      "src": "ITEM",
+      "classId": "set",
+      "legacy": 0,
+      "legacyCode": null,
+      "desc": "reopen probe",
+      "price": 20000
+    },
+    "dialogTaxSelect": {
+      "value": "set",
+      "label": "ROPEN Zero 988362 — 0.00%"
+    },
+    "afterDescOnly_Charlie": {
+      "eff": 0,
+      "code": "RO-ZERO-988362",
+      "src": "ITEM",
+      "classId": "set",
+      "legacy": 0,
+      "legacyCode": null,
+      "desc": "desc changed by reopen 988362",
+      "price": 20000
+    },
+    "legacyCreated": {
+      "status": 200
+    },
+    "legacyBefore": {
+      "eff": 13.5,
+      "code": "LEG-988362",
+      "src": "ITEM_CUSTOM",
+      "legacy": 13.5,
+      "legacyCode": "LEG-988362",
+      "desc": "legacy probe"
+    },
+    "legacyDialogSelect": {
+      "sel": "A rate just for this item…",
+      "rate": "13.5",
+      "code": "LEG-988362"
+    },
+    "legacyAfterDescOnly": {
+      "eff": 13.5,
+      "code": "LEG-988362",
+      "src": "ITEM_CUSTOM",
+      "legacy": 13.5,
+      "legacyCode": "LEG-988362",
+      "desc": "legacy desc changed 988362"
+    },
+    "bareCatNowRuled": 200,
+    "legacyUnderRule": {
+      "eff": 17,
+      "code": "RO-STD-988362",
+      "src": "CATEGORY",
+      "legacy": 13.5,
+      "legacyCode": "LEG-988362",
+      "desc": "legacy desc changed 988362"
+    }
+  }
+}

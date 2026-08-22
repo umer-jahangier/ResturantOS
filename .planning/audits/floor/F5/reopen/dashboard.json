@@ -1,0 +1,42 @@
+{
+  "tile": {
+    "text": "NET SALES |  | Rs 107,658.30 |  | 72 orders in 30 days |  | No comparable prior period",
+    "amountText": "Rs 107,658.30",
+    "paisa": 10765830
+  },
+  "trend": [
+    "Net sales and Orders by period",
+    "Period | Net sales | Orders",
+    "Aug 8 | Rs 10,515 | 5",
+    "Aug 11 | Rs 46,465 | 34",
+    "Aug 12 | Rs 50,678 | 33"
+  ],
+  "rows": [
+    {
+      "business_date": "2026-08-07T19:00:00.000Z",
+      "order_count": 5,
+      "subtotal_paisa": 960300,
+      "discount_paisa": 0,
+      "tax_paisa": 91160,
+      "total_paisa": 1051460
+    },
+    {
+      "business_date": "2026-08-10T19:00:00.000Z",
+      "order_count": 34,
+      "subtotal_paisa": 4384900,
+      "discount_paisa": 95000,
+      "tax_paisa": 356640,
+      "total_paisa": 4646540
+    },
+    {
+      "business_date": "2026-08-11T19:00:00.000Z",
+      "order_count": 33,
+      "subtotal_paisa": 4559600,
+      "discount_paisa": 23050,
+      "tax_paisa": 509820,
+      "total_paisa": 5067830
+    }
+  ],
+  "sumTotal": 10765830,
+  "sumNet": 9786750
+}

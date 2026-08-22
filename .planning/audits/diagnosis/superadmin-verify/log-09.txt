@@ -1,0 +1,28 @@
+=== 1. PLATFORM MFA ===
+  landed straight on: http://localhost:3000/platform/dashboard — no TOTP step was presented
+  cookies visible to JS: has_session=1
+
+=== 2. PURGED TENANTS TOGGLE ===
+  before: {"rows":13,"btn":"Show 7 purged tenants"}
+  after: {"rows":20,"btn":"Hide 7 purged tenants"}
+     shot: 09-purged-shown
+
+=== 3. TENANT LIST AFFORDANCES (scale) ===
+  {"textInputs":[],"selects":[],"sortableHeaders":["Tenant","Status","Tier","Branches","Users","Storage","Created","Lume\ntest","Saffron Grill\nsaffron-grill","Zaitoon Kitchen\nzaitoon-kitchen","Marina Bay Dining\nmarina-bay-dining","Floating Terrace\nfloating-terrace","Gap Audit Bistro\ngap-audit-bistro","Diag Bistro 696318\ndiag-bistro-696318","E2E Probe 26080702234d5f\ne2e-probe-26080702234d5f","E2E Probe 2608070159c912\ne2e-probe-2608070159c912","Onboard Test 479550\nonboard-test-479550","Demo Restaurant\ndemo","Diag Bistro 953661\ndiag-bistro-953661","E2E Probe 2608070239f895\ne2e-probe-2608070239f895","GA008 Verify Bistro\nga008-verify","GA008 Browser Bistro\nga008-browser","GA008 Browser Two\nga008-browser2","Control Bistro (isolation test tenant)\ncontrol-bistro-isolation-test-tenant","E2E Probe 2608070400bc1c\ne2e-probe-2608070400bc1c","Verify Bistro 289409\nverify-bistro-289409","Recheck Grill 689187\nrecheck-grill-689187"],"pagination":false}
+
+=== 4. PLATFORM OPERATOR ACCOUNT CONTROLS ===
+  {"buttons":["RestaurantOS","Overview","Tenants","Sign out","Create tenant"],"avatarMenu":false}
+  /platform/profile -> 404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing
+  /profile -> 404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing
+  /settings/appearance -> Sign in to RestaurantOS Enter your email and password to continue Your session expired. Please sign 
+  /app/profile -> Sign in to RestaurantOS Enter your email and password to continue Email Password Use a restaurant id
+
+=== 5. CAN THE PLATFORM OPERATOR SEE A TENANT'S APP? ===
+  /app/dashboard -> Sign in to RestaurantOS Enter your email and password to continue Your session expired. Please sign in again. Email Password Use a restaurant identifier instead
+     shot: 09-sa-in-tenant-app-_app_dashboard
+  /app/pos -> Sign in to RestaurantOS Enter your email and password to continue Email Password Use a restaurant identifier instead Sign in
+     shot: 09-sa-in-tenant-app-_app_pos
+
+=== 6. SIGN OUT ===
+     !! re-login
+  after sign out -> http://localhost:3000/login LOGGED_OUT

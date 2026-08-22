@@ -1,0 +1,390 @@
+[
+  {
+    "key": "tables",
+    "route": "/app/tables",
+    "trigger": "Add table",
+    "field": "capacity",
+    "bad": "-5",
+    "why": "negative seat count",
+    "whileTyping": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0
+    },
+    "afterBlur": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0
+    },
+    "meta": {
+      "type": "text",
+      "inputMode": "numeric",
+      "pattern": null,
+      "min": null,
+      "max": null,
+      "step": null,
+      "required": false,
+      "maxLength": -1
+    }
+  },
+  {
+    "key": "menu-item",
+    "route": "/app/menu/items",
+    "trigger": "Add item",
+    "field": "priceRupees",
+    "bad": "-100",
+    "why": "negative menu price",
+    "whileTyping": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0
+    },
+    "afterBlur": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0
+    },
+    "meta": {
+      "type": "text",
+      "inputMode": "decimal",
+      "pattern": null,
+      "min": null,
+      "max": null,
+      "step": null,
+      "required": false,
+      "maxLength": -1
+    }
+  },
+  {
+    "key": "ingredient",
+    "route": "/app/inventory/ingredients",
+    "trigger": "Add ingredient",
+    "field": "name",
+    "bad": "!",
+    "why": "1-char punctuation name",
+    "whileTyping": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0
+    },
+    "afterBlur": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0
+    },
+    "meta": {
+      "type": "text",
+      "inputMode": null,
+      "pattern": null,
+      "min": null,
+      "max": null,
+      "step": null,
+      "required": false,
+      "maxLength": -1
+    }
+  },
+  {
+    "key": "ingr-yield",
+    "route": "/app/inventory/ingredients",
+    "trigger": "Add ingredient",
+    "field": "defaultYieldPct",
+    "bad": "900",
+    "why": "900% yield",
+    "whileTyping": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0
+    },
+    "afterBlur": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0
+    },
+    "meta": {
+      "type": "text",
+      "inputMode": "decimal",
+      "pattern": null,
+      "min": null,
+      "max": null,
+      "step": null,
+      "required": false,
+      "maxLength": -1
+    }
+  },
+  {
+    "key": "unit-factor",
+    "route": "/app/inventory/setup",
+    "trigger": "Add unit",
+    "field": "toBaseFactor",
+    "bad": "-3",
+    "why": "negative conversion factor",
+    "skipped": "field disabled"
+  },
+  {
+    "key": "receipt-qty",
+    "route": "/app/inventory/stock",
+    "trigger": "Receipt",
+    "field": "lines.0.qty",
+    "bad": "-50",
+    "why": "negative received qty",
+    "whileTyping": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0
+    },
+    "afterBlur": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0
+    },
+    "meta": {
+      "type": "text",
+      "inputMode": "decimal",
+      "pattern": null,
+      "min": null,
+      "max": null,
+      "step": null,
+      "required": false,
+      "maxLength": -1
+    }
+  },
+  {
+    "key": "vendor",
+    "route": "/app/purchasing/vendors",
+    "trigger": "Add vendor",
+    "field": "email",
+    "bad": "not-an-email",
+    "why": "malformed email",
+    "whileTyping": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0
+    },
+    "afterBlur": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0
+    },
+    "meta": {
+      "type": "email",
+      "inputMode": null,
+      "pattern": null,
+      "min": null,
+      "max": null,
+      "step": null,
+      "required": false,
+      "maxLength": -1
+    }
+  },
+  {
+    "key": "po-qty",
+    "route": "/app/purchasing/purchase-orders",
+    "trigger": "New Purchase Order",
+    "field": "lines.0.qty",
+    "bad": "-10",
+    "why": "negative PO quantity",
+    "whileTyping": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0
+    },
+    "afterBlur": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0
+    },
+    "meta": {
+      "type": "text",
+      "inputMode": "decimal",
+      "pattern": null,
+      "min": null,
+      "max": null,
+      "step": null,
+      "required": false,
+      "maxLength": -1
+    }
+  },
+  {
+    "key": "expense",
+    "route": "/app/finance/expenses",
+    "trigger": "New expense",
+    "field": "amountRupees",
+    "bad": "-9999",
+    "why": "negative expense amount",
+    "whileTyping": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0
+    },
+    "afterBlur": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0
+    },
+    "meta": {
+      "type": "text",
+      "inputMode": "decimal",
+      "pattern": null,
+      "min": null,
+      "max": null,
+      "step": null,
+      "required": false,
+      "maxLength": -1
+    }
+  },
+  {
+    "key": "employee",
+    "route": "/app/hr/employees",
+    "trigger": "New employee",
+    "field": "cnic",
+    "bad": "abc",
+    "why": "non-numeric CNIC",
+    "whileTyping": {
+      "open": true,
+      "n": 1,
+      "texts": [
+        "Enter the employee number"
+      ],
+      "ariaInvalid": 1
+    },
+    "afterBlur": {
+      "open": true,
+      "n": 2,
+      "texts": [
+        "Enter the employee number",
+        "A CNIC is 13 digits, with or without dashes"
+      ],
+      "ariaInvalid": 2
+    },
+    "meta": {
+      "type": "text",
+      "inputMode": null,
+      "pattern": null,
+      "min": null,
+      "max": null,
+      "step": null,
+      "required": false,
+      "maxLength": -1
+    }
+  },
+  {
+    "key": "emp-salary",
+    "route": "/app/hr/employees",
+    "trigger": "New employee",
+    "field": "basicSalaryRupees",
+    "bad": "-500",
+    "why": "negative salary",
+    "whileTyping": {
+      "open": true,
+      "n": 1,
+      "texts": [
+        "Enter the employee number"
+      ],
+      "ariaInvalid": 1
+    },
+    "afterBlur": {
+      "open": true,
+      "n": 2,
+      "texts": [
+        "Enter the employee number",
+        "Rupees only, up to two decimal places"
+      ],
+      "ariaInvalid": 2
+    },
+    "meta": {
+      "type": "text",
+      "inputMode": "decimal",
+      "pattern": null,
+      "min": null,
+      "max": null,
+      "step": null,
+      "required": false,
+      "maxLength": -1
+    }
+  },
+  {
+    "key": "user",
+    "route": "/app/users",
+    "trigger": "Add user",
+    "field": "email",
+    "bad": "zzz",
+    "why": "malformed email",
+    "whileTyping": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0
+    },
+    "afterBlur": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0
+    },
+    "meta": {
+      "type": "email",
+      "inputMode": null,
+      "pattern": null,
+      "min": null,
+      "max": null,
+      "step": null,
+      "required": false,
+      "maxLength": -1
+    }
+  },
+  {
+    "key": "terminal",
+    "route": "/app/terminals",
+    "trigger": "Add terminal",
+    "field": "terminal-code",
+    "bad": "!!",
+    "why": "punctuation terminal code",
+    "skipped": "field absent"
+  },
+  {
+    "key": "station",
+    "route": "/app/stations",
+    "trigger": "Add station",
+    "field": "code",
+    "bad": "!!",
+    "why": "punctuation station code",
+    "whileTyping": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0
+    },
+    "afterBlur": {
+      "open": true,
+      "n": 0,
+      "texts": [],
+      "ariaInvalid": 0
+    },
+    "meta": {
+      "type": "text",
+      "inputMode": null,
+      "pattern": null,
+      "min": null,
+      "max": null,
+      "step": null,
+      "required": false,
+      "maxLength": -1
+    }
+  }
+]

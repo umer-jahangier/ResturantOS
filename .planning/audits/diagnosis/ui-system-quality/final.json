@@ -1,0 +1,104 @@
+{
+  "successPath": {
+    "stamp": "UIQ3028",
+    "elapsedMs": 2538,
+    "dialogStillOpen": false,
+    "toasts": [
+      {
+        "type": "success",
+        "text": "Added UIQ3028"
+      }
+    ],
+    "toastContainer": true,
+    "rowAppeared": 2
+  },
+  "keyboard": {
+    "steps": 26,
+    "escapedDialog": 0,
+    "focusedWithoutVisibleRing": 0,
+    "trail": [
+      "button",
+      "input#shortName",
+      "button",
+      "input#sku",
+      "button",
+      "select#categoryId",
+      "button",
+      "select#itemType",
+      "input#description",
+      "button",
+      "select#measureType",
+      "button",
+      "select#baseUomCode",
+      "button",
+      "select#recipeUomCode",
+      "button",
+      "input#defaultYieldPct",
+      "button",
+      "button",
+      "button",
+      "input#parLevel",
+      "button",
+      "input#reorderPoint",
+      "button",
+      "select#storageLocationId",
+      "button"
+    ],
+    "enterSubmits": {
+      "dialogOpen": true,
+      "errs": 4
+    }
+  },
+  "cashier": [
+    {
+      "n": "pos",
+      "r": "/app/pos",
+      "clean": true,
+      "refused": false,
+      "h1": 1,
+      "tap": {
+        "n": 37,
+        "under44": 3,
+        "under24": 0
+      },
+      "fonts": 6,
+      "btnH": {
+        "44": 21,
+        "48": 2,
+        "100": 10
+      }
+    },
+    {
+      "n": "tills",
+      "r": "/app/pos/tills",
+      "clean": false,
+      "refused": true,
+      "h1": 0,
+      "tap": {
+        "n": 7,
+        "under44": 3,
+        "under24": 0
+      },
+      "fonts": 3,
+      "btnH": {
+        "44": 4
+      }
+    },
+    {
+      "n": "kitchen",
+      "r": "/app/kitchen",
+      "clean": false,
+      "refused": true,
+      "h1": 0,
+      "tap": {
+        "n": 7,
+        "under44": 3,
+        "under24": 0
+      },
+      "fonts": 3,
+      "btnH": {
+        "44": 4
+      }
+    }
+  ]
+}

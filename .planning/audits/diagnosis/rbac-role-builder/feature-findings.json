@@ -1,0 +1,17 @@
+{
+  "url": "http://localhost:3000/platform/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8",
+  "is404": false,
+  "body": "RestaurantOS\nPLATFORM\nOverview\nTenants\nSign out\nAll tenants\nFloating Terrace\nfloating-terrace\nActive\nENTERPRISE\nSuspend\nSubscription\nEdit\nBilling reference\nNot set\nTrial ends\nNot set\nRenews\nNot set\nBranch limit\n50\nUser limit\n500\nNLQ quota\n50,000 / month\nChange tier\nSTARTER\nGROWTH\nENTERPRISE\nCUSTOM\nMove to ENTERPRISE\n\nRe-applies the tier's limits and reconciles modules. Modules you overrode explicitly are left alone in both directions. Nothing is deleted.\n\nUsage against entitlement\nBranches\n2 / 50 branches\nUsers\nLimit 500 users\n\nNot metered — auth-service exposes no per-tenant user count; the users table lives in auth_db\n\nStorage\nLimit 100 GB\n\nNot metered — no producer records storage usage — file-service emits no usage events\n\nNLQ queries\n0 / 50,000 queries\nModules\n\nDefaults shown for the ENTERPRISE tier\n\nModules for Floating Terrace, showing whether each value comes from the tenant's tier or from an explicit override\nModule\tState\tSource\tActions\nFEATURE_ANALYTICS\tOn\t\nIncluded in tier\n\t\nDisable\n\nFEATURE_AUDIT_EXPORT\tOn\t\nIncluded in tier\n\t\nDisable\n\nFEATURE_CONSOLIDATED_REPORTING\tOn\t\nIncluded in tier\n\t\nDisable\n\nFEATURE_CRM\tOn\t\nIncluded in tier\n\t\nDisable\n\nFEATURE_CUSTOM_ROLES\tOn\t\nIncluded in tier\n\t\nDisable\n\nFEATURE_ECOMMERCE\tOn\t\nIncluded in tier\n\t\nDisable\n\nFEATURE_FINANCE\tOn\t\nIncluded in tier\n\t\nDisable\n\nFEATURE_HR\tOn\t\nIncluded in tier\n\t\nDisable\n\nFEATURE_INVENTORY\tOn\t\nIncluded in tier\n\t\nDisable\n\nFEATURE_KDS\tOn\t\nIncluded in tier\n\t\nDisable\n\nFEATURE_LOT_TRACKING\tOn\t\nIncluded in tier\n\t\nDisable\n\nFEATURE_LOYALTY\tOn\t\nIncluded in tier\n\t\nDisable\n\nFEATURE_MULTI_BRANCH\tOn\t\nIncluded in tier\n\t\nDisable\n\nFEATURE_NLQ\tOn\t\nIncluded in tier\n\t\nDisable\n\nFEATURE_PAYROLL\tOn\t\nIncluded in tier\n\t\nDisable\n\nFEATURE_POS\tOn\t\nIncluded in tier\n\t\nDisable\n\nFEATURE_REPORTING_ADVANCED\tOn\t\nIncluded in tier\n\t\nDisable\n\nFEATURE_VENDOR\tOn\t\nIncluded in tier\n\t\nDisable\n\nFEATURE_WHATSAPP_NOTIFICATIONS\tOn\t\nIncluded in tier\n\t\nDisable\n\nFEATURE_WHITE_LABEL_DOMAIN\tOn\t\nIncluded in tier\n\t\nDisable",
+  "hasMatrix": true,
+  "featureRows": 20,
+  "crmDisableBtn": 1,
+  "crmEnableBtn": 0,
+  "crmToggle": {
+    "before": "FEATURE_CRM\tOn\t\nIncluded in tier\n\t\nDisable",
+    "after": "FEATURE_CRM\tOn\t\nIncluded in tier\n\t\nDisable",
+    "changed": false
+  },
+  "crmAfterReload": "FEATURE_CRM\tOn\t\nIncluded in tier\n\t\nDisable",
+  "mentionsRole": true,
+  "mentionsPerUser": false
+}

@@ -1,0 +1,296 @@
+{
+  "log": [
+    {
+      "k": "signed-in-url",
+      "v": "http://localhost:3000/app/dashboard"
+    },
+    {
+      "k": "sidebar",
+      "v": [
+        "Dashboard -> /app/dashboard",
+        "POS -> /app/pos",
+        "Kitchen Display -> /app/kitchen",
+        "Till Review -> /app/pos/tills",
+        "Inventory -> /app/inventory",
+        "Menu Items -> /app/menu/items",
+        "Tables -> /app/tables",
+        "Stations -> /app/stations",
+        "POS Terminals -> /app/terminals",
+        "Guide -> /app/finance/guide",
+        "Takings -> /app/finance/takings",
+        "Accounts -> /app/finance/accounts",
+        "Journal Entries -> /app/finance/journal-entries",
+        "General Ledger -> /app/finance/gl",
+        "Periods -> /app/finance/periods",
+        "Expenses -> /app/finance/expenses",
+        "AP Aging -> /app/finance/ap-aging",
+        "Purchasing -> /app/purchasing",
+        "HR -> /app/hr",
+        "Customers -> /app/crm",
+        "Reports -> /app/reports",
+        "Realtime Dashboard -> /app/dashboard/realtime",
+        "Ask (NLQ) -> /app/nlq",
+        "General -> /app/settings",
+        "Appearance -> /settings/appearance",
+        "Users -> /app/users",
+        "Dashboard -> /app/dashboard",
+        "Orders -> /app/pos",
+        "Menu -> /app/inventory",
+        "Finance -> /app/finance/accounts",
+        "Settings -> /app/settings"
+      ]
+    },
+    {
+      "k": "branch-switcher",
+      "v": {
+        "hasTestId": false,
+        "testIdText": null,
+        "candidateButtons": []
+      }
+    },
+    {
+      "k": "probe",
+      "v": {
+        "route": "/app/branches",
+        "alerts": [],
+        "is404": true,
+        "denied": false,
+        "couldnt": false,
+        "h1": [
+          "This page doesn't exist"
+        ]
+      }
+    },
+    {
+      "k": "probe",
+      "v": {
+        "route": "/app/settings/branches",
+        "alerts": [],
+        "is404": true,
+        "denied": false,
+        "couldnt": false,
+        "h1": [
+          "This page doesn't exist"
+        ]
+      }
+    },
+    {
+      "k": "probe",
+      "v": {
+        "route": "/app/branch",
+        "alerts": [],
+        "is404": true,
+        "denied": false,
+        "couldnt": false,
+        "h1": [
+          "This page doesn't exist"
+        ]
+      }
+    },
+    {
+      "k": "probe",
+      "v": {
+        "route": "/app/locations",
+        "alerts": [],
+        "is404": true,
+        "denied": false,
+        "couldnt": false,
+        "h1": [
+          "This page doesn't exist"
+        ]
+      }
+    },
+    {
+      "k": "probe",
+      "v": {
+        "route": "/app/settings/general",
+        "alerts": [],
+        "is404": true,
+        "denied": false,
+        "couldnt": false,
+        "h1": [
+          "This page doesn't exist"
+        ]
+      }
+    },
+    {
+      "k": "probe",
+      "v": {
+        "route": "/app/settings/branch",
+        "alerts": [],
+        "is404": true,
+        "denied": false,
+        "couldnt": false,
+        "h1": [
+          "This page doesn't exist"
+        ]
+      }
+    },
+    {
+      "k": "probe",
+      "v": {
+        "route": "/app/admin/branches",
+        "alerts": [],
+        "is404": true,
+        "denied": false,
+        "couldnt": false,
+        "h1": [
+          "This page doesn't exist"
+        ]
+      }
+    },
+    {
+      "k": "probe",
+      "v": {
+        "route": "/app/settings/receipt",
+        "alerts": [],
+        "is404": true,
+        "denied": false,
+        "couldnt": false,
+        "h1": [
+          "This page doesn't exist"
+        ]
+      }
+    },
+    {
+      "k": "probe",
+      "v": {
+        "route": "/app/settings/printers",
+        "alerts": [],
+        "is404": true,
+        "denied": false,
+        "couldnt": false,
+        "h1": [
+          "This page doesn't exist"
+        ]
+      }
+    },
+    {
+      "k": "probe",
+      "v": {
+        "route": "/app/settings/hours",
+        "alerts": [],
+        "is404": true,
+        "denied": false,
+        "couldnt": false,
+        "h1": [
+          "This page doesn't exist"
+        ]
+      }
+    },
+    {
+      "k": "probe",
+      "v": {
+        "route": "/app/settings/tax",
+        "alerts": [],
+        "is404": true,
+        "denied": false,
+        "couldnt": false,
+        "h1": [
+          "This page doesn't exist"
+        ]
+      }
+    },
+    {
+      "k": "probe",
+      "v": {
+        "route": "/platform/branches",
+        "alerts": [],
+        "is404": true,
+        "denied": false,
+        "couldnt": false,
+        "h1": [
+          "This page doesn't exist"
+        ]
+      }
+    },
+    {
+      "k": "settings-health",
+      "v": {
+        "alerts": [],
+        "is404": false,
+        "denied": false,
+        "couldnt": false,
+        "h1": [
+          "Settings"
+        ]
+      }
+    },
+    {
+      "k": "settings-form",
+      "v": {
+        "inputs": [
+          {
+            "name": "name",
+            "type": null,
+            "value": "Floating Terrace HQ",
+            "readonly": false,
+            "disabled": false
+          },
+          {
+            "name": "address",
+            "type": null,
+            "value": "\"12 Khayaban-e-Iqbal\"",
+            "readonly": false,
+            "disabled": false
+          },
+          {
+            "name": "phone",
+            "type": null,
+            "value": "+92 21 4628872",
+            "readonly": false,
+            "disabled": false
+          },
+          {
+            "name": "email",
+            "type": "email",
+            "value": "hq@floatingterrace.pk",
+            "readonly": false,
+            "disabled": false
+          },
+          {
+            "name": "timezone",
+            "type": null,
+            "value": "Asia/Karachi",
+            "readonly": false,
+            "disabled": false
+          },
+          {
+            "name": "openedOn",
+            "type": "date",
+            "value": "2024-01-15",
+            "readonly": false,
+            "disabled": false
+          }
+        ],
+        "buttons": [
+          "Collapse",
+          "Search… ⌘K",
+          "9",
+          "Save changes"
+        ],
+        "bodyText": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nPOS Terminals\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nCollapse\nApp\nSettings\nFloating Terrace HQ\nSearch…\n⌘K\n9\nSettings\n\nHow this branch is set up, and who can sign in to it.\n\nBranch details\nSaved to your restaurant's record and visible to everyone on this branch.\nBranch name\nAddress\nPhone\nEmail\nTime zone\n\nAn IANA name. Business dates and reports are cut on it.\n\nOpened on\n\nSales tax registration (STRN)\n\nNot set\n\nNational tax number (NTN)\n\nNot set\n\nRead-only here. The branch update API has no field for either, so an editable box would accept your change and discard it. Tax registration is set during onboarding.\n\nSave changes\nUsers\nAdd staff, set what they can do on each branch, and issue a password when someone is locked out.\nManage users\nAppearance\nBrand colour and logo. Stored in this browser only — it is not saved to your account, so colleagues and your other devices see the default.\nChange appearance"
+      }
+    }
+  ],
+  "calls": [
+    {
+      "method": "GET",
+      "url": "/api/v1/branches/mine",
+      "status": 200,
+      "body": "{\"data\":[{\"id\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"name\":\"Floating Terrace HQ\",\"isHq\":true,\"roleCode\":\"TENANT_ADMIN\"}],\"meta\":null,\"warnings\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "/api/v1/branches/34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "status": 200,
+      "body": "{\"data\":{\"id\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"name\":\"Floating Terrace HQ\",\"isHq\":true,\"isActive\":true,\"address\":\"\\\"12 Khayaban-e-Iqbal\\\"\",\"fbrStrn\":null,\"ntn\":null,\"phone\":\"+92 21 4628872\",\"email\":\"hq@floatingterrace.pk\",\"timezone\":\"Asia/Karachi\",\"currencyConfig\":null,\"receiptConfig\":\"{\\\"fbr\\\": null, \\\"agent\\\": {\\\"lanUrl\\\": null, \\\"baseUrl\\"
+    },
+    {
+      "method": "GET",
+      "url": "/api/v1/branches/mine",
+      "status": 200,
+      "body": "{\"data\":[{\"id\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"name\":\"Floating Terrace HQ\",\"isHq\":true,\"roleCode\":\"TENANT_ADMIN\"}],\"meta\":null,\"warnings\":[]}"
+    }
+  ]
+}

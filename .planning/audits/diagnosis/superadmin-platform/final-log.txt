@@ -1,0 +1,100 @@
+tenant: Diag Bistro 696318 | url: http://localhost:3000/platform/tenants/166740c9-b761-43d7-90b1-78edcb34e3d5
+
+=== 1. ENABLE a module (grant an override) ===
+!! no Enable button present
+
+=== 2. REVERT the override back to tier default ===
+
+=== 3. DISABLE FEATURE_CRM (type-the-tenant-name confirm) ===
+before: FEATURE_CRM	On | Included in tier | Disable
+dialog box: {"x":558,"y":367.5,"width":384,"height":365}
+dialog text:
+Disable FEATURE_CRM?
+
+Every user of Diag Bistro 696318 loses access to this module immediately — its screens stop loading and its API calls are refused on the next request.
+
+Nothing is deleted. All of the module's existing records are kept and re-enabling restores them exactly.
+
+This tenant's tier includes this module, so disabling it records a deliberate override that will survive future tier changes.
+
+Type
+Diag Bistro 696318
+to confirm
+Cancel
+Disable module
+Close
+  [shot] 32-disable-confirm
+confirm enabled? true
+network: ["200 PATCH /api/v1/platform/tenants/166740c9-b761-43d7-90b1-78edcb34e3d5/features/FEATURE_CRM","200 GET /api/v1/platform/tenants/166740c9-b761-43d7-90b1-78edcb34e3d5/features","200 GET /api/v1/platform/tenants/166740c9-b761-43d7-90b1-78edcb34e3d5/usage"]
+after DISABLE: FEATURE_CRM	Off | Revoked despite tier | Tier default: on — this override survives a tier change | Revert | Enable
+  [shot] 33-module-disabled
+
+=== 4. SUSPEND with phrase + reason ===
+confirm enabled? true
+network: ["200 POST /api/v1/platform/tenants/166740c9-b761-43d7-90b1-78edcb34e3d5/suspend","200 GET /api/v1/platform/tenants/166740c9-b761-43d7-90b1-78edcb34e3d5","200 GET /api/v1/platform/tenants/166740c9-b761-43d7-90b1-78edcb34e3d5/features","200 GET /api/v1/platform/tenants/166740c9-b761-43d7-90b1-78edcb34e3d5","200 GET /api/v1/platform/tenants/166740c9-b761-43d7-90b1-78edcb34e3d5/features","200 GET /api/v1/platform/tenants/166740c9-b761-43d7-90b1-78edcb34e3d5/usage","200 GET /api/v1/platform/tenants/166740c9-b761-43d7-90b1-78edcb34e3d5/features","200 GET /api/v1/platform/tenants/166740c9-b761-43d7-90b1-78edcb34e3d5/usage","200 GET /api/v1/platform/tenants/166740c9-b761-43d7-90b1-78edcb34e3d5/usage"]
+status region:
+All tenants
+Diag Bistro 696318
+diag-bistro-696318
+Suspended
+ENTERPRISE
+Reactivate
+Subscription
+Edit
+Billing reference
+Not set
+Trial ends
+Not set
+Renews
+Not set
+Branch limit
+50
+User limit
+500
+NLQ quota
+50,000 / month
+Change tier
+STARTER
+GROWTH
+ENTERPRISE
+CUSTOM
+Move to ENTERPRISE
+
+Re-applies the tier's limits and reconc
+  [shot] 34-after-suspend
+controls after suspend: ["Reactivate","Edit","Move to ENTERPRISE","Revert","Enable","Disable"]
+
+=== 5. REACTIVATE ===
+network: []
+status:
+All tenants
+Diag Bistro 696318
+diag-bistro-696318
+Active
+ENTERPRISE
+Suspend
+Subscription
+Edit
+Billing reference
+Not set
+Trial ends
+Not set
+Renews
+Not set
+Branch limit
+50
+User limit
+500
+NLQ quota
+50,000 / month
+Change tier
+STARTER
+GROWTH
+ENTERPRISE
+CUSTOM
+Move 
+  [shot] 35-after-reactivate
+
+=== 6. DELETE / cancel ===
+every control now: ["All tenants","Suspend","Edit","Move to ENTERPRISE","Revert","Enable","Disable"]
+delete control present: false

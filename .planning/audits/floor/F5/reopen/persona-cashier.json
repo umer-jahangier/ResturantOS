@@ -1,0 +1,16 @@
+{
+  "apiStatus": 403,
+  "denied": true,
+  "tiles": {
+    "figure-tile-gross-sales": null,
+    "figure-tile-discounts": null,
+    "figure-tile-comps": null,
+    "figure-tile-net-sales": null,
+    "figure-tile-tax": null,
+    "figure-tile-service-charge": null,
+    "figure-tile-total-billed": null,
+    "__identity": null,
+    "__alerts": [],
+    "__bodyHasError": true
+  }
+}

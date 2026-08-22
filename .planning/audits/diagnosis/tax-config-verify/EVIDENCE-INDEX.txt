@@ -1,0 +1,28 @@
+Tax configuration & fiscal setup — VERIFICATION PASS (adversarial re-check of a prior report)
+Stack: check-stale-jars.sh checked=16 stale=0. Persona: owner@terrace.local, roles ['OWNER'], 73 perms.
+
+01-nav-owner.png              sidebar as OWNER; hrefs matching /tax|fiscal|fbr/ = []
+02-settings.png               /app/settings; NTN/STRN read-only + the "set during onboarding" claim
+03-menu-items.png             item list = name + price only, no tax column
+07-menu-item-EDIT-dialog.png  512x559, labels [Category,Name,Description,Price (Rs),Picture], no tax
+08-menu-item-CREATE-dialog.png 512x539, same 5 labels, no tax
+10-receipt-*.png              "Tax (16.00%) [OTHER]" AND a duplicate "Tax" row; Service charge Rs 0.00; no NTN/STRN header
+11-wipe-after-save.png        after editing ONLY the description through the UI
+12-hr-tax.png                 /app/hr/settings/tax — full payroll income-tax band editor (works)
+13-fbr-report-clicked.png     /app/reports -> "FBR Tax Summary" -> renders real figures (WORKS)
+14-vendor-invoice-dialog.png  "Book Invoice" 672x260, labels [Purchase order,Invoice number,Invoice date] — no input-tax field
+
+*-ERROR.png                   first pass only: a FALSE alarm from an empty [role=alert] live region.
+                              Detector corrected to require non-empty alert text; all routes then reached OK.
+                              Kept deliberately so the false-positive is auditable.
+
+Live measurements:
+  pos_db      : 195 orders, 0 with service_charge_paisa <> 0, distinct value {0}
+  menu_items  : 6 items @16.00%, 5 @0.00%, taxRateCode null on all 11
+  purchasing  : 28 vendor invoices, 8 with input_tax_paisa <> 0 (seeded; no UI can set it)
+  isolation   : cross-tenant branch GET/PUT -> 404; cross-tenant menu-item tax PUT -> 404, DB unchanged
+
+Wipe replication (Audit Item 60568, restored afterwards):
+  seeded via API      taxRatePct=17.0  taxRateCode='SR-STD-17'
+  UI edit (desc only) PUT body = {categoryId,name,description,basePricePaisa,imageFileId} — no tax keys
+  after               taxRatePct=17.0 (survived, null-guarded)  taxRateCode=None (ERASED)
