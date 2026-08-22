@@ -183,6 +183,26 @@ Each of these produced a confident, wrong answer:
   lives in shared-lib auto-configuration; the service consumes it as a bean, not as literal SQL. An
   agent nearly built defensive machinery that already existed.
 
+- **A green probe that tests the ENDPOINT instead of the INVARIANT.** The recovery-code module was
+  verified live against dev with 20 assertions, all passing, including "a recovery code is refused
+  for regeneration — 400". The invariant it claimed to establish — *a recovery code cannot yield a
+  new set of recovery codes* — was **false at the time it was reported green**. `/2fa/recovery-codes`
+  did refuse. `/2fa/setup` took no argument and checked nothing, so redeem a code at login, call
+  setup with no code, verify against an authenticator you control, and `verify()` regenerates the
+  set. The probe knocked on the front door, found it locked, and reported the building secure.
+  **A passing probe bounds the door you knocked on, never the invariant** — enumerate every route
+  that reaches the state, or say only what you actually tested.
+- **A mock can agree with the bug and outvote production.** The guard added to `/2fa/setup` was
+  pinned by a unit test that mocks `TotpService`. Mockito returns `false` for an unstubbed call, so
+  the mock modelled a verifier that *tolerates* `null`; the real `dev.samstevens.totp` verifier
+  **throws** on it. Test and guard agreed with each other and both disagreed with the deployed
+  service, which answered **500** where it should answer 401. When a test exists to prove a guard
+  refuses bad input, construct the REAL collaborator — a mock's default return is a claim about
+  behaviour that nobody checked.
+- **`>= 400` calls a 500 a pass.** The same defect survived a live probe because the assertion asked
+  "was it refused?" rather than "how?". A 500 satisfies `st >= 400`. Assert the exact status:
+  refusing correctly and crashing are both "not 2xx", and only one of them is a working guard.
+
 ## 3. Git discipline in a shared checkout
 
 Worktrees isolate **commits**. They do **not** isolate the main checkout's **index**. During this
