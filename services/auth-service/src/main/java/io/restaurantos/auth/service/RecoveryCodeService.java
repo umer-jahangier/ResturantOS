@@ -2,6 +2,8 @@ package io.restaurantos.auth.service;
 
 import io.restaurantos.auth.entity.RecoveryCodeEntity;
 import io.restaurantos.auth.repository.RecoveryCodeRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +35,13 @@ import java.util.UUID;
  * weaker in one specific way — it does not rotate — and the countermeasures are that it is
  * single-use, that it is one of a small fixed pool, and that spending one is a visible event.
  *
+ * <p><b>That last countermeasure had to be built to be claimed.</b> An adversarial review pointed
+ * out that redemption published {@code LoginEventPublisher.publishSucceeded} byte-identically to an
+ * ordinary TOTP login, so "visible" was true of nothing — a sentence in a comment describing a
+ * control that did not exist. {@link #redeem} now logs a WARN naming the user and the remaining
+ * count. That is a greppable signal rather than a domain event, and it is the honest extent of it:
+ * a first-class audit record for factor-recovery belongs in the audit stream and is not yet there.
+ *
  * <h3>Format</h3>
  *
  * Ten codes of ten characters, drawn from a 32-symbol alphabet with {@code I}, {@code O},
@@ -46,6 +55,8 @@ import java.util.UUID;
  */
 @Service
 public class RecoveryCodeService {
+
+    private static final Logger log = LoggerFactory.getLogger(RecoveryCodeService.class);
 
     /** No I, O, 0 or 1 — the four symbols that get transcribed wrongly off a screen. */
     private static final String ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -73,6 +84,9 @@ public class RecoveryCodeService {
      */
     @Transactional
     public List<String> regenerate(UUID userId, UUID tenantId) {
+        // Serialise against a concurrent regeneration before touching anything — see
+        // RecoveryCodeRepository.lockUserForRecoveryCodeWrite for why the delete alone is not enough.
+        recoveryCodeRepository.lockUserForRecoveryCodeWrite(userId);
         recoveryCodeRepository.deleteAllForUser(userId);
 
         List<String> plaintext = new ArrayList<>(CODE_COUNT);
@@ -107,7 +121,15 @@ public class RecoveryCodeService {
         if (!isWellFormed(normalised)) {
             return false;
         }
-        return recoveryCodeRepository.redeem(userId, hash(normalised)) == 1;
+        boolean burned = recoveryCodeRepository.redeem(userId, hash(normalised)) == 1;
+        if (burned) {
+            // WARN, not INFO: a recovery code being spent is either a person who lost their phone
+            // or someone using a stolen list, and both are worth surfacing above routine traffic.
+            // Never log the code — only that one was spent, and how many are left.
+            log.warn("Recovery code redeemed for user {} — {} remaining",
+                userId, recoveryCodeRepository.countUnused(userId));
+        }
+        return burned;
     }
 
     /** How many codes are left, for the reminder the settings panel shows. */

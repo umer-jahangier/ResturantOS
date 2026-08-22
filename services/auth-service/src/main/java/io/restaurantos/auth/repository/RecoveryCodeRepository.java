@@ -41,4 +41,19 @@ public interface RecoveryCodeRepository extends JpaRepository<RecoveryCodeEntity
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(value = "DELETE FROM user_recovery_codes WHERE user_id = :userId", nativeQuery = true)
     int deleteAllForUser(@Param("userId") UUID userId);
+
+    /**
+     * Serialises regeneration per user by taking the owning row's lock first.
+     *
+     * <p>Without it, two concurrent regenerations leave a SUPERSET of live codes rather than one
+     * set of ten. Under READ COMMITTED each transaction's DELETE cannot see the other's uncommitted
+     * INSERTs, so both delete what they can see, both insert ten, and twenty codes commit — half of
+     * them belonging to a list the user was told had been replaced. That is the precise failure the
+     * feature is supposed to prevent: a user regenerates BECAUSE they believe the old list is
+     * compromised, and the old list stays live.
+     *
+     * <p>Row-count is ignored; the lock is the point, and it is released at commit.
+     */
+    @Query(value = "SELECT id FROM users WHERE id = :userId FOR UPDATE", nativeQuery = true)
+    UUID lockUserForRecoveryCodeWrite(@Param("userId") UUID userId);
 }

@@ -54,9 +54,16 @@ public class TwoFactorController {
                 new RecoveryCodesResponse(twoFactorService.bootstrapVerify(user, request.code()))));
     }
 
+    /**
+     * Issues a secret. Requires a live authenticator code IF one is already enrolled — see
+     * {@code TwoFactorService.setup} for the takeover this closes. First-time enrolment sends
+     * {@code code: null}, which is why the body is optional rather than {@code @Valid @NotBlank}.
+     */
     @PostMapping("/setup")
-    public ResponseEntity<ApiResponse<TotpSetupResponse>> setup() {
-        return ResponseEntity.ok(ApiResponse.ok(twoFactorService.setup()));
+    public ResponseEntity<ApiResponse<TotpSetupResponse>> setup(
+            @RequestBody(required = false) TotpVerifyRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                twoFactorService.setup(request == null ? null : request.code())));
     }
 
     /** Returns the recovery codes — the only time they are ever sent. */

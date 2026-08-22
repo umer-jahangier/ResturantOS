@@ -38,9 +38,43 @@ public class TwoFactorService {
         this.recoveryCodeService = recoveryCodeService;
     }
 
+    /**
+     * Issues a secret for a signed-in user, and — when one already exists — demands a live code
+     * from the CURRENT authenticator before re-pointing it.
+     *
+     * <h3>Why the argument exists (an adversarial review found this route wide open)</h3>
+     *
+     * This method used to take nothing and check nothing. Every sibling proves possession —
+     * {@link #bootstrap} refuses once a secret exists, {@link #disable} calls
+     * {@link #proveSecondFactor}, {@link #regenerateRecoveryCodes} demands a live TOTP code — and
+     * this one re-pointed a live second factor on nothing but a bearer token. Two things followed,
+     * both of which defeat the point of the feature:
+     *
+     * <ul>
+     *   <li><b>Recovery codes laundered into a takeover.</b> Redeem one at login (which grants
+     *       {@code totp_verified}), call {@code /2fa/setup} with no code at all, then
+     *       {@code /2fa/verify} with a code from an authenticator you control. {@link #verify}
+     *       regenerates the recovery-code set against the secret you just planted. That is exactly
+     *       the outcome {@link #regenerateRecoveryCodes} pins its {@code \d{6}} rule to prevent,
+     *       reached by a different door — so the rule was decorative while this route existed.</li>
+     *   <li><b>Silent factor removal.</b> {@code setTotpEnabled(false)} is the whole of what
+     *       {@code requiresTotpStepUp} tests for a user who holds none of the three gated
+     *       permissions. One call reverted such an account to password-only, which is precisely
+     *       the end state {@link #disable} demands a code for.</li>
+     * </ul>
+     *
+     * <p>The check is against the CURRENT secret and accepts a TOTP code only — deliberately NOT
+     * {@link #proveSecondFactor}, because honouring a recovery code here would re-open the first
+     * bullet. The lost-phone route is unaffected: {@link #disable} still takes a recovery code,
+     * nulls the secret and revokes the pool, after which this method needs nothing.
+     */
     @Transactional
-    public TotpSetupResponse setup() {
+    public TotpSetupResponse setup(String currentCode) {
         UserEntity user = loadCurrentUser();
+        if (user.getTotpSecret() != null
+            && !totpService.verify(user.getTotpSecret(), currentCode)) {
+            throw new AuthenticationFailedException("Invalid TOTP code");
+        }
         String secret = totpService.generateSecret();
         user.setTotpSecret(secret);
         user.setTotpEnabled(false);
@@ -156,12 +190,20 @@ public class TwoFactorService {
         return recoveryCodeService.regenerate(user.getId(), tenantContext.requireTenantId());
     }
 
+    /**
+     * Reports the true state, including codes that outlive a half-finished re-enrolment.
+     *
+     * <p>This used to answer {@code 0} whenever {@code totpEnabled} was false, which was a lie with
+     * consequences rather than a rounding: {@link RecoveryCodeService#redeem} does not consult
+     * {@code totpEnabled}, so codes stay redeemable through {@link #disable} while the flag is
+     * down. A user who began re-enrolment and walked away was shown "no recovery codes" over ten
+     * live ones. Report what is actually in the table.
+     */
     @Transactional(readOnly = true)
     public TwoFactorStatusResponse status() {
         UserEntity user = loadCurrentUser();
         return new TwoFactorStatusResponse(
-            user.isTotpEnabled(),
-            user.isTotpEnabled() ? recoveryCodeService.remaining(user.getId()) : 0L);
+            user.isTotpEnabled(), recoveryCodeService.remaining(user.getId()));
     }
 
     /**

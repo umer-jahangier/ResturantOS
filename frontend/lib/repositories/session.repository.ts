@@ -81,9 +81,17 @@ export const SessionRepository = {
     return apiTwoFactorStatusSchema.parse(await get("/api/v1/auth/2fa/status"));
   },
 
-  /** Issues a secret but does not activate it — nothing changes until {@link totpVerify}. */
-  async totpSetup(): Promise<TotpSetup> {
-    return apiTotpSetupSchema.parse(await post("/api/v1/auth/2fa/setup"));
+  /**
+   * Issues a secret but does not activate it — nothing changes until {@link totpVerify}.
+   *
+   * `currentCode` is required by the server only when a factor is ALREADY enrolled, because
+   * re-pointing a live one without proof let a redeemed recovery code be laundered into a full
+   * takeover. First-time enrolment omits it.
+   */
+  async totpSetup(currentCode?: string): Promise<TotpSetup> {
+    return apiTotpSetupSchema.parse(
+      await post("/api/v1/auth/2fa/setup", currentCode ? { code: currentCode } : {}),
+    );
   },
 
   /** Activates the secret and returns the recovery codes. Shown once; see {@link RecoveryCodes}. */

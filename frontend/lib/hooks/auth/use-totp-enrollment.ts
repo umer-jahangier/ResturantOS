@@ -50,8 +50,8 @@ export function useTwoFactorStatus() {
 
 /** Issues a secret for a signed-in user. Activates nothing until {@link useTotpVerify} succeeds. */
 export function useTotpSetup() {
-  return useMutation<TotpSetup, ApiError, void>({
-    mutationFn: () => SessionRepository.totpSetup(),
+  return useMutation<TotpSetup, ApiError, string | undefined>({
+    mutationFn: (currentCode) => SessionRepository.totpSetup(currentCode),
   });
 }
 
