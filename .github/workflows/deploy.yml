@@ -189,18 +189,35 @@ jobs:
           # step failing a build that was otherwise fine. 2>/dev/null then hid the
           # reason, so the job reported only "exit code 1".
           #
-          # Three attempts, then assert known_hosts actually has a key. Still fails
-          # loudly if the host is genuinely unreachable; no longer fails because a
-          # single lookup blipped.
-          for attempt in 1 2 3; do
-            if ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/tmp/keyscan.err; then
+          # The LOOP CONDITION tests the RESULT, not the exit code — the original
+          # only applied that rule to the final assertion, and the difference is a
+          # real hole: ssh-keyscan can exit 0 having written nothing, in which case
+          # `if ssh-keyscan ...; then break; fi` breaks on attempt 1 and the retry
+          # budget is never spent. Asking "do we have a key yet?" cannot be fooled
+          # that way.
+          #
+          # Five attempts with backoff (5s, 10s, 20s, 30s = ~65s) rather than three
+          # at a flat 5s (~10s). This step has now killed three deploys on a host
+          # that was reachable from a workstation seconds later, so the window was
+          # simply too short for a transient runner-to-VPS blip. Everything below
+          # is still fail-loud: a genuinely unreachable host stops the deploy and
+          # says why, which is the property worth keeping.
+          keyscan_ok=""
+          for attempt in 1 2 3 4 5; do
+            ssh-keyscan -T 15 -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>>/tmp/keyscan.err || true
+            if grep -q . ~/.ssh/known_hosts 2>/dev/null; then
+              keyscan_ok="yes"
+              echo "  host key acquired on attempt $attempt"
               break
             fi
-            echo "  ssh-keyscan attempt $attempt failed; retrying"
-            sleep 5
+            backoff=$(( attempt * 5 ))
+            [ "$attempt" -ge 4 ] && backoff=30
+            echo "  ssh-keyscan attempt $attempt produced no key; retrying in ${backoff}s"
+            sleep "$backoff"
           done
-          if ! grep -q . ~/.ssh/known_hosts 2>/dev/null; then
-            echo "::error::ssh-keyscan produced no host key for the VPS after 3 attempts"
+          if [ -z "$keyscan_ok" ]; then
+            echo "::error::ssh-keyscan produced no host key for ${{ secrets.VPS_HOST }} after 5 attempts over ~65s"
+            echo "--- ssh-keyscan stderr ---"
             cat /tmp/keyscan.err || true
             exit 1
           fi
