@@ -240,6 +240,43 @@ describe("viewport integrity — the probe judges what the audit measured", () =
       });
       expect(occludedInteractives([decoration])).toHaveLength(0);
     });
+
+    /**
+     * The live false positive this rule was written for, reproduced as geometry.
+     *
+     * <p>`/app/dashboard` at 390 reported `a[portlet-owner-sales-trend] 358×286 @16,856` "fully
+     * covered" in a 900-high viewport: 44px of a 286px card on screen, all of it under
+     * `MobileBottomNav` (`fixed bottom-0 h-16`), so 2 of 5 sample points fell inside the viewport
+     * and both hit the nav. The card is reachable — `<main>` carries `pb-20` so it scrolls clear
+     * — and the verdict changes with the scroll offset, which makes it a flake rather than a
+     * finding. The offsets below are the measured ones.
+     */
+    it("does not convict a control that runs past the fold under fixed bottom chrome", () => {
+      const belowTheFold = el({
+        tag: "A",
+        interactive: true,
+        testid: "portlet-owner-sales-trend",
+        rect: box(16, 812, 358, 286),
+        // Only the top corners were inside the viewport, and both landed on the fixed nav.
+        coverage: { sampled: 2, covered: 2, by: "nav" },
+      });
+      expect(belowTheFold.rect.bottom).toBeGreaterThan(VIEWPORT.height);
+      expect(occludedInteractives([belowTheFold])).toHaveLength(0);
+    });
+
+    it("still convicts a buried control whose whole box is on screen", () => {
+      // The narrowing above must not reach the defect the check exists for. Same coverage
+      // reading, same nav, but the control ends before the fold — and it stays red.
+      const buried = el({
+        tag: "A",
+        interactive: true,
+        testid: "portlet-owner-sales-trend",
+        rect: box(16, 500, 358, 286),
+        coverage: { sampled: 5, covered: 5, by: "nav" },
+      });
+      expect(buried.rect.bottom).toBeLessThanOrEqual(VIEWPORT.height);
+      expect(occludedInteractives([buried])).toHaveLength(1);
+    });
   });
 
   describe("negative control 3 — a control shrunk below 44px", () => {

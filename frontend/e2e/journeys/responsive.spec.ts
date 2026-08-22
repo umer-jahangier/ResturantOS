@@ -2,6 +2,8 @@ import type { Page } from "@playwright/test";
 
 import { expect, test } from "../fixtures/auth.fixture";
 import { persona } from "../fixtures/personas";
+import { DEFECTS, tolerate } from "../fixtures/known-defects";
+import type { Observability } from "../fixtures/observability";
 // The probe is plain JS carrying JSDoc types; its judgement is proven without a browser in
 // `__tests__/e2e/viewport-integrity.test.ts`, which imports this same file from a type-checked
 // test and exercises every export.
@@ -56,6 +58,23 @@ interface RouteUnderTest {
   /** A selector that proves the screen actually rendered its content, not an error card. */
   ready: string;
   /**
+   * The failures this route is EXPECTED to produce, declared with their reason.
+   *
+   * <p>The observability guard is auto-attached to every page and asserted at teardown, so a
+   * route that correctly provokes a 403 — or that sits on a defect already pinned in
+   * `known-defects.spec.ts` — fails this gate for a reason that has nothing to do with layout.
+   * Declaring it here keeps the guard sharp everywhere else instead of loosening it for all six
+   * routes.
+   */
+  declare?: (obs: Observability) => void;
+  /**
+   * A step that opens the surface under test when the path alone does not reach it.
+   *
+   * <p>Exists because of the KDS entry below: the board is behind a station picker, and a gate
+   * that measures the picker is measuring the wrong screen.
+   */
+  enter?: (page: Page) => Promise<void>;
+  /**
    * Baseline counts per width, from the 38 audit. `0` means "this is a regression gate".
    * Every entry here is driven to 0 by this plan; the numbers are kept so a failure can be read
    * as "we went backwards from 0" rather than "we never fixed it".
@@ -78,10 +97,79 @@ const ROUTES: RouteUnderTest[] = [
     ready: '[data-testid="purchasing-tabs"]',
     baseline: { 390: { overflow: 4, undersized: 86 } },
   },
-  { name: "finance-takings", path: "/app/finance/takings", who: OWNER, ready: "main" },
-  { name: "dashboard", path: "/app/dashboard", who: OWNER, ready: "main" },
-  { name: "pos", path: "/app/pos", who: WAITER, ready: '[data-testid="menu-grid"], main' },
-  { name: "kds", path: "/app/kds", who: KITCHEN, ready: "main" },
+  /*
+   * `ready` is a hook OWNED BY THE SCREEN, never `"main"`.
+   *
+   * <p>Both of these read `ready: "main"`, and `<main>` is rendered by the tenant layout on every
+   * route including `not-found` and `access-denied` — so the gate was satisfied before the page
+   * under test had decided whether it could show anything. Caught by the measurement rather than
+   * by reading: with the navigation waiting on `domcontentloaded`, `finance-takings` reported its
+   * one undersized control as `a "Back to dashboard" 165×36`, which exists only on the 404 and
+   * access-denied screens. Four widths × two themes of a permission notice, reported as a
+   * responsive verdict on Takings.
+   *
+   * <p>Same class of defect as the `kds` entry below, and the reason it is worth spelling out
+   * twice: a landmark is not evidence of a screen.
+   */
+  {
+    name: "finance-takings",
+    path: "/app/finance/takings",
+    who: OWNER,
+    ready: '[data-testid="takings-date"]',
+  },
+  { name: "dashboard", path: "/app/dashboard", who: OWNER, ready: '[data-testid="dashboard"]' },
+  {
+    name: "pos",
+    path: "/app/pos",
+    who: WAITER,
+    ready: '[data-testid="menu-grid"], main',
+    declare: (obs) => {
+      // E2E-D4, pinned in known-defects.spec.ts and tolerated identically by
+      // pos-receipt-print.spec.ts and operational-zone-containment.spec.ts on this same route.
+      // The POS live-orders socket is refused and reconnects in a loop, one console error per
+      // attempt. This gate is about laid-out boxes; muting it here does not mute it there.
+      tolerate(obs, DEFECTS.POS_ORDERS_WEBSOCKET_REJECTED_AT_GATEWAY);
+      // A WAITER holds no till permissions and the POS page probes for an active till anyway,
+      // rendering the till-closed state from the refusal. Correct behaviour, and already
+      // declared in exactly these words by operational-zone-containment.spec.ts — it was simply
+      // missing here, which made a permissions success read as a responsive failure.
+      obs.expect403(
+        /\/api\/v1\/pos\/tills/,
+        "a waiter has no till permissions; the POS page probes for an active till regardless " +
+          "and renders the till-closed state from the refusal",
+      );
+    },
+  },
+  {
+    /*
+     * THE ROUTE THIS ENTRY MEASURES WAS `/app/kds`, WHICH DOES NOT EXIST.
+     *
+     * <p>The KDS route in this product is `/app/kitchen` (`app/(tenant)/app/` has `kitchen` and
+     * no `kds`; the sidebar's "Kitchen Display" points there). `/app/kds` therefore rendered
+     * `app/not-found.tsx` — and `ready: "main"` was satisfied by the 404 page's own `<main>`, so
+     * every measurement this entry ever took was of a not-found screen. The one control it
+     * reported, `a "Back to dashboard" 167×38`, exists only in `not-found.tsx` and
+     * `access-denied.tsx`. That is precisely the vacuous gate this file's own docblock warns
+     * about, and it is why `ready` is now a KDS element rather than a landmark every page has.
+     *
+     * <p>The picker is not the board either: `operational-latency.spec.ts:230-240` records the
+     * same mistake being made three times in the phase — a locator that matched nothing, so
+     * three "KDS board" assertions ran against the station picker. `enter` opens the real board
+     * and `kds-board` is asserted before anything is measured.
+     */
+    name: "kds",
+    path: "/app/kitchen",
+    who: KITCHEN,
+    ready: '[data-testid^="station-tile-"]',
+    enter: async (page) => {
+      await page.locator('[data-testid^="station-tile-"]').first().click();
+      await expect(
+        page.getByTestId("kds-board"),
+        "ANCHOR NOT FOUND: no [data-testid=kds-board] after opening a station. Measuring the " +
+          "station picker and calling it the KDS board is the defect this entry was written with.",
+      ).toBeVisible({ timeout: 30_000 });
+    },
+  },
 ];
 
 async function setTheme(page: Page, theme: (typeof THEMES)[number]): Promise<void> {
@@ -107,10 +195,18 @@ async function measure(page: Page, width: number) {
 
 test.describe("38-14 · viewport integrity", () => {
   for (const route of ROUTES) {
-    test(`${route.name} adapts at 390 / 768 / 1024 / 1440 in both themes`, async ({ as }) => {
+    test(`${route.name} adapts at 390 / 768 / 1024 / 1440 in both themes`, async ({ as, obs }) => {
+      test.setTimeout(120_000);
+      route.declare?.(obs);
+
       const page = await as(route.who);
-      await page.goto(route.path);
+      // `domcontentloaded`, not the default `load`: the POS and KDS routes hold a live socket and
+      // a service worker, and `prepareForPos`'s docblock records a 90-second hang from waiting on
+      // `load` there. The `ready` locator below is the real gate for every route anyway — a
+      // fired `load` event has never been evidence that the screen rendered its content.
+      await page.goto(route.path, { waitUntil: "domcontentloaded" });
       await page.locator(route.ready).first().waitFor({ state: "visible", timeout: 30_000 });
+      await route.enter?.(page);
 
       for (const theme of THEMES) {
         await setTheme(page, theme);

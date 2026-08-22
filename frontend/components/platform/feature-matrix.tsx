@@ -5,8 +5,13 @@ import { RotateCcw } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { FilterBar } from "@/components/ui/filter-bar";
 import { QueryBoundary } from "@/components/ui/query-boundary";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDestructiveDialog } from "@/components/platform/confirm-destructive-dialog";
+import { ConsoleNote, ConsoleSection } from "@/components/platform/console-section";
+import { TierBadge } from "@/components/platform/tenant-badges";
+import { formatNumber } from "@/lib/format/locale";
 import {
   useClearFeatureOverride,
   useSetTenantFeature,
@@ -14,101 +19,166 @@ import {
 } from "@/lib/hooks/use-platform-features";
 import { featureSourceLabel, type FeatureState } from "@/lib/models/platform.model";
 
+const PROVENANCE_OPTIONS = [
+  { value: "override", label: "Operator overrides" },
+  { value: "tier", label: "Tier defaults" },
+] as const;
+
 /**
- * Per-tenant module control with visible provenance (UI-SPEC §7.5, 19c).
+ * Per-tenant module control with visible provenance (UI-SPEC §7.5).
  *
- * <h3>The distinction this table exists to draw</h3>
+ * <h3>The distinction this panel exists to draw</h3>
  *
  * The spec is explicit: *"'Inherit tier (on)' and 'Force on' must be visually distinguishable at a
- * glance, because the difference determines what happens when the tenant's plan changes."* Until
- * this phase the API made that impossible — it returned `code → boolean`, so a module an operator
- * deliberately revoked and one the tier never included were the same `false`.
+ * glance, because the difference determines what happens when the tenant's plan changes."* Until the
+ * API grew `featureStates` that was impossible — it returned `code → boolean`, so a module an
+ * operator deliberately revoked and one the tier never included arrived as the same `false`.
  *
  * Now every row states which it is, and — where an override diverges from the tier — what it is
- * diverging FROM. An operator can see at a glance which of their decisions the next tier change
- * will respect and which values will move.
+ * diverging FROM. An operator can see at a glance which of their decisions the next tier change will
+ * respect and which values will move.
  *
- * <h3>Inherited rows are muted; overridden rows are solid and carry a revert control</h3>
+ * <h3>Why this is a row list and not `DataGrid`</h3>
  *
- * Exactly as the spec asks. The revert is not decoration: every toggle marks the row as an
- * override, permanently excluding it from tier reconciliation, so without a way back a mis-click
- * silently pins a module against every future upgrade and downgrade.
+ * `DataGrid` fixes one row height per table, which is its whole point and is wrong here: a row
+ * carrying a state chip, a two-line provenance explanation and two buttons is a control, not a data
+ * row. It is the same reasoning the impersonation log records. What the grid's language contributes
+ * — uppercase letter-spaced headings, hairline separators, a mono identifier column — is kept.
  *
- * <h3>Disabling a module is a destructive action</h3>
+ * <h3>Disabling a module is destructive; enabling one is not</h3>
  *
- * It makes the module's screens disappear for every user of that tenant on their next request —
- * the gateway answers 403 FEATURE_DISABLED via `RouteFeatureMap`. So turning one OFF goes through
- * the type-the-name confirmation. Turning one ON does not: granting access is recoverable by
- * turning it off again, and gating it behind the same ceremony would train operators to type past
- * the dialog.
+ * Turning a module off makes its screens disappear for every user of that tenant on their next
+ * request — the gateway answers 403 FEATURE_DISABLED. So it goes through the type-the-name
+ * confirmation. Turning one ON does not: granting access is undone by turning it off again, and
+ * gating both behind the same ceremony would train operators to type past the dialog.
+ *
+ * <h3>Reverting is not decoration</h3>
+ *
+ * Every toggle marks the row as an override, permanently excluding it from tier reconciliation. So
+ * without a way back, a mis-click silently pins a module against every future upgrade and downgrade
+ * — the tenant then sits on a plan whose modules do not match it, and nothing says why.
  */
 export function FeatureMatrix({ tenantId, tenantName }: { tenantId: string; tenantName: string }) {
   const features = useTenantFeatures(tenantId);
   const setFeature = useSetTenantFeature(tenantId);
   const clearOverride = useClearFeatureOverride(tenantId);
-  const [pendingDisable, setPendingDisable] = React.useState<FeatureState | null>(null);
 
-  const states = features.data?.states ?? [];
+  const [pendingDisable, setPendingDisable] = React.useState<FeatureState | null>(null);
+  const [provenance, setProvenance] = React.useState("");
+  const [search, setSearch] = React.useState("");
+
+  const states = React.useMemo(() => features.data?.states ?? [], [features.data]);
+  const overrideCount = states.filter((state) => state.isOverride).length;
+
+  const rows = React.useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return states.filter((state) => {
+      if (provenance === "override" && !state.isOverride) return false;
+      if (provenance === "tier" && state.isOverride) return false;
+      if (needle && !state.code.toLowerCase().includes(needle)) return false;
+      return true;
+    });
+  }, [states, provenance, search]);
+
+  const busy = setFeature.isPending || clearOverride.isPending;
 
   return (
-    <section className="space-y-3" aria-labelledby="modules-heading">
-      <div className="flex items-baseline justify-between">
-        <h2 id="modules-heading" className="text-lg font-semibold">
-          Modules
-        </h2>
-        {features.data && (
-          <p className="text-sm text-muted-foreground">
-            Defaults shown for the <span className="font-medium">{features.data.tier}</span> tier
-          </p>
-        )}
-      </div>
+    <ConsoleSection
+      anchorId="modules"
+      eyebrow="Modules"
+      title="Feature flags and their provenance"
+      description="What this tenant can reach, and — for every code — whether that came from its tier or from a decision somebody made."
+      data-testid="tenant-modules"
+      action={
+        features.data ? (
+          <span className="flex items-center gap-1.5 text-small text-foreground-secondary">
+            Defaults for <TierBadge tier={features.data.tier} />
+          </span>
+        ) : undefined
+      }
+    >
+      <div className="flex flex-col gap-(--space-md)">
+        <QueryBoundary
+          query={features}
+          what="this tenant's modules"
+          loading={<Skeleton className="h-40" />}
+        >
+          <>
+            <FilterBar
+              variant="bare"
+              search={{
+                value: search,
+                onChange: setSearch,
+                label: "Search module codes",
+                placeholder: "FEATURE_…",
+              }}
+              filters={[
+                {
+                  id: "provenance",
+                  label: "Provenance",
+                  value: provenance,
+                  onChange: setProvenance,
+                  options: PROVENANCE_OPTIONS,
+                  allLabel: "Everything",
+                  testId: "feature-filter-provenance",
+                },
+              ]}
+              onClearAll={() => {
+                setProvenance("");
+                setSearch("");
+              }}
+            />
 
-      <QueryBoundary query={features} what="this tenant's modules">
-        <div className="overflow-hidden rounded-lg border">
-          {/* `table-stack` (globals.css): four columns, one of them a pair of buttons. */}
-          <table className="table-stack w-full text-sm" data-testid="feature-matrix">
-            <caption className="sr-only">
-              Modules for {tenantName}, showing whether each value comes from the tenant&apos;s tier
-              or from an explicit override
-            </caption>
-            <thead className="bg-muted/50 text-left">
-              <tr>
-                <th scope="col" className="px-4 py-2 font-medium">
-                  Module
-                </th>
-                <th scope="col" className="px-4 py-2 font-medium">
-                  State
-                </th>
-                <th scope="col" className="px-4 py-2 font-medium">
-                  Source
-                </th>
-                <th scope="col" className="px-4 py-2 text-right font-medium">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {states.map((state) => (
+            <p
+              className="mb-(--space-sm) text-small text-foreground-secondary"
+              data-testid="feature-matrix-counts"
+            >
+              <span className="font-medium text-foreground">
+                {formatNumber(states.length)} module{states.length === 1 ? "" : "s"}
+              </span>
+              {": "}
+              {formatNumber(overrideCount)} carry an operator override and survive the next tier
+              change; {formatNumber(states.length - overrideCount)} follow the tier and will move
+              with it.
+            </p>
+
+            <ul
+              className="divide-y divide-border overflow-hidden rounded-lg border border-border"
+              data-testid="feature-matrix"
+            >
+              {rows.map((state) => (
                 <FeatureRow
                   key={state.code}
                   state={state}
-                  isBusy={setFeature.isPending || clearOverride.isPending}
+                  isBusy={busy}
                   onEnable={() => setFeature.mutate({ code: state.code, enabled: true })}
                   onRequestDisable={() => setPendingDisable(state)}
                   onRevert={() => clearOverride.mutate({ code: state.code })}
                 />
               ))}
-            </tbody>
-          </table>
-        </div>
-      </QueryBoundary>
+              {rows.length === 0 && (
+                <li className="p-(--space-md) text-small text-foreground-secondary">
+                  No module matches these filters. {formatNumber(states.length)} exist for this
+                  tenant.
+                </li>
+              )}
+            </ul>
+          </>
+        </QueryBoundary>
 
-      {(setFeature.isError || clearOverride.isError) && (
-        <p role="alert" className="text-sm text-destructive">
-          The change was refused and nothing was altered. Try again, or check that this tenant is
-          still active.
-        </p>
-      )}
+        {(setFeature.isError || clearOverride.isError) && (
+          <p role="alert" className="text-small text-destructive">
+            The change was refused and nothing was altered. Try again, or check that this tenant is
+            still active.
+          </p>
+        )}
+
+        <ConsoleNote>
+          Every toggle here marks the row as an override, by design: an operator touching a flag is
+          making a decision, and that decision outranks the tier default from then on. Revert hands
+          the code back to tier control and resets it to whatever the current tier grants.
+        </ConsoleNote>
+      </div>
 
       <ConfirmDestructiveDialog
         open={pendingDisable !== null}
@@ -131,7 +201,7 @@ export function FeatureMatrix({ tenantId, tenantName }: { tenantId: string; tena
             {pendingDisable?.tierDefault && (
               <p>
                 This tenant&apos;s tier includes this module, so disabling it records a deliberate
-                override that will survive future tier changes.
+                override that will survive future tier changes until somebody reverts it.
               </p>
             )}
           </>
@@ -144,7 +214,7 @@ export function FeatureMatrix({ tenantId, tenantName }: { tenantId: string; tena
           );
         }}
       />
-    </section>
+    </ConsoleSection>
   );
 }
 
@@ -164,21 +234,40 @@ function FeatureRow({
   const overridden = state.isOverride;
 
   return (
-    <tr
-      className="border-t"
+    <li
+      className="flex flex-wrap items-start justify-between gap-(--space-md) p-(--space-md)"
       data-testid={`feature-row-${state.code}`}
       data-source={state.source}
       data-enabled={state.enabled}
     >
-      <th scope="row" className="px-4 py-2.5 text-left font-normal">
-        {state.code}
-      </th>
+      <div className="min-w-0 flex-1">
+        {/* Mono, because a module code is an identifier an operator copies into a grep. */}
+        <p className="font-mono text-small font-medium text-foreground">{state.code}</p>
+        <p
+          className={cn(
+            "text-label",
+            overridden ? "font-semibold text-foreground" : "text-foreground-tertiary",
+          )}
+        >
+          {featureSourceLabel(state)}
+        </p>
+        {overridden && state.enabled !== state.tierDefault && (
+          <p className="text-label text-foreground-tertiary">
+            Tier default: {state.tierDefault ? "on" : "off"} — this override survives a tier change
+          </p>
+        )}
+        {state.source === "UNSEEDED" && (
+          <p className="text-label text-foreground-tertiary">
+            No record for this tenant; treated as off until the next tier change backfills it
+          </p>
+        )}
+      </div>
 
-      <td className="px-4 py-2.5" data-label="State">
+      <div className="flex shrink-0 items-center gap-(--space-sm)">
         <span
           className={cn(
-            "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium",
-            // An inherited value is muted outline; an explicit one is solid. That contrast IS the
+            "inline-flex items-center rounded-full border px-2 py-0.5 text-label font-semibold",
+            // An inherited value is a muted outline; an explicit one is solid. That contrast IS the
             // spec's "distinguishable at a glance" requirement, not a stylistic preference.
             state.enabled
               ? overridden
@@ -191,70 +280,43 @@ function FeatureRow({
         >
           {state.enabled ? "On" : "Off"}
         </span>
-      </td>
 
-      <td className="px-4 py-2.5" data-label="Source">
-        <div className="flex flex-col gap-0.5">
-          <span
-            className={cn(
-              "text-xs",
-              overridden ? "font-medium text-foreground" : "text-muted-foreground",
-            )}
+        {overridden && (
+          <Button
+            variant="ghost"
+            size="xs"
+            disabled={isBusy}
+            onClick={onRevert}
+            data-testid={`feature-revert-${state.code}`}
+            title="Return this module to tier control"
           >
-            {featureSourceLabel(state)}
-          </span>
-          {overridden && state.enabled !== state.tierDefault && (
-            <span className="text-xs text-muted-foreground">
-              Tier default: {state.tierDefault ? "on" : "off"} — this override survives a tier
-              change
-            </span>
-          )}
-          {state.source === "UNSEEDED" && (
-            <span className="text-xs text-muted-foreground">
-              No record for this tenant; treated as off until the next tier change
-            </span>
-          )}
-        </div>
-      </td>
+            <RotateCcw className="size-3" aria-hidden="true" />
+            Revert
+          </Button>
+        )}
 
-      <td className="px-4 py-2.5" data-label="Actions">
-        <div className="flex items-center justify-end gap-2">
-          {overridden && (
-            <Button
-              variant="ghost"
-              size="xs"
-              disabled={isBusy}
-              onClick={onRevert}
-              data-testid={`feature-revert-${state.code}`}
-              title="Return this module to tier control"
-            >
-              <RotateCcw className="size-3" aria-hidden="true" />
-              Revert
-            </Button>
-          )}
-          {state.enabled ? (
-            <Button
-              variant="outline"
-              size="xs"
-              disabled={isBusy}
-              onClick={onRequestDisable}
-              data-testid={`feature-disable-${state.code}`}
-            >
-              Disable
-            </Button>
-          ) : (
-            <Button
-              variant="outline"
-              size="xs"
-              disabled={isBusy}
-              onClick={onEnable}
-              data-testid={`feature-enable-${state.code}`}
-            >
-              Enable
-            </Button>
-          )}
-        </div>
-      </td>
-    </tr>
+        {state.enabled ? (
+          <Button
+            variant="outline"
+            size="xs"
+            disabled={isBusy}
+            onClick={onRequestDisable}
+            data-testid={`feature-disable-${state.code}`}
+          >
+            Disable
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="xs"
+            disabled={isBusy}
+            onClick={onEnable}
+            data-testid={`feature-enable-${state.code}`}
+          >
+            Enable
+          </Button>
+        )}
+      </div>
+    </li>
   );
 }

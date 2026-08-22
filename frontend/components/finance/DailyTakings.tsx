@@ -103,6 +103,19 @@ export function DailyTakings() {
           <Label htmlFor="takings-date" className="text-small text-foreground-secondary">
             Business date
           </Label>
+          {/*
+           * `touch-floor` — 44px below `lg`, the declared 36px at and above it. Exactly the
+           * pairing `components/ui/input.tsx` uses, and it is here because this control is
+           * hand-rolled rather than an `<Input>`: a native `type="date"` renders Chromium's own
+           * calendar affordance, and routing it through the primitive would put the primitive's
+           * `file:`/`aria-invalid` rules on a widget that has neither.
+           *
+           * <p>Being hand-rolled is precisely why it was the one control on this screen still
+           * under the target size. Measured against the live deployment 2026-08-22:
+           * `input[takings-date] 160×32 @24,421` at 390px — the only WCAG 2.5.8 offender on
+           * `/app/finance/takings`. `min-h-9` was 36px, which is not 44 and never was; the phase
+           * that raised every other control raised this one to a number that still fails.
+           */}
           <input
             id="takings-date"
             type="date"
@@ -110,7 +123,7 @@ export function DailyTakings() {
             disabled={!shownDate}
             data-testid="takings-date"
             onChange={(e) => setDate(e.target.value)}
-            className="min-h-9 rounded-md border bg-background px-3 py-1.5 text-body disabled:opacity-50"
+            className="touch-floor h-9 rounded-md border bg-background px-3 py-1.5 text-body disabled:opacity-50"
           />
         </div>
         {takings && (

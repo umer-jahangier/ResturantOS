@@ -1,172 +1,84 @@
 "use client";
 
-import Link from "next/link";
-import { AlertTriangle, Building2, PauseCircle, ShieldCheck } from "lucide-react";
-
-import { QueryBoundary } from "@/components/ui/query-boundary";
-import { usePlatformTenants } from "@/lib/hooks/use-platform-tenants";
-import type { PlatformTenant } from "@/lib/models/platform.model";
+import { PageHeader } from "@/components/ui/page-header";
+import { OverviewActivity } from "@/components/platform/overview-activity";
+import { OverviewAlerts } from "@/components/platform/overview-alerts";
+import { OverviewCommercial } from "@/components/platform/overview-commercial";
+import { OverviewFleet } from "@/components/platform/overview-fleet";
+import { OverviewPeople } from "@/components/platform/overview-people";
+import { OverviewSystem } from "@/components/platform/overview-system";
+import { OverviewWindow } from "@/components/platform/overview-window";
 
 /**
- * URL: /platform/dashboard — the platform overview.
+ * URL: `/platform/dashboard` — the control plane's landing page.
  *
- * <h3>Every number here is counted from data on screen</h3>
+ * <h3>The rule this screen exists to obey</h3>
  *
- * The counts are derived from the tenant list this page has already fetched, so each one can be
- * verified by clicking through to the list and counting rows. Nothing is aggregated by an endpoint
- * that does not exist, and there is no "revenue" or "growth" tile — there is no billing amount
- * anywhere in the platform API, and a dashboard whose headline figure is invented is worse than a
- * dashboard with fewer tiles.
+ * **Every figure on it is one the backend actually returns, and every figure it cannot get is
+ * named rather than left blank.** That is not a stylistic preference on a SaaS control plane; it
+ * is the difference between a screen decisions get made on and a screen that produces confident
+ * wrong decisions. This product has shipped the defect twice already, which is why `StatTile` and
+ * `Meter` both refuse at the TYPE level to accept a value and a reason together.
  *
- * Tenants needing attention are listed explicitly rather than reduced to a count, because
- * `PROVISIONING_FAILED` is a state a human has to act on: 13-14 added a retry endpoint precisely
- * because such a tenant was previously unrecoverable through the API.
+ * <p>Concretely, and verified before a line of this page was written: **there is no billing in
+ * this product.** Every `@Table` across sixteen services was enumerated and a repository-wide
+ * search for `stripe|paddle|chargebee|razorpay|mrr|arr|plan_price` returns five hits, all of them
+ * the string `billing_ref` — a free-text VARCHAR on the tenant row with no foreign key. So there
+ * is no revenue tile, no MRR, no ARR, no invoice count, no payment status and no churn value on
+ * this page, in any form, including as a zero or as an empty chart. The commercial card shows what
+ * IS real — plans, trials, renewals, cancellations and plan mix — and
+ * `OverviewWindow`'s second card names the absent figures with the backend's own reasons attached.
+ *
+ * <h3>Why the page is assembled from independently-bounded sections</h3>
+ *
+ * Six reads back this screen and they hit four different subsystems, one of which (the user
+ * directory) fans out one internal HTTP call per tenant. A single boundary over all six would
+ * blank the whole console the moment any one of them was slow or refused. Each section owns its
+ * own `QueryBoundary`, so a failing health probe leaves the tenant counts standing and says
+ * precisely what could not be read.
+ *
+ * <p>The one deliberate exception is `OverviewAlerts`, which fails as a UNIT across its three
+ * sources — because an alerts list assembled from a partial set of inputs still ends with
+ * "nothing else needs attention", and it does not know that.
+ *
+ * <h3>Order of the page</h3>
+ *
+ * Orientation, then action, then detail. The fleet strip says how big the platform is; the alerts
+ * card says what a human has to do about it today; people, plans, activity and status fill in
+ * behind that; and the last row is the provenance — what was counted, over which window, and what
+ * could not be counted at all.
+ *
+ * <h3>"Platform Dashboard", not "Platform overview"</h3>
+ *
+ * `e2e/journeys/unified-login.spec.ts` asserts this exact heading as the proof that a SuperAdmin
+ * login lands on the console — it is the passing assertion that a SuperAdmin has a browser path at
+ * all. A nicer noun is not worth turning a green regression test red.
  */
 export default function PlatformDashboardPage() {
-  const tenants = usePlatformTenants();
-  const all = tenants.data ?? [];
-
-  const live = all.filter((t) => t.status !== "PURGED");
-  const active = live.filter((t) => t.status === "ACTIVE");
-  const suspended = live.filter((t) => t.status === "SUSPENDED");
-  const failed = live.filter((t) => t.status === "PROVISIONING_FAILED");
-
   return (
-    <div className="space-y-6">
-      <header>
-        {/*
-          "Platform Dashboard", not "Platform overview". `e2e/journeys/unified-login.spec.ts`
-          (16a-01) asserts this exact heading as the proof that a SuperAdmin login lands on the
-          console — it is the passing assertion that the SuperAdmin has a browser path at all.
-          A nicer noun is not worth turning a green regression test red.
-        */}
-        <h1 className="text-2xl font-semibold">Platform Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          Every action taken here affects a whole restaurant group, not one branch.
-        </p>
-      </header>
+    <div className="flex flex-col gap-(--space-lg)">
+      <PageHeader
+        title="Platform Dashboard"
+        description="Every action taken here affects a whole restaurant group, not one branch."
+      />
 
-      <QueryBoundary query={tenants} what="the platform overview">
-        <>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            <StatTile
-              icon={Building2}
-              label="Tenants"
-              value={live.length}
-              hint="Excluding purged"
-            />
-            <StatTile icon={ShieldCheck} label="Active" value={active.length} />
-            <StatTile
-              icon={PauseCircle}
-              label="Suspended"
-              value={suspended.length}
-              tone={suspended.length > 0 ? "warning" : undefined}
-            />
-            <StatTile
-              icon={AlertTriangle}
-              label="Provisioning failed"
-              value={failed.length}
-              tone={failed.length > 0 ? "danger" : undefined}
-            />
-          </div>
+      <OverviewFleet />
+      <OverviewAlerts />
+      <OverviewPeople />
+      <OverviewCommercial />
 
-          {failed.length > 0 && (
-            <section className="space-y-2" aria-labelledby="attention-heading">
-              <h2 id="attention-heading" className="text-lg font-semibold">
-                Needs attention
-              </h2>
-              <ul className="glass-surface divide-y rounded-xl shadow-depth-2">
-                {failed.map((tenant) => (
-                  <li key={tenant.id} className="flex items-center justify-between gap-4 px-4 py-3">
-                    <div>
-                      <Link
-                        href={`/platform/tenants/${tenant.id}`}
-                        className="font-medium text-primary hover:underline"
-                      >
-                        {tenant.brandName}
-                      </Link>
-                      <p className="text-xs text-muted-foreground">
-                        Provisioning did not complete. This tenant has no working administrator
-                        account until it is re-driven.
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          <section className="space-y-2" aria-labelledby="by-tier-heading">
-            <h2 id="by-tier-heading" className="text-lg font-semibold">
-              By tier
-            </h2>
-            <ul className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
-              {(["STARTER", "GROWTH", "ENTERPRISE", "CUSTOM"] as const).map((tier) => (
-                <li
-                  key={tier}
-                  className="glass-surface vdl-lift rounded-xl px-4 py-3 shadow-depth-1"
-                >
-                  <span className="text-sm text-muted-foreground">{tier}</span>
-                  <span className="block text-xl font-semibold tabular-nums">
-                    {countTier(live, tier)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <Link
-            href="/platform/tenants"
-            className="inline-block text-sm text-primary hover:underline"
-          >
-            Manage tenants →
-          </Link>
-        </>
-      </QueryBoundary>
-    </div>
-  );
-}
-
-function countTier(tenants: PlatformTenant[], tier: PlatformTenant["tier"]): number {
-  return tenants.filter((t) => t.tier === tier).length;
-}
-
-function StatTile({
-  icon: Icon,
-  label,
-  value,
-  hint,
-  tone,
-}: {
-  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
-  label: string;
-  value: number;
-  hint?: string;
-  tone?: "warning" | "danger";
-}) {
-  return (
-    <div
-      // Phase 34: a glass stat tile with depth. The console is expressive end to end, and this
-      // sits directly on the page background — a substrate 34-02's manifest declares.
-      className="glass-surface vdl-lift rounded-xl p-4 shadow-depth-2"
-      data-testid={`stat-${label.toLowerCase().replace(/\s+/g, "-")}`}
-    >
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Icon className="size-4" aria-hidden={true} />
-        {label}
+      {/*
+        Two cards that answer different questions about the same moment — what just happened, and
+        what is working right now. Side by side at `lg` and stacked below it; there is no `md`
+        two-column step because the service rows carry a mono service id plus a badge and both
+        would truncate at 768.
+      */}
+      <div className="grid gap-(--space-md) lg:grid-cols-2">
+        <OverviewActivity />
+        <OverviewSystem />
       </div>
-      <p
-        className={
-          tone === "danger"
-            ? "mt-1 text-2xl font-semibold tabular-nums text-destructive"
-            : tone === "warning"
-              ? "mt-1 text-2xl font-semibold tabular-nums text-warning"
-              : "mt-1 text-2xl font-semibold tabular-nums"
-        }
-      >
-        {value}
-      </p>
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+
+      <OverviewWindow />
     </div>
   );
 }

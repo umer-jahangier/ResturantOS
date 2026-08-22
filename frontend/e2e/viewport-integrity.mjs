@@ -132,15 +132,62 @@ export const COLLECT = () => {
    * button's label does) and so does one that lands on an ANCESTOR (a padded wrapper). Only a
    * foreign node counts as coverage. Points outside the viewport are not sampled at all, because
    * `elementFromPoint` returns null there and a null would otherwise read as "not covered".
+   *
+   * <h3>Sampled inside the CLIPPED box, not the bounding box</h3>
+   *
+   * <p>`getBoundingClientRect()` reports where an element WOULD be, not where it can be seen. A
+   * row scrolled out of its own scroll container still has a rect, and that rect lands wherever
+   * the arithmetic puts it — frequently on top of whatever is painted at those coordinates. Hit
+   * testing there answers a question nobody asked: it reports the thing in front, and the element
+   * is scored as "fully covered" when it is simply scrolled away.
+   *
+   * <p>Measured on `/app/dashboard` at 768 against the live deployment 2026-08-22:
+   * `a "Accounts" 239×36 @8,852` reported covered, in a sidebar `<nav>` running 110→839 with
+   * `scrollHeight` 1610 against `clientHeight` 729. The link is 13px below the bottom of its own
+   * scroll port. Nothing covers it — the sidebar footer merely occupies the coordinates its rect
+   * happens to name. Scroll the rail and it is there.
+   *
+   * <p>So the sample points come from the element's rect intersected with every clipping
+   * ancestor. An empty intersection means the element is not on screen at all right now, and
+   * `sampled: 0` keeps it out of the verdict — which is the same answer this function already
+   * gives for a point outside the viewport, for the same reason.
+   *
+   * <p>NEGATIVE CONTROL, run live rather than in jsdom, because the unit suite feeds
+   * `occludedInteractives` synthetic coverage objects and therefore cannot exercise this function
+   * at all: with the change in place, an opaque `position: fixed` panel dropped over a
+   * fully-visible portlet on `/app/dashboard` at 390 took the count 0 → 1 and named the overlay
+   * (`a[portlet-owner-net-sales] … by negative-control-overlay`). The narrowing removes two false
+   * positives and does not switch the check off.
    */
+  const clippedBox = (el, r) => {
+    const box = { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+    for (let p = el.parentElement; p; p = p.parentElement) {
+      // `<html>`/`<body>` are the page itself; the viewport bound below already covers them.
+      if (p.tagName === "HTML" || p.tagName === "BODY") continue;
+      const cs = getComputedStyle(p);
+      if (cs.overflowX === "visible" && cs.overflowY === "visible") continue;
+      const pr = p.getBoundingClientRect();
+      box.left = Math.max(box.left, pr.left);
+      box.top = Math.max(box.top, pr.top);
+      box.right = Math.min(box.right, pr.right);
+      box.bottom = Math.min(box.bottom, pr.bottom);
+    }
+    return box;
+  };
+
   const coverage = (el, r) => {
-    const inset = Math.min(4, r.width / 4, r.height / 4);
+    const b = clippedBox(el, r);
+    const w = b.right - b.left;
+    const h = b.bottom - b.top;
+    if (w <= 0 || h <= 0) return { sampled: 0, covered: 0, by: null };
+
+    const inset = Math.min(4, w / 4, h / 4);
     const points = [
-      [r.left + r.width / 2, r.top + r.height / 2],
-      [r.left + inset, r.top + inset],
-      [r.right - inset, r.top + inset],
-      [r.left + inset, r.bottom - inset],
-      [r.right - inset, r.bottom - inset],
+      [b.left + w / 2, b.top + h / 2],
+      [b.left + inset, b.top + inset],
+      [b.right - inset, b.top + inset],
+      [b.left + inset, b.bottom - inset],
+      [b.right - inset, b.bottom - inset],
     ];
     let sampled = 0;
     let covered = 0;
@@ -362,6 +409,25 @@ export function viewportEscapees(records) {
  * menu behind it, and the elements it covers are hidden from hit-testing by the sheet, not
  * broken. What is never intended is a control that is painted, announced, focusable, and
  * unreachable by touch at every single point of its box.
+ *
+ * <h3>…and only where the WHOLE box is on screen</h3>
+ *
+ * `coverage()` cannot sample a point outside the viewport — `elementFromPoint` returns null
+ * there, and a null would read as "not covered". So a control that runs PAST THE FOLD is sampled
+ * only across the sliver of it that is on screen, and if fixed bottom chrome happens to sit over
+ * that sliver, "every sampled point was foreign" becomes true of a control the user reaches by
+ * scrolling. Measured on `/app/dashboard` at 390 against the live deployment 2026-08-22:
+ * `a[portlet-owner-sales-trend] 358×286 @16,856` in a 900-high viewport — 44px of it visible,
+ * all of it beneath `MobileBottomNav` (`fixed bottom-0 h-16`), 2 of 5 points sampled, both
+ * foreign. `<main>` carries `pb-20` precisely so that portlet can be scrolled clear of that nav,
+ * so the control is reachable and the verdict was an artefact of WHERE THE PAGE HAPPENED TO BE
+ * SCROLLED — a different answer at a different offset, which is a flake, not a finding.
+ *
+ * <p>So the box must end on screen before a coverage sample is allowed to convict it. This
+ * narrows the check by exactly one case — a control both below the fold AND genuinely buried —
+ * and that case is unmeasurable at a single scroll offset anyway. It does not touch the defect
+ * the check exists for: the POS cart overlays controls that are fully in view, and those still
+ * fail. The 2px is the same sub-pixel tolerance `isOverflowing` uses, for the same reason.
  */
 /**
  * @param {ViewportRecord[]} records
@@ -369,7 +435,12 @@ export function viewportEscapees(records) {
  */
 export function occludedInteractives(records) {
   return records.filter(
-    (r) => r.interactive && r.coverage.sampled > 0 && r.coverage.covered === r.coverage.sampled,
+    (r) =>
+      r.interactive &&
+      r.coverage.sampled > 0 &&
+      r.coverage.covered === r.coverage.sampled &&
+      r.rect.bottom <= r.viewport.height + 2 &&
+      r.rect.top >= -2,
   );
 }
 

@@ -16,7 +16,18 @@ import { expect, test, type APIRequestContext } from "@playwright/test";
 const MANAGER = { email: "manager@terrace.local", password: "Terrace#Manager1" };
 const WAITER = { email: "waiter@terrace.local", password: "Terrace#Waiter1" };
 const TENANT = "floating-terrace";
-const GATEWAY = process.env.GATEWAY_URL ?? "http://localhost:8080";
+/*
+ * `E2E_GATEWAY_URL`, which is the name every other spec and `e2e/fixtures/gateway.ts:19` read.
+ * This file was alone in reading `GATEWAY_URL`, so against any remote target it silently kept
+ * the localhost default and this journey failed with `connect ECONNREFUSED ::1:8080` while the
+ * browser half of the same test was talking to the deployment perfectly well. Measured against
+ * dev 2026-08-22. The old name is still honoured so a local runner that exports it keeps working.
+ */
+const GATEWAY = (
+  process.env.E2E_GATEWAY_URL ??
+  process.env.GATEWAY_URL ??
+  "http://localhost:8080"
+).replace(/\/$/, "");
 const SHOTS = "../.planning/phases/37-finance-orders-integration";
 
 /** Keeps this spec inside the gateway's shared 2/s auth bucket. */

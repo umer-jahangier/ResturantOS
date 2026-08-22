@@ -8,6 +8,7 @@ import type {
   CreateTenantBody,
   PlatformTenant,
   ProvisionResult,
+  RetryProvisioningBody,
   TierChangeResult,
   UpdateTenantBody,
 } from "@/lib/models/platform.model";
@@ -31,6 +32,26 @@ export const platformKeys = {
   tenant: (tenantId: string) => ["platform", "tenants", tenantId] as const,
   features: (tenantId: string) => ["platform", "tenants", tenantId, "features"] as const,
   usage: (tenantId: string) => ["platform", "tenants", tenantId, "usage"] as const,
+  tenantUsers: (tenantId: string) => ["platform", "tenants", tenantId, "users"] as const,
+  subscription: (tenantId: string) => ["platform", "tenants", tenantId, "subscription"] as const,
+  subscriptionLimits: (tenantId: string) =>
+    ["platform", "tenants", tenantId, "subscription", "limits"] as const,
+  subscriptionHistory: (tenantId: string, page: number) =>
+    ["platform", "tenants", tenantId, "subscription", "history", page] as const,
+  operatorAudit: (tenantId: string | undefined, page: number) =>
+    ["platform", "operator-audit", tenantId ?? "all", page] as const,
+  /** The plan catalogue. Keyed on `includeInactive` because it is a different list, not a filter. */
+  plans: (includeInactive: boolean) => ["platform", "plans", includeInactive] as const,
+  /**
+   * The cross-tenant register.
+   *
+   * The whole filter object is part of the key because every one of those filters is applied
+   * SERVER-side — `status`, `planCode`, `trialEndingBefore`, `renewingBefore` and the page index all
+   * change which rows come back. Keying on the page alone would serve one filter's rows under
+   * another filter's heading, which on a register is the console showing the wrong restaurants.
+   */
+  subscriptions: (filters: Record<string, string | number | undefined>) =>
+    ["platform", "subscriptions", filters] as const,
 };
 
 /**
@@ -116,9 +137,47 @@ export function useCancelTenant(tenantId: string) {
   });
 }
 
+/**
+ * Take a cancelled tenant out of service permanently.
+ *
+ * Nothing is deleted — the endpoint sets a status column and returns the tenant. The mutation is
+ * still treated as the heaviest one on this console, because the STATE it moves to is the one
+ * nothing in the product moves back out of: there is no un-close endpoint, and `reactivate` refuses
+ * a PURGED tenant. The confirmation, not the API, is what makes that legible.
+ */
+export function useCloseTenant(tenantId: string) {
+  const queryClient = useQueryClient();
+  return useMutation<PlatformTenant, Error, void>({
+    mutationFn: () => PlatformRepository.closeTenant(tenantId),
+    onSuccess: () => invalidateTenant(queryClient, tenantId),
+  });
+}
+
+/**
+ * Re-drive a failed provisioning saga on the same tenant row.
+ *
+ * The response carries a NEW one-time temporary password, so the caller must render it once and
+ * say plainly that it will not be shown again — notification-service has no source files, so no
+ * email carries it and the operator is the delivery channel.
+ */
+export function useRetryProvisioning(tenantId: string) {
+  const queryClient = useQueryClient();
+  return useMutation<ProvisionResult, Error, RetryProvisioningBody>({
+    mutationFn: (body) => PlatformRepository.retryProvisioning(tenantId, body),
+    onSuccess: () => invalidateTenant(queryClient, tenantId),
+  });
+}
+
 function invalidateTenant(queryClient: ReturnType<typeof useQueryClient>, tenantId: string): void {
   void queryClient.invalidateQueries({ queryKey: platformKeys.tenants() });
   void queryClient.invalidateQueries({ queryKey: platformKeys.tenant(tenantId) });
   void queryClient.invalidateQueries({ queryKey: platformKeys.features(tenantId) });
   void queryClient.invalidateQueries({ queryKey: platformKeys.usage(tenantId) });
+  // A lifecycle transition writes an operator-audit row and can move the subscription's standing
+  // with it, so the panels that read those are stale the moment one lands. Invalidating them here
+  // rather than at each call site is what stops the activity feed showing an operator's own action
+  // as absent for thirty seconds after they performed it.
+  void queryClient.invalidateQueries({ queryKey: platformKeys.subscription(tenantId) });
+  void queryClient.invalidateQueries({ queryKey: platformKeys.subscriptionLimits(tenantId) });
+  void queryClient.invalidateQueries({ queryKey: ["platform", "operator-audit"] });
 }
