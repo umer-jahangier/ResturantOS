@@ -256,24 +256,52 @@ class PromotionDiscountPersistsIT extends PosTestBase {
     }
 
     /**
-     * Promotions are ORDER scope, always — which is what keeps them clear of the LINE-scope tax
-     * defect (a fully comped line still charging tax, because LINE rows reduce the total without
-     * touching the tax base). Asserted here so that if promotions ever gain LINE scope, whoever
-     * does it is told that they have just inherited that bug.
+     * Promotions are ORDER scope, always — asserted here so that if promotions ever gain LINE
+     * scope, whoever does it is told at this seam.
+     *
+     * <h3>What this test used to assert, and why that assertion is gone</h3>
+     *
+     * <p>It used to add {@code assertThat(i.discountPaisa()).isZero()} for every line, on the
+     * reasoning that "no line-level discount is written, so no line's tax base moves". That was
+     * true when it was written and is not true now, and the change that made it false was
+     * deliberate: {@code 455237b5 feat(pos): tax is charged on the line net of its share of every
+     * discount} made {@code OrderServiceImpl.recomputeOrderTotals} allocate an ORDER-scope
+     * discount across the billable lines pro rata and stamp each line's {@code discountPaisa},
+     * {@code taxPaisa} and {@code lineTotalPaisa} together. The two commits were written the same
+     * afternoon on parallel branches — neither is an ancestor of the other — so they merged
+     * cleanly in text and contradicted each other in meaning, and this test has failed ever since.
+     *
+     * <p>The old expectation is not merely stale, it is the wrong outcome to want. An ORDER-scope
+     * discount carries no tax rate of its own; the LINES do. Leaving the lines untouched would
+     * charge tax on money the guest was never asked for. So the invariant worth protecting is not
+     * "the lines do not move" — it is that the allocation is EXACT: every paisa of the promotion
+     * lands on some line, and no paisa is invented on the way. That is what is asserted below,
+     * and it is a stronger statement than the one it replaces.
+     *
+     * <p>The LINE-scope half of the original concern is kept and sharpened: the promotion must
+     * still never write a discount ROW attached to a line ({@code scope}/{@code orderItemId}),
+     * which is the thing that would drag it into the LINE-scope tax defect this file names.
      */
     @Test
-    void aPromotionIsAlwaysWholeCheckScopeAndSoNeverTouchesTheLineTaxBase() {
+    void aPromotionIsWholeCheckScopeAndItsAllocationAcrossTheLinesIsExact() {
         OrderDto rung = checkOfTwoPlatesForACustomer();
         engineOffers(15_000L);
 
         OrderDto after = orderService.applyPromotions(rung.id());
 
-        assertThat(after.discounts()).allSatisfy(d ->
-                assertThat(d.scope()).isEqualTo("ORDER"));
-        assertThat(after.items()).allSatisfy(i ->
-                assertThat(i.discountPaisa())
-                        .as("no line-level discount is written, so no line's tax base moves")
-                        .isZero());
+        assertThat(after.discounts()).allSatisfy(d -> {
+            assertThat(d.scope())
+                    .as("a promotion is a whole-check offer and must never be recorded as a line's")
+                    .isEqualTo("ORDER");
+            assertThat(d.orderItemId())
+                    .as("an ORDER row pinned to a line is a LINE row wearing the wrong scope")
+                    .isNull();
+        });
+
+        assertThat(after.discountPaisa()).isEqualTo(15_000L);
+        assertThat(after.items().stream().mapToLong(OrderDto.OrderItemDto::discountPaisa).sum())
+                .as("every paisa of the offer is attributed to a line, and not one paisa more")
+                .isEqualTo(15_000L);
     }
 
     // ── (2) REPLACE, NEVER STACK — now keyed on `source`, not on `type` ───────────────────
