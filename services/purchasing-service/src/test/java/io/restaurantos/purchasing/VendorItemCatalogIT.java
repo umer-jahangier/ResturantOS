@@ -260,9 +260,20 @@ class VendorItemCatalogIT extends PurchasingTestBase {
 
     @Test
     void catalogListIssuesABoundedNumberOfQueries() throws Exception {
+        // Pin every seeded price to a fixed instant safely in the past. Left unset, the price row
+        // is stamped server-side with Instant.now() and the catalog read filters
+        // `effectiveFrom <= Instant.now()` — two reads of the WALL clock, which is not monotonic.
+        // A backward NTP step between two of the 15 writes puts the rows stamped just before it
+        // fractionally ahead of the later read, and those rows resolve to no current price: the
+        // observed flake was exactly one middle row (SKU-BOUND-9) null while the 14 either side
+        // were priced, with all 15 stamps inside a 93ms window. Pinning removes the dependency on
+        // wall-clock ordering entirely; this test is about the query COUNT for a catalog page, so
+        // it has no reason to exercise the default now()-stamping path.
+        Instant seededPriceEffectiveFrom = Instant.parse("2020-01-01T00:00:00Z");
         for (int i = 0; i < 15; i++) {
             Map<String, Object> body = baseItemBody("SKU-BOUND-" + i);
             body.put("initialUnitPricePaisa", 1_000 + i);
+            body.put("initialPriceEffectiveFrom", seededPriceEffectiveFrom.toString());
             mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/purchasing/vendors/" + vendorId + "/items")
                             .with(asUser("vendor.manage"))
                             .contentType(MediaType.APPLICATION_JSON)
@@ -281,6 +292,11 @@ class VendorItemCatalogIT extends PurchasingTestBase {
         JsonNode data = objectMapper.readTree(result.getResponse().getContentAsString()).get("data");
         assertThat(data).hasSize(15);
         assertThat(data).allSatisfy(n -> assertThat(n.get("currentUnitPricePaisa").isNull()).isFalse());
+        // Proves the pin above is actually honoured. Without this, a renamed or ignored
+        // initialPriceEffectiveFrom would silently restore the wall-clock dependency and the
+        // flake with it, while this test stayed green.
+        assertThat(data).allSatisfy(n -> assertThat(Instant.parse(n.get("currentPriceEffectiveFrom").asText()))
+                .isEqualTo(seededPriceEffectiveFrom));
     }
 
     @Test
