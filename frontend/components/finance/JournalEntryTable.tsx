@@ -1,15 +1,20 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type KeyboardEvent } from "react";
+import { useMemo, useState } from "react";
+
 import { useJournalEntries } from "@/lib/hooks/finance/use-journal-entries";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MoneyDisplay } from "@/components/ui/money-display";
 import { QueryBoundary } from "@/components/ui/query-boundary";
-import { DrCrCell } from "./DrCrCell";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { DataGrid, type ColumnDef } from "@/components/ui/data-grid/data-grid";
+import { Skeleton } from "@/components/ui/skeleton";
+import { DrCrAmount } from "@/components/finance/DrCrAmount";
 import { FinanceEmptyState } from "./FinanceEmptyState";
-import type { JeFilters } from "@/lib/models/finance.model";
+import type { JeFilters, JournalEntry } from "@/lib/models/finance.model";
 
 interface JournalEntryTableProps {
   filters?: JeFilters;
@@ -33,6 +38,16 @@ const PAGE_SIZE = 50;
  *
  * "Showing 50 of 254" is the difference between a ledger and a sample of one. A truncated list
  * that does not say it is truncated is how the KDS board came to show 20 of 29 tickets.
+ *
+ * <h3>Why this search box is NOT `FilterBar`'s (38-08 finding)</h3>
+ *
+ * `FilterBar`'s search field is hard-coded `type="search"`, which maps to the ARIA role
+ * `searchbox`, not `textbox`. Six F10 probe scripts and the component suite locate this box as
+ * `getByRole("textbox", { name: "Search journal entries by entry number or description" })`. The
+ * primitive is right and the role is right; adopting it here would silently unhook every one of
+ * those, on the screen whose whole point is that an entry can be FOUND. The strip is worth having
+ * and is not worth that, so this screen keeps its own labelled input and the finding is recorded
+ * rather than absorbed.
  */
 function JournalEntryTable({ filters }: JournalEntryTableProps) {
   const router = useRouter();
@@ -58,11 +73,58 @@ function JournalEntryTable({ filters }: JournalEntryTableProps) {
     setPage(0);
   }
 
-  function handleKeyDown(e: KeyboardEvent<HTMLTableRowElement>, id: string) {
-    if (e.key === "Enter") {
-      router.push(`/app/finance/journal-entries/${id}`);
-    }
-  }
+  const columns = useMemo<ColumnDef<JournalEntry, unknown>[]>(
+    () => [
+      {
+        id: "entryNo",
+        accessorKey: "entryNo",
+        header: "Entry no",
+        cell: ({ row }) => (
+          <button
+            type="button"
+            onClick={() => router.push(`/app/finance/journal-entries/${row.original.id}`)}
+            className="font-mono tabular-nums text-primary underline-offset-2 hover:underline"
+          >
+            {row.original.entryNo ?? "—"}
+          </button>
+        ),
+      },
+      {
+        id: "entryDate",
+        accessorKey: "entryDate",
+        header: "Date",
+        cell: ({ row }) => <span className="tabular-nums">{row.original.entryDate}</span>,
+      },
+      { id: "description", accessorKey: "description", header: "Description" },
+      {
+        id: "status",
+        accessorKey: "status",
+        header: "Status",
+        // GA-38-G3: this was `text-emerald-700` / `text-amber-700` — two raw palette literals
+        // that follow neither the theme nor `--brand-h`, on the one column where a reader has to
+        // tell a posted entry from a draft. The shared badge carries a token hue AND the word.
+        cell: ({ row }) => (
+          <StatusBadge
+            status={row.original.status === "POSTED" ? "success" : "pending"}
+            label={row.original.status}
+          />
+        ),
+      },
+      {
+        id: "debit",
+        accessorKey: "totalDebitPaisa",
+        header: "Debit",
+        cell: ({ row }) => <DrCrAmount paisa={row.original.totalDebitPaisa} />,
+      },
+      {
+        id: "credit",
+        accessorKey: "totalCreditPaisa",
+        header: "Credit",
+        cell: ({ row }) => <DrCrAmount paisa={row.original.totalCreditPaisa} />,
+      },
+    ],
+    [router],
+  );
 
   return (
     <div className="space-y-4">
@@ -77,7 +139,7 @@ function JournalEntryTable({ filters }: JournalEntryTableProps) {
         {/* Only once the query has actually answered — printing "0 entries" while the first
             request is still in flight states something false for a second. */}
         {entries.data ? (
-          <p className="text-sm text-muted-foreground" data-testid="je-result-count">
+          <p className="text-small text-foreground-secondary" data-testid="je-result-count">
             {searching
               ? `${total} ${total === 1 ? "entry matches" : "entries match"} “${debounced.trim()}”`
               : `Showing ${rows.length} of ${total} ${total === 1 ? "entry" : "entries"}`}
@@ -94,9 +156,9 @@ function JournalEntryTable({ filters }: JournalEntryTableProps) {
         what="journal entries"
         isEmpty={rows.length === 0}
         loading={
-          <div className="animate-pulse space-y-2">
+          <div className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-10 rounded bg-muted" />
+              <Skeleton key={i} className="h-10" />
             ))}
           </div>
         }
@@ -105,6 +167,7 @@ function JournalEntryTable({ filters }: JournalEntryTableProps) {
             <FinanceEmptyState
               title={`No entry matches “${debounced.trim()}”`}
               description="The search covers every entry for this branch, not just the ones listed — so this really is no match. Check the order number, or try part of it."
+              action={{ label: "Clear all", onClick: () => changeTerm("") }}
             />
           ) : (
             <FinanceEmptyState
@@ -114,48 +177,23 @@ function JournalEntryTable({ filters }: JournalEntryTableProps) {
           )
         }
       >
-        <div className="overflow-x-auto">
-          {/* `w-full` alone let the table SQUEEZE inside the scroller rather than scroll, and at
-              390px the two money columns collided into "Rs 998.00998" — two different figures
-              rendered as one number, on a ledger. The min width makes the scroller do its job;
-              nothing changes at 768 and above, where the table is narrower than the page. */}
-          <table className="w-full min-w-[46rem] text-sm">
-            <thead>
-              <tr className="border-b text-left text-muted-foreground">
-                <th className="py-2 pr-4 font-medium">Entry No</th>
-                <th className="py-2 pr-4 font-medium">Date</th>
-                <th className="py-2 pr-4 font-medium">Description</th>
-                <th className="py-2 pr-4 font-medium">Status</th>
-                <th className="w-32 py-2 text-right font-medium">Debit</th>
-                <th className="w-32 py-2 text-right font-medium">Credit</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((je) => (
-                <tr
-                  key={je.id}
-                  tabIndex={0}
-                  onKeyDown={(e) => handleKeyDown(e, je.id)}
-                  onClick={() => router.push(`/app/finance/journal-entries/${je.id}`)}
-                  className="cursor-pointer border-b transition-colors hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
-                >
-                  <td className="py-2 pr-4 font-mono tabular-nums">{je.entryNo ?? "—"}</td>
-                  <td className="py-2 pr-4">{je.entryDate}</td>
-                  <td className="py-2 pr-4">{je.description}</td>
-                  <td className="py-2 pr-4">
-                    <span
-                      className={je.status === "POSTED" ? "text-emerald-700" : "text-amber-700"}
-                    >
-                      {je.status}
-                    </span>
-                  </td>
-                  <DrCrCell paisa={je.totalDebitPaisa} type="debit" />
-                  <DrCrCell paisa={je.totalCreditPaisa} type="credit" />
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataGrid
+          label="Journal entries"
+          columns={columns}
+          data={rows}
+          // The SERVER paginates this list, and it has already cut the set to 50. A second,
+          // client-side pager over the same 50 would put "Page 1 of 1" beside a Next button that
+          // fetches page 2 — two pagers, one of them lying. One page of 50 keeps DataGrid's own
+          // controls hidden and leaves the server pager below as the only one.
+          pageSize={PAGE_SIZE}
+          isFiltered={searching}
+          onClearFilters={() => changeTerm("")}
+          card={{
+            primary: (je) => je.entryNo ?? "—",
+            secondary: (je) => `${je.entryDate} · ${je.description}`,
+            trailing: (je) => <MoneyDisplay paisa={je.totalDebitPaisa} />,
+          }}
+        />
       </QueryBoundary>
 
       {(page > 0 || hasNextPage) && (
@@ -168,7 +206,7 @@ function JournalEntryTable({ filters }: JournalEntryTableProps) {
           >
             Previous
           </Button>
-          <span className="text-sm text-muted-foreground">Page {page + 1}</span>
+          <span className="text-small text-foreground-secondary">Page {page + 1}</span>
           <Button
             variant="outline"
             size="sm"

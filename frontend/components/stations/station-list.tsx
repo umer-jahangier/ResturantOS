@@ -60,7 +60,7 @@ export function StationList({
         >
           <div className="flex items-center justify-between gap-2 border-b bg-muted/30 px-3 py-2">
             <span className="font-medium">{FAMILY_LABEL[family]}</span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-label text-muted-foreground">
               {rows.length} {rows.length === 1 ? "station" : "stations"}
             </span>
           </div>
@@ -70,9 +70,9 @@ export function StationList({
               <div
                 key={station.id}
                 data-testid="station-row"
-                className="flex items-center gap-3 px-3 py-2 text-sm"
+                className="flex items-center gap-3 px-3 py-2 text-small"
               >
-                <code className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs font-medium">
+                <code className="shrink-0 rounded-sm bg-muted px-1.5 py-0.5 text-label font-medium">
                   {station.code}
                 </code>
                 <span className="flex-1 truncate font-medium">{station.name}</span>

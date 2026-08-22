@@ -55,7 +55,17 @@ export function PortletRow({
   children,
 }: {
   density: "comfortable" | "compact";
-  columns: 1 | 2 | 4;
+  /**
+   * How many across at the widest breakpoint. Derived by the renderer from the row's DECLARED
+   * size in the preset table, not from how many portlets survived the permission filter — a
+   * reader who lacks one permission gets a gap where that tile would be, not a silently
+   * re-flowed page whose four-up KPI row has become a three-up one.
+   *
+   * <p>`3` was added in phase 38 for the four new role dashboards, whose rows are not all
+   * powers of two. Without it a three-portlet row had to render as `columns={4}` and leave a
+   * quarter-width hole on every desktop.
+   */
+  columns: 1 | 2 | 3 | 4;
   children: React.ReactNode;
 }) {
   return (
@@ -75,9 +85,20 @@ export function PortletRow({
          */
         "vdl-stagger",
         density === "compact" ? "gap-3" : "gap-4",
+        /*
+         * 38-14 task 2: the portlet grid reflows 4 → 2 → 1, and the two thresholds are `md`
+         * (768) and `xl` (1280) — widths the audit measures, not `sm` (640), which it does not.
+         *
+         * <p>The `sm` step was doing real damage rather than nothing. Between 640 and 767 the
+         * shell is already in its MOBILE state — the sidebar is `hidden md:flex` and
+         * `MobileBottomNav` is `md:hidden` — so a four-up dashboard was folding to two columns
+         * inside a viewport that still had no sidebar to pay for them, giving a portlet ~310px.
+         * Below `md` the whole product is one column; the dashboard now says so too.
+         */
         columns === 1 && "grid-cols-1",
         columns === 2 && "grid-cols-1 lg:grid-cols-2",
-        columns === 4 && "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4",
+        columns === 3 && "grid-cols-1 md:grid-cols-2 xl:grid-cols-3",
+        columns === 4 && "grid-cols-1 md:grid-cols-2 xl:grid-cols-4",
       )}
     >
       {React.Children.map(children, (child, i) =>

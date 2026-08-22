@@ -2,6 +2,7 @@
 
 import { AccessDenied } from "@/components/shared/access-denied";
 import { PermissionGuard } from "@/components/shared/permission-guard";
+import { PageHeader } from "@/components/ui/page-header";
 import { ServiceChargeForm } from "@/components/settings/service-charge-form";
 import { ZoneProvider } from "@/components/providers/zone-provider";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
@@ -47,12 +48,10 @@ function ServiceChargePage() {
      * restrained back-office shell exactly as /app/settings and /app/settings/printers are.
      */
     <ZoneProvider zone="expressive" className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Service charge</h1>
-        <p className="text-sm text-muted-foreground">
-          What this branch adds to a check for table service, and which channels it applies to.
-        </p>
-      </div>
+      <PageHeader
+        title="Service charge"
+        description="What this branch adds to a check for table service, and which channels it applies to."
+      />
 
       <ServiceChargeForm branchId={branchId || null} />
     </ZoneProvider>

@@ -251,7 +251,15 @@ public class AutoPostingRecipeEngine {
             return;
         }
 
-        post(SOURCE_ORDER_COGS, p.orderId(), envelope, "Order COGS " + p.orderId(), lines);
+        // Six-arg overload, passing the order's own business date. Previously this called the
+        // five-arg form, which passes businessDate = null and falls through to the envelope's
+        // UTC publish timestamp — while the matching REVENUE entry at :164 passes
+        // p.businessDate() verbatim. Revenue and its offsetting cost could land on different
+        // trading days, making any daily margin wrong at the boundary.
+        // Still null-tolerant: an event published before StockDepletedPayload carried the field
+        // keeps the old fallback rather than guessing a date.
+        post(SOURCE_ORDER_COGS, p.orderId(), envelope, "Order COGS " + p.orderId(), lines,
+                p.businessDate());
     }
 
     /** Groups COGS lines by the (cost, inventory) account pair they post against. */

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -13,14 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryBoundary } from "@/components/ui/query-boundary";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { RoleList } from "@/components/roles/role-list";
 import { RoleBuilderDialog } from "@/components/roles/role-builder-dialog";
 import { RoleDetailDialog } from "@/components/roles/role-detail-dialog";
@@ -122,11 +116,23 @@ export default function RolesPage() {
           </>
         }
         actions={
-          canManage ? (
-            <Button type="button" onClick={() => setBuilderTarget({ mode: "create" })}>
-              New role
+          /*
+           * Two controls, and the accent stays on one of them. UI-SPEC §4.1 reserves the solid
+           * fill for the single primary action per region, so the matrix — a READ view — travels
+           * as an outline link beside it. It is offered here rather than only in the sidebar
+           * because "who else can do this?" is a question an administrator arrives at from this
+           * screen, having just failed to answer it from nine separate cards.
+           */
+          <div className="flex flex-wrap items-center gap-(--space-sm)">
+            <Button type="button" variant="outline" asChild>
+              <Link href="/app/roles/matrix">Permission matrix</Link>
             </Button>
-          ) : undefined
+            {canManage && (
+              <Button type="button" onClick={() => setBuilderTarget({ mode: "create" })}>
+                New role
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -145,7 +151,7 @@ export default function RolesPage() {
         moduleLabel="Roles"
         isEmpty={roles.length === 0}
         loading={
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             <Skeleton className="h-40" />
             <Skeleton className="h-40" />
             <Skeleton className="h-40" />
@@ -222,38 +228,38 @@ export default function RolesPage() {
         }}
       />
 
-      <Dialog
+      {/*
+        38-10 task 5: the shared ConfirmDialog. Deleting a role is the most destructive action on
+        this screen and it was the one place still hand-rolling the dialog — so the confirm button
+        rendered in the DEFAULT tone while /app/branches, three clicks away, painted a merely
+        reversible deactivation in destructive red. Same primitive now, same tone ladder.
+
+        The holder-count sentence is preserved verbatim: it is the only place the operator is told
+        WHY the server is about to refuse them, and the fix for that refusal is on another screen.
+      */}
+      <ConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(next) => {
           if (!next) setDeleteTarget(null);
         }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Delete {deleteTarget?.name}?</DialogTitle>
-            <DialogDescription>
-              {deleteTarget && deleteTarget.assignedUserCount > 0 ? (
-                <>
-                  {deleteTarget.assignedUserCount}{" "}
-                  {deleteTarget.assignedUserCount === 1 ? "person holds" : "people hold"} this role.
-                  Move them to another role on the Users screen first — deleting it now will be
-                  refused, because they would keep signing in and find every screen missing.
-                </>
-              ) : (
-                <>Nobody holds this role, so nothing changes for anyone. This cannot be undone.</>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDeleteTarget(null)}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={confirmDelete} disabled={deleteRole.isPending}>
-              {deleteRole.isPending ? "Deleting…" : "Delete role"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        title={`Delete ${deleteTarget?.name ?? "role"}?`}
+        body={
+          deleteTarget && deleteTarget.assignedUserCount > 0 ? (
+            <>
+              {deleteTarget.assignedUserCount}{" "}
+              {deleteTarget.assignedUserCount === 1 ? "person holds" : "people hold"} this role.
+              Move them to another role on the Users screen first — deleting it now will be refused,
+              because they would keep signing in and find every screen missing.
+            </>
+          ) : (
+            <>Nobody holds this role, so nothing changes for anyone. This cannot be undone.</>
+          )
+        }
+        confirmLabel="Delete role"
+        pendingLabel="Deleting…"
+        onConfirm={confirmDelete}
+        isPending={deleteRole.isPending}
+      />
     </div>
   );
 }

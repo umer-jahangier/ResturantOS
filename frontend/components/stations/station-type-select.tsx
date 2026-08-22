@@ -90,7 +90,7 @@ export function StationTypeSelect({
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value as StationType)}
-        className="h-8 w-full rounded-lg border border-border-interactive bg-transparent px-2.5 text-sm transition-colors focus-visible:border-ring disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50 dark:bg-surface-2"
+        className="h-8 w-full rounded-lg border border-border-interactive bg-transparent px-2.5 text-small transition-colors focus-visible:border-ring disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50 dark:bg-surface-2"
       >
         {STATION_TYPE_OPTIONS.map((option) => (
           <option key={option.value} value={option.value}>
@@ -99,7 +99,7 @@ export function StationTypeSelect({
         ))}
       </select>
       {selected ? (
-        <p data-testid="station-type-hint" className="text-xs text-muted-foreground">
+        <p data-testid="station-type-hint" className="text-label text-muted-foreground">
           {selected.hint}
         </p>
       ) : null}

@@ -4,6 +4,7 @@ import * as React from "react";
 import CountUp from "react-countup";
 
 import { useReducedMotion } from "@/lib/hooks/ui/use-reduced-motion";
+import { formatNumber } from "@/lib/format/locale";
 import { cn } from "@/lib/utils";
 
 interface AnimatedNumberProps {
@@ -67,7 +68,7 @@ function AnimatedNumber({
 
   const formatted = React.useMemo(
     () =>
-      `${prefix ?? ""}${value.toLocaleString(undefined, {
+      `${prefix ?? ""}${formatNumber(value, {
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals,
       })}${suffix ?? ""}`,

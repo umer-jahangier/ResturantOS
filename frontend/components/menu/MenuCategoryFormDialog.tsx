@@ -123,7 +123,7 @@ export function MenuCategoryFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="md:max-w-md">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit menu category" : "Add menu category"}</DialogTitle>
           <DialogDescription>

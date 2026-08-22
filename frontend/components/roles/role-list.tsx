@@ -31,7 +31,7 @@ export function RoleList({
   canManage: boolean;
 }) {
   return (
-    <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" data-testid="role-list">
+    <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" data-testid="role-list">
       {roles.map((role) => {
         const holders = role.assignedUserCount;
         return (

@@ -14,15 +14,9 @@ import { PermissionGuard } from "@/components/shared/permission-guard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
 import { QueryBoundary } from "@/components/ui/query-boundary";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const EMPTY_TITLE = "No POS terminals yet";
 const EMPTY_BODY =
@@ -57,6 +51,7 @@ export default function TerminalsPage() {
     () => (showRetired ? all : all.filter((t) => t.active)),
     [all, showRetired],
   );
+  const retiredCount = all.filter((t) => !t.active).length;
 
   // Names, not ids. A row reading "Offers c1000001-…" answers nothing an operator asked.
   const categoryNameById = (id: string) =>
@@ -95,27 +90,31 @@ export default function TerminalsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">POS Terminals</h1>
-          <p className="text-sm text-muted-foreground">
-            Named tills. Each one decides which part of the menu it offers and which stations its
-            orders fire to.
-          </p>
-        </div>
-        <PermissionGuard require="pos.terminals.admin">
-          <Button type="button" onClick={() => setFormTarget({ mode: "create" })}>
-            Add terminal
-          </Button>
-        </PermissionGuard>
-      </div>
+      <PageHeader
+        title="POS Terminals"
+        description="Named tills. Each one decides which part of the menu it offers and which stations its orders fire to."
+        /* Array lengths already read by this screen; the retired count is shown only when real. */
+        meta={
+          <>
+            {all.length} {all.length === 1 ? "terminal" : "terminals"}
+            {retiredCount > 0 ? ` · ${retiredCount} retired` : ""}
+          </>
+        }
+        actions={
+          <PermissionGuard require="pos.terminals.admin">
+            <Button type="button" onClick={() => setFormTarget({ mode: "create" })}>
+              Add terminal
+            </Button>
+          </PermissionGuard>
+        }
+      />
 
-      <label className="flex w-fit items-center gap-2 text-sm text-muted-foreground">
+      <label className="flex w-fit items-center gap-2 text-small text-muted-foreground">
         <input
           type="checkbox"
           checked={showRetired}
           onChange={(e) => setShowRetired(e.target.checked)}
-          className="size-4 rounded border-input"
+          className="size-4 rounded-sm border-input"
         />
         Show retired
       </label>
@@ -171,31 +170,25 @@ export default function TerminalsPage() {
         }}
       />
 
-      <Dialog
+      {/*
+        38-10 task 5: the shared ConfirmDialog, replacing a hand-rolled Dialog + two Buttons.
+        Same question, same consequence sentence, same verb on the confirm button — what changes
+        is that the destructive tone, the pending label and the focus order now come from one
+        place instead of from whoever typed this screen. The Stations screen beside it already
+        used the primitive; these two dialogs had drifted apart while doing the same job.
+      */}
+      <ConfirmDialog
         open={retireTarget !== null}
         onOpenChange={(next) => {
           if (!next) setRetireTarget(null);
         }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Retire {retireTarget?.name}?</DialogTitle>
-            <DialogDescription>
-              A browser still bound to this terminal will need to pick another one. Nothing is
-              deleted — past orders keep naming it, and you can restore it from &ldquo;Show
-              retired&rdquo;.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setRetireTarget(null)}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={confirmRetire} disabled={setActive.isPending}>
-              {setActive.isPending ? "Retiring…" : "Retire terminal"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        title={`Retire ${retireTarget?.name ?? "terminal"}?`}
+        body="A browser still bound to this terminal will need to pick another one. Nothing is deleted — past orders keep naming it, and you can restore it from “Show retired”."
+        confirmLabel="Retire terminal"
+        pendingLabel="Retiring…"
+        onConfirm={confirmRetire}
+        isPending={setActive.isPending}
+      />
     </div>
   );
 }

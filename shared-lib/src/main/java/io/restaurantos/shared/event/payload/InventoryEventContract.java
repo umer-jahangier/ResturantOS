@@ -64,7 +64,30 @@ public final class InventoryEventContract {
      * <p>{@code lines} carries the per-ingredient breakdown finance needs to post COGS against the
      * ingredient's own category cost account rather than one global bucket.
      */
-    public record StockDepletedPayload(UUID orderId, List<DepletedLine> lines, long totalCogsPaisa) {}
+    /**
+     * {@code businessDate} is the trading day the ORDER belonged to, forwarded verbatim from
+     * {@code OrderClosedPayload.businessDate()} — NOT re-derived here.
+     *
+     * <p>It exists because without it finance had nothing to post COGS against and fell back to
+     * the envelope's UTC publish timestamp, while the matching REVENUE entry used the order's own
+     * business date. Revenue and its offsetting cost could therefore land on different trading
+     * days — the branch's {@code (closedAt - 4h)} day versus a UTC instant — which makes any
+     * DAILY margin or food-cost percentage wrong at the day boundary. That is the same defect
+     * class {@code V003__business_date_realignment.sql} was written to repair on the analytics
+     * side, and it was still live on the ledger side.
+     *
+     * <p>Nullable for wire compatibility with events published before this field existed; when it
+     * is null finance keeps its old fallback rather than guessing, because a wrong date asserted
+     * confidently is worse than an old one admitted.
+     */
+    public record StockDepletedPayload(UUID orderId, List<DepletedLine> lines, long totalCogsPaisa,
+                                       java.time.LocalDate businessDate) {
+
+        /** Pre-businessDate call sites and replayed historical events. */
+        public StockDepletedPayload(UUID orderId, List<DepletedLine> lines, long totalCogsPaisa) {
+            this(orderId, lines, totalCogsPaisa, null);
+        }
+    }
 
     /**
      * {@code cogsAccountCode}/{@code inventoryAccountCode} are the GL accounts this ingredient's

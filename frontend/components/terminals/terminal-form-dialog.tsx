@@ -142,7 +142,7 @@ export function TerminalFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="md:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit terminal" : "Add POS terminal"}</DialogTitle>
           <DialogDescription>
@@ -154,7 +154,7 @@ export function TerminalFormDialog({
 
         <div className="grid gap-4">
           <div className="grid gap-1.5">
-            <label htmlFor="terminal-code" className="text-sm font-medium">
+            <label htmlFor="terminal-code" className="text-small font-medium">
               Code
             </label>
             <Input
@@ -166,13 +166,13 @@ export function TerminalFormDialog({
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-label text-muted-foreground">
               The handle a browser on this till remembers itself by. Set once, never changed.
             </p>
           </div>
 
           <div className="grid gap-1.5">
-            <label htmlFor="terminal-name" className="text-sm font-medium">
+            <label htmlFor="terminal-name" className="text-small font-medium">
               Name
             </label>
             <Input
@@ -184,9 +184,9 @@ export function TerminalFormDialog({
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-1.5">
-              <label htmlFor="terminal-service-model" className="text-sm font-medium">
+              <label htmlFor="terminal-service-model" className="text-small font-medium">
                 Service model
               </label>
               <select
@@ -194,7 +194,7 @@ export function TerminalFormDialog({
                 data-testid="terminal-service-model"
                 value={serviceModel}
                 onChange={(e) => setServiceModel(e.target.value as ServiceModel)}
-                className="h-8 w-full rounded-lg border border-border-interactive bg-transparent px-2.5 text-sm transition-colors focus-visible:border-ring dark:bg-surface-2"
+                className="h-8 w-full rounded-lg border border-border-interactive bg-transparent px-2.5 text-small transition-colors focus-visible:border-ring dark:bg-surface-2"
               >
                 {SERVICE_MODEL_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -202,13 +202,13 @@ export function TerminalFormDialog({
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-label text-muted-foreground">
                 {SERVICE_MODEL_OPTIONS.find((o) => o.value === serviceModel)?.hint}
               </p>
             </div>
 
             <div className="grid gap-1.5">
-              <label htmlFor="terminal-order-type" className="text-sm font-medium">
+              <label htmlFor="terminal-order-type" className="text-small font-medium">
                 Default order type
               </label>
               <select
@@ -216,7 +216,7 @@ export function TerminalFormDialog({
                 data-testid="terminal-order-type"
                 value={orderType}
                 onChange={(e) => setOrderType(e.target.value as TerminalOrderType)}
-                className="h-8 w-full rounded-lg border border-border-interactive bg-transparent px-2.5 text-sm transition-colors focus-visible:border-ring dark:bg-surface-2"
+                className="h-8 w-full rounded-lg border border-border-interactive bg-transparent px-2.5 text-small transition-colors focus-visible:border-ring dark:bg-surface-2"
               >
                 {ORDER_TYPE_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -224,22 +224,26 @@ export function TerminalFormDialog({
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-muted-foreground">What a new order starts as here.</p>
+              <p className="text-label text-muted-foreground">What a new order starts as here.</p>
             </div>
           </div>
 
           <div className="grid gap-1.5">
-            <p className="text-sm font-medium">Menu it offers</p>
+            <p className="text-small font-medium">Menu it offers</p>
             <MenuScopePicker value={categoryIds} onChange={setCategoryIds} />
           </div>
 
           <div className="grid gap-1.5">
-            <p className="text-sm font-medium">Stations it fires to</p>
+            <p className="text-small font-medium">Stations it fires to</p>
             <StationSetPicker value={stationIds} onChange={setStationIds} />
           </div>
 
           {error ? (
-            <p role="alert" data-testid="terminal-form-error" className="text-sm text-destructive">
+            <p
+              role="alert"
+              data-testid="terminal-form-error"
+              className="text-small text-destructive"
+            >
               {error}
             </p>
           ) : null}

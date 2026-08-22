@@ -1,67 +1,51 @@
 "use client";
 
-import { useState } from "react";
-import { AlertTriangle, XCircle } from "lucide-react";
+import { useMemo, useState } from "react";
+import { AlertTriangle, Boxes, Wallet, XCircle } from "lucide-react";
 
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useMyBranches } from "@/lib/hooks/auth/use-my-branches";
 import { useCategories, useStockLevels } from "@/lib/hooks/inventory/use-inventory";
 import { useDebouncedValue } from "@/lib/hooks/use-debounce";
+import { countLine, filteredCountLine, statLine } from "@/lib/format/stat-line";
+import { formatNumber } from "@/lib/format/locale";
 import type { StockLevel } from "@/lib/adapters/inventory.adapter";
 import { OpeningBalanceDialog } from "@/components/inventory/OpeningBalanceDialog";
 import { StockReceiptDialog } from "@/components/inventory/StockReceiptDialog";
 import { StockTransferDialog } from "@/components/inventory/StockTransferDialog";
 import { StockCountDialog } from "@/components/inventory/StockCountDialog";
+import {
+  FlaggedValue,
+  OnHandQuantity,
+  StockAlertChip,
+  stockAlertLevel,
+  stockRowClassName,
+} from "@/components/inventory/stock-signals";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { DataGrid, type ColumnDef } from "@/components/ui/data-grid/data-grid";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { FilterBar } from "@/components/ui/filter-bar";
+import { StatTile } from "@/components/ui/stat-tile";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import { Button } from "@/components/ui/button";
 import { PageBody } from "@/components/ui/page-body";
 import { PageHeader } from "@/components/ui/page-header";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
-
-const selectClass =
-  "h-8 rounded-lg border border-input bg-transparent px-2.5 text-small focus-visible:border-ring";
 
 const EMPTY_TITLE = "No stock recorded yet";
 const EMPTY_BODY =
   "Record an opening balance to start tracking on-hand quantities for this branch.";
 
-/**
- * Row wash — reads the server-decided `belowReorderPoint`/`nonPositive` flags only; `qtyOnHand`
- * is never compared against `reorderPoint` in the browser (T-08.2-173, this phase's own origin
- * bug was exactly this class of frontend/backend divergence). Destructive wins when both flags
- * are set, mirroring `CustomerAccountRow`'s over-limit pattern (house-accounts/page.tsx:20-24).
- */
-function rowClassName(row: StockLevel): string | undefined {
-  return cn(row.belowReorderPoint && "bg-warning/10", row.nonPositive && "bg-destructive/10");
-}
-
-/** Colour is never the sole signal (T-08.2-175) — every washed row also gets an icon + a text
- * label via StatusBadge (the legacy warning/error variants render label-only, so the icon is
- * composed alongside rather than forking status-badge.tsx, which this plan does not own). */
-function RiskChip({ row }: { row: StockLevel }) {
-  if (row.nonPositive) {
-    return (
-      <span className="inline-flex items-center gap-1 text-destructive">
-        <XCircle className="size-3.5" aria-hidden="true" />
-        <StatusBadge status="error" label="Out of stock" />
-      </span>
-    );
-  }
-  if (row.belowReorderPoint) {
-    return (
-      <span className="inline-flex items-center gap-1 text-warning">
-        <AlertTriangle className="size-3.5" aria-hidden="true" />
-        <StatusBadge status="warning" label="Below reorder point" />
-      </span>
-    );
-  }
-  return <span className="text-small text-muted-foreground">—</span>;
+/** The most recent count across the rendered rows — the demo subtitle's freshness part. */
+function lastCountedLabel(rows: StockLevel[]): string | null {
+  const stamps = rows
+    .map((r) => (r.lastCountedAt ? new Date(r.lastCountedAt).getTime() : Number.NaN))
+    .filter((t) => Number.isFinite(t));
+  // D-38-16: never "Last count: —". A freshness fact we cannot compute is an absence, so the
+  // whole clause drops out of the subtitle rather than rendering a placeholder that reads as
+  // "counted, but we lost the date".
+  if (stamps.length === 0) return null;
+  return `Last count: ${new Date(Math.max(...stamps)).toLocaleDateString()}`;
 }
 
 // URL: /app/inventory/stock — INV-15 item 8: on-hand stock per branch (a real read endpoint,
@@ -71,7 +55,7 @@ function RiskChip({ row }: { row: StockLevel }) {
 export default function StockPage() {
   const { branchId } = useCurrentUser();
   const { data: branches } = useMyBranches();
-  const { data: categories } = useCategories();
+  const categoriesQuery = useCategories();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -81,10 +65,29 @@ export default function StockPage() {
   const { data, isLoading, isError } = stockQuery;
 
   const branchName = (branches ?? []).find((b) => b.id === branchId)?.name ?? "this branch";
-  const activeCategories = (categories ?? []).filter((c) => c.archivedAt == null);
+  const activeCategories = (categoriesQuery.data ?? []).filter((c) => c.archivedAt == null);
 
-  const allRows = data?.items ?? [];
-  const rows = categoryFilter ? allRows.filter((r) => r.categoryId === categoryFilter) : allRows;
+  const allRows = useMemo(() => data?.items ?? [], [data]);
+  const rows = useMemo(
+    () => (categoryFilter ? allRows.filter((r) => r.categoryId === categoryFilter) : allRows),
+    [allRows, categoryFilter],
+  );
+
+  const isFiltered = Boolean(categoryFilter) || debouncedSearch.trim() !== "";
+
+  // Every headline number below is derived from `rows` — the exact array handed to `DataGrid`
+  // one screen further down. A subtitle that disagrees with its own table is worse than none, so
+  // there is deliberately no second source: not the server's item count, not an unfiltered total.
+  const lowCount = rows.filter((r) => stockAlertLevel(r) === "low").length;
+  const outCount = rows.filter((r) => stockAlertLevel(r) === "out").length;
+  const alertCount = lowCount + outCount;
+
+  // The branch total is the server's own figure and is only true of the WHOLE branch. Under a
+  // filter it would silently describe rows that are not on screen, so the filtered case sums the
+  // rendered rows instead and says so in the label. Integer paisa throughout; no second money path.
+  const shownValuePaisa = isFiltered
+    ? rows.reduce((sum, r) => sum + r.stockValuePaisa, 0)
+    : (data?.totalStockValuePaisa ?? 0);
 
   const columns: ColumnDef<StockLevel, unknown>[] = [
     {
@@ -99,19 +102,34 @@ export default function StockPage() {
         </div>
       ),
     },
+    // 38-14: the four columns without `hideBelow` are the ones a stock screen exists to answer —
+    // what it is, how much is left, what it is worth, is it in trouble. The other four are
+    // reference detail, and at 1024px they were the difference between a table that reads and a
+    // table that scrolls sideways (42 elements past the viewport, measured). None of them is
+    // LOST: `md`+ restores category, `xl` restores the rest, and the phone card below carries
+    // name, category, on-hand and value with no column budget at all.
     {
       accessorKey: "categoryName",
       header: "Category",
       cell: ({ row }) => row.original.categoryName ?? "—",
+      meta: { hideBelow: "lg" },
     },
     {
       accessorKey: "qtyOnHand",
       header: "On hand",
-      cell: ({ row }) => `${row.original.qtyOnHand} ${row.original.baseUomCode}`,
+      // Task 4. A negative on-hand never renders as an ordinary number — see `stock-signals.tsx`.
+      cell: ({ row }) => (
+        <OnHandQuantity
+          qty={row.original.qtyOnHand}
+          uom={row.original.baseUomCode}
+          name={row.original.ingredientName}
+        />
+      ),
     },
     {
       accessorKey: "reorderPoint",
       header: "Reorder point",
+      meta: { hideBelow: "xl" },
     },
     {
       accessorKey: "avgCostPaisa",
@@ -119,11 +137,19 @@ export default function StockPage() {
       // A rate per stock unit, not an amount: an ingredient held in grams costs a fraction of a
       // paisa each, and two decimal places would round every one of them to Rs 0.00.
       cell: ({ row }) => <MoneyDisplay paisa={row.original.avgCostPaisa} maxFractionDigits={4} />,
+      meta: { hideBelow: "xl" },
     },
     {
       accessorKey: "stockValuePaisa",
       header: "Stock value",
-      cell: ({ row }) => <MoneyDisplay paisa={row.original.stockValuePaisa} />,
+      cell: ({ row }) => (
+        <FlaggedValue
+          paisa={row.original.stockValuePaisa}
+          label={`${row.original.ingredientName} stock value`}
+        >
+          <MoneyDisplay paisa={row.original.stockValuePaisa} />
+        </FlaggedValue>
+      ),
     },
     {
       accessorKey: "lastCountedAt",
@@ -132,11 +158,12 @@ export default function StockPage() {
         row.original.lastCountedAt
           ? new Date(row.original.lastCountedAt).toLocaleDateString()
           : "Never",
+      meta: { hideBelow: "xl" },
     },
     {
       id: "risk",
       header: "Status",
-      cell: ({ row }) => <RiskChip row={row.original} />,
+      cell: ({ row }) => <StockAlertChip level={stockAlertLevel(row.original)} />,
     },
   ];
 
@@ -145,6 +172,11 @@ export default function StockPage() {
       <PageHeader
         title="Stock"
         description={`On-hand quantities and value at ${branchName}.`}
+        meta={statLine(
+          filteredCountLine(rows.length, allRows.length, "ingredient"),
+          alertCount > 0 ? countLine(alertCount, "alert") : null,
+          lastCountedLabel(rows),
+        )}
         actions={
           <PermissionGuard require="inventory.item.manage">
             <div className="flex flex-wrap gap-(--space-sm)">
@@ -171,30 +203,50 @@ export default function StockPage() {
         }
       />
 
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="min-w-[200px] flex-1">
-          <Input
-            placeholder="Search by name or SKU…"
-            aria-label="Search stock"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        <select
-          aria-label="Filter by category"
-          className={selectClass}
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-        >
-          <option value="">All categories</option>
-          {activeCategories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+      {/* The demo's 4-up KPI row (§4 Inventory), on this product's own numbers. Each tile counts
+          the same `rows` the grid renders, so the row cannot contradict the table under it. */}
+      <div className="grid gap-(--space-md) md:grid-cols-2 xl:grid-cols-4">
+        <StatTile
+          label={isFiltered ? "Ingredients shown" : "Ingredients tracked"}
+          value={formatNumber(rows.length)}
+          icon={Boxes}
+          accent="primary"
+        />
+        <StatTile label="Below reorder point" value={formatNumber(lowCount)} icon={AlertTriangle} />
+        <StatTile label="Out of stock" value={formatNumber(outCount)} icon={XCircle} />
+        <StatTile
+          label={isFiltered ? "Stock value shown" : "Total stock value"}
+          value={
+            <FlaggedValue paisa={shownValuePaisa} label="total stock value">
+              <MoneyDisplay paisa={shownValuePaisa} />
+            </FlaggedValue>
+          }
+          icon={Wallet}
+          accent="secondary"
+        />
       </div>
+
+      <FilterBar
+        title="Stock levels"
+        search={{
+          value: search,
+          onChange: setSearch,
+          label: "Search stock",
+          placeholder: "Search by name or SKU…",
+        }}
+        filters={[
+          {
+            id: "category",
+            label: "Category",
+            value: categoryFilter,
+            onChange: setCategoryFilter,
+            options: activeCategories.map((c) => ({ value: c.id, label: c.name })),
+            isLoading: categoriesQuery.isLoading,
+            error: categoriesQuery.isError,
+            onRetry: () => void categoriesQuery.refetch(),
+          },
+        ]}
+      />
 
       {/* 14b: this screen already refused to fake an empty state on failure — it was one of the
           four of fifteen that got GA-001 right. What it lacked was `role="alert"` (so a screen
@@ -208,7 +260,7 @@ export default function StockPage() {
         />
       ) : isLoading ? (
         <DataGrid columns={columns} data={[]} isLoading />
-      ) : rows.length === 0 ? (
+      ) : allRows.length === 0 ? (
         <PermissionGuard
           require="inventory.item.manage"
           fallback={<EmptyState title={EMPTY_TITLE} description={EMPTY_BODY} />}
@@ -220,29 +272,33 @@ export default function StockPage() {
           />
         </PermissionGuard>
       ) : (
-        <>
-          <p className="text-small text-muted-foreground">
-            Total stock value: <MoneyDisplay paisa={data?.totalStockValuePaisa ?? 0} />
-          </p>
-          <DataGrid
-            label="Stock levels"
-            columns={columns}
-            data={rows}
-            rowClassName={rowClassName}
-            density="comfortable"
-            isFiltered={Boolean(categoryFilter) || debouncedSearch.trim() !== ""}
-            onClearFilters={() => {
-              setCategoryFilter("");
-              setSearch("");
-            }}
-            card={{
-              primary: (r) => r.ingredientName,
-              secondary: (r) =>
-                `${r.categoryName ?? "Uncategorised"} · ${r.qtyOnHand} ${r.baseUomCode}`,
-              trailing: (r) => <MoneyDisplay paisa={r.stockValuePaisa} />,
-            }}
-          />
-        </>
+        <DataGrid
+          label="Stock levels"
+          columns={columns}
+          data={rows}
+          rowClassName={stockRowClassName}
+          density="comfortable"
+          isFiltered={isFiltered}
+          onClearFilters={() => {
+            setCategoryFilter("");
+            setSearch("");
+          }}
+          card={{
+            primary: (r) => r.ingredientName,
+            secondary: (r) => (
+              <span className="flex flex-wrap items-center gap-1.5">
+                {r.categoryName ?? "Uncategorised"}
+                <span aria-hidden="true">·</span>
+                <OnHandQuantity qty={r.qtyOnHand} uom={r.baseUomCode} name={r.ingredientName} />
+              </span>
+            ),
+            trailing: (r) => (
+              <FlaggedValue paisa={r.stockValuePaisa} label={`${r.ingredientName} stock value`}>
+                <MoneyDisplay paisa={r.stockValuePaisa} />
+              </FlaggedValue>
+            ),
+          }}
+        />
       )}
 
       <OpeningBalanceDialog open={openingBalanceOpen} onOpenChange={setOpeningBalanceOpen} />

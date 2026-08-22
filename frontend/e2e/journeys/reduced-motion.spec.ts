@@ -305,22 +305,46 @@ test.describe("D-34-03 · WITHOUT a reduced-motion preference — the system mus
         "animates is satisfied by a screen with nothing on it.",
     ).toBeAttached({ timeout: 20_000 });
 
-    const animated = await page.evaluate(
-      () =>
-        Array.from(document.querySelectorAll("*"))
-          .filter((el) => {
-            const name = getComputedStyle(el).animationName;
-            return name && name !== "none";
-          })
-          .map((el) => `${el.tagName.toLowerCase()}.${el.className.toString().slice(0, 50)}`)
-          .slice(0, 20),
-      // A live board legitimately has none. Any entry here is decorative motion on a screen
-      // read at two metres across a hot kitchen.
+    /*
+     * WIDENED by 38-13. This read `getComputedStyle(el).animationName` — which sees `@keyframes`
+     * and NOTHING ELSE. A CSS transition has no animation-name, so every transition on this
+     * board was invisible to a gate whose failure message says "running animation". The test was
+     * not measuring what it claimed to measure, in the zone whose entire definition is stillness.
+     *
+     * `getAnimations()` returns `CSSTransition` objects alongside `CSSAnimation`, so this now
+     * counts both, and it reads `playState` rather than a resolved style — a finished animation
+     * is not running motion.
+     *
+     * THE ONE EXCLUSION, by selector: `[data-collapsing="true"]`. That is the §7.2 bump-collapse
+     * on `kds-item-column.tsx`, the only sanctioned motion in this zone — it runs for 400ms after
+     * the COOK pressed `F` and it is the sole confirmation that an optimistic bump landed while
+     * the mutation is still in flight. Excluding it by ATTRIBUTE rather than by sampling at a
+     * quiet moment is what makes this gate deterministic: at rest no such element exists and the
+     * count is 0 unconditionally, so the exception cannot be used to smuggle anything in.
+     * `__tests__/kds/kds-operational-stillness.test.ts` fences its class list separately.
+     */
+    const animated = await page.evaluate(() =>
+      Array.from(document.querySelectorAll("*"))
+        .filter((el) => !el.closest('[data-collapsing="true"]'))
+        .filter((el) =>
+          ((el as HTMLElement).getAnimations?.() ?? []).some((a) => a.playState === "running"),
+        )
+        .map((el) => {
+          const kinds = ((el as HTMLElement).getAnimations?.() ?? [])
+            .filter((a) => a.playState === "running")
+            .map((a) => a.constructor.name)
+            .join(",");
+          return `${el.tagName.toLowerCase()}.${el.className.toString().slice(0, 50)} [${kinds}]`;
+        })
+        .slice(0, 20),
     );
 
     expect(
       animated,
-      `elements on the KDS board resolve a running animation:\n${animated.join("\n")}`,
+      "motion is running on the KDS board. A live board at rest legitimately has none; any " +
+        "entry here repaints a screen read at two metres across a hot kitchen. The bump " +
+        "collapse is already excluded by [data-collapsing], so it is not this.\n" +
+        animated.join("\n"),
     ).toEqual([]);
   });
 });

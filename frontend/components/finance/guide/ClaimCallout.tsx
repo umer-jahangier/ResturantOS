@@ -32,7 +32,7 @@ export function ClaimCallout({ id }: { id: FinanceGuideClaimId }) {
         role="alert"
         data-testid="claim-missing"
         data-claim-id={id}
-        className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+        className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-small text-destructive"
       >
         This guide referenced a rule ({id}) that is not in the claim registry. That is a bug in the
         guide, not in the product — please report it rather than assuming the rule does not exist.
@@ -46,11 +46,11 @@ export function ClaimCallout({ id }: { id: FinanceGuideClaimId }) {
       data-claim-id={claim.id}
       className="rounded-md border-l-4 border-primary/60 bg-muted/50 p-3"
     >
-      <p className="text-sm font-medium">{claim.claim}</p>
+      <p className="text-small font-medium">{claim.claim}</p>
       {claim.why && (
-        <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{claim.why}</p>
+        <p className="mt-1.5 text-small leading-relaxed text-muted-foreground">{claim.why}</p>
       )}
-      <p className="mt-2 text-xs text-muted-foreground/80">
+      <p className="mt-2 text-label text-muted-foreground/80">
         Checked by {claim.assertedBy.length} test
         {claim.assertedBy.length === 1 ? "" : "s"} in this codebase. If the product stopped behaving
         this way, {claim.assertedBy.length === 1 ? "it" : "they"} would fail.

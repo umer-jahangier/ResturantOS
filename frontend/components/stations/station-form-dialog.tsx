@@ -132,7 +132,7 @@ export function StationFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="md:max-w-md">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit station" : "Add station"}</DialogTitle>
           <DialogDescription>

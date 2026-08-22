@@ -3,6 +3,7 @@
 import { AccessDenied } from "@/components/shared/access-denied";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { AiSettingsForm } from "@/components/settings/ai-settings-form";
+import { PageHeader } from "@/components/ui/page-header";
 import { ZoneProvider } from "@/components/providers/zone-provider";
 
 /**
@@ -47,12 +48,10 @@ function AiSettingsPage() {
      * restrained back-office shell exactly as /app/settings/service-charge and /printers are.
      */
     <ZoneProvider zone="expressive" className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">AI</h1>
-        <p className="text-sm text-muted-foreground">
-          Which AI provider answers your questions, and whose account it bills to.
-        </p>
-      </div>
+      <PageHeader
+        title="AI"
+        description="Which AI provider answers your questions, and whose account it bills to."
+      />
 
       <AiSettingsForm />
     </ZoneProvider>

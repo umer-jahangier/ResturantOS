@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
@@ -12,15 +12,18 @@ import {
   useMenuCategoriesAdmin,
   useMenuItemsAdmin,
 } from "@/lib/hooks/pos/use-menu-admin";
+import { countLine, filteredCountLine, statLine } from "@/lib/format/stat-line";
 import type { MenuCategory, MenuItem } from "@/lib/models/pos.model";
 import { MenuCategoryFormDialog } from "@/components/menu/MenuCategoryFormDialog";
 import { MenuItemFormDialog } from "@/components/menu/MenuItemFormDialog";
-import { MenuItemImage } from "@/components/menu/MenuItemImage";
+import { MenuItemCard } from "@/components/menu/menu-item-card";
 import { ModifierManagerDialog } from "@/components/menu/ModifierManagerDialog";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { MoneyDisplay } from "@/components/ui/money-display";
 import { Button } from "@/components/ui/button";
+import { FilterBar } from "@/components/ui/filter-bar";
+import { PageBody } from "@/components/ui/page-body";
+import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryBoundary } from "@/components/ui/query-boundary";
@@ -44,6 +47,7 @@ type CategoryFormTarget = { mode: "create" } | { mode: "edit"; category: MenuCat
 // naturally allows.
 export default function MenuItemsPage() {
   const [showInactive, setShowInactive] = useState(false);
+  const [search, setSearch] = useState("");
   // GA-001: neither query's error was read, so a pos-service failure rendered the "no menu yet"
   // empty state with an "Add category" action — on the one screen where a duplicate taxonomy is
   // most expensive, because menu categories are what every order line hangs off.
@@ -62,14 +66,53 @@ export default function MenuItemsPage() {
   /** The dish whose modifier groups are being managed (S6), or null. */
   const [modifierTarget, setModifierTarget] = useState<MenuItem | null>(null);
 
-  const allCategories = categories ?? [];
-  const visibleCategories = showInactive ? allCategories : allCategories.filter((c) => c.active);
-  const allItems = items ?? [];
+  /**
+   * Availability toggles in flight, keyed by item id, holding the state the user ASKED FOR
+   * (plan 38-07 task 6).
+   *
+   * <p>The card renders `pendingAvailability[id] ?? item.active`, so the tile flips the instant
+   * the button is pressed rather than after a round trip through pos-service and a query
+   * invalidation. On success the key is dropped and the server's own value takes over; on failure
+   * the key is dropped too — which IS the revert — and the toast names the reason. Deleting the
+   * key rather than writing the old value back matters: the truth is always `item.active`, so
+   * there is no second copy of availability that can go stale.
+   */
+  const [pendingAvailability, setPendingAvailability] = useState<Record<string, boolean>>({});
 
-  function itemsFor(categoryId: string): MenuItem[] {
-    const rows = allItems.filter((i) => i.categoryId === categoryId);
-    return showInactive ? rows : rows.filter((i) => i.active);
-  }
+  const clearPending = (id: string) =>
+    setPendingAvailability((current) => {
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
+
+  const allCategories = useMemo(() => categories ?? [], [categories]);
+  const allItems = useMemo(() => items ?? [], [items]);
+
+  const visibleCategories = useMemo(
+    () => (showInactive ? allCategories : allCategories.filter((c) => c.active)),
+    [allCategories, showInactive],
+  );
+
+  const itemsFor = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return (categoryId: string): MenuItem[] => {
+      let rows = allItems.filter((i) => i.categoryId === categoryId);
+      if (!showInactive) rows = rows.filter((i) => i.active);
+      if (needle !== "") rows = rows.filter((i) => i.name.toLowerCase().includes(needle));
+      return rows;
+    };
+  }, [allItems, showInactive, search]);
+
+  // Both halves of the subtitle count the cards actually rendered below, category by category —
+  // not `allItems.length`, which would state a menu size the screen is not showing.
+  const shownItemCount = visibleCategories.reduce((sum, c) => sum + itemsFor(c.id).length, 0);
+  const unavailableCount = visibleCategories.reduce(
+    (sum, c) => sum + itemsFor(c.id).filter((i) => !(pendingAvailability[i.id] ?? i.active)).length,
+    0,
+  );
+
+  const isFiltered = search.trim() !== "" || showInactive;
 
   function handleToggleCategory(category: MenuCategory) {
     const mutation = category.active ? deactivateCategory : activateCategory;
@@ -84,67 +127,100 @@ export default function MenuItemsPage() {
   }
 
   function handleToggleItem(item: MenuItem) {
+    const next = !item.active;
+    // Optimistic: the card flips now.
+    setPendingAvailability((current) => ({ ...current, [item.id]: next }));
     const mutation = item.active ? deactivateItem : activateItem;
     mutation.mutate(item.id, {
-      onSuccess: () =>
-        toast.success(item.active ? `Deactivated ${item.name}` : `Reactivated ${item.name}`),
-      onError: (error) =>
-        toast.error(error.message || "Could not update the item. Please try again."),
+      onSuccess: () => {
+        clearPending(item.id);
+        toast.success(item.active ? `Deactivated ${item.name}` : `Reactivated ${item.name}`);
+      },
+      onError: (error) => {
+        // Revert, and SAY WHY. A tile that silently flips back teaches the user that the control
+        // is unreliable; the server's own message is the only thing that tells them what to fix.
+        clearPending(item.id);
+        toast.error(
+          `${next ? "Could not make" : "Could not hide"} ${item.name}${next ? " available" : ""} — ${
+            error.message || "the menu service did not accept the change."
+          }`,
+        );
+      },
     });
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Menu Items</h1>
-          <p className="text-sm text-muted-foreground">
-            What&apos;s sellable, organized into categories — write a recipe for an item under
-            Inventory › Recipes once it&apos;s here.
-          </p>
-        </div>
-        <PermissionGuard require="pos.menu.manage">
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setCategoryTarget({ mode: "create" })}
-            >
-              Add category
-            </Button>
-            <Button
-              type="button"
-              disabled={allCategories.filter((c) => c.active).length === 0}
-              onClick={() =>
-                setItemTarget({
-                  mode: "create",
-                  categoryId: allCategories.find((c) => c.active)?.id ?? "",
-                })
-              }
-            >
-              Add item
-            </Button>
-          </div>
-        </PermissionGuard>
-      </div>
+    <PageBody className="space-y-(--space-lg)">
+      <PageHeader
+        title="Menu Items"
+        description="What's sellable, organized into categories — write a recipe for an item under Inventory › Recipes once it's here."
+        meta={statLine(
+          filteredCountLine(shownItemCount, allItems.length, "item"),
+          countLine(visibleCategories.length, "category", "categories"),
+          unavailableCount > 0 ? `${unavailableCount} unavailable` : null,
+        )}
+        actions={
+          <PermissionGuard require="pos.menu.manage">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCategoryTarget({ mode: "create" })}
+              >
+                Add category
+              </Button>
+              <Button
+                type="button"
+                disabled={allCategories.filter((c) => c.active).length === 0}
+                onClick={() =>
+                  setItemTarget({
+                    mode: "create",
+                    categoryId: allCategories.find((c) => c.active)?.id ?? "",
+                  })
+                }
+              >
+                Add item
+              </Button>
+            </div>
+          </PermissionGuard>
+        }
+      />
 
-      {/* A deactivated category or item is invisible to the order-taking grid but not deleted —
-          without this toggle there is no way to find, or reactivate, one again. Mirrors
-          Inventory Categories' "Show archived" checkbox exactly. */}
-      <label className="flex w-fit items-center gap-2 text-sm text-muted-foreground">
-        <input
-          type="checkbox"
-          checked={showInactive}
-          onChange={(e) => setShowInactive(e.target.checked)}
-          className="size-4 rounded border-input"
-        />
-        Show inactive
-      </label>
+      <FilterBar
+        title="Menu"
+        search={{
+          value: search,
+          onChange: setSearch,
+          label: "Search menu items",
+          placeholder: "Search dishes…",
+        }}
+        // No category filter, deliberately: this screen is ORGANISED by category, so a category
+        // dropdown would be a second, weaker copy of the structure already on screen — and it
+        // would print every category name twice, once in the list and once as its own heading.
+        extraActiveCount={showInactive ? 1 : 0}
+        onClearAll={() => {
+          setSearch("");
+          setShowInactive(false);
+        }}
+      >
+        {/* A deactivated category or item is invisible to the order-taking grid but not deleted —
+            without this toggle there is no way to find, or reactivate, one again. Mirrors
+            Inventory Categories' "Show archived" checkbox exactly. */}
+        <label className="flex min-h-11 w-fit items-center gap-2 text-small text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={showInactive}
+            onChange={(e) => setShowInactive(e.target.checked)}
+            className="size-4 rounded-sm border-input"
+          />
+          Show inactive
+        </label>
+      </FilterBar>
 
       <QueryBoundary
         query={[categoriesQuery, itemsQuery]}
         what="the menu"
-        isEmpty={visibleCategories.length === 0}
+        isEmpty={visibleCategories.length === 0 && !isFiltered}
         loading={
           <div className="grid gap-2">
             <Skeleton className="h-10" />
@@ -168,118 +244,142 @@ export default function MenuItemsPage() {
           </PermissionGuard>
         }
       >
-        <div className="space-y-6">
-          {visibleCategories.map((category) => {
-            const rows = itemsFor(category.id);
-            return (
-              <div
-                key={category.id}
-                role="group"
-                aria-label={`${category.name} category`}
-                className="rounded-lg border"
-              >
-                <div className="flex items-center justify-between gap-2 border-b bg-muted/30 px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{category.name}</span>
-                    {!category.active ? <StatusBadge status="archived" label="Inactive" /> : null}
-                  </div>
-                  <PermissionGuard require="pos.menu.manage">
-                    <div className="flex items-center gap-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setItemTarget({ mode: "create", categoryId: category.id })}
-                        disabled={!category.active}
-                      >
-                        Add item
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={`Actions for ${category.name}`}
-                          >
-                            <MoreHorizontal />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onSelect={() => setCategoryTarget({ mode: "edit", category })}
-                          >
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => handleToggleCategory(category)}>
-                            {category.active ? "Deactivate" : "Reactivate"}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+        {visibleCategories.length === 0 ? (
+          <EmptyState
+            title="Nothing matches these filters."
+            description="Try widening or clearing them to see more."
+            action={{
+              label: "Clear all",
+              onClick: () => {
+                setSearch("");
+                setShowInactive(false);
+              },
+            }}
+          />
+        ) : (
+          <div className="space-y-(--space-xl)">
+            {visibleCategories.map((category) => {
+              const rows = itemsFor(category.id);
+              return (
+                <section
+                  key={category.id}
+                  role="group"
+                  aria-label={`${category.name} category`}
+                  className="space-y-(--space-md)"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-(--space-sm)">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-h2 font-semibold">{category.name}</h2>
+                      <span className="text-small text-foreground-tertiary">
+                        {countLine(rows.length, "item")}
+                      </span>
+                      {!category.active ? <StatusBadge status="archived" label="Inactive" /> : null}
                     </div>
-                  </PermissionGuard>
-                </div>
-
-                {rows.length === 0 ? (
-                  <p className="px-3 py-4 text-sm text-muted-foreground">
-                    No items in this category yet.
-                  </p>
-                ) : (
-                  <div className="divide-y">
-                    {rows.map((item) => (
-                      <div key={item.id} className="flex items-center gap-2 px-3 py-2 text-sm">
-                        {/* Thumbnail. An item with no picture gets a calm placeholder, never a
-                            broken-image glyph — and a picture that fails to LOAD renders
-                            distinctly from one that was never set. */}
-                        <MenuItemImage
-                          imageUrl={item.imageUrl}
-                          name={item.name}
-                          className="size-9"
-                        />
-                        <span className="flex-1 truncate">{item.name}</span>
-                        <MoneyDisplay paisa={item.basePricePaisa} className="shrink-0" />
-                        {!item.active ? <StatusBadge status="archived" label="Inactive" /> : null}
-                        <PermissionGuard require="pos.menu.manage">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={`Actions for ${item.name}`}
-                              >
-                                <MoreHorizontal />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onSelect={() => setItemTarget({ mode: "edit", item })}
-                              >
-                                Edit
-                              </DropdownMenuItem>
-                              {/* S6 — the route to the modifier catalogue. There was no screen
-                                  anywhere in the product that could create one, which is why the
-                                  entities had sat unused since V1. */}
-                              <DropdownMenuItem
-                                data-testid={`manage-options-${item.id}`}
-                                onSelect={() => setModifierTarget(item)}
-                              >
-                                Options &amp; add-ons
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onSelect={() => handleToggleItem(item)}>
-                                {item.active ? "Deactivate" : "Reactivate"}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </PermissionGuard>
+                    <PermissionGuard require="pos.menu.manage">
+                      <div className="flex items-center gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="min-h-11"
+                          onClick={() => setItemTarget({ mode: "create", categoryId: category.id })}
+                          disabled={!category.active}
+                        >
+                          Add item
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              className="size-11"
+                              aria-label={`Actions for ${category.name}`}
+                            >
+                              <MoreHorizontal />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onSelect={() => setCategoryTarget({ mode: "edit", category })}
+                            >
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleToggleCategory(category)}>
+                              {category.active ? "Deactivate" : "Reactivate"}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
-                    ))}
+                    </PermissionGuard>
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+
+                  {rows.length === 0 ? (
+                    <p className="text-small text-muted-foreground">
+                      {search.trim() === ""
+                        ? "No items in this category yet."
+                        : "No items in this category match this search."}
+                    </p>
+                  ) : (
+                    // The demo's `auto-fill minmax()` tile grid (DEMO-SCREENS §3), which is what
+                    // makes this readable on a phone without a horizontal scroll.
+                    <div className="grid gap-(--space-md) [grid-template-columns:repeat(auto-fill,minmax(14rem,1fr))]">
+                      {rows.map((item) => (
+                        <MenuItemCard
+                          key={item.id}
+                          name={item.name}
+                          imageUrl={item.imageUrl}
+                          basePricePaisa={item.basePricePaisa}
+                          // The category is the section heading directly above this grid, so
+                          // repeating it on every card adds noise, not information.
+                          available={pendingAvailability[item.id] ?? item.active}
+                          isPending={item.id in pendingAvailability}
+                          onToggleAvailability={() => handleToggleItem(item)}
+                          actions={
+                            <PermissionGuard require="pos.menu.manage">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    className="size-11"
+                                    aria-label={`Actions for ${item.name}`}
+                                  >
+                                    <MoreHorizontal />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onSelect={() => setItemTarget({ mode: "edit", item })}
+                                  >
+                                    Edit
+                                  </DropdownMenuItem>
+                                  {/* S6 — the route to the modifier catalogue. There was no
+                                      screen anywhere in the product that could create one, which
+                                      is why the entities had sat unused since V1. */}
+                                  <DropdownMenuItem
+                                    data-testid={`manage-options-${item.id}`}
+                                    onSelect={() => setModifierTarget(item)}
+                                  >
+                                    Options &amp; add-ons
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onSelect={() => handleToggleItem(item)}>
+                                    {item.active ? "Deactivate" : "Reactivate"}
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </PermissionGuard>
+                          }
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+        )}
       </QueryBoundary>
 
       <MenuCategoryFormDialog
@@ -320,6 +420,6 @@ export default function MenuItemsPage() {
           if (!next) setModifierTarget(null);
         }}
       />
-    </div>
+    </PageBody>
   );
 }

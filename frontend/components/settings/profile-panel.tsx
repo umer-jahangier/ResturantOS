@@ -10,8 +10,8 @@ import { useUserDetail } from "@/lib/hooks/use-users";
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-4 border-b py-2 last:border-b-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-right text-sm">{children}</span>
+      <span className="text-small text-muted-foreground">{label}</span>
+      <span className="text-right text-small">{children}</span>
     </div>
   );
 }
@@ -118,14 +118,17 @@ export function ProfilePanel() {
             what="your branches"
             isEmpty={(branches.data ?? []).length === 0}
             empty={
-              <p className="py-2 text-sm text-warning-foreground">
+              <p className="py-2 text-small text-warning-foreground">
                 You hold no role on any branch. Ask an administrator to assign you one.
               </p>
             }
           >
             <ul className="divide-y rounded-md border">
               {(branches.data ?? []).map((branch) => (
-                <li key={branch.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                <li
+                  key={branch.id}
+                  className="flex items-center justify-between px-3 py-2 text-small"
+                >
                   <span className="truncate">
                     {branch.name}
                     {branch.isHq ? " (HQ)" : ""}

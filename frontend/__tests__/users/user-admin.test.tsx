@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -97,9 +97,14 @@ describe("the user list refuses to report a failure as an empty roster", () => {
 
     renderWithQuery(<UserList selectedId={null} onSelect={() => {}} />);
 
-    expect(await screen.findByText("Terrace Waiter")).toBeInTheDocument();
-    expect(screen.getByText("Never signed in")).toBeInTheDocument();
-    expect(screen.getByText("Password reset pending")).toBeInTheDocument();
+    // Scoped to the table: `DataGrid` renders the desktop table AND the below-`md` card list
+    // into the same DOM and lets CSS choose (see its docblock — choosing in JS from a media query
+    // hydrates a different tree than it rendered), so a bare `getByText` on a row's own text is
+    // ambiguous by construction.
+    const roster = await screen.findByRole("table", { name: "Users" });
+    expect(within(roster).getByText("Terrace Waiter")).toBeInTheDocument();
+    expect(within(roster).getByText("Never signed in")).toBeInTheDocument();
+    expect(within(roster).getByText("Password reset pending")).toBeInTheDocument();
   });
 });
 

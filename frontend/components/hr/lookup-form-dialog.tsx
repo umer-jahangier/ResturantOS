@@ -190,7 +190,7 @@ export function LookupFormDialog({
             ) : null}
 
             {form.formState.errors.root ? (
-              <p role="alert" className="text-destructive text-sm">
+              <p role="alert" className="text-destructive text-small">
                 {form.formState.errors.root.message}
               </p>
             ) : null}

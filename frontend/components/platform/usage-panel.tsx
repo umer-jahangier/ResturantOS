@@ -3,6 +3,7 @@
 import { Info } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { formatNumber } from "@/lib/format/locale";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import { useTenantUsage } from "@/lib/hooks/use-platform-usage";
 import {
@@ -100,11 +101,11 @@ function MeterRow({ meter }: { meter: UsageMeter }) {
                   severity === "warning" && "text-warning",
                 )}
               >
-                {meter.used.toLocaleString()}
+                {formatNumber(meter.used)}
               </span>
               <span className="text-muted-foreground">
                 {" / "}
-                {uncapped ? "uncapped" : meter.limit.toLocaleString()} {meter.unit}
+                {uncapped ? "uncapped" : formatNumber(meter.limit)} {meter.unit}
               </span>
             </>
           ) : (
@@ -114,7 +115,7 @@ function MeterRow({ meter }: { meter: UsageMeter }) {
                 returned by the API since Phase 3 and read by nothing (GA-083). Showing the
                 entitlement alone is honest; pairing it with an invented numerator is not.
               */}
-              Limit {uncapped ? "uncapped" : meter.limit.toLocaleString()} {meter.unit}
+              Limit {uncapped ? "uncapped" : formatNumber(meter.limit)} {meter.unit}
             </span>
           )}
         </span>
@@ -136,7 +137,7 @@ function MeterRow({ meter }: { meter: UsageMeter }) {
                 ? "bg-destructive"
                 : severity === "warning"
                   ? "bg-warning"
-                  : "bg-primary",
+                  : "bg-primary-solid",
             )}
             style={{ width: `${Math.min(pct, 100)}%` }}
           />
@@ -161,7 +162,7 @@ function MeterRow({ meter }: { meter: UsageMeter }) {
           )}
         >
           {severity === "danger"
-            ? `Over the tier ceiling by ${((meter.used ?? 0) - meter.limit).toLocaleString()} ${meter.unit}.`
+            ? `Over the tier ceiling by ${formatNumber((meter.used ?? 0) - meter.limit)} ${meter.unit}.`
             : `${Math.round(pct)}% of the tier ceiling used.`}
         </p>
       )}

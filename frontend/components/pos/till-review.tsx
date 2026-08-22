@@ -40,19 +40,35 @@ import {
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import type { TillSession, TillReviewStatus } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
+import { formatDateTime } from "@/lib/format/locale";
 
 const PAGE_SIZE = 20;
 
+/**
+ * Review state, in semantic tokens rather than raw Tailwind palette literals (G3).
+ *
+ * <p>`bg-amber-500/15 text-amber-600` and friends followed neither the theme nor `--brand-h`,
+ * and `text-amber-600` measures ~3:1 on a light surface — under the 4.5:1 SC 1.4.3 needs for
+ * the one word on a cash-reconciliation screen that says whether a drawer is still in dispute.
+ *
+ * <p>`--success` and `--destructive` FLIP with the theme (`success-600`/`danger-600` light,
+ * `success-400`/`danger-400` dark), so `text-success` / `text-destructive` are legible in both
+ * — the pairs are asserted in `design-tokens.test.ts`. `--warning` does NOT flip: it is
+ * `warning-400` in both themes, a light amber that reads fine on a dark surface and fails on a
+ * light one, so the pending badge names the ramp step per theme instead. Same shape as
+ * `components/ui/activity-row.tsx`.
+ *
+ * <p>D-38-13 §4.2: none of these carries state by hue alone — the badge prints the status word
+ * ("PENDING REVIEW", "APPROVED", "FLAGGED") beside the colour.
+ */
 const REVIEW_BADGE: Record<TillReviewStatus, string> = {
-  PENDING_REVIEW: "bg-amber-500/15 text-amber-600",
-  APPROVED: "bg-emerald-500/15 text-emerald-600",
-  FLAGGED: "bg-red-500/15 text-red-600",
+  PENDING_REVIEW: "bg-warning/15 text-warning-700 dark:text-warning-400",
+  APPROVED: "bg-success/15 text-success",
+  FLAGGED: "bg-destructive/15 text-destructive",
 };
 
 function fmtTime(iso: string | null): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
+  return formatDateTime(iso);
 }
 
 /**
@@ -435,7 +451,7 @@ function TillRow({
             className={cn(
               "rounded px-1.5 py-0.5 text-xs font-medium",
               till.status === "OPEN"
-                ? "bg-emerald-500/15 text-emerald-600"
+                ? "bg-success/15 text-success"
                 : "bg-muted text-muted-foreground",
             )}
           >
@@ -472,7 +488,11 @@ function TillRow({
         <td
           className={cn(
             "px-3 py-2 text-right text-xs",
-            variance !== null && variance < 0 && "text-red-600",
+            // `text-destructive`, not `text-red-600` — it flips to `danger-400` in dark, where
+            // the raw literal stayed a 4.7:1-on-black red. The shortfall is not signalled by
+            // colour alone either way: `formatPaisa` already writes the leading minus, so
+            // "-Rs 200.00" reads as short in greyscale (D-38-13 §4.2).
+            variance !== null && variance < 0 && "text-destructive",
           )}
         >
           {variance !== null ? <MoneyDisplay paisa={variance} className="text-xs" /> : "—"}

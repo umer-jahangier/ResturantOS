@@ -180,7 +180,7 @@ export function StationRoutingBoard({
                         }
                         className={
                           strandedOnLegacy
-                            ? "shrink-0 text-amber-700 dark:text-amber-400"
+                            ? "shrink-0 text-warning"
                             : "shrink-0 text-muted-foreground"
                         }
                       >

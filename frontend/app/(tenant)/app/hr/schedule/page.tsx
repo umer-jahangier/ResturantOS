@@ -4,6 +4,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { PermissionGuard } from "@/components/shared/permission-guard";
+import { PageBody } from "@/components/ui/page-body";
+import { PageHeader } from "@/components/ui/page-header";
+import { Label } from "@/components/ui/label";
 import { ShiftCalendar } from "@/components/hr/shift-calendar";
 import { HrErrorNotice } from "@/components/hr/hr-error-notice";
 import { Button } from "@/components/ui/button";
@@ -60,54 +63,93 @@ export default function SchedulePage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Weekly schedule</h1>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => setWeekStart((w) => shiftWeek(w, -1))}>
-            ← Prev
-          </Button>
-          <span className="text-sm text-muted-foreground">week of {weekStart}</span>
-          <Button size="sm" variant="outline" onClick={() => setWeekStart((w) => shiftWeek(w, 1))}>
-            Next →
-          </Button>
-        </div>
-      </div>
+    <PageBody className="space-y-(--space-lg)">
+      <PageHeader
+        title="Weekly schedule"
+        description="Drag an employee onto a shift/date cell to assign; drag an assigned chip between cells to move. Scoped to your active branch."
+        meta={`Week of ${weekStart}`}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              aria-label="Previous week"
+              onClick={() => setWeekStart((w) => shiftWeek(w, -1))}
+            >
+              ← Prev
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              aria-label="Next week"
+              onClick={() => setWeekStart((w) => shiftWeek(w, 1))}
+            >
+              Next →
+            </Button>
+          </div>
+        }
+      />
 
       <PermissionGuard require="hr.attendance.manage" fallback={null}>
-        <div className="flex flex-wrap items-end gap-2 rounded border p-3">
-          <Input
-            placeholder="Shift name"
-            className="w-40"
-            value={shiftForm.name}
-            onChange={(e) => setShiftForm({ ...shiftForm, name: e.target.value })}
-          />
-          <Input
-            placeholder="Role"
-            className="w-32"
-            value={shiftForm.roleDesignation}
-            onChange={(e) => setShiftForm({ ...shiftForm, roleDesignation: e.target.value })}
-          />
-          <Input
-            type="time"
-            value={shiftForm.startTime}
-            onChange={(e) => setShiftForm({ ...shiftForm, startTime: e.target.value })}
-          />
-          <Input
-            type="time"
-            value={shiftForm.endTime}
-            onChange={(e) => setShiftForm({ ...shiftForm, endTime: e.target.value })}
-          />
-          <Input
-            placeholder="Days (1-7)"
-            className="w-28"
-            value={shiftForm.days}
-            onChange={(e) => setShiftForm({ ...shiftForm, days: e.target.value })}
-          />
+        {/* Five inputs, none of which had a label — only a placeholder, which disappears the
+            moment a character is typed and is not an accessible name a voice-control user can
+            say. Each one now carries a real `<label>` bound by `htmlFor`. */}
+        <fieldset className="flex flex-wrap items-end gap-2 rounded-lg border p-3">
+          <legend className="text-label font-semibold uppercase tracking-wide text-foreground-tertiary">
+            Add a shift
+          </legend>
+          <div className="space-y-1">
+            <Label htmlFor="shift-name">Shift name</Label>
+            <Input
+              id="shift-name"
+              placeholder="Shift name"
+              className="w-40"
+              value={shiftForm.name}
+              onChange={(e) => setShiftForm({ ...shiftForm, name: e.target.value })}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="shift-role">Role</Label>
+            <Input
+              id="shift-role"
+              placeholder="Role"
+              className="w-32"
+              value={shiftForm.roleDesignation}
+              onChange={(e) => setShiftForm({ ...shiftForm, roleDesignation: e.target.value })}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="shift-start">Starts</Label>
+            <Input
+              id="shift-start"
+              type="time"
+              value={shiftForm.startTime}
+              onChange={(e) => setShiftForm({ ...shiftForm, startTime: e.target.value })}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="shift-end">Ends</Label>
+            <Input
+              id="shift-end"
+              type="time"
+              value={shiftForm.endTime}
+              onChange={(e) => setShiftForm({ ...shiftForm, endTime: e.target.value })}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="shift-days">Days (1–7)</Label>
+            <Input
+              id="shift-days"
+              placeholder="1,2,3,4,5"
+              className="w-28"
+              value={shiftForm.days}
+              onChange={(e) => setShiftForm({ ...shiftForm, days: e.target.value })}
+            />
+          </div>
           <Button size="sm" disabled={createShift.isPending} onClick={submitShift}>
             Add shift
           </Button>
-        </div>
+        </fieldset>
       </PermissionGuard>
 
       {/* The roster drives the drag rail. If it failed, say so — an empty rail otherwise
@@ -120,11 +162,7 @@ export default function SchedulePage() {
         />
       )}
 
-      <p className="text-xs text-muted-foreground">
-        Drag an employee onto a shift/date cell to assign; drag an assigned chip between cells to
-        move. Scoped to your active branch.
-      </p>
       <ShiftCalendar employees={employeesQuery.data ?? []} weekStart={weekStart} />
-    </div>
+    </PageBody>
   );
 }

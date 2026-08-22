@@ -144,7 +144,11 @@ describe("TableFloorView", () => {
     const bussing = screen.getByTestId("table-table-3");
     expect(bussing.className).toContain("border-warning");
     expect(bussing.className).toContain("bg-warning/10");
-    expect(bussing).toHaveTextContent("Needs Bussing");
+    // Sentence case. 38-06 moved both surfaces onto one `TABLE_STATUS` map: this view said
+    // "Needs Bussing" and `/app/tables` said "Needs bussing" for the identical state, which is
+    // two products describing one fact. The tables page's spelling won because it matches the
+    // rest of the product's sentence-case labels.
+    expect(bussing).toHaveTextContent("Needs bussing");
 
     // No hardcoded Tailwind palette classes remain (migrated to semantic tokens).
     for (const tile of [available, occupied, bussing]) {

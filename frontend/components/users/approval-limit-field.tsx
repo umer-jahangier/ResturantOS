@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import { Label } from "@/components/ui/label";
-import { formatPaisa } from "@/lib/adapters/shared";
+import { MoneyDisplay } from "@/components/ui/money-display";
 
 /**
  * The approval limit, set by a human, in paisa.
@@ -166,7 +166,7 @@ export function ApprovalLimitField({
       <Label htmlFor={id}>Approval limit</Label>
 
       <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">Rs</span>
+        <span className="text-small text-muted-foreground">Rs</span>
         <input
           id={id}
           type="text"
@@ -180,11 +180,11 @@ export function ApprovalLimitField({
             // Typing an amount supersedes an earlier "no authority" choice.
             if (value.kind === "none") onChange({ kind: "unset" });
           }}
-          className="h-8 w-full rounded-lg border border-border-interactive bg-transparent px-2.5 text-sm transition-colors focus-visible:border-ring dark:bg-surface-2"
+          className="h-8 w-full rounded-lg border border-border-interactive bg-transparent px-2.5 text-small transition-colors focus-visible:border-ring dark:bg-surface-2"
         />
       </div>
 
-      <label className="flex items-center gap-2 text-sm">
+      <label className="flex items-center gap-2 text-small">
         <input
           type="radio"
           name={`${id}-authority`}
@@ -196,12 +196,12 @@ export function ApprovalLimitField({
       </label>
 
       {error && (
-        <p role="alert" data-testid="approval-limit-error" className="text-sm text-destructive">
+        <p role="alert" data-testid="approval-limit-error" className="text-small text-destructive">
           {error}
         </p>
       )}
 
-      <p id={`${id}-help`} className="text-xs text-muted-foreground">
+      <p id={`${id}-help`} className="text-label text-muted-foreground">
         {roleLabel ? `${roleLabel} can approve amounts up to this limit. ` : ""}
         The limit is compared against the amount of each request, so a limit of Rs 0.00 and no
         approval authority both refuse every approval — they are kept apart here because they say
@@ -210,7 +210,10 @@ export function ApprovalLimitField({
           <>
             {" "}
             This role will be able to approve up to{" "}
-            <strong data-testid="approval-limit-preview">{formatPaisa(value.paisa)}</strong>.
+            <strong data-testid="approval-limit-preview">
+              <MoneyDisplay paisa={value.paisa} />
+            </strong>
+            .
           </>
         )}
       </p>

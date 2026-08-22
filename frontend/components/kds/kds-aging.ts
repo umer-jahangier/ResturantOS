@@ -30,7 +30,26 @@
  * with each station's OWN `escalationThresholdSeconds` rather than the industry's fixed
  * 5-and-8-minute convention, which is the more principled rule and was already right. A
  * grill and a dessert pass do not age at the same speed; the data already knows that.
+ *
+ * <h3>What LEFT, and why it had to</h3>
+ *
+ * This file used to own two elapsed-time formatters of its own — `formatAge` (`mm:ss`, then
+ * `h:mm:ss`) and `formatAgeLong` (`4d 17h`). They are gone. `lib/format/elapsed.ts` names this
+ * file in its own docblock as one of the two duplicates it exists to kill, and while both lived
+ * the product shipped THREE duration formatters that disagreed: the same ticket read `4d 17h`
+ * here and `4d` there, and neither of them ever stopped counting, so a check left open over a
+ * close rendered `113h 52m` in the same red as one four minutes late.
+ *
+ * Both were also UNBOUNDED, which is the half that costs money. `elapsed.ts` stops counting at
+ * 24 h, names the DATE instead, and returns `withinUrgencyWindow` as a value so a surface cannot
+ * style a five-day-old ticket as urgent by forgetting a threshold it had copied.
+ *
+ * The THRESHOLDS in this file did not move and must not: `getAgingState`'s fraction is measured
+ * against each station's own escalation target, which is a different question from "is this
+ * reading still live work at all". Only the formatting left.
  */
+
+import { readElapsed } from "@/lib/format/elapsed";
 
 export type KdsAgingState = "fresh" | "warn" | "late";
 
@@ -52,7 +71,13 @@ export interface KdsAgingTreatment {
   fillsCard: boolean;
   /** Tailwind token class for the border + chip + icon colour (never the only signal). */
   accentClass: string;
-  /** What a screen reader says instead of seeing any of the above. */
+  /**
+   * What a screen reader says instead of seeing any of the above.
+   *
+   * The age inside it is `lib/format/elapsed.ts`'s `srLabel` — words, never the ticket face's
+   * `07:42`, which a screen reader announces as a clock time ("seven forty-two") and which is a
+   * different fact entirely.
+   */
   srLabel: string;
 }
 
@@ -101,58 +126,29 @@ export function getAgingState(ageMs: number, escalationThresholdSeconds: number)
   return "fresh";
 }
 
+/**
+ * @param ageMs how long the ticket has been up, on the caller's shared KDS clock.
+ * @param escalationThresholdSeconds THIS station's target — never a global convention.
+ * @param now the same clock tick `ageMs` was measured against. Only the spoken age needs it,
+ *   and only past thirty days, where {@link readElapsed} names the DATE the ticket was fired
+ *   rather than counting days at it — which it cannot do from an age alone. Defaulted so the
+ *   two-argument call still works; a caller that has a clock should pass it.
+ */
 export function getAgingTreatment(
   ageMs: number,
   escalationThresholdSeconds: number = DEFAULT_ESCALATION_THRESHOLD_SECONDS,
+  now: number = ageMs,
 ): KdsAgingTreatment {
   const state = getAgingState(ageMs, escalationThresholdSeconds);
   const base = TREATMENTS[state];
+  // `now - ageMs` is the instant the ticket was fired, so `readElapsed` measures exactly
+  // `ageMs` back and can still name a date past its own bound.
+  const spokenAge = readElapsed(now - ageMs, now).srLabel;
   const srLabel =
     state === "late"
-      ? `Late — ${formatAge(ageMs)} since fired, past this station's target`
+      ? `Late — ${spokenAge} since fired, past this station's target`
       : state === "warn"
-        ? `Due — ${formatAge(ageMs)} since fired, approaching this station's target`
-        : `On time — ${formatAge(ageMs)} since fired`;
+        ? `Due — ${spokenAge} since fired, approaching this station's target`
+        : `On time — ${spokenAge} since fired`;
   return { state, srLabel, ...base };
-}
-
-/**
- * `mm:ss`, per the §7.2 ticket face.
- *
- * Above an hour it becomes `h:mm:ss` rather than letting the minute field run to four
- * digits. A ticket that has been on the board for four days is a real thing in seeded and
- * misconfigured environments, and `5772:14` is not a legible number at two metres — it
- * reads as noise, and a board that shows noise for its most alarming state is worse than
- * one that shows nothing.
- */
-/**
- * The same age in PROSE, for the places a sentence is being read rather than a card scanned:
- * `"4 min"`, `"3h 52m"`, `"5d 3h"`.
- *
- * {@link formatAge} is a timer on a ticket face and stays exactly that — `mm:ss` counting up, read
- * at two metres. It is unusable in a sentence: the F17 confirmation has to say how old the oldest
- * ticket is, and "Oldest 123:35:12" is a number nobody can convert under time pressure into "five
- * days". Two formatters because there are genuinely two jobs, not because one was forgotten.
- */
-export function formatAgeLong(ageMs: number): string {
-  const totalMinutes = Math.max(0, Math.floor(ageMs / 60_000));
-  if (totalMinutes < 60) return `${totalMinutes} min`;
-  const totalHours = Math.floor(totalMinutes / 60);
-  if (totalHours < 24) {
-    const minutes = totalMinutes % 60;
-    return minutes === 0 ? `${totalHours}h` : `${totalHours}h ${minutes}m`;
-  }
-  const days = Math.floor(totalHours / 24);
-  const hours = totalHours % 24;
-  return hours === 0 ? `${days}d` : `${days}d ${hours}h`;
-}
-
-export function formatAge(ageMs: number): string {
-  const totalSeconds = Math.max(0, Math.floor(ageMs / 1000));
-  const seconds = totalSeconds % 60;
-  const totalMinutes = Math.floor(totalSeconds / 60);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  if (totalMinutes < 60) return `${pad(totalMinutes)}:${pad(seconds)}`;
-  const hours = Math.floor(totalMinutes / 60);
-  return `${hours}:${pad(totalMinutes % 60)}:${pad(seconds)}`;
 }

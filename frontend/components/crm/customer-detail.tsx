@@ -3,6 +3,7 @@
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MoneyDisplay } from "@/components/ui/money-display";
+import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCustomer } from "@/lib/hooks/crm/use-customers";
 
@@ -14,17 +15,40 @@ import { useCustomer } from "@/lib/hooks/crm/use-customers";
  * consumer read a field the producer did not publish and returned early every time.
  */
 export function CustomerDetail({ customerId }: { customerId: string | null }) {
-  const { data: customer, isLoading } = useCustomer(customerId);
+  const customerQuery = useCustomer(customerId);
+  const { data: customer, isLoading } = customerQuery;
 
   if (!customerId) {
     return (
-      <Card className="p-6 text-sm text-muted-foreground">
+      <Card className="p-6 text-small text-muted-foreground">
         Select a customer to see their loyalty standing.
       </Card>
     );
   }
 
-  if (isLoading || !customer) {
+  /*
+   * A failure is not a longer wait (UI-SPEC §8).
+   *
+   * `if (isLoading || !customer)` left this card skeletonised FOREVER when the CRM service was
+   * down — the least honest of all the loading states, because a skeleton is an active promise
+   * that content is coming. A cashier looking up a regular's points balance at the counter had no
+   * way to learn the request had failed, and no retry to press.
+   */
+  if (customerQuery.isError) {
+    return (
+      <Card className="p-6">
+        <QueryErrorNotice
+          what="this customer's loyalty standing"
+          moduleLabel="Customers"
+          error={customerQuery.error}
+          onRetry={() => void customerQuery.refetch()}
+          isRetrying={customerQuery.isFetching}
+        />
+      </Card>
+    );
+  }
+
+  if (isLoading) {
     return (
       <Card className="space-y-3 p-6">
         <Skeleton className="h-6 w-40" />
@@ -34,15 +58,25 @@ export function CustomerDetail({ customerId }: { customerId: string | null }) {
     );
   }
 
+  if (!customer) {
+    return (
+      <Card className="p-6 text-small text-muted-foreground">
+        That customer is no longer on file.
+      </Card>
+    );
+  }
+
   return (
     <Card className="space-y-5 p-6">
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold">{customer.name}</h2>
-        <p className="text-sm tabular-nums text-muted-foreground">{customer.phone}</p>
-        {customer.email ? <p className="text-sm text-muted-foreground">{customer.email}</p> : null}
+        <h2 className="text-h2 font-semibold">{customer.name}</h2>
+        <p className="text-small tabular-nums text-muted-foreground">{customer.phone}</p>
+        {customer.email ? (
+          <p className="text-small text-muted-foreground">{customer.email}</p>
+        ) : null}
       </div>
 
-      <dl className="grid grid-cols-2 gap-4 border-t pt-4 text-sm">
+      <dl className="grid grid-cols-2 gap-4 border-t pt-4 text-small">
         <div>
           <dt className="text-muted-foreground">Tier</dt>
           <dd className="mt-1">

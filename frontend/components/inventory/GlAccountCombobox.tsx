@@ -149,19 +149,23 @@ export function GlAccountCombobox({
           onSearchChange={setQuery}
           isLoading={isLoading}
           placeholder={placeholder}
-          emptyHeading={
-            failure
-              ? failure.heading
-              : chartIsEmpty
-                ? "No accounts set up yet"
-                : "No matching accounts"
-          }
-          emptyBody={
-            chartIsEmpty && !failure ? (
-              `Your chart of accounts has no ${usage === "INVENTORY" ? "asset" : "cost or expense"} accounts yet. Someone with access to Finance needs to add them first.`
-            ) : failure ? (
+          /*
+           * The failure moved OUT of `emptyBody` and into `isError` (plan 38-12, task 1).
+           *
+           * <p>The copy below is unchanged and still this file's — `describeFailure` tells a 403
+           * from a 503 from a parse failure and the generic notice cannot. What changed is where
+           * it is rendered: `emptyBody` is the empty slot, so this careful, correct sentence used
+           * to arrive wearing the empty state's clothes — no `role="alert"`, muted-foreground on
+           * a plain popover, indistinguishable at a glance from "no matching accounts". A reader
+           * who cannot SEE that a failure happened has not been told one did, however well the
+           * sentence is written.
+           */
+          isError={Boolean(failure)}
+          errorHeading={failure?.heading}
+          errorBody={
+            failure ? (
               <>
-                <p>{failure.body}</p>
+                <span className="block">{failure.body}</span>
                 {failure.retryable ? (
                   // In place, rather than making the manager close the dialog and lose a
                   // half-filled form to shake off a blip that lasted two seconds.
@@ -169,15 +173,19 @@ export function GlAccountCombobox({
                     type="button"
                     onClick={() => void refetch()}
                     disabled={isFetching}
-                    className="mt-1.5 font-medium text-foreground underline underline-offset-2 disabled:opacity-50"
+                    className="mt-1.5 font-medium underline underline-offset-2 disabled:opacity-50"
                   >
                     {isFetching ? "Trying…" : "Try again"}
                   </button>
                 ) : null}
               </>
-            ) : (
-              "Only active accounts valid for this field are listed."
-            )
+            ) : undefined
+          }
+          emptyHeading={chartIsEmpty ? "No accounts set up yet" : "No matching accounts"}
+          emptyBody={
+            chartIsEmpty
+              ? `Your chart of accounts has no ${usage === "INVENTORY" ? "asset" : "cost or expense"} accounts yet. Someone with access to Finance needs to add them first.`
+              : "Only active accounts valid for this field are listed."
           }
         />
         {value ? (

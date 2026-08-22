@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -12,15 +12,19 @@ import {
   useUoms,
 } from "@/lib/hooks/inventory/use-inventory";
 import type { StorageLocation, Uom } from "@/lib/adapters/inventory.adapter";
+import { countLine, statLine } from "@/lib/format/stat-line";
 import { StorageLocationFormDialog } from "@/components/inventory/StorageLocationFormDialog";
 import { UomFormDialog } from "@/components/inventory/UomFormDialog";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { DataGrid, type ColumnDef } from "@/components/ui/data-grid/data-grid";
+import { FilterBar } from "@/components/ui/filter-bar";
 import { PageBody } from "@/components/ui/page-body";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 
 const MEASURE_TYPES = [
@@ -28,10 +32,6 @@ const MEASURE_TYPES = [
   { key: "VOLUME", label: "Volume" },
   { key: "COUNT", label: "Count" },
 ] as const;
-
-const cellClass = "px-3 py-2 text-small";
-const headClass =
-  "px-3 py-2 text-left text-label uppercase tracking-[0.04em] text-muted-foreground";
 
 /** How a unit converts, in words. A base unit has nothing above it — saying "1 G = 1 G" would be
  * noise, so it reads as the anchor it is. */
@@ -88,13 +88,144 @@ export default function InventorySetupPage() {
     });
   }
 
-  const allLocations = locations ?? [];
+  const [unitSearch, setUnitSearch] = useState("");
+  const [locationSearch, setLocationSearch] = useState("");
+
+  const allUoms = useMemo(() => uoms ?? [], [uoms]);
+  const matchingUoms = useMemo(() => {
+    const needle = unitSearch.trim().toLowerCase();
+    if (needle === "") return allUoms;
+    return allUoms.filter(
+      (u) => u.code.toLowerCase().includes(needle) || u.name.toLowerCase().includes(needle),
+    );
+  }, [allUoms, unitSearch]);
+
+  const allLocations = useMemo(() => locations ?? [], [locations]);
+  const matchingLocations = useMemo(() => {
+    const needle = locationSearch.trim().toLowerCase();
+    if (needle === "") return allLocations;
+    return allLocations.filter(
+      (l) =>
+        l.name.toLowerCase().includes(needle) ||
+        (l.description ?? "").toLowerCase().includes(needle),
+    );
+  }, [allLocations, locationSearch]);
+
+  const uomColumns: ColumnDef<Uom, unknown>[] = [
+    {
+      accessorKey: "code",
+      header: "Code",
+      cell: ({ row }) => <span className="font-medium">{row.original.code}</span>,
+    },
+    { accessorKey: "name", header: "Name" },
+    {
+      id: "conversion",
+      header: "Conversion",
+      cell: ({ row }) => (
+        <span className="text-muted-foreground">{conversionSummary(row.original)}</span>
+      ),
+    },
+    {
+      id: "status",
+      header: "Status",
+      cell: ({ row }) =>
+        row.original.archivedAt ? (
+          <StatusBadge status="archived" label="Retired" />
+        ) : (
+          <StatusBadge status="active" label="In use" />
+        ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <PermissionGuard require="inventory.item.manage">
+          <UomRowActions uom={row.original} />
+        </PermissionGuard>
+      ),
+    },
+  ];
+
+  const locationColumns: ColumnDef<StorageLocation, unknown>[] = [
+    {
+      accessorKey: "name",
+      header: "Name",
+      cell: ({ row }) => (
+        <span className="flex items-center gap-2">
+          <span className="font-medium">{row.original.name}</span>
+          {row.original.archivedAt ? <StatusBadge status="archived" label="Archived" /> : null}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "description",
+      header: "Description",
+      cell: ({ row }) => (
+        <span className="text-muted-foreground">{row.original.description ?? "—"}</span>
+      ),
+    },
+    {
+      accessorKey: "ingredientCount",
+      header: "Items",
+      cell: ({ row }) => <span className="tabular-nums">{row.original.ingredientCount}</span>,
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <PermissionGuard require="inventory.item.manage">
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="min-h-11"
+              onClick={() => setEditing(row.original)}
+            >
+              Edit
+            </Button>
+            {row.original.archivedAt ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="min-h-11"
+                onClick={() => handleRestore(row.original)}
+              >
+                Restore
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="min-h-11"
+                onClick={() => {
+                  setArchiveError(null);
+                  setArchiving(row.original);
+                }}
+              >
+                Archive
+              </Button>
+            )}
+          </div>
+        </PermissionGuard>
+      ),
+    },
+  ];
 
   return (
     <PageBody className="space-y-(--space-2xl)">
       <PageHeader
         title="Setup"
         description="The shared lists every ingredient draws on — how you measure stock, and where it lives."
+        meta={statLine(
+          countLine(allUoms.length, "unit"),
+          countLine(allLocations.length, "storage location"),
+          allUoms.some((u) => u.archivedAt)
+            ? `${allUoms.filter((u) => u.archivedAt).length} retired`
+            : null,
+        )}
       />
 
       {/* ── Units of measure ─────────────────────────────────────────────────────────────── */}
@@ -112,6 +243,17 @@ export default function InventorySetupPage() {
           </PermissionGuard>
         </div>
 
+        <FilterBar
+          title="Units"
+          variant="bare"
+          search={{
+            value: unitSearch,
+            onChange: setUnitSearch,
+            label: "Search units",
+            placeholder: "Search by code or name…",
+          }}
+        />
+
         <QueryBoundary
           query={uomsQuery}
           what="units of measure"
@@ -124,46 +266,39 @@ export default function InventorySetupPage() {
         >
           <div className="space-y-6">
             {MEASURE_TYPES.map((type) => {
-              const rows = (uoms ?? []).filter((u) => u.measureType === type.key);
+              const rows = matchingUoms.filter((u) => u.measureType === type.key);
               if (rows.length === 0) return null;
               return (
                 <div key={type.key} className="space-y-2">
                   <h3 className="text-h2 font-semibold">{type.label}</h3>
-                  <div className="overflow-x-auto rounded-lg border">
-                    <table className="w-full min-w-[32rem]">
-                      <thead className="border-b bg-muted/40">
-                        <tr>
-                          <th className={headClass}>Code</th>
-                          <th className={headClass}>Name</th>
-                          <th className={headClass}>Conversion</th>
-                          <th className={headClass}>Status</th>
-                          <th className={headClass}></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rows.map((u) => (
-                          <tr key={u.id} className="border-b last:border-b-0">
-                            <td className={`${cellClass} font-medium`}>{u.code}</td>
-                            <td className={cellClass}>{u.name}</td>
-                            <td className={`${cellClass} text-muted-foreground`}>
-                              {conversionSummary(u)}
-                            </td>
-                            <td className={`${cellClass} text-muted-foreground`}>
-                              {u.archivedAt ? "Retired" : "In use"}
-                            </td>
-                            <td className={cellClass}>
-                              <PermissionGuard require="inventory.item.manage">
-                                <UomRowActions uom={u} />
-                              </PermissionGuard>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <DataGrid
+                    label={`${type.label} units`}
+                    columns={uomColumns}
+                    data={rows}
+                    density="comfortable"
+                    isFiltered={unitSearch.trim() !== ""}
+                    onClearFilters={() => setUnitSearch("")}
+                    card={{
+                      primary: (u) => u.code,
+                      secondary: (u) => `${u.name} · ${conversionSummary(u)}`,
+                      trailing: (u) => (u.archivedAt ? "Retired" : "In use"),
+                      actions: (u) => (
+                        <PermissionGuard require="inventory.item.manage">
+                          <UomRowActions uom={u} />
+                        </PermissionGuard>
+                      ),
+                    }}
+                  />
                 </div>
               );
             })}
+            {matchingUoms.length === 0 && unitSearch.trim() !== "" ? (
+              <EmptyState
+                title="Nothing matches this search."
+                description="Try a different code or name."
+                action={{ label: "Clear search", onClick: () => setUnitSearch("") }}
+              />
+            ) : null}
           </div>
         </QueryBoundary>
       </section>
@@ -184,6 +319,17 @@ export default function InventorySetupPage() {
             </Button>
           </PermissionGuard>
         </div>
+
+        <FilterBar
+          title="Locations"
+          variant="bare"
+          search={{
+            value: locationSearch,
+            onChange: setLocationSearch,
+            label: "Search storage locations",
+            placeholder: "Search by name…",
+          }}
+        />
 
         <QueryBoundary
           query={locationsQuery}
@@ -213,77 +359,35 @@ export default function InventorySetupPage() {
             </PermissionGuard>
           }
         >
-          <div className="overflow-x-auto rounded-lg border">
-            <table className="w-full min-w-[40rem]">
-              <thead className="border-b bg-muted/40">
-                <tr>
-                  <th className={headClass}>Name</th>
-                  <th className={headClass}>Description</th>
-                  <th className={headClass}>Items</th>
-                  <th className={headClass}>
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {allLocations.map((location) => (
-                  <tr
-                    key={location.id}
-                    className={`border-b last:border-b-0 ${location.archivedAt ? "opacity-60" : ""}`}
+          <DataGrid
+            label="Storage locations"
+            columns={locationColumns}
+            data={matchingLocations}
+            density="comfortable"
+            rowClassName={(l) => (l.archivedAt ? "opacity-60" : undefined)}
+            isFiltered={locationSearch.trim() !== ""}
+            onClearFilters={() => setLocationSearch("")}
+            card={{
+              primary: (l) => l.name,
+              secondary: (l) =>
+                [l.description, `${l.ingredientCount} items`, l.archivedAt ? "Archived" : null]
+                  .filter(Boolean)
+                  .join(" · "),
+              actions: (l) => (
+                <PermissionGuard require="inventory.item.manage">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="min-h-11"
+                    onClick={() => setEditing(l)}
                   >
-                    <td className={`${cellClass} font-medium`}>
-                      {location.name}
-                      {location.archivedAt ? (
-                        <span className="ml-2 rounded-full border px-2 py-0.5 text-label text-muted-foreground">
-                          Archived
-                        </span>
-                      ) : null}
-                    </td>
-                    <td className={`${cellClass} text-muted-foreground`}>
-                      {location.description ?? "—"}
-                    </td>
-                    <td className={cellClass}>{location.ingredientCount}</td>
-                    <td className={`${cellClass} text-right`}>
-                      <PermissionGuard require="inventory.item.manage">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setEditing(location)}
-                          >
-                            Edit
-                          </Button>
-                          {location.archivedAt ? (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRestore(location)}
-                            >
-                              Restore
-                            </Button>
-                          ) : (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setArchiveError(null);
-                                setArchiving(location);
-                              }}
-                            >
-                              Archive
-                            </Button>
-                          )}
-                        </div>
-                      </PermissionGuard>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    Edit
+                  </Button>
+                </PermissionGuard>
+              ),
+            }}
+          />
         </QueryBoundary>
       </section>
 

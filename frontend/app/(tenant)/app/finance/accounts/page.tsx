@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+
 import { AccountTable } from "@/components/finance/AccountTable";
 import { FinanceEmptyState } from "@/components/finance/FinanceEmptyState";
+import { FilterBar } from "@/components/ui/filter-bar";
+import { PageBody } from "@/components/ui/page-body";
+import { PageHeader } from "@/components/ui/page-header";
 import { useFinanceSetupStatus } from "@/lib/hooks/finance/use-accounts";
 
 const ACCOUNT_TYPES = [
-  { value: "", label: "All Types" },
   { value: "ASSET", label: "Asset" },
   { value: "LIABILITY", label: "Liability" },
   { value: "EQUITY", label: "Equity" },
@@ -20,22 +23,16 @@ export default function AccountsPage() {
   const { data: setupStatus } = useFinanceSetupStatus();
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Chart of Accounts</h1>
-          <p className="text-sm text-muted-foreground">
-            Pakistan Restaurant Standard COA
-            {setupStatus && (
-              <>
-                {" "}
-                · {setupStatus.accountCount} accounts
-                {setupStatus.provisioned ? "" : " (not provisioned)"}
-              </>
-            )}
-          </p>
-        </div>
-      </div>
+    <PageBody className="space-y-(--space-lg)">
+      <PageHeader
+        title="Chart of Accounts"
+        description="Pakistan Restaurant Standard COA."
+        meta={
+          setupStatus
+            ? `${setupStatus.accountCount} accounts${setupStatus.provisioned ? "" : " · not provisioned"}`
+            : undefined
+        }
+      />
 
       {setupStatus && !setupStatus.provisioned && (
         <FinanceEmptyState
@@ -44,25 +41,21 @@ export default function AccountsPage() {
         />
       )}
 
-      <div className="flex items-center gap-3">
-        <label htmlFor="typeFilter" className="text-sm font-medium">
-          Filter by type
-        </label>
-        <select
-          id="typeFilter"
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          className="rounded border border-input bg-background px-3 py-1.5 text-sm"
-        >
-          {ACCOUNT_TYPES.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      <FilterBar
+        title="Accounts"
+        filters={[
+          {
+            id: "type",
+            label: "Type",
+            value: typeFilter,
+            allLabel: "All types",
+            options: ACCOUNT_TYPES,
+            onChange: setTypeFilter,
+          },
+        ]}
+      />
 
       <AccountTable typeFilter={typeFilter || undefined} />
-    </div>
+    </PageBody>
   );
 }

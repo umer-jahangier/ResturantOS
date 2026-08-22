@@ -67,8 +67,8 @@ export function OneTimePasswordPanel({
       <div className="flex items-start gap-2">
         <KeyRound className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
         <div className="space-y-1">
-          <p className="text-sm font-medium text-foreground">{intro}</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-small font-medium text-foreground">{intro}</p>
+          <p className="text-small text-muted-foreground">
             Give this temporary password to{" "}
             <span className="font-medium text-foreground">{result.email}</span> in person or over a
             channel you trust. They will be required to change it the first time they sign in.
@@ -79,7 +79,7 @@ export function OneTimePasswordPanel({
       <div className="flex items-center gap-2">
         <code
           data-testid="one-time-password-value"
-          className="flex-1 overflow-x-auto rounded-md border border-border-interactive bg-background px-3 py-2 font-mono text-sm select-all"
+          className="flex-1 overflow-x-auto rounded-md border border-border-interactive bg-background px-3 py-2 font-mono text-small select-all"
         >
           {result.tempPassword}
         </code>
@@ -97,19 +97,19 @@ export function OneTimePasswordPanel({
       </div>
 
       {copyState === "failed" && (
-        <p className="text-xs text-destructive">
+        <p className="text-label text-destructive">
           This browser refused clipboard access. Select the password above and copy it manually
           before closing.
         </p>
       )}
 
-      <p className="text-sm font-medium text-destructive">
+      <p className="text-small font-medium text-destructive">
         This password will not be shown again. There is no way to retrieve it — only to issue a new
         one.
       </p>
 
       {result.loginable === false && (
-        <p className="text-sm text-warning-foreground">
+        <p className="text-small text-warning-foreground">
           This account has no role on any branch yet, so it cannot sign in even with this password.
           Assign a role to finish setting it up.
         </p>

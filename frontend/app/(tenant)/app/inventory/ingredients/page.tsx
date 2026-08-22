@@ -11,11 +11,14 @@ import {
   useRestoreIngredient,
 } from "@/lib/hooks/inventory/use-inventory";
 import { useDebouncedValue } from "@/lib/hooks/use-debounce";
+import { countLine, filteredCountLine, statLine } from "@/lib/format/stat-line";
 import type { Ingredient } from "@/lib/adapters/inventory.adapter";
 import { AllergenPillToggle } from "@/components/inventory/allergen-pill-toggle";
 import { IngredientFormDialog } from "@/components/inventory/IngredientFormDialog";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { DataGrid, type ColumnDef } from "@/components/ui/data-grid/data-grid";
+import { FilterBar } from "@/components/ui/filter-bar";
+import { Select } from "@/components/ui/select";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryBoundary } from "@/components/ui/query-boundary";
@@ -23,7 +26,6 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageBody } from "@/components/ui/page-body";
 import { PageHeader } from "@/components/ui/page-header";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,8 +40,13 @@ type IngredientFormTarget = { mode: "create" } | { mode: "edit"; ingredient: Ing
 
 type StatusFilter = "ACTIVE" | "ARCHIVED" | "ALL";
 
-const selectClass =
-  "h-8 rounded-lg border border-input bg-transparent px-2.5 text-small focus-visible:border-ring";
+/** The status dimension is a closed set, so it is a `FilterBar` filter rather than free text.
+ *  `""` is not offered: "all" is a real, named third state here, not the absence of a filter. */
+const STATUS_OPTIONS = [
+  { value: "ACTIVE", label: "Active" },
+  { value: "ARCHIVED", label: "Archived" },
+  { value: "ALL", label: "Active and archived" },
+] as const;
 
 // URL: /app/inventory/ingredients — INV-01/INV-14's whole UI surface: create/search/filter/edit/
 // archive ingredients (UI-SPEC Screen 2). Section tabs are owned by inventory/layout.tsx (08.2-14)
@@ -51,7 +58,8 @@ export default function IngredientsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ACTIVE");
   const [allergenFilter, setAllergenFilter] = useState<string[]>([]);
 
-  const { data: categories } = useCategories();
+  const categoriesQuery = useCategories();
+  const categories = categoriesQuery.data;
   const ingredientsQuery = useIngredients({
     search: debouncedSearch.trim() || undefined,
     categoryId: categoryFilter || undefined,
@@ -69,10 +77,29 @@ export default function IngredientsPage() {
   // Server-side search/category/status already narrowed `ingredients` (useIngredients' filters
   // argument); the allergen multi-select has no server-side filter param, so it's applied here —
   // a row matches if it carries ANY of the selected allergen codes (multi-select-as-OR).
-  const rows = (ingredients ?? []).filter(
+  const serverRows = ingredients ?? [];
+  const rows = serverRows.filter(
     (i) =>
       allergenFilter.length === 0 || allergenFilter.some((code) => i.allergenCodes.includes(code)),
   );
+
+  /**
+   * Whether ANY filter is currently narrowing the list — hoisted so the boundary and the grid
+   * cannot disagree about it. They did: the grid distinguished filtered-empty and the boundary
+   * short-circuited to the truly-empty state before the grid ever rendered.
+   */
+  const isNarrowed =
+    Boolean(categoryFilter) ||
+    debouncedSearch.trim() !== "" ||
+    allergenFilter.length > 0 ||
+    statusFilter !== "ACTIVE";
+
+  function clearFilters() {
+    setCategoryFilter("");
+    setSearch("");
+    setAllergenFilter([]);
+    setStatusFilter("ACTIVE");
+  }
 
   function openCreate() {
     setFormTarget({ mode: "create" });
@@ -207,6 +234,19 @@ export default function IngredientsPage() {
       <PageHeader
         title="Ingredients"
         description="Create, search, edit and archive the ingredients your recipes and purchase orders draw from."
+        meta={statLine(
+          // Both counts come from the arrays the grid itself renders: `rows` is what is on
+          // screen, `serverRows` is what survived the server-side name/category/status filters.
+          // The allergen multi-select narrows only in the browser, which is the one place the two
+          // can differ — and the only place this line has anything extra to say.
+          filteredCountLine(rows.length, serverRows.length, "ingredient"),
+          statusFilter === "ACTIVE"
+            ? "Active only"
+            : statusFilter === "ARCHIVED"
+              ? "Archived only"
+              : "Active and archived",
+          allergenFilter.length > 0 ? countLine(allergenFilter.length, "allergen filter") : null,
+        )}
         actions={
           <PermissionGuard require="inventory.item.manage">
             <Button type="button" onClick={openCreate}>
@@ -216,58 +256,83 @@ export default function IngredientsPage() {
         }
       />
 
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="min-w-[200px] flex-1">
-          <Input
-            placeholder="Search by name or SKU…"
-            aria-label="Search ingredients"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+      {/* Status and allergens are not `filters` entries: status has no "off" position (its
+          default IS a filter, so an "All categories"-shaped entry would be a lie), and allergens
+          is a multi-select the strip has no shape for. Both are declared through
+          `extraActiveCount` so the count sentence and "Clear all" stay truthful about controls
+          the bar cannot see for itself. */}
+      <FilterBar
+        title="Ingredients"
+        search={{
+          value: search,
+          onChange: setSearch,
+          label: "Search ingredients",
+          placeholder: "Search by name or SKU…",
+        }}
+        filters={[
+          {
+            id: "category",
+            label: "Category",
+            value: categoryFilter,
+            onChange: setCategoryFilter,
+            options: activeCategories.map((c) => ({ value: c.id, label: c.name })),
+            isLoading: categoriesQuery.isLoading,
+            error: categoriesQuery.isError,
+            onRetry: () => void categoriesQuery.refetch(),
+          },
+        ]}
+        extraActiveCount={(statusFilter === "ACTIVE" ? 0 : 1) + (allergenFilter.length > 0 ? 1 : 0)}
+        onClearAll={() => {
+          setCategoryFilter("");
+          setSearch("");
+          setStatusFilter("ACTIVE");
+          setAllergenFilter([]);
+        }}
+      >
+        <div className="flex min-w-40 flex-col gap-1">
+          <label
+            htmlFor="ingredient-status-filter"
+            className="text-label font-semibold tracking-wide uppercase text-foreground-tertiary"
+          >
+            Status
+          </label>
+          <Select
+            id="ingredient-status-filter"
+            value={statusFilter}
+            onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+            options={STATUS_OPTIONS}
           />
         </div>
 
-        <select
-          aria-label="Filter by category"
-          className={selectClass}
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-        >
-          <option value="">All categories</option>
-          {activeCategories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-
-        <select
-          aria-label="Filter by status"
-          className={selectClass}
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-        >
-          <option value="ACTIVE">Active</option>
-          <option value="ARCHIVED">Archived</option>
-          <option value="ALL">All</option>
-        </select>
-
         <div className="flex flex-col gap-1">
-          <span className="text-label text-muted-foreground">Allergens</span>
+          <span className="text-label font-semibold tracking-wide uppercase text-foreground-tertiary">
+            Allergens
+          </span>
           <AllergenPillToggle
             value={allergenFilter}
             onChange={setAllergenFilter}
             className="max-w-md"
           />
         </div>
-      </div>
+      </FilterBar>
 
       {/* GA-001: `isError` was never destructured, so an inventory-service failure rendered the
           "no ingredients yet" empty state — complete with an "Add ingredient" call to action
           inviting the user to re-key a store cupboard that already exists. */}
+      {/*
+        `isEmpty` is asked of the UNFILTERED set (UI-SPEC §8.3).
+
+        `rows` is `serverRows` with the client-side allergen/status narrowing applied, so
+        `isEmpty={rows.length === 0}` handed a FILTERED-empty result to the boundary's `empty`
+        branch — and that branch is the truly-empty one, complete with an "Add ingredient" call to
+        action. A chef who searched for "saffron" and had none was told the store cupboard was
+        bare and invited to re-key it. The boundary now yields to `DataGrid`, which owns the
+        filtered-empty state and offers `[Clear all]` instead of a create CTA.
+      */}
       <QueryBoundary
         query={ingredientsQuery}
         what="ingredients"
-        isEmpty={rows.length === 0}
+        isEmpty={rows.length === 0 && !isNarrowed}
         loading={<DataGrid columns={columns} data={[]} isLoading />}
         empty={
           <PermissionGuard
@@ -287,18 +352,8 @@ export default function IngredientsPage() {
           columns={columns}
           data={rows}
           density="comfortable"
-          isFiltered={
-            Boolean(categoryFilter) ||
-            debouncedSearch.trim() !== "" ||
-            allergenFilter.length > 0 ||
-            statusFilter !== "ACTIVE"
-          }
-          onClearFilters={() => {
-            setCategoryFilter("");
-            setSearch("");
-            setAllergenFilter([]);
-            setStatusFilter("ACTIVE");
-          }}
+          isFiltered={isNarrowed}
+          onClearFilters={clearFilters}
           card={{
             primary: (r) => r.name,
             secondary: (r) => `${r.categoryName ?? "Uncategorised"} · ${r.baseUomCode}`,

@@ -72,7 +72,7 @@ function ProvisionPeriodDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="md:max-w-lg">
         <DialogHeader>
           <DialogTitle>Provision Accounting Periods</DialogTitle>
           <DialogDescription>
@@ -82,26 +82,29 @@ function ProvisionPeriodDialog({
 
         <FiscalYearNav fiscalYear={fiscalYear} onChange={handleFiscalYearChange} />
 
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
           {preview.map((period) => {
             const alreadyOpen = existingPeriodNos.has(period.periodNo);
             return (
               <div
                 key={period.periodNo}
-                className={`rounded-md border p-2 text-center text-xs ${
+                className={`rounded-md border p-2 text-center text-label ${
                   alreadyOpen ? "border-muted bg-muted text-muted-foreground" : "border-border"
                 }`}
               >
                 <div className="font-medium">P{period.periodNo}</div>
                 <div className="text-muted-foreground">{period.monthLabel}</div>
-                {alreadyOpen && <div className="mt-1 text-[10px]">Already open</div>}
+                {alreadyOpen && <div className="mt-1 text-label">Already open</div>}
               </div>
             );
           })}
         </div>
 
         {isSuccess && result && (
-          <div className="rounded border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+          <div
+            role="status"
+            className="rounded-lg border border-success/40 bg-success/10 p-3 text-small text-foreground"
+          >
             {result.periodsSeeded === 0
               ? `FY ${fiscalYear} is already fully provisioned.`
               : `Provisioned ${result.periodsSeeded} period(s)${
@@ -111,7 +114,7 @@ function ProvisionPeriodDialog({
         )}
 
         {error && (
-          <p className="text-sm text-destructive" role="alert">
+          <p className="text-small text-destructive" role="alert">
             {getProvisionErrorMessage(error)}
           </p>
         )}

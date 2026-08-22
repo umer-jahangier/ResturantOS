@@ -41,7 +41,33 @@ describe("resolveDashboardPreset", () => {
     expect(resolveDashboardPreset(["MANAGER"], MANAGER_PERMS)).toBe("manager");
     expect(resolveDashboardPreset(["KITCHEN_STAFF"], KITCHEN_PERMS)).toBe("kitchen");
     expect(resolveDashboardPreset(["CASHIER"], CASHIER_PERMS)).toBe("cashier");
-    expect(resolveDashboardPreset(["WAITER"], CASHIER_PERMS)).toBe("cashier");
+  });
+
+  /**
+   * A WAITER used to land here — and this assertion used to REQUIRE it.
+   *
+   * <p>That is the part worth recording. `resolveDashboardPreset(["WAITER"], …) === "cashier"`
+   * was a passing test asserting a defect: a waiter holds no `pos.till.open`, so `cashier-till`
+   * was filtered straight back out and the page opened with the question *"Where is my till, and
+   * what is still open?"* over a page that had declined to answer the till half of it. The test
+   * proved the routing was intentional; it could not notice that the intention was wrong.
+   * Phase 38 gives the role its own preset. `role-dashboards.test.tsx` covers all nine.
+   */
+  it("gives a waiter their own preset rather than a cashier's, minus the till", () => {
+    expect(resolveDashboardPreset(["WAITER"], CASHIER_PERMS)).toBe("waiter");
+  });
+
+  it("gives an accountant their own preset rather than the owner's question", () => {
+    // ACCOUNTANT holds `reporting.report.view`, so before phase 38 it fell past every role
+    // match and was caught by the permission fallback below — which routes to `owner`.
+    expect(resolveDashboardPreset(["ACCOUNTANT"], OWNER_PERMS)).toBe("accountant");
+  });
+
+  it("gives the two roles that used to see NO numbers a dashboard of their own", () => {
+    expect(resolveDashboardPreset(["INVENTORY_MANAGER"], ["inventory.item.view"])).toBe(
+      "inventory",
+    );
+    expect(resolveDashboardPreset(["FINANCE_VIEWER"], ["finance.journal.view"])).toBe("finance");
   });
 
   it("gives a tenant admin the owner view — they answer the same question", () => {

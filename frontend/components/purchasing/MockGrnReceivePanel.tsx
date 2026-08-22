@@ -100,7 +100,7 @@ export function MockGrnReceivePanel({ poId }: { poId: string }) {
 
       <button
         type="button"
-        className="mt-3 rounded bg-primary px-3 py-1 text-sm text-primary-foreground disabled:opacity-50"
+        className="mt-3 rounded bg-primary-solid px-3 py-1 text-sm text-primary-solid-foreground disabled:opacity-50"
         disabled={mockReceive.isPending || !hasAnyPositiveQty || hasInvalidQty}
         onClick={submit}
       >

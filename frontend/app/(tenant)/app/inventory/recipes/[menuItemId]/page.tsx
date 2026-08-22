@@ -24,6 +24,8 @@ import { PermissionGuard } from "@/components/shared/permission-guard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryErrorNotice } from "@/components/ui/query-boundary";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Form,
   FormControl,
@@ -110,7 +112,8 @@ export default function RecipeDetailPage({ params }: { params: Promise<{ menuIte
   const { data: menuItems } = useMenuItemCatalog();
   const { data: ingredients } = useIngredients();
   const { data: uoms } = useUoms();
-  const { data: versions, isLoading } = useRecipeVersions(menuItemId);
+  const versionsQuery = useRecipeVersions(menuItemId);
+  const { data: versions, isLoading } = versionsQuery;
   const createRecipe = useCreateRecipe();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -189,8 +192,40 @@ export default function RecipeDetailPage({ params }: { params: Promise<{ menuIte
   const { data: preview, isFetching } = useRecipeCostPreview(previewInput);
   const isFirstLoad = preview === undefined && previewLines.length > 0;
 
+  /*
+   * Error before loading, and both before "No recipe versions yet" (UI-SPEC §8).
+   *
+   * The empty state below is a teaching one — it offers "Create first recipe version" — and it
+   * was reachable on a FAILED request, because `isError` was never destructured. A chef whose
+   * inventory service was down was invited to re-author a recipe that already exists, and the
+   * new version would have been written against a costing the page could not read.
+   */
+  if (versionsQuery.isError) {
+    return (
+      <div className="space-y-6">
+        <Link href="/app/inventory/recipes" className="text-small text-primary">
+          ← Recipes
+        </Link>
+        <QueryErrorNotice
+          what="this recipe's versions"
+          moduleLabel="Inventory"
+          error={versionsQuery.error}
+          onRetry={() => void versionsQuery.refetch()}
+          isRetrying={versionsQuery.isFetching}
+        />
+      </div>
+    );
+  }
+
   if (isLoading) {
-    return <p className="text-sm text-muted-foreground">Loading recipe…</p>;
+    return (
+      <div className="space-y-6" role="status" aria-label="Loading recipe">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-8 w-64 max-w-full" />
+        <Skeleton className="h-4 w-96 max-w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
   }
 
   const hasVersions = sortedVersions.length > 0;
@@ -291,7 +326,7 @@ export default function RecipeDetailPage({ params }: { params: Promise<{ menuIte
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
                   <p className="text-sm text-foreground">Draft — unsaved</p>
 
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-4 md:grid-cols-2">
                     <FormField
                       control={form.control}
                       name="yieldServings"

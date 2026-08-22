@@ -11,6 +11,7 @@ import {
   isServiceOutage,
 } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { cn } from "@/lib/utils";
 
@@ -381,11 +382,28 @@ export function QueryBoundary({
   return <>{children}</>;
 }
 
+/**
+ * The placeholder a boundary falls back to when its caller supplied no `loading` of its own.
+ *
+ * <h3>Why this is the zone-aware `Skeleton` and not a hand-rolled `animate-pulse`</h3>
+ *
+ * It used to be `<div className="animate-pulse">` with three `bg-muted` blocks inside. That is a
+ * PERPETUAL animation, and this component is not a back-office component — `QueryBoundary` is
+ * adopted by forty-nine files and several of them are the POS terminal and the KDS board. So the
+ * default placeholder of the product's most-used boundary was the one remaining route by which a
+ * shimmer reached an operational screen, on the cheap Android tablet a restaurant actually buys,
+ * for as long as a request was in flight (D-38-04, and 34-05's prohibition on a perpetual
+ * animation in the operational zone).
+ *
+ * `Skeleton` reads the zone from context rather than from the importing file, which is exactly
+ * the property this needed: the same boundary shimmers on a dashboard and sits still on a till,
+ * without any call site choosing.
+ */
 function DefaultSkeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("animate-pulse space-y-2", className)} aria-hidden="true">
+    <div className={cn("space-y-2", className)} aria-hidden="true">
       {[0, 1, 2].map((i) => (
-        <div key={i} className="h-12 rounded-md bg-muted" />
+        <Skeleton key={i} className="h-12" />
       ))}
     </div>
   );

@@ -170,7 +170,7 @@ export function BranchSettingsForm({ branchId }: { branchId: string | null }) {
                   )}
                 />
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="phone"
@@ -231,16 +231,18 @@ export function BranchSettingsForm({ branchId }: { branchId: string | null }) {
                   />
                 </div>
 
-                <div className="grid gap-4 rounded-md border border-dashed p-3 sm:grid-cols-2">
+                <div className="grid gap-4 rounded-md border border-dashed p-3 md:grid-cols-2">
                   <div className="space-y-0.5">
-                    <p className="text-xs text-muted-foreground">Sales tax registration (STRN)</p>
-                    <p className="text-sm">{branch.fbrStrn ?? "Not set"}</p>
+                    <p className="text-label text-muted-foreground">
+                      Sales tax registration (STRN)
+                    </p>
+                    <p className="text-small">{branch.fbrStrn ?? "Not set"}</p>
                   </div>
                   <div className="space-y-0.5">
-                    <p className="text-xs text-muted-foreground">National tax number (NTN)</p>
-                    <p className="text-sm">{branch.ntn ?? "Not set"}</p>
+                    <p className="text-label text-muted-foreground">National tax number (NTN)</p>
+                    <p className="text-small">{branch.ntn ?? "Not set"}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground sm:col-span-2">
+                  <p className="text-label text-muted-foreground md:col-span-2">
                     Read-only here. The branch update API has no field for either, so an editable
                     box would accept your change and discard it. Tax registration is set during
                     onboarding.
@@ -252,7 +254,7 @@ export function BranchSettingsForm({ branchId }: { branchId: string | null }) {
                     {update.isPending ? "Saving…" : "Save changes"}
                   </Button>
                   {savedAt && (
-                    <span role="status" className="text-sm text-muted-foreground">
+                    <span role="status" className="text-small text-muted-foreground">
                       Saved at {savedAt}
                     </span>
                   )}

@@ -158,7 +158,15 @@ export function Sidebar({ groups = navGroups, mobileOpen = false }: SidebarProps
 
   return (
     <TooltipProvider delayDuration={300}>
+      {/*
+        `<aside>` is a `complementary` LANDMARK, and it was unnamed (plan 38-15 task 2). A screen
+        reader listing this document's regions read "complementary" with nothing to distinguish it
+        from any other — while the `<nav>` INSIDE it was already named "Primary". Naming the outer
+        region is what makes the brand block, the branch switcher and the collapse toggle — none
+        of which are navigation, all of which live out here — addressable at all.
+      */}
       <aside
+        aria-label="Sidebar"
         className={cn(
           "flex flex-col border-r bg-background transition-all duration-200",
           // Desktop: always visible, collapsible width

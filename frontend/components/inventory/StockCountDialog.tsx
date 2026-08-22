@@ -93,7 +93,11 @@ export function StockCountDialog({ trigger, open: openProp, onOpenChange }: Stoc
 
   const { branchId } = useCurrentUser();
   const { data: stockLevels } = useStockLevels();
-  const { data: ingredients } = useIngredients();
+  const {
+    data: ingredients,
+    isError: ingredientsFailed,
+    refetch: refetchIngredients,
+  } = useIngredients();
   const postStockCount = usePostStockCount();
 
   const [lines, setLines] = useState<CountLine[]>([]);
@@ -186,7 +190,14 @@ export function StockCountDialog({ trigger, open: openProp, onOpenChange }: Stoc
   function onSubmit() {
     const counted = lines.filter((l) => l.countedQty.trim() !== "");
     if (counted.length === 0) {
-      toast.error("Enter at least one counted quantity before posting.");
+      /*
+       * `.warning`, not `.error` (UI-SPEC §28, plan 38-12 task 6). Nothing failed here — no
+       * request was made. `.error` is the product reporting a fault, and using it for a
+       * precondition the reader is about to satisfy in two seconds spends the one severity that
+       * should mean "something is broken". A person who sees red for their own half-finished
+       * form learns to read red as noise, and the next red one is the outage.
+       */
+      toast.warning("Enter at least one counted quantity before posting.");
       return;
     }
 
@@ -200,7 +211,8 @@ export function StockCountDialog({ trigger, open: openProp, onOpenChange }: Stoc
       );
     });
     if (missingReason.length > 0) {
-      toast.error(
+      // Also a precondition, not a failure: the count is fine, it needs an attributed override.
+      toast.warning(
         missingReason.length === 1
           ? `"${missingReason[0]!.ingredientName}" is over its variance cap — add a reason to post it.`
           : `${missingReason.length} items are over their variance cap — add a reason to each.`,
@@ -232,7 +244,7 @@ export function StockCountDialog({ trigger, open: openProp, onOpenChange }: Stoc
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="md:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Stock count</DialogTitle>
           <DialogDescription>
@@ -240,7 +252,11 @@ export function StockCountDialog({ trigger, open: openProp, onOpenChange }: Stoc
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid max-h-[60vh] gap-4 overflow-y-auto">
+        {/* `dvh`, not `vh` (38-14): on iOS Safari `vh` resolves to the LARGEST viewport height,
+            so a scroll region sized in `vh` extends under the browser chrome — and inside a
+            dialog that is now a bottom sheet below `md`, the part that goes under it is the
+            footer, i.e. the Save button. */}
+        <div className="grid max-h-[60dvh] gap-4 overflow-y-auto">
           <div className="flex items-end gap-2">
             <div className="flex-1">
               <p className="mb-1 text-xs text-muted-foreground">Add an item not listed below</p>
@@ -251,6 +267,11 @@ export function StockCountDialog({ trigger, open: openProp, onOpenChange }: Stoc
                 placeholder="Search ingredients…"
                 emptyHeading="No ingredients match"
                 emptyBody="Try a different search."
+                // Worst of the six: a counter told "no ingredients match" while the catalog was
+                // down will create a duplicate ingredient, and the count sheet carries it for ever.
+                isError={ingredientsFailed}
+                errorLabel="your ingredients"
+                onRetry={() => void refetchIngredients()}
               />
             </div>
           </div>

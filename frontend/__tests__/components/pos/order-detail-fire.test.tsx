@@ -168,13 +168,23 @@ describe("order-detail-fire (Send New Items CTA + panelized surface)", () => {
     expect(screen.queryByTestId("send-new-items-button")).not.toBeInTheDocument();
   });
 
-  it("renders no sm:max-w-md dialog class anywhere in the surface", async () => {
+  it("renders no centred narrow-dialog width class anywhere in the surface", async () => {
     const { container } = renderDrawer();
 
     await waitFor(() => {
       expect(screen.getByTestId("order-table-detail-drawer")).toBeInTheDocument();
     });
-    expect(container.querySelector('[class*="sm:max-w-md"]')).toBeNull();
+    // 38-14 renamed every dialog width variant `sm:` → `md:`, because the declared breakpoint
+    // set is 390/768/1024/1440 and 640 is none of them. This assertion looked for the literal
+    // `sm:max-w-md`, so after that migration it could no longer fail: the string it searched
+    // for does not exist anywhere in the product. Both spellings are checked now — the live
+    // one because that is the defect, the retired one because a revert would bring it back.
+    for (const width of ["md:max-w-md", "sm:max-w-md"]) {
+      expect(
+        container.querySelector(`[class*="${width}"]`),
+        `POS-25: the panelised order surface must not carry the centred "${width}" dialog width`,
+      ).toBeNull();
+    }
   });
 
   it("resolves an order in tableId mode too (both modes reach the same surface)", async () => {

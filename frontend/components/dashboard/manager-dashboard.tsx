@@ -2,16 +2,12 @@
 
 import { useMemo } from "react";
 
-import { DashboardShell, PortletRow, useNow } from "@/components/dashboard/dashboard-shell";
-import {
-  ExceptionList,
-  KpiTile,
-  RankedList,
-  RecordList,
-} from "@/components/dashboard/portlets/portlet";
-import { DASHBOARD_PRESETS, visiblePortlets } from "@/components/dashboard/presets";
-import { getAgingState, formatAge } from "@/components/kds/kds-aging";
-import { QueryBoundary } from "@/components/ui/query-boundary";
+import { DashboardShell, useNow } from "@/components/dashboard/dashboard-shell";
+import { PortletGrid, type PortletModels } from "@/components/dashboard/portlets/portlet-renderer";
+import { DASHBOARD_PRESETS, type ManagerPortlets } from "@/components/dashboard/presets";
+import { getAgingState } from "@/components/kds/kds-aging";
+import { formatElapsedLong } from "@/lib/format/elapsed";
+import { formatDateTime } from "@/lib/format/locale";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useKdsStations, useKdsTickets } from "@/lib/hooks/kds/use-kds-tickets";
@@ -19,6 +15,8 @@ import { useMenuItemsAdmin } from "@/lib/hooks/pos/use-menu-admin";
 import { useOrderSummaries, useTables } from "@/lib/hooks/pos/use-orders";
 import { useBranchTills } from "@/lib/hooks/pos/use-till";
 import type { KdsTicket } from "@/lib/models/kds.model";
+import type { ExceptionRow } from "@/components/dashboard/portlets/portlet";
+import { formatNumber } from "@/lib/format/locale";
 
 const PRESET = DASHBOARD_PRESETS.manager;
 
@@ -40,11 +38,29 @@ const TERMINAL_STATUSES = new Set(["CLOSED", "VOIDED", "REFUNDED"]);
  * is late on the board, with the same fraction against the same per-station
  * `escalationThresholdSeconds`. Re-deriving "late" from a hardcoded 15 minutes on this page
  * would produce two numbers that disagree, and a manager who trusts neither.
+ *
+ * <h3>Error granularity: ONE boundary PER PORTLET, not one over the page (UI-SPEC §8.1.1)</h3>
+ *
+ * This screen used to open with a single `<QueryBoundary query={[ordersQuery, ticketsQuery,
+ * stationsQuery, tablesQuery]}>` wrapped around everything. `QueryBoundary` fails an array as a
+ * unit — deliberately, and correctly, because a LIST rendered from a partial set of its inputs
+ * is a lie. But that contract only holds when every query in the array feeds the same region.
+ * Here they fed four independent tiles, so one 503 from any one service replaced all four with a
+ * single error box — and then the two rows below it as well.
+ *
+ * <p>That is not hypothetical. It is what the audit's very first screenshot captured: the whole
+ * manager dashboard reduced to "Couldn't load today's service. [Try again]" by a transient
+ * Eureka round-robin 503, which is also how phase 34's positive control came to be anchored on
+ * an error state and silently skip for weeks.
+ *
+ * <p>Each `boundary` below therefore names only the queries its own portlet reads, and the
+ * renderer wraps that portlet and nothing else. Brief §25: "do not freeze the entire interface;
+ * prefer localized states." The eight hand-written `<QueryBoundary>` wrappers that used to
+ * express this are gone — the same guarantee now travels with the DATA, which is what makes it
+ * survivable when a ninth portlet is added.
  */
 export function ManagerDashboard() {
   const { branchId, permissions } = useCurrentUser();
-  const portlets = useMemo(() => visiblePortlets(PRESET, permissions), [permissions]);
-  const shown = useMemo(() => new Set(portlets.map((p) => p.id)), [portlets]);
 
   const ordersQuery = useOrderSummaries();
   const ticketsQuery = useKdsTickets(branchId);
@@ -116,7 +132,7 @@ export function ManagerDashboard() {
     // No `fraction`. "This item is 86'd" is a boolean, not a magnitude — there is nothing to
     // rank these rows BY, so there is no honest bar to draw. Passing `fraction: 1` (as this did)
     // drew a full-width bar on every row, always: a chart encoding nothing, on the same screen
-    // as `stationLoad` below, which computes a real `count / max`. UI-SPEC §9.1.
+    // as `stationLoad` above, which computes a real `count / max`. UI-SPEC §9.1.
     return inactive.slice(0, 6).map((i) => ({
       key: i.id,
       label: i.name,
@@ -124,18 +140,29 @@ export function ManagerDashboard() {
     }));
   }, [menuItems]);
 
-  const exceptions = useMemo(() => {
-    const rows = lateTickets.slice(0, 4).map((t: KdsTicket) => ({
+  const exceptions = useMemo<ExceptionRow[]>(() => {
+    const rows: ExceptionRow[] = lateTickets.slice(0, 4).map((t: KdsTicket) => ({
       key: `late-${t.id}`,
       label: `${t.orderNo ?? t.id.slice(0, 8)} is late at ${t.stationCode}`,
-      detail: `${formatAge(now - t.receivedAt.getTime())} on the board — past this station's target`,
+      // PROSE, and BOUNDED — `lib/format/elapsed.ts`, whose docblock names this very line: the
+      // deleted `formatAge` was a ticket-face `mm:ss` timer, so a check left open over a close
+      // rendered `114:01:07` here, inside a sentence, in the danger row. The long form says
+      // `5d`, and past thirty days it names the date instead of counting at all.
+      detail: `${formatElapsedLong(t.receivedAt, now)} on the board — past this station's target`,
       severity: "danger" as const,
     }));
     for (const till of todaysTills.filter((t) => t.status === "OPEN")) {
       rows.push({
         key: `till-${till.id}`,
         label: "A till is still open",
-        detail: `Opened ${till.openedAt ? new Date(till.openedAt).toLocaleTimeString() : "today"} and not yet counted`,
+        // `toLocaleTimeString()` before this: an unpinned locale AND an unpinned zone, so a till
+        // opened 23:30 in Karachi read as the previous day on a UTC server. `formatDateTime`
+        // pins both.
+        detail: `Opened ${
+          till.openedAt
+            ? formatDateTime(till.openedAt, { hour: "2-digit", minute: "2-digit" })
+            : "today"
+        } and not yet counted`,
         severity: "danger" as const,
       });
     }
@@ -144,9 +171,15 @@ export function ManagerDashboard() {
         key: `review-${till.id}`,
         label: "A till session is waiting on your review",
         detail:
-          till.variancePaisa == null
-            ? "Not yet counted"
-            : `Variance Rs ${(till.variancePaisa / 100).toFixed(2)}`,
+          till.variancePaisa == null ? (
+            "Not yet counted"
+          ) : (
+            // Was `Rs ${(till.variancePaisa / 100).toFixed(2)}` — a hand-rolled money path in a
+            // template literal. `ExceptionRow.detail` is a ReactNode, so `MoneyDisplay` fits.
+            <>
+              Variance <MoneyDisplay paisa={till.variancePaisa} sign="signed" />
+            </>
+          ),
         severity: "danger" as const,
       });
     }
@@ -165,155 +198,89 @@ export function ManagerDashboard() {
     [openOrders],
   );
 
+  // Both queries genuinely feed the two KDS numbers: "late" is decided against each station's
+  // own escalationThresholdSeconds, so a ticket list without its stations would silently fall
+  // back to the 900s default and report a different count.
+  const board = { query: [ticketsQuery, stationsQuery], what: "the kitchen board" };
+
+  const models: PortletModels<ManagerPortlets> = {
+    "manager-open-orders": {
+      kind: "KpiTile",
+      value: openOrders.length.toString(),
+      caption: `${orders.length} order${orders.length === 1 ? "" : "s"} in view`,
+      tone: openOrders.length > 0 ? "warning" : "neutral",
+      boundary: { query: ordersQuery, what: "open orders" },
+    },
+    "manager-late-tickets": {
+      kind: "KpiTile",
+      value: lateTickets.length.toString(),
+      caption: `${liveTickets.length} on the board now`,
+      // `higherIsBetter={false}` used to be passed here with no delta beside it — inert, because
+      // the delta row renders only when `deltaPct !== undefined`. There is no honest prior
+      // period for "tickets late right now": the system stores no historical snapshot of it. The
+      // type now refuses the prop rather than inviting someone to invent the delta.
+      tone: lateTickets.length > 0 ? "danger" : "neutral",
+      boundary: board,
+    },
+    "manager-till-variance":
+      todaysTills.length === 0 || countedTills.length === 0
+        ? {
+            kind: "KpiTile",
+            caption: `${countedTills.length} of ${todaysTills.length} till${todaysTills.length === 1 ? "" : "s"} counted`,
+            unavailableReason:
+              todaysTills.length === 0
+                ? "No till has been opened today."
+                : "No till has been counted yet today.",
+            boundary: { query: tillsQuery, what: "till sessions" },
+          }
+        : {
+            kind: "KpiTile",
+            value: <MoneyDisplay paisa={variancePaisa} sign="signed" />,
+            caption: `${countedTills.length} of ${todaysTills.length} till${todaysTills.length === 1 ? "" : "s"} counted`,
+            boundary: { query: tillsQuery, what: "till sessions" },
+          },
+    "manager-tables-occupied": {
+      kind: "KpiTile",
+      // See waiter-dashboard: pinned formatter, so this ratio groups like its neighbours.
+      value: `${formatNumber(occupiedTables)} / ${formatNumber(tables.length)}`,
+      caption: `${tables.length - occupiedTables} free right now`,
+      boundary: { query: tablesQuery, what: "tables" },
+    },
+    "manager-live-orders": {
+      kind: "RecordList",
+      rows: liveOrderRows,
+      emptyLabel: "Nothing open — every order is settled.",
+      boundary: { query: ordersQuery, what: "live orders" },
+    },
+    "manager-station-load": {
+      kind: "RankedList",
+      rows: stationLoad,
+      emptyLabel: "Every station is clear.",
+      boundary: { query: [ticketsQuery, stationsQuery], what: "station load" },
+    },
+    "manager-exceptions": {
+      kind: "ExceptionList",
+      rows: exceptions,
+      emptyLabel: "Nothing needs you right now.",
+      // "Act now" merges late tickets and till exceptions, so it does need all three — and here
+      // failing as a unit is right: a half-populated exception list would tell a manager nothing
+      // needs them when something does.
+      boundary: {
+        query: [ticketsQuery, stationsQuery, tillsQuery],
+        what: "the exception list",
+      },
+    },
+    "manager-86d": {
+      kind: "RankedList",
+      rows: eightySixed,
+      emptyLabel: "Every menu item is available.",
+      boundary: { query: menuQuery, what: "menu availability" },
+    },
+  };
+
   return (
     <DashboardShell preset={PRESET}>
-      {/*
-       * Error granularity: ONE boundary PER PORTLET, not one over the page (UI-SPEC §8.1.1).
-       *
-       * This screen used to open with a single
-       *   <QueryBoundary query={[ordersQuery, ticketsQuery, stationsQuery, tablesQuery]}>
-       * wrapped around everything. `QueryBoundary` fails an array as a unit — deliberately, and
-       * correctly, because a LIST rendered from a partial set of its inputs is a lie. But that
-       * contract only holds when every query in the array feeds the same region. Here they fed
-       * four independent tiles, so one 503 from any one service replaced all four with a single
-       * error box — and then the two rows below it as well.
-       *
-       * That is not a hypothetical. It is what the audit's very first screenshot captured: the
-       * whole manager dashboard reduced to "Couldn't load today's service. [Try again]" by a
-       * transient Eureka round-robin 503, which is also how phase 34's positive control came to
-       * be anchored on an error state and silently skip for weeks.
-       *
-       * So each boundary below wraps the smallest region whose content is genuinely unavailable,
-       * and names only the queries that region actually reads. A tile whose own query succeeded
-       * now renders. Brief §25: "do not freeze the entire interface; prefer localized states."
-       */}
-      <PortletRow density={PRESET.density} columns={4}>
-        {shown.has("manager-open-orders") && (
-          <QueryBoundary query={ordersQuery} what="open orders">
-            <KpiTile
-              id="manager-open-orders"
-              title="Open orders"
-              drillTo="/app/pos/orders"
-              density={PRESET.density}
-              value={openOrders.length.toString()}
-              caption={`${orders.length} order${orders.length === 1 ? "" : "s"} in view`}
-              tone={openOrders.length > 0 ? "warning" : "neutral"}
-            />
-          </QueryBoundary>
-        )}
-        {shown.has("manager-late-tickets") && (
-          // Both queries genuinely feed this one number: "late" is decided against each
-          // station's own escalationThresholdSeconds, so a ticket list without its stations
-          // would silently fall back to the 900s default and report a different count.
-          <QueryBoundary query={[ticketsQuery, stationsQuery]} what="late tickets">
-            <KpiTile
-              id="manager-late-tickets"
-              title="Late tickets"
-              drillTo="/app/kitchen"
-              density={PRESET.density}
-              value={lateTickets.length.toString()}
-              caption={`${liveTickets.length} on the board now`}
-              higherIsBetter={false}
-              tone={lateTickets.length > 0 ? "danger" : "neutral"}
-            />
-          </QueryBoundary>
-        )}
-        {shown.has("manager-till-variance") && (
-          // Already correct before this change, and the model for the rest: `tillsQuery` was
-          // never in the page-wide array, and the tile says WHY a figure is absent rather than
-          // showing a confident zero.
-          <QueryBoundary query={tillsQuery} what="till sessions">
-            <KpiTile
-              id="manager-till-variance"
-              title="Till variance today"
-              drillTo="/app/pos/tills"
-              density={PRESET.density}
-              value={<MoneyDisplay paisa={variancePaisa} />}
-              caption={`${countedTills.length} of ${todaysTills.length} till${todaysTills.length === 1 ? "" : "s"} counted`}
-              higherIsBetter={false}
-              unavailableReason={
-                todaysTills.length === 0
-                  ? "No till has been opened today."
-                  : countedTills.length === 0
-                    ? "No till has been counted yet today."
-                    : undefined
-              }
-            />
-          </QueryBoundary>
-        )}
-        {shown.has("manager-tables-occupied") && (
-          <QueryBoundary query={tablesQuery} what="tables">
-            <KpiTile
-              id="manager-tables-occupied"
-              title="Tables occupied"
-              drillTo="/app/pos"
-              density={PRESET.density}
-              value={`${occupiedTables} / ${tables.length}`}
-              caption={`${tables.length - occupiedTables} free right now`}
-            />
-          </QueryBoundary>
-        )}
-      </PortletRow>
-
-      <PortletRow density={PRESET.density} columns={2}>
-        {shown.has("manager-live-orders") && (
-          <QueryBoundary query={ordersQuery} what="live orders">
-            <RecordList
-              id="manager-live-orders"
-              title="Live orders"
-              drillTo="/app/pos/orders"
-              density={PRESET.density}
-              rows={liveOrderRows}
-              emptyLabel="Nothing open — every order is settled."
-            />
-          </QueryBoundary>
-        )}
-        {shown.has("manager-station-load") && (
-          <QueryBoundary query={[ticketsQuery, stationsQuery]} what="station load">
-            <RankedList
-              id="manager-station-load"
-              title="Station load"
-              drillTo="/app/kitchen"
-              density={PRESET.density}
-              rows={stationLoad}
-              emptyLabel="Every station is clear."
-            />
-          </QueryBoundary>
-        )}
-      </PortletRow>
-
-      <PortletRow density={PRESET.density} columns={2}>
-        {shown.has("manager-exceptions") && (
-          // "Act now" merges late tickets and till exceptions, so it does need all three —
-          // and here failing as a unit is right: a half-populated exception list would tell a
-          // manager nothing needs them when something does.
-          <QueryBoundary
-            query={[ticketsQuery, stationsQuery, tillsQuery]}
-            what="the exception list"
-          >
-            <ExceptionList
-              id="manager-exceptions"
-              title="Act now"
-              drillTo="/app/pos/orders"
-              density={PRESET.density}
-              rows={exceptions}
-              emptyLabel="Nothing needs you right now."
-            />
-          </QueryBoundary>
-        )}
-        {shown.has("manager-86d") && (
-          <QueryBoundary query={menuQuery} what="menu availability">
-            <RankedList
-              id="manager-86d"
-              title="86'd items"
-              drillTo="/app/menu"
-              density={PRESET.density}
-              rows={eightySixed}
-              emptyLabel="Every menu item is available."
-            />
-          </QueryBoundary>
-        )}
-      </PortletRow>
+      <PortletGrid preset={PRESET} permissions={permissions} models={models} />
     </DashboardShell>
   );
 }

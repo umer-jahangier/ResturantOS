@@ -130,7 +130,7 @@ export function RoleBuilderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] w-[min(100vw-1.5rem,44rem)] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[92dvh] w-[min(100vw-1.5rem,44rem)] overflow-y-auto md:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{isEdit ? `Edit ${role?.name}` : "New role"}</DialogTitle>
           <DialogDescription>

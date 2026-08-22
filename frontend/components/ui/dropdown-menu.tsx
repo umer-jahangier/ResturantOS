@@ -4,6 +4,8 @@ import * as React from "react";
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui";
 
 import { cn } from "@/lib/utils";
+import { useZone, ZoneProvider } from "@/components/providers/zone-provider";
+import { overlayEntranceClass } from "@/components/ui/overlay-motion";
 import { CheckIcon, ChevronRightIcon } from "lucide-react";
 
 function DropdownMenu({ ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
@@ -22,24 +24,40 @@ function DropdownMenuTrigger({
   return <DropdownMenuPrimitive.Trigger data-slot="dropdown-menu-trigger" {...props} />;
 }
 
+/**
+ * The menu surface.
+ *
+ * <p>Zoned entrance (D-38-04). The stock utilities here were a `zoom-in-95` plus a per-side
+ * `slide-in-from-*`, both transform-carrying, on a menu the POS row actions and the KDS ticket
+ * actions open all shift. `overlayEntranceClass` emits nothing on an operational surface, and
+ * the `ZoneProvider` re-publishes the zone INSIDE the portal so the expressive-scoped rule has
+ * an ancestor to match — see the note on `DialogContent`, which is the same problem.
+ *
+ * <p>`origin-(--radix-…-transform-origin)` stays: `transform-origin` creates no containing block
+ * and is what makes the scale grow out of the trigger rather than the element's centre.
+ */
 function DropdownMenuContent({
   className,
   align = "start",
   sideOffset = 4,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
+  const zone = useZone();
   return (
     <DropdownMenuPrimitive.Portal>
-      <DropdownMenuPrimitive.Content
-        data-slot="dropdown-menu-content"
-        sideOffset={sideOffset}
-        align={align}
-        className={cn(
-          "z-50 max-h-(--radix-dropdown-menu-content-available-height) w-(--radix-dropdown-menu-trigger-width) min-w-32 origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10 duration-100 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:overflow-hidden data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-          className,
-        )}
-        {...props}
-      />
+      <ZoneProvider zone={zone}>
+        <DropdownMenuPrimitive.Content
+          data-slot="dropdown-menu-content"
+          sideOffset={sideOffset}
+          align={align}
+          className={cn(
+            "z-50 max-h-(--radix-dropdown-menu-content-available-height) w-(--radix-dropdown-menu-trigger-width) min-w-32 origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10 duration-100 data-[state=closed]:overflow-hidden",
+            overlayEntranceClass(zone),
+            className,
+          )}
+          {...props}
+        />
+      </ZoneProvider>
     </DropdownMenuPrimitive.Portal>
   );
 }
@@ -215,15 +233,26 @@ function DropdownMenuSubTrigger({
   );
 }
 
+/**
+ * The submenu surface — same zoning as {@link DropdownMenuContent}, one wrapper fewer.
+ *
+ * <p>Radix renders sub-content IN PLACE rather than through a portal of its own
+ * (`MenuSubContent` mounts a Popper at the JSX position), so it lands inside the parent menu's
+ * `ZoneProvider` and already has the `data-zone` ancestor the entrance rule needs. Adding a
+ * second wrapper here would put a stray element inside `[role="menu"]` and buy nothing. Verified
+ * in the DOM by the sub-menu case in `overlay-zone-motion.test.tsx` rather than assumed.
+ */
 function DropdownMenuSubContent({
   className,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.SubContent>) {
+  const zone = useZone();
   return (
     <DropdownMenuPrimitive.SubContent
       data-slot="dropdown-menu-sub-content"
       className={cn(
-        "z-50 min-w-[96px] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-lg bg-popover p-1 text-popover-foreground shadow-lg ring-1 ring-foreground/10 duration-100 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+        "z-50 min-w-[96px] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-lg bg-popover p-1 text-popover-foreground shadow-lg ring-1 ring-foreground/10 duration-100",
+        overlayEntranceClass(zone),
         className,
       )}
       {...props}

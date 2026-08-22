@@ -10,6 +10,7 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   type Row,
+  type RowData,
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table";
@@ -51,6 +52,58 @@ import { EmptyState } from "@/components/ui/empty-state";
  * `dependency-budget.test.ts`. Pagination at 25/50/100 makes the 200-row case moot: the worst
  * list in the product is 84 rows, and it is now paged. The spec wins over the plan.
  */
+
+/**
+ * Column priority — the narrow-viewport answer *between* the full table and the card list.
+ *
+ * <h3>The measurement this exists for</h3>
+ *
+ * The card fallback below solves 390px. It does not solve **1024px**, and the audit measured that
+ * separately: `/app/inventory/stock` put **42 elements past the viewport at 1024px**. At that
+ * width the card list is gone (it is `md:hidden`) and the eight-column table is back — eight
+ * `whitespace-nowrap` columns inside roughly 780px of content area once the sidebar is paid for.
+ *
+ * <p>The wrapper's `overflow-x-auto` means nothing is *clipped*: the last columns are reachable by
+ * scrolling. That is why the earlier probe could report a healthy page while the screen was
+ * unreadable, and it is exactly the distinction 38-14 draws — **a table that becomes a
+ * horizontally-scrolling strip has not adapted, it has been shrunk.** Reachable is not adapted.
+ *
+ * <h3>Why hiding a column is honest here and hiding a row's value would not be</h3>
+ *
+ * A dropped column is a *deferred* fact, not a denied one: the same row's card view carries the
+ * values that matter on a phone, and widening the window brings the column back with no state to
+ * restore. Nothing is summarised, rounded or approximated — the distinction D-38-16 draws between
+ * an absence and a made-up figure is untouched, because no figure is invented.
+ *
+ * <p>It is the caller's judgement, never the component's: `DataGrid` has no idea whether "Avg
+ * cost" or "Reorder point" is the one a buyer scans for, so it declines to guess. A column with
+ * no `hideBelow` is visible at every width, which keeps every existing call site unchanged.
+ *
+ * <p>`table-cell` rather than `block` on the restore: a `<td>` put back as `display: block` leaves
+ * the table row, and the row's remaining cells silently re-flow into the wrong columns.
+ */
+const HIDE_BELOW = {
+  md: "hidden md:table-cell",
+  lg: "hidden lg:table-cell",
+  xl: "hidden xl:table-cell",
+} as const;
+
+export type HideBelow = keyof typeof HIDE_BELOW;
+
+declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- the shape of the interface
+  // TanStack augments; both parameters are required by its declaration and neither is referenced.
+  interface ColumnMeta<TData extends RowData, TValue> {
+    /**
+     * Drop this column below the named breakpoint. Omit it and the column is always visible.
+     *
+     * <p>Only the three breakpoints the audit measures at are offered — 768, 1024, 1280. There is
+     * deliberately no arbitrary-pixel escape hatch: a per-column one-off breakpoint is how a
+     * product ends up with the "dozens of breakpoints" brief §60 names.
+     */
+    hideBelow?: HideBelow;
+  }
+}
 
 /** UI-SPEC §2: both on the 4-grid; 44 is the WCAG 2.2 SC 2.5.5 target size. */
 const ROW_HEIGHT = {
@@ -171,11 +224,34 @@ export function DataGrid<TData>({
 
   if (isLoading) return <DataTableSkeleton columns={columns.length} />;
 
-  if (data.length === 0) {
-    return isFiltered ? (
+  const totalRows = table.getFilteredRowModel().rows.length;
+
+  /*
+   * Filtered-empty is decided on the rows that SURVIVED the filter, not on the array that came in.
+   *
+   * <h3>The hole this closes</h3>
+   *
+   * The check used to be `data.length === 0`, and `columnFilters` is applied by TanStack INSIDE
+   * the table — so a screen that narrows client-side (`/app/inventory/stock` and the three other
+   * `DataTable` callers) handed in a full `data` array, filtered it down to nothing, and fell
+   * through both branches into the table render. The result was a header, a pager reading
+   * "0 of 84", and a body with no rows and no sentence in it at all: not the wrong state, the
+   * absence of one. A person who typed a search saw a table that looked broken.
+   *
+   * <p>`isFiltered` is still the caller's word for a filter this component cannot see — a server
+   * query, a date range, a tab. An active `columnFilters` is one it CAN see, and inferring it
+   * means the four façade callers get the distinction without touching four screens. UI-SPEC §8.3
+   * only cares that the two states are told apart; it does not care which layer noticed.
+   */
+  const narrowed = isFiltered || (columnFilters?.length ?? 0) > 0;
+
+  if (totalRows === 0) {
+    return narrowed ? (
       <EmptyState
         title="Nothing matches these filters."
         description="Try widening or clearing them to see more."
+        /* The way OUT of the filter, never a create CTA: someone who is filtering has not asked
+           to add a record, and offering one answers a question they did not ask. */
         action={onClearFilters ? { label: "Clear all", onClick: onClearFilters } : undefined}
       />
     ) : (
@@ -188,7 +264,6 @@ export function DataGrid<TData>({
   }
 
   const rows = table.getRowModel().rows;
-  const totalRows = table.getFilteredRowModel().rows.length;
   const pageCount = table.getPageCount();
   const pageIndex = table.getState().pagination.pageIndex;
   const selectedRows = getRowId ? data.filter((r) => selected.has(getRowId(r))) : [];
@@ -271,6 +346,7 @@ export function DataGrid<TData>({
                 {headerGroup.headers.map((header) => {
                   const canSort = header.column.getCanSort();
                   const sorted = header.column.getIsSorted();
+                  const hide = header.column.columnDef.meta?.hideBelow;
                   return (
                     <th
                       key={header.id}
@@ -292,6 +368,7 @@ export function DataGrid<TData>({
                         // UI-SPEC §3: a column header IS the Label role.
                         "text-label uppercase tracking-[0.04em] text-foreground-secondary",
                         CELL_PADDING[density],
+                        hide && HIDE_BELOW[hide],
                       )}
                     >
                       {header.isPlaceholder ? null : canSort ? (
@@ -349,19 +426,27 @@ export function DataGrid<TData>({
                       />
                     </td>
                   )}
-                  {row.getVisibleCells().map((cell) => (
-                    <td
-                      key={cell.id}
-                      // `whitespace-nowrap` is what actually holds the row to ONE height: `h-11`
-                      // on the <tr> is a MINIMUM, and a wrapping cell overrides it silently.
-                      // Measured on /app/inventory/stock before this: 44px and 55px in one body.
-                      // Overflow scrolls horizontally in the wrapper rather than being clipped,
-                      // so nothing becomes unreadable — it becomes reachable.
-                      className={cn(CELL_PADDING[density], "align-middle whitespace-nowrap")}
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
+                  {row.getVisibleCells().map((cell) => {
+                    const hide = cell.column.columnDef.meta?.hideBelow;
+                    return (
+                      <td
+                        key={cell.id}
+                        // `whitespace-nowrap` is what actually holds the row to ONE height: `h-11`
+                        // on the <tr> is a MINIMUM, and a wrapping cell overrides it silently.
+                        // Measured on /app/inventory/stock before this: 44px and 55px in one body.
+                        // Overflow scrolls horizontally in the wrapper rather than being clipped,
+                        // so nothing becomes unreadable — it becomes reachable. Reachable is not
+                        // adapted, which is what `meta.hideBelow` is for; see HIDE_BELOW above.
+                        className={cn(
+                          CELL_PADDING[density],
+                          "align-middle whitespace-nowrap",
+                          hide && HIDE_BELOW[hide],
+                        )}
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    );
+                  })}
                 </tr>
               );
             })}

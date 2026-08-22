@@ -1,8 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 
 import { KdsTicketCard } from "@/components/kds/kds-ticket-card";
-import { formatAge, getAgingTreatment } from "@/components/kds/kds-aging";
+import { getAgingTreatment } from "@/components/kds/kds-aging";
 import type { KdsTicket, KdsTicketItem } from "@/lib/models/kds.model";
 
 /**
@@ -19,6 +19,20 @@ import type { KdsTicket, KdsTicketItem } from "@/lib/models/kds.model";
  * sufficient, plus a fill change for late (§3.7). The tests below would fail if every colour
  * token in the file were replaced with the same grey.
  */
+
+/**
+ * One fixed `now` for the whole file, and the KDS clock is mocked to it.
+ *
+ * Never the wall clock. `__tests__/kds/kds-clear-stale.test.tsx` hardcoded an instant against a
+ * live clock and was red from 2026-08-13 onward without a line of source changing; every instant
+ * below is derived from this constant, so there is no second clock to drift against.
+ */
+const NOW = Date.UTC(2026, 7, 21, 12, 0, 0);
+
+vi.mock("@/lib/hooks/kds/use-kds-clock", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/hooks/kds/use-kds-clock")>();
+  return { ...actual, useKdsClock: () => NOW };
+});
 
 function makeItem(overrides: Partial<KdsTicketItem> = {}): KdsTicketItem {
   return {
@@ -43,7 +57,7 @@ function makeTicket(overrides: Partial<KdsTicket> = {}): KdsTicket {
     stationCode: "GRILL",
     status: "PENDING",
     priority: false,
-    receivedAt: new Date(Date.now() - 5 * 60_000),
+    receivedAt: new Date(NOW - 5 * 60_000),
     startedAt: null,
     readyAt: null,
     clearedAt: null,
@@ -56,11 +70,11 @@ function makeTicket(overrides: Partial<KdsTicket> = {}): KdsTicket {
 }
 
 /** 5 min old vs a 900s threshold = 0.33 — fresh. */
-const FRESH = { receivedAt: new Date(Date.now() - 5 * 60_000), threshold: 900 };
+const FRESH = { receivedAt: new Date(NOW - 5 * 60_000), threshold: 900 };
 /** 7 min old vs a 600s threshold = 0.70 — warn. */
-const WARN = { receivedAt: new Date(Date.now() - 7 * 60_000), threshold: 600 };
+const WARN = { receivedAt: new Date(NOW - 7 * 60_000), threshold: 600 };
 /** 12 min old vs a 600s threshold = 1.20 — late. */
-const LATE = { receivedAt: new Date(Date.now() - 12 * 60_000), threshold: 600 };
+const LATE = { receivedAt: new Date(NOW - 12 * 60_000), threshold: 600 };
 
 describe("KdsTicketCard — the ticket face (UI-SPEC §7.2)", () => {
   it("renders ONE LINE PER ITEM, not a comma-joined truncated string", () => {
@@ -288,15 +302,54 @@ describe("getAgingTreatment — the fraction logic is unchanged from the pre-21 
   });
 });
 
-describe("formatAge", () => {
-  it("is mm:ss, per the §7.2 ticket face", () => {
-    expect(formatAge(6 * 60_000 + 12_000)).toBe("06:12");
-    expect(formatAge(0)).toBe("00:00");
-    expect(formatAge(59_000)).toBe("00:59");
+/**
+ * The chip's timer, asserted on the CARD rather than on a formatter.
+ *
+ * `kds-aging.ts` owned a `formatAge` of its own until 38-05 — this codebase's second of three
+ * disagreeing duration formatters — and the tests that used to live here asserted it directly.
+ * That is the wrong place to assert: `__tests__/lib/format/elapsed.test.ts` already proves the
+ * arithmetic 35 ways, and it proved it for `station-picker.tsx` too, which went on rendering
+ * `Oldest 113h 52m` because it never called the module. What is worth pinning here is that THIS
+ * face calls it — so these render the real card and read the string a cook reads.
+ *
+ * The clock is injected. A fixture that trusts the wall clock is how
+ * `kds-clear-stale.test.tsx:241` went red on 2026-08-13 while nothing about the code had changed.
+ */
+describe("the age chip is the ONE bounded formatter, on the card", () => {
+  function chipAt(agoMs: number): HTMLElement {
+    render(
+      <KdsTicketCard
+        ticket={makeTicket({ receivedAt: new Date(NOW - agoMs) })}
+        escalationThresholdSeconds={900}
+      />,
+    );
+    return screen.getByTestId("kds-ticket-age");
+  }
+
+  it("is mm:ss under an hour, per the §7.2 ticket face", () => {
+    expect(chipAt(6 * 60_000 + 12_000)).toHaveTextContent("06:12");
   });
 
-  it("becomes h:mm:ss past an hour rather than running the minute field to four digits", () => {
-    // A four-day-old seeded ticket rendered "5772:14" — noise, not a number, at two metres.
-    expect(formatAge(4 * 3600_000 + 5 * 60_000 + 3_000)).toBe("4:05:03");
+  it("spells the units past an hour — `13:47` must not mean both 13 min and 13 h on one board", () => {
+    // The deleted formatter ran `h:mm:ss` forever and rendered this as `4:05:03`.
+    expect(chipAt(4 * 3_600_000 + 5 * 60_000 + 3_000)).toHaveTextContent("4h 5m");
+  });
+
+  it("STOPS COUNTING past 24 h and names the day the ticket was fired", () => {
+    // A four-day-old seeded ticket rendered `5772:14` — noise, not a number, at two metres.
+    // Asserted by SHAPE, not by a literal day: the exact date depends on the runner's zone,
+    // and a fixture that encodes one is the same class of rot as one that reads the wall clock.
+    const chip = chipAt(4 * 86_400_000 + 17 * 3_600_000);
+    expect(chip.textContent).toMatch(/\d{1,2} [A-Za-z]{3}/);
+    expect(chip.textContent, "past the bound the chip must not still be a timer").not.toMatch(
+      /\d+:\d\d/,
+    );
+  });
+
+  it("announces WORDS to a screen reader, never the chip's own `07:42`", () => {
+    // Announced bare, `07:42` is read as a clock time — a different fact entirely.
+    const label = chipAt(7 * 60_000 + 42_000).getAttribute("aria-label");
+    expect(label).toContain("7 minutes 42 seconds");
+    expect(label).not.toContain("07:42");
   });
 });

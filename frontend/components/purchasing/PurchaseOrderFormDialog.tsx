@@ -138,6 +138,17 @@ interface PoLineItemPickerProps {
   value: string;
   disabled: boolean;
   isLoading: boolean;
+  /**
+   * Whether the vendor's catalog request FAILED.
+   *
+   * <p>Without it the picker fell back to *"No catalog items match &ldquo;flour&rdquo;"* whenever
+   * `useVendorItems` errored — the empty result of a search that never ran. A buyer reads that as
+   * "this vendor does not sell flour", and the next thing they do is raise the line against the
+   * wrong supplier. `CatalogItemCombobox` already accepts a NODE for `emptyBody` precisely so a
+   * caller whose options come from another service can offer a way out; nobody had used it.
+   */
+  isError: boolean;
+  onRetry: () => void;
   onSelect: (option: CatalogItemOption) => void;
 }
 
@@ -151,6 +162,8 @@ function PoLineItemPicker({
   value,
   disabled,
   isLoading,
+  isError,
+  onRetry,
   onSelect,
 }: PoLineItemPickerProps) {
   const [query, setQuery] = useState("");
@@ -164,6 +177,21 @@ function PoLineItemPicker({
       disabled={disabled}
       disabledPlaceholder="Select a vendor first."
       placeholder="Select an item…"
+      // A failure names itself and carries a retry; an empty search result names the search. The
+      // two must never share a sentence — that is GA-001 at the size of one dropdown.
+      //
+      // This used to be built by hand inside `emptyBody`, which meant the failure was announced
+      // through the EMPTY slot: no `role="alert"`, no destructive ramp. The sentences below are
+      // the same ones; `isError` is what makes them arrive as a failure. (Plan 38-12, task 1.)
+      isError={isError}
+      errorHeading="Couldn't load this vendor's catalog"
+      errorBody={
+        <>
+          The catalog is not answering, so this list is not the vendor&apos;s. Nothing you have
+          typed has been lost.
+        </>
+      }
+      onRetry={onRetry}
       emptyHeading={`No catalog items match “${debouncedQuery}”`}
       emptyBody="Try a different search, or add this item to the vendor's catalog first."
       isLoading={isLoading}
@@ -193,7 +221,8 @@ export function PurchaseOrderFormDialog({ trigger }: PurchaseOrderFormDialogProp
   // is `enabled` only when `vendorId` is truthy (T-08.2-194), so no catalog fetch fires before a
   // vendor is chosen.
   const vendorId = form.watch("vendorId");
-  const { data: vendorItems, isLoading: vendorItemsLoading } = useVendorItems(vendorId);
+  const vendorItemsQuery = useVendorItems(vendorId);
+  const { data: vendorItems, isLoading: vendorItemsLoading } = vendorItemsQuery;
 
   const ingredientNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -277,7 +306,7 @@ export function PurchaseOrderFormDialog({ trigger }: PurchaseOrderFormDialogProp
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent className="md:max-w-3xl">
         <DialogHeader>
           <DialogTitle>New purchase order</DialogTitle>
           <DialogDescription>
@@ -289,10 +318,10 @@ export function PurchaseOrderFormDialog({ trigger }: PurchaseOrderFormDialogProp
           <form
             id="po-form"
             onSubmit={form.handleSubmit(onSubmit)}
-            className="grid max-h-[65vh] gap-4 overflow-y-auto"
+            className="grid max-h-[65dvh] gap-4 overflow-y-auto"
             noValidate
           >
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="vendorId"
@@ -377,6 +406,8 @@ export function PurchaseOrderFormDialog({ trigger }: PurchaseOrderFormDialogProp
                             value={field.value}
                             disabled={!vendorId}
                             isLoading={vendorItemsLoading}
+                            isError={vendorItemsQuery.isError}
+                            onRetry={() => void vendorItemsQuery.refetch()}
                             onSelect={(option) => handleSelectLineItem(idx, option)}
                           />
                         </FormControl>

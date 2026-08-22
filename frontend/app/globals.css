@@ -6,11 +6,23 @@
 /* ═════════════════════════════════════════════════════════════════════════════
    Phase 20 design tokens — UI-SPEC.md §3.
    ─────────────────────────────────────────────────────────────────────────────
-   Every colour in this file is authored as `oklch(L C var(--brand-h))` or with an
-   explicit semantic hue. There are no hex literals: D-UI-01 requires the whole
-   system to regenerate from ONE number, and it does — change `--brand-h` and the
-   primary ramp, the neutral ramp, the sequential ramp, `--chart-1`, the diverging
-   midpoint and every KDS surface all move with it.
+   Every colour in this file is authored as `oklch(L C var(--<axis>-h))` or with an
+   explicit semantic hue. There are no hex literals.
+
+   THE SYSTEM NOW REGENERATES FROM THREE NUMBERS, NOT ONE. D-UI-01 originally required
+   one (`--brand-h`), and this file used to say so. Phase 38's demo calibration retired
+   that claim DELIBERATELY — see `.planning/phases/38-erp-design-transformation/
+   38-DECISIONS-DEMO.md` D-38-12. The reason is measurable: the target identity stands a
+   WARM accent (gold, hue 69) on a COOL ground (blue-black, hue 260), and that opposition
+   is most of why it reads as expensive. A single hue cannot express it — tying the
+   neutrals to the brand hue turns the surfaces warm brown-grey.
+
+     --brand-h   69   gold  — primary ramp, sequential ramp, diverging midpoint, KDS
+     --accent-h  182  teal  — secondary ramp, --chart-1
+     --neutral-h 260  cool blue-black — neutral ramp, i.e. every surface, border, text tier
+
+   If you are here because you want to re-tie the neutrals to `--brand-h` and restore the
+   one-number property: that is a product decision, not a tidy-up. Read D-38-12 first.
 
    All L/C pairs below are gamut-mapped into sRGB (hold L and H, bisect C until in
    gamut) and were re-derived from the spec's formulae with the repo's own
@@ -23,9 +35,12 @@
   /* ── existing bridge — unchanged names, new values ─────────────────────── */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-sans: var(--font-sora);
+  --font-mono: var(--font-dm-mono);
+  /* Fraunces, NOT --font-sans (D-38-13). This is the one place the display serif enters the
+     system; `font-heading` has 8 call sites, which is the demo's restraint expressed as a
+     budget rather than as a note nobody reads. */
+  --font-heading: var(--font-fraunces);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -57,6 +72,8 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-solid: var(--primary-solid);
+  --color-primary-solid-foreground: var(--primary-solid-foreground);
   --color-primary: var(--primary);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
@@ -66,6 +83,7 @@
   /* ── added: surfaces, foregrounds, the two-tier border split (§3.2) ────── */
   --color-surface-1: var(--surface-1);
   --color-surface-2: var(--surface-2);
+  --color-decorative: var(--decorative);
   --color-surface-3: var(--surface-3);
   --color-foreground-secondary: var(--foreground-secondary);
   --color-foreground-tertiary: var(--foreground-tertiary);
@@ -88,6 +106,20 @@
   --color-primary-800: var(--primary-800);
   --color-primary-900: var(--primary-900);
   --color-primary-950: var(--primary-950);
+
+  /* The teal secondary (D-38-12). Namespace is `secondary-*`, never `teal-*`:
+     conformance-scan.ts:93-94 scores `bg-teal-\d{2,3}` as a raw-palette offender. */
+  --color-secondary-50: var(--secondary-50);
+  --color-secondary-100: var(--secondary-100);
+  --color-secondary-200: var(--secondary-200);
+  --color-secondary-300: var(--secondary-300);
+  --color-secondary-400: var(--secondary-400);
+  --color-secondary-500: var(--secondary-500);
+  --color-secondary-600: var(--secondary-600);
+  --color-secondary-700: var(--secondary-700);
+  --color-secondary-800: var(--secondary-800);
+  --color-secondary-900: var(--secondary-900);
+  --color-secondary-950: var(--secondary-950);
 
   /* Overrides Tailwind's stock `neutral` palette on purpose: ours carries the
      brand hue at imperceptible chroma so surfaces harmonise. Zero call sites use
@@ -309,38 +341,96 @@
      so they don't render light in dark mode. */
   color-scheme: light;
 
-  /* ── the single regeneration point (D-UI-01, UI-SPEC §2.3) ─────────────── */
-  --brand-h: 195;
+  /* ── the three regeneration points (D-38-12, superseding D-UI-01's single) ─ */
+  --brand-h: 69; /* gold  — was 195 (cyan) until the demo calibration */
+  --accent-h: 182; /* teal  — literal: a second brand hue cannot follow the first */
+  --neutral-h: 260; /* cool blue-black ground; deliberately NOT --brand-h */
 
-  /* ── primary ramp, hue 195 (§3.1) ──────────────────────────────────────── */
-  /* 600/700/800/900/950 carry a chroma clamped to the sRGB gamut boundary at
-     their lightness; the spec records the pre-clamp value in its Note column. */
-  --primary-50: oklch(0.976 0.014 var(--brand-h));
-  --primary-100: oklch(0.951 0.03 var(--brand-h));
-  --primary-200: oklch(0.906 0.055 var(--brand-h));
-  --primary-300: oklch(0.848 0.082 var(--brand-h));
-  --primary-400: oklch(0.775 0.104 var(--brand-h));
-  --primary-500: oklch(0.7 0.116 var(--brand-h));
-  --primary-600: oklch(0.606 0.1034 var(--brand-h));
-  --primary-700: oklch(0.512 0.0873 var(--brand-h));
-  --primary-800: oklch(0.428 0.073 var(--brand-h));
-  --primary-900: oklch(0.352 0.058 var(--brand-h));
-  --primary-950: oklch(0.262 0.042 var(--brand-h));
+  /* ── primary ramp, hue 69 — gold (§3.1, D-38-11) ───────────────────────── */
+  /* The L ladder is UNCHANGED from hue 195. Only chroma is re-derived, because a
+     hue move alone does not produce gold: the old chroma column was gamut-clamped
+     FOR hue 195, and at hue 69 those same values use 65-78% of the sRGB boundary
+     and render #e1aa6a — tan. Chroma is scaled x1.301 (anchoring --primary-400 on
+     the demo's #E8A045 = oklch(0.760 0.1353 69.3)) then capped at 98% of the
+     in-gamut maximum, bisected with the repo's own colorjs.io.
 
-  /* ── neutral ramp, same hue at C ≤ 0.010 (§3.2) ────────────────────────── */
-  --neutral-0: oklch(1 0 var(--brand-h));
-  --neutral-50: oklch(0.985 0.002 var(--brand-h));
-  --neutral-100: oklch(0.968 0.004 var(--brand-h));
-  --neutral-200: oklch(0.928 0.006 var(--brand-h));
-  --neutral-300: oklch(0.872 0.008 var(--brand-h));
-  --neutral-400: oklch(0.74 0.01 var(--brand-h));
-  --neutral-500: oklch(0.61 0.01 var(--brand-h));
-  --neutral-600: oklch(0.508 0.01 var(--brand-h));
-  --neutral-700: oklch(0.41 0.009 var(--brand-h));
-  --neutral-800: oklch(0.302 0.008 var(--brand-h));
-  --neutral-900: oklch(0.226 0.007 var(--brand-h));
-  --neutral-950: oklch(0.168 0.006 var(--brand-h));
-  --neutral-1000: oklch(0.132 0.006 var(--brand-h));
+     Hue and chroma moved in ONE commit on purpose (D-38-11): setting the hue,
+     seeing tan, and raising chroma afterwards re-records the drift gate twice —
+     the second time by someone who has learned to read those numbers as noise.
+
+     Measured: --primary-400 = #eda54b against the demo's #E8A045. */
+  --primary-50: oklch(0.976 0.0167 var(--brand-h)); /* clamped */
+  --primary-100: oklch(0.951 0.0345 var(--brand-h)); /* clamped */
+  --primary-200: oklch(0.906 0.0681 var(--brand-h)); /* clamped */
+  --primary-300: oklch(0.848 0.1067 var(--brand-h));
+  --primary-400: oklch(0.775 0.1353 var(--brand-h)); /* the demo's gold */
+  --primary-500: oklch(0.7 0.1496 var(--brand-h)); /* clamped */
+  --primary-600: oklch(0.606 0.1295 var(--brand-h)); /* clamped */
+  --primary-700: oklch(0.512 0.1094 var(--brand-h)); /* clamped */
+  --primary-800: oklch(0.428 0.0914 var(--brand-h)); /* clamped */
+  --primary-900: oklch(0.352 0.0752 var(--brand-h)); /* clamped */
+  --primary-950: oklch(0.262 0.0546 var(--brand-h));
+
+  /* ── secondary ramp, hue 182 — teal (D-38-12) ──────────────────────────── */
+  /* Authored against --accent-h with a LITERAL hue axis: a second brand hue cannot
+     be derived from the first. Same L ladder, chroma anchored on the demo's
+     #2DD4BF = oklch(0.785 0.1325 181.9); measured --secondary-400 = #27d1bc.
+
+     NOT named `teal` anywhere in a utility: conformance-scan.ts:93-94 counts
+     `bg-teal-\d{2,3}` as a raw-palette offender. The utility namespace is
+     `secondary-*`.
+
+     D-38-13 constraint: teal(182) sits DeltaE2000 18.68 from --success-600(149.6) —
+     the closest pair in the whole semantic set. This ramp MUST NOT carry state
+     meaning; success/warning/danger keep that job exclusively. */
+  --secondary-50: oklch(0.976 0.0178 var(--accent-h));
+  --secondary-100: oklch(0.951 0.0382 var(--accent-h));
+  --secondary-200: oklch(0.906 0.0701 var(--accent-h));
+  --secondary-300: oklch(0.848 0.1045 var(--accent-h));
+  --secondary-400: oklch(0.775 0.1325 var(--accent-h)); /* the demo's teal */
+  --secondary-500: oklch(0.7 0.1229 var(--accent-h)); /* clamped */
+  --secondary-600: oklch(0.606 0.1064 var(--accent-h)); /* clamped */
+  --secondary-700: oklch(0.512 0.0899 var(--accent-h)); /* clamped */
+  --secondary-800: oklch(0.428 0.0751 var(--accent-h)); /* clamped */
+  --secondary-900: oklch(0.352 0.0618 var(--accent-h)); /* clamped */
+  --secondary-950: oklch(0.262 0.046 var(--accent-h)); /* clamped */
+
+  /* ── neutral ramp, hue 260 at rising chroma (§3.2 as amended by D-38-12) ── */
+  /* This ramp used to be `var(--brand-h)` at C <= 0.010. It is now its own axis,
+     and the chroma RISES toward the dark end: the light theme keeps clean, almost
+     achromatic surfaces (C 0.002-0.009), while the dark theme gets the demo's
+     visibly blue steel (C 0.030-0.046). That asymmetry is intentional — a light
+     UI tinted this hard reads as a colour cast; a dark one reads as depth.
+
+     Demo reference    ours
+       bg      #080C12   --neutral-1000 #01071a
+       surface #141E2E   --neutral-900  #121c2d
+       border  #1F2E45   --neutral-800  #252f3e
+
+     The card hairline lands at 1.26:1 (--neutral-800 on --neutral-900) against the
+     demo's own 1.22:1 — the look is reproduced. Form controls do NOT use it; see
+     --border-interactive below and D-38-13. */
+  --neutral-0: oklch(1 0 var(--neutral-h));
+  --neutral-50: oklch(0.985 0.002 var(--neutral-h));
+  --neutral-100: oklch(0.968 0.004 var(--neutral-h));
+  --neutral-200: oklch(0.928 0.006 var(--neutral-h));
+  --neutral-300: oklch(0.872 0.009 var(--neutral-h));
+  --neutral-400: oklch(0.74 0.013 var(--neutral-h));
+  --neutral-500: oklch(0.61 0.016 var(--neutral-h));
+  --neutral-600: oklch(0.508 0.018 var(--neutral-h));
+  /* CORRECTED 2026-08-22. The first derivation ran chroma UP as the ramp darkened, so
+     --neutral-1000 was the most chromatic stop at 0.046. The demo does the opposite, and
+     measuring it settles the question — its deepest ground is its LEAST coloured:
+         bg #080C12 L.153 C.0146 · bg-2 L.188 C.0283 · surface L.234 C.0343
+         surface-2 L.274 C.0500 · surface-3 L.301 C.0521
+     Chroma rises WITH lightness: the page recedes to near-black and the raised panels
+     carry the blue. Inverting that made the deepest background four times more coloured
+     than the demo's, and it had a second consequence recorded in --decorative below. */
+  --neutral-700: oklch(0.41 0.03 var(--neutral-h));
+  --neutral-800: oklch(0.302 0.042 var(--neutral-h));
+  --neutral-900: oklch(0.226 0.033 var(--neutral-h));
+  --neutral-950: oklch(0.168 0.024 var(--neutral-h));
+  --neutral-1000: oklch(0.132 0.014 var(--neutral-h));
 
   /* ── semantic ramps (§3.3) — base hues preserved from the old palette ──── */
   /* L = [.972 .945 .895 .830 .740 base, base−.085, −.170, −.250, −.320, −.400]
@@ -394,7 +484,11 @@
   --info-950: oklch(0.15 0.033 237.3);
 
   /* ── chart series (§3.4) — CVD- and greyscale-verified, one hue per series ── */
-  --chart-1: oklch(0.62 0.1057 var(--brand-h));
+  /* Retargeted to --accent-h (D-38-12). On --brand-h at gold it collided with
+     --chart-2 (literal hue 35): pairwise DeltaE2000 fell 26.89 -> 20.20, making it the
+     worst-separated pair in the series. Series separation is not gated today — that
+     gap is recorded in the recalibration, not silently relied upon. */
+  --chart-1: oklch(0.62 0.1057 var(--accent-h));
   --chart-2: oklch(0.56 0.19 35);
   --chart-3: oklch(0.5 0.19 262);
   --chart-4: oklch(0.68 0.19 300);
@@ -420,6 +514,23 @@
   --background: var(--neutral-0);
   --surface-1: var(--neutral-50);
   --surface-2: var(--neutral-100);
+  /* --decorative: a surface whose job is to be COLOURLESS (D-38-19).
+     Empty-state discs, placeholder blocks, skeleton grounds — decoration that must not
+     read as state. It is near-achromatic ON PURPOSE even though the page ground is tinted.
+
+     This exists because raising the neutral ramp's chroma for the demo's blue steel broke a
+     hard-won invariant: `state-character.test.tsx` asserts the ERROR surface carries >=3x the
+     chroma of the empty state's disc, and the disc was painted `bg-surface-2` -> --neutral-900.
+     With a tinted ground the ratio collapsed from ~5x to 0.95x, i.e. a failure notice became
+     no more coloured than an empty result. That test's own message says why it exists: phase
+     14b was written after a failure that read as an empty result told an owner their business
+     had no vendors while the service was down.
+
+     The alternative was to shout louder — bg-destructive/50 reaches 3.11x — but a panel that
+     red is a different design, and the real principle is narrower: ON A TINTED GROUND, CHROMA
+     MUST STILL MEAN MEANING. Decoration does not get to spend it. Measured, the disc at this
+     value restores 5.58x, inside the 4-7x band the test's docblock records as the original. */
+  --decorative: oklch(0.968 0.004 var(--neutral-h));
   --surface-3: var(--neutral-200);
   --foreground: var(--neutral-950);
   --foreground-secondary: var(--neutral-700);
@@ -429,8 +540,20 @@
   --card-foreground: var(--neutral-950);
   --popover: var(--neutral-0);
   --popover-foreground: var(--neutral-950);
+  /* --primary is the TEXT/LINK/BORDER role: 5.86:1 on white, so it must stay dark. At this
+     hue that reads bronze, which is correct for text and wrong for a button. */
   --primary: var(--primary-700);
   --primary-foreground: var(--neutral-0);
+
+  /* --primary-solid is the FILL role (D-38-18). Gold is a light-mode-hostile hue: no single
+     stop can be both a legible link on white AND look gold as a background. Measured at hue 69:
+       primary-400 #eda54b  ink 8.20:1 PASS | white 2.08:1 FAIL | as link 2.08:1 FAIL
+       primary-700 #8e5906  ink 2.91:1 FAIL | white 5.86:1 PASS | as link 5.86:1 PASS
+     So the two jobs are split. The fill is the SAME stop in both themes, which is the point:
+     the button is gold everywhere, and only the label flips. This is the demo's own pattern —
+     its .btn-primary is gold with a near-black label at 8.91:1. */
+  --primary-solid: var(--primary-400);
+  --primary-solid-foreground: var(--neutral-900);
   --secondary: var(--neutral-100);
   --secondary-foreground: var(--neutral-950);
   --muted: var(--neutral-100);
@@ -549,6 +672,54 @@
   --depth-lift-shadow: 0 6px 12px oklch(0 0 0 / 0.08), 0 20px 44px oklch(0 0 0 / 0.14);
   --depth-inset: inset 0 2px 4px oklch(0 0 0 / 0.1);
 
+  /* ═══ 38-13 · THE GOLD GLOW IS REJECTED. There is no --glow-* token. ══════
+     Read this before adding one, because the demo appears to sanction it and
+     the appearance does not survive being checked.
+
+     WHAT THE DEMO ACTUALLY DOES (Docs/NEXUS_ERP_Demo.html, counted in
+     .planning/…/demo-calibration/DEMO-TOKENS.md):
+
+       line  51  --glow-primary: 0 0 32px rgba(232,160,69,0.2)   ← 0 references
+       line 274  .btn-primary:hover  box-shadow: 0 0 20px rgba(232,160,69,0.3)
+       line 417  .pay-btn.cash:hover box-shadow: 0 0 16px rgba(232,160,69,0.3)
+
+     Three different glows. The one that is NAMED is the one nobody used —
+     DEMO-TOKENS.md lists `--glow-primary` among the five dead tokens of 39 —
+     and the two that paint are hand-inlined and disagree with each other on
+     both radius and alpha. That is not a depth system to adopt; it is drift,
+     and adopting it would import the drift along with the look.
+
+     THREE REASONS IT STAYS OUT, in ascending order of how much they cost:
+
+     1. It is a FOURTH depth treatment, and D-38-01 says this plan adds none.
+        The three levels above are two-layer (ambient + key) at chroma ZERO,
+        deliberately, so depth never tints the surface under it. `0 0 20px
+        rgba(232,160,69,.3)` is single-layer and chromatic — the "blur under a
+        box" the block comment above distinguishes a designed shadow from.
+
+     2. It is hover-only on a surface with no hover. `.pay-btn.cash` is the
+        CHARGE button. A POS terminal is a touchscreen: `:hover` never resolves
+        under a finger, so the entire affordance is delivered to nobody on the
+        one control where a mis-tap costs a guest money. Where touch engines DO
+        synthesise a sticky `:hover`, they latch it AFTER the tap — so the glow
+        would mark a payment already taken rather than one available to take,
+        which is worse than absent.
+
+     3. D-38-04 puts POS and KDS in the `operational` zone: depth cues only, no
+        decorative motion. A glow is decoration.
+
+     WHAT WE ADOPT INSTEAD is the demo's OTHER hover signal, the systematic one:
+     BORDER COLOUR. `.kpi-card:hover` 223, `.btn-ghost:hover` 276,
+     `.pay-btn.card:hover` 419 and `.input` 316 all move the border and nothing
+     else. It costs no new token, it carries no chroma into the shadow, it
+     survives reduced motion untouched, and — the reason it is the right answer
+     rather than merely the safe one — `:focus-visible` can state the identical
+     thing, so the hover affordance has a keyboard equivalent for free. A glow
+     has none.
+
+     `motion-vocabulary.test.ts` asserts no shadow token carries chroma, so the
+     rejected option cannot be reintroduced quietly as a fourth `--depth-*`. */
+
   /* ── motion (§3.12). Nothing exceeds 240ms; a data update never animates. ── */
   --motion-instant: 0ms;
   --motion-fast: 120ms;
@@ -644,6 +815,7 @@
   --background: var(--neutral-1000);
   --surface-1: var(--neutral-950);
   --surface-2: var(--neutral-900);
+  --decorative: oklch(0.226 0.006 var(--neutral-h)); /* see :root — deliberately colourless */
   --surface-3: var(--neutral-800);
   --foreground: var(--neutral-50);
   --foreground-secondary: var(--neutral-300);
@@ -655,6 +827,11 @@
   --popover-foreground: var(--neutral-50);
   --primary: var(--primary-400);
   --primary-foreground: var(--neutral-1000);
+  /* In DARK the two roles happen to coincide — gold reads as both text and fill against a
+     near-black ground. Declared separately regardless, so a component never has to know which
+     theme it is in to pick the right token. The coincidence is luck, not a contract. */
+  --primary-solid: var(--primary-400);
+  --primary-solid-foreground: var(--neutral-1000);
   --secondary: var(--neutral-800);
   --secondary-foreground: var(--neutral-50);
   --muted: var(--neutral-800);
@@ -672,7 +849,13 @@
 
   --border: var(--neutral-800);
   --border-strong: var(--neutral-700);
-  --border-interactive: var(--neutral-600);
+  /* --neutral-500, not --neutral-600 (D-38-13). At --neutral-600 an input rendered on a
+     CARD (--neutral-900) measured 2.95:1, under SC 1.4.11's 3:1 floor — a latent defect the
+     gate missed because it only ever checked the page surface. Re-measured against the OLD
+     cyan tokens it was 2.94:1, so this predates the gold identity and is not its doing.
+     --neutral-500 clears every dark surface: 4.53:1 on card, 5.32:1 on page. Form controls
+     are meant to be stronger than the card hairline anyway — that is the whole D-38-13 split. */
+  --border-interactive: var(--neutral-500);
   --input: var(--border-interactive);
   --ring: var(--primary-400);
 
@@ -682,7 +865,7 @@
   --selected-foreground: var(--neutral-50);
   --selected-border: var(--primary-400);
 
-  --chart-1: oklch(0.7 0.1194 var(--brand-h));
+  --chart-1: oklch(0.7 0.1194 var(--accent-h)); /* see :root — retargeted, D-38-12 */
   --chart-2: oklch(0.64 0.19 35);
   --chart-3: oklch(0.58 0.19 262);
   --chart-4: oklch(0.88 0.0689 300);
@@ -1021,6 +1204,32 @@ main:has([data-page-body]) {
   transform-style: preserve-3d;
 }
 
+/*
+ * 38-13 · TILT IS DELIBERATELY UNCONSUMED. Zero call sites, and that is the decision.
+ *
+ * 38-13 was asked to adopt `usePointerTilt` on "KPI and product cards where a pointer exists".
+ * It did not, and the reason is the same evidence the rest of this plan turned on: the demo we
+ * are calibrating against has NO tilt. No `perspective`, no `rotateX`/`rotateY`, no
+ * `cubic-bezier` anywhere in the file. Its entire hover vocabulary is `translateY(-1px)` plus a
+ * border-colour change, at one duration. The premise of this phase is that the demo's motion
+ * language is SMALLER than ours; adopting the one family that would make ours larger still,
+ * because a task list said to, gets the phase backwards.
+ *
+ * There is a second reason, and it is the operational one. This rule declares `perspective()`
+ * and `preserve-3d` — two of the six things that create a containing block for a
+ * `position: fixed` descendant. It is safe today ONLY because it is scoped to
+ * `[data-zone="expressive"]` and nothing imports it. The realistic way it stops being safe is
+ * not someone putting tilt on the POS; it is someone putting tilt on a shared card that the POS
+ * imports, which is exactly how the three filters in 34-01 got there, and
+ * `receipt-print.css` then prints app chrome onto a customer's bill.
+ *
+ * The hook and this rule STAY. `use-pointer-tilt.test.ts` proves the primitive is correct and
+ * cheap (one rect per gesture, ≤2 setProperty per frame) and it refuses to engage on a coarse
+ * pointer or under reduced motion. Proven and unused is a fine state for a primitive; what is
+ * not fine is unused with no record of why, because the next reader assumes it was forgotten
+ * and adopts it to tidy up.
+ */
+
 [data-zone="restrained"] .vdl-lift {
   transition-duration: var(--motion-fast);
 }
@@ -1131,6 +1340,33 @@ main:has([data-page-body]) {
   }
 
   /*
+   * The theme reveal (D-38-14), removed here as DEFENCE IN DEPTH — not as the
+   * mechanism. The mechanism is in `@teispace/next-themes`, and it is correct:
+   * `chunk-RQE5PXXM.js` builds the transition plan in `de(e,t)` and returns
+   * `null` outright when `matchMedia("(prefers-reduced-motion: reduce)")`
+   * matches, so `startViewTransition` is never called. REMOVED, not shortened —
+   * a 1 ms circular wipe is still a circular wipe. Verified by reading the
+   * compiled fork, not the README.
+   *
+   * So why restate it here? Because the global 0.01ms net below CANNOT reach
+   * this. `*, ::before, ::after` matches ELEMENTS; `::view-transition-*` is a
+   * tree-abiding pseudo-element tree parented to the snapshot containing block,
+   * and no `*` selector in this file matches it. That leaves the JS check as
+   * the single point of failure for the one animation in this product that
+   * covers the entire viewport — the worst possible candidate for a
+   * single-point-of-failure. If the fork is swapped, upgraded, or the
+   * `transition` prop is ever handed a raw `css` string (a documented escape
+   * hatch on `TransitionOptions` that bypasses the built-in type CSS), this
+   * block is what still stops the wipe.
+   */
+  ::view-transition-group(*),
+  ::view-transition-image-pair(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+
+  /*
    * The global safety net, unchanged from phase 20. It stays BELOW the explicit
    * rules above and covers what they cannot name: third-party animation, legacy
    * classes, and anything added later that forgets this block exists.
@@ -1147,5 +1383,53 @@ main:has([data-page-body]) {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   38-13 · THE PRINT PATH vs THE THEME REVEAL (D-38-14)
+   ─────────────────────────────────────────────────────────────────────────────
+   `receipt-print.css` pins `.receipt-root` to `position: fixed` and its own
+   comment names the hazard exactly: "a `transform`, `filter` or `will-change` on
+   any ancestor makes that ancestor the containing block for FIXED descendants
+   too, which would undo this."
+
+   A running view transition is that hazard in a form the zone-containment gate
+   cannot see, because it is not in anybody's source file. While the transition
+   runs, `::view-transition` is rendered in the SNAPSHOT CONTAINING BLOCK — its
+   own stacking context, its own containment — and `::view-transition-group(*)`
+   is animated with a transform. The real rendering of the root is replaced by
+   snapshots for the duration. Nothing in `zone-containment.test.ts` fires: there
+   is no `transform:` to grep for, because the UA wrote it.
+
+   The window is narrow and it is not theoretical. `receipt-view.tsx:161`
+   auto-fires `window.print()` from a `requestAnimationFrame` on mount — no
+   operator input, no way to wait for a wipe nobody told it about — and the
+   reprint button on 222 is user-timed, so a cashier who toggles the theme and
+   reprints inside 420 ms lands squarely in it. The cost of losing that race is a
+   customer's bill with the application sidebar printed onto it, which is the
+   precise defect `receipt-print.css` was written to fix once already.
+
+   Two rules, both cheap:
+     · `view-transition-name: none` on the root means a transition STARTING
+       during print captures nothing.
+     · `animation: none` on the pseudo tree means one already IN FLIGHT snaps to
+       its end state instead of printing a half-composited snapshot.
+
+   Kept in `globals.css` rather than in `receipt-print.css` on purpose: this is
+   not about receipts. Every print path in the product — receipts, KOT tickets,
+   any report a manager sends to paper — inherits it here, and a print path added
+   next year inherits it without having to know this paragraph exists.
+   ═════════════════════════════════════════════════════════════════════════════ */
+@media print {
+  :root {
+    view-transition-name: none !important;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-image-pair(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }

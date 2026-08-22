@@ -1,6 +1,7 @@
 "use client";
 
 import { UNASSIGNED_PRINT_TARGET, type PrintJobIssue } from "@/lib/models/order-bill.model";
+import { formatDateTime } from "@/lib/format/locale";
 
 export interface BillIssuedStripProps {
   isLoading: boolean;
@@ -13,9 +14,7 @@ export interface BillIssuedStripProps {
 }
 
 function formatIssueTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+  return formatDateTime(value, { dateStyle: "medium", timeStyle: "short" });
 }
 
 /**

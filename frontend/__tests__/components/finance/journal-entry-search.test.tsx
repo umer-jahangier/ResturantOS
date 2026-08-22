@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -117,8 +117,23 @@ function renderLedger() {
   );
 }
 
+/**
+ * `DataGrid` renders BOTH branches — the desktop table and the below-`md` card list — and lets CSS
+ * pick one, because choosing in JS from a media query hydrates a different tree than it rendered
+ * (`data-grid.tsx`, "Both branches are in the DOM"). So every row's text is in the document twice
+ * and a bare `screen.getByText` is ambiguous. These helpers scope to the table, which is where
+ * the assertions below mean what they say; the card branch is covered by the grid's own suite.
+ */
+function grid(): HTMLElement {
+  return screen.getByRole("table", { name: "Journal entries" });
+}
+
+function inGrid(text: string | RegExp) {
+  return within(grid()).getByText(text);
+}
+
 function rowFor(text: string): HTMLElement {
-  const label = screen.getByText(text);
+  const label = inGrid(text);
   const tr = label.closest("tr");
   if (!tr) throw new Error(`no table row carries ${text}`);
   return tr as HTMLElement;
@@ -134,7 +149,7 @@ describe("F10 — the ledger names the order, and the order can be found", () =>
 
   it("a revenue row names the order number, not a UUID", async () => {
     renderLedger();
-    await waitFor(() => expect(screen.getByText("JE-2027-000255")).toBeInTheDocument());
+    await waitFor(() => expect(inGrid("JE-2027-000255")).toBeInTheDocument());
 
     const row = rowFor("JE-2027-000255");
     expect(row).toHaveTextContent("Order revenue ORD-20260812-0164");
@@ -144,13 +159,15 @@ describe("F10 — the ledger names the order, and the order can be found", () =>
   it("typing an order number asks the SERVER for it, and shows only that row", async () => {
     const user = userEvent.setup();
     renderLedger();
-    await waitFor(() => expect(screen.getByText("JE-2027-000255")).toBeInTheDocument());
+    await waitFor(() => expect(inGrid("JE-2027-000255")).toBeInTheDocument());
 
     await user.type(searchBox(), "ORD-20260812-0164");
 
     await waitFor(() => expect(requestedQ).toContain("ORD-20260812-0164"));
-    await waitFor(() => expect(screen.queryByText("JE-2027-000256")).not.toBeInTheDocument());
-    expect(screen.getByText("Order revenue ORD-20260812-0164")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(within(grid()).queryByText("JE-2027-000256")).not.toBeInTheDocument(),
+    );
+    expect(inGrid("Order revenue ORD-20260812-0164")).toBeInTheDocument();
   });
 
   it("says how many entries matched, and how many the unfiltered list is showing of", async () => {
@@ -172,7 +189,7 @@ describe("F10 — the ledger names the order, and the order can be found", () =>
   it("a term that matches nothing says so, and says the search covered the whole branch", async () => {
     const user = userEvent.setup();
     renderLedger();
-    await waitFor(() => expect(screen.getByText("JE-2027-000255")).toBeInTheDocument());
+    await waitFor(() => expect(inGrid("JE-2027-000255")).toBeInTheDocument());
 
     await user.type(searchBox(), "ORD-19990101-0001");
 

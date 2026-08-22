@@ -33,7 +33,7 @@ export function StationSetPicker({
 
   return (
     <div data-testid="station-set-picker" className="space-y-2">
-      <p data-testid="station-set-summary" className="text-xs text-muted-foreground">
+      <p data-testid="station-set-summary" className="text-label text-muted-foreground">
         {selectedNames.length === 0
           ? "Tick nothing and this terminal fires to every station in the branch."
           : `This terminal fires to ${formatList(selectedNames)} only.`}
@@ -49,7 +49,7 @@ export function StationSetPicker({
           isRetrying={stations.isFetching}
         />
       ) : offered.length === 0 ? (
-        <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+        <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-label text-muted-foreground">
           This branch has no stations yet. Add one on the Stations screen; until then every terminal
           fires everywhere.
         </p>
@@ -57,16 +57,16 @@ export function StationSetPicker({
         <ul className="max-h-40 space-y-1 overflow-y-auto rounded-md border p-2">
           {offered.map((station) => (
             <li key={station.id}>
-              <label className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-sm hover:bg-muted/50">
+              <label className="flex cursor-pointer items-center gap-2 rounded-sm px-1 py-1 text-small hover:bg-muted/50">
                 <input
                   type="checkbox"
-                  className="size-4 rounded border-input"
+                  className="size-4 rounded-sm border-input"
                   checked={value.includes(station.id)}
                   disabled={disabled}
                   onChange={() => toggle(station.id)}
                 />
                 <span className="min-w-0 flex-1 truncate">{station.name}</span>
-                <span className="shrink-0 text-xs text-muted-foreground">
+                <span className="shrink-0 text-label text-muted-foreground">
                   {stationTypeLabel(station.stationType)} — {stationTypeScreen(station.stationType)}
                 </span>
               </label>

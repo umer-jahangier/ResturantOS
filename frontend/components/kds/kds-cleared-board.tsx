@@ -9,11 +9,12 @@ import {
   useStaleKdsTickets,
 } from "@/lib/hooks/kds/use-kds-tickets";
 import { useKdsClock, KdsClockProvider } from "@/lib/hooks/kds/use-kds-clock";
-import { formatAgeLong } from "@/components/kds/kds-aging";
+import { formatElapsedLong } from "@/lib/format/elapsed";
 import { T_BODY, T_H1, T_LABEL, T_SMALL } from "@/components/kds/kds-type";
 import { itemLabel, ticketLabel } from "@/components/kds/kds-counts";
 import { mapItemStatusToColumn } from "@/components/kds/kds-item-column";
 import { QueryErrorNotice } from "@/components/ui/query-boundary";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ZoneProvider } from "@/components/providers/zone-provider";
 import type { KdsTicket } from "@/lib/models/kds.model";
 import { cn } from "@/lib/utils";
@@ -81,7 +82,11 @@ export function KdsClearedBoard({ branchId, stationCode }: KdsClearedBoardProps)
           data-surface="kds"
           data-zone="operational"
           data-testid="kds-cleared-board"
-          className="flex min-h-screen flex-col gap-3 bg-kds-surface p-3 text-kds-text"
+          // `h-full min-h-0`, never `min-h-screen`: inside the tenant shell `<main>` is already the
+          // viewport less the top bar, so a 100vh minimum is taller than its own container and the
+          // shell grows a second scrollbar that scrolls the board away from a cook who meant to
+          // scroll a column. The route supplies the height via `<PageBody fullBleed>` (38-05 task 2).
+          className="flex h-full min-h-0 flex-col gap-3 overflow-hidden bg-kds-surface p-3 text-kds-text"
         >
           <header className="flex min-h-12 shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-lg border border-white/10 bg-kds-card px-3 py-1.5">
             <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
@@ -133,13 +138,19 @@ export function KdsClearedBoard({ branchId, stationCode }: KdsClearedBoardProps)
               onRetry={() => clearedQuery.refetch()}
             />
           ) : clearedQuery.isPending ? (
+            /*
+              STILL, not pulsing (D-38-04). This list loads on a kitchen terminal inside the
+              `operational` zone, and `animate-pulse` here was a perpetual decorative animation
+              that only looked harmless because the evidence probe counted running animations
+              after the query had already settled. `<Skeleton>` reads the zone and does not
+              move; the fill stays on the board's own `--kds-card` rather than `--muted`, which
+              follows the office manager's light/dark preference on a permanently dark surface.
+            */
             <ul className="flex flex-col gap-2" data-testid="kds-cleared-loading">
               {[0, 1, 2, 3].map((i) => (
-                <li
-                  key={i}
-                  aria-hidden="true"
-                  className="h-14 animate-pulse rounded-lg border border-white/10 bg-kds-card"
-                />
+                <li key={i} aria-hidden="true">
+                  <Skeleton className="h-14 rounded-lg border border-white/10 bg-kds-card" />
+                </li>
               ))}
               <li className="sr-only" role="status" aria-live="polite">
                 Loading cleared tickets…
@@ -238,7 +249,7 @@ function ClearedList({ tickets, branchZone }: { tickets: KdsTicket[]; branchZone
           </span>
           <span className={cn("text-kds-muted", T_SMALL)}>
             Fired {atBranch(ticket.receivedAt, branchZone)} ·{" "}
-            {formatAgeLong(now - ticket.receivedAt.getTime())} old
+            {formatElapsedLong(ticket.receivedAt, now, { timeZone: branchZone })} old
             {ticket.clearedAt ? ` · cleared ${atBranch(ticket.clearedAt, branchZone)}` : ""}
           </span>
         </li>

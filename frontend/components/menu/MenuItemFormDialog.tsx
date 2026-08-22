@@ -239,7 +239,7 @@ export function MenuItemFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="md:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit menu item" : "Add menu item"}</DialogTitle>
           <DialogDescription>

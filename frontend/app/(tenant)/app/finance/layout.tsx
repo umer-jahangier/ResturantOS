@@ -1,14 +1,13 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { AccessDenied } from "@/components/shared/access-denied";
 import { FeatureGuard } from "@/components/shared/feature-guard";
 import { PermissionGuard } from "@/components/shared/permission-guard";
+import { SectionTabs } from "@/components/shared/section-tabs";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
-import { cn } from "@/lib/utils";
 
 interface FinanceLayoutProps {
   children: ReactNode;
@@ -73,33 +72,15 @@ export const FINANCE_TABS: FinanceTab[] = [
 ];
 
 function FinanceTabs() {
-  const pathname = usePathname();
   const { permissions } = useCurrentUser();
   // A tab the reader cannot open is not shown. Rendering it and letting the click land on an
   // "Access denied" is the product advertising something it will then refuse.
   const visible = FINANCE_TABS.filter((tab) => tab.require.some((p) => permissions.includes(p)));
 
-  return (
-    <nav aria-label="Finance" data-testid="finance-tabs" className="mb-4 flex gap-4 border-b">
-      {visible.map((tab) => {
-        const active = pathname?.startsWith(tab.href);
-        return (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            className={cn(
-              "border-b-2 px-1 pb-2 text-sm font-medium",
-              active
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground",
-            )}
-          >
-            {tab.label}
-          </Link>
-        );
-      })}
-    </nav>
-  );
+  // 38-14: eleven tabs. This was the worst instance of the hand-rolled strip in the product — an
+  // unwrapped `flex` whose labels lay out past 1,100px, so at 390px, at 768px AND at 1024px an
+  // owner could not see that "Guide" existed. `SectionTabs` wraps and carries the 44px floor.
+  return <SectionTabs tabs={visible} label="Finance" testId="finance-tabs" />;
 }
 
 export default function FinanceLayout({ children }: FinanceLayoutProps) {

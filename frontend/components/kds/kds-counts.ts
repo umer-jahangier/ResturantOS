@@ -65,6 +65,17 @@ export interface KdsStationCounts {
   itemCount: number;
   /** Age (ms) of the oldest such ticket, or null when the station is clear. */
   oldestAgeMs: number | null;
+  /**
+   * WHEN the oldest such ticket was fired, as epoch ms — not how long ago, WHEN.
+   *
+   * `oldestAgeMs` alone cannot answer the only question worth asking about a ticket that has
+   * outlived a trading day: which day did it come from. Above the 24 h bound
+   * (`lib/format/elapsed.ts`) the station tile stops counting and names the date, and a date
+   * cannot be recovered from a duration without silently re-deriving `now` — the caller would
+   * have to compute `now - oldestAgeMs`, which is exact today only because nothing here clamps,
+   * and would become quietly wrong the first time something did. The instant is carried instead.
+   */
+  oldestReceivedAtMs: number | null;
   /** Cards per board column — tickets holding ≥1 item in that column. */
   columnTickets: Record<KdsColumnKey, number>;
   /** Live items per board column. */
@@ -76,6 +87,7 @@ export function emptyKdsCounts(): KdsStationCounts {
     ticketCount: 0,
     itemCount: 0,
     oldestAgeMs: null,
+    oldestReceivedAtMs: null,
     columnTickets: { NEW: 0, STARTED: 0, PREPARING: 0, READY: 0 },
     columnItems: { NEW: 0, STARTED: 0, PREPARING: 0, READY: 0 },
   };
@@ -115,8 +127,12 @@ export function computeKdsCounts(tickets: readonly KdsTicket[], now: number): Kd
       columnsSeen.add(column);
     }
     for (const column of columnsSeen) counts.columnTickets[column] += 1;
-    const ageMs = now - ticket.receivedAt.getTime();
-    counts.oldestAgeMs = counts.oldestAgeMs === null ? ageMs : Math.max(counts.oldestAgeMs, ageMs);
+    const receivedAtMs = ticket.receivedAt.getTime();
+    const ageMs = now - receivedAtMs;
+    if (counts.oldestAgeMs === null || ageMs > counts.oldestAgeMs) {
+      counts.oldestAgeMs = ageMs;
+      counts.oldestReceivedAtMs = receivedAtMs;
+    }
   }
   return counts;
 }

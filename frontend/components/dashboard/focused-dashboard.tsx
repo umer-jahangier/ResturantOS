@@ -1,60 +1,50 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo } from "react";
 import { ChefHat, MonitorPlay } from "lucide-react";
 
-import { DashboardShell, PortletRow, useNow } from "@/components/dashboard/dashboard-shell";
-import { KpiTile } from "@/components/dashboard/portlets/portlet";
-import { T_H2 } from "@/components/dashboard/dashboard-type";
-import { DASHBOARD_PRESETS, visiblePortlets } from "@/components/dashboard/presets";
+import { DashboardShell, useNow } from "@/components/dashboard/dashboard-shell";
+import { PortletGrid, type PortletModels } from "@/components/dashboard/portlets/portlet-renderer";
+import {
+  DASHBOARD_PRESETS,
+  type CashierPortlets,
+  type KitchenPortlets,
+} from "@/components/dashboard/presets";
 import { getAgingState } from "@/components/kds/kds-aging";
-import { QueryBoundary } from "@/components/ui/query-boundary";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useKdsStations, useKdsTickets } from "@/lib/hooks/kds/use-kds-tickets";
 import { useOrderSummaries } from "@/lib/hooks/pos/use-orders";
 import { useActiveTill } from "@/lib/hooks/pos/use-till";
-import { cn } from "@/lib/utils";
 
 const TERMINAL_STATUSES = new Set(["CLOSED", "VOIDED", "REFUNDED"]);
 
 /**
- * The single 72px primary action §7.3 asks for on the cashier and kitchen presets.
+ * The two focused dashboards — cashier and kitchen (UI-SPEC §7.3).
  *
- * 72px is not decoration: it is the touch target a cashier hits without looking, on a
- * counter-mounted screen, with wet hands. Everything else on those two dashboards is
- * secondary to getting them into the surface where their work happens.
+ * <h3>What changed in phase 38, and why it is not cosmetic</h3>
+ *
+ * Both used to hand-write their grid and then render a 72px `Open POS` / `Open KDS board`
+ * button UNCONDITIONALLY (`:114-118`, `:183-187`), two lines below KPI tiles that were properly
+ * guarded by `shown.has(...)`. That asymmetry is the whole of the audit's finding: an
+ * INVENTORY_MANAGER or FINANCE_VIEWER, who both fell through to the cashier preset, saw a page
+ * with **no numbers on it at all** and one enormous button into a POS they hold no
+ * `pos.order.create` for. The tiles vanished because they were gated; the button survived
+ * because it was not.
+ *
+ * <p>The fix is structural rather than a third `shown.has`: the button is now the `Shortcuts`
+ * portlet type, rendered by the same pass that renders and gates everything else
+ * (`portlets/portlet-renderer.tsx`), and its slot names `pos.order.create` in the preset table.
+ * There is no longer a code path that can render a portlet the table did not authorise, which is
+ * the only version of this fix that stays fixed.
+ *
+ * <p>The two roles that used to land here no longer do at all — they have their own presets now
+ * (`inventory-dashboard.tsx`, `finance-dashboard.tsx`). The gate stays regardless: it is correct
+ * on its own terms, and the next role to be added should not have to rediscover it.
  */
-function PrimaryAction({
-  href,
-  label,
-  icon: Icon,
-}: {
-  href: string;
-  label: string;
-  icon: typeof ChefHat;
-}) {
-  return (
-    <Link
-      href={href}
-      data-testid="dashboard-primary-action"
-      className={cn(
-        "inline-flex h-[72px] items-center justify-center gap-3 rounded-lg px-8 font-semibold",
-        // --primary-700 is the light-theme solid fill. §3.8 measured 500 and 600 against
-        // white and both FAIL contrast; 700 is 5.46:1. The token remembers so nobody has to.
-        "bg-primary-700 text-white hover:bg-primary-800",
-        T_H2,
-      )}
-    >
-      <Icon className="size-6" aria-hidden="true" />
-      {label}
-    </Link>
-  );
-}
 
 /**
- * CASHIER dashboard — §7.3: "A cashier landing on an analytics dashboard is a bug."
+ * CASHIER — §7.3: "A cashier landing on an analytics dashboard is a bug."
  *
  * Till state, own open orders, one big way into the POS. No revenue, no margin, no trend.
  * The previous shared dashboard showed a cashier the branch's closed-sales total, which is
@@ -63,10 +53,6 @@ function PrimaryAction({
 export function CashierDashboard() {
   const preset = DASHBOARD_PRESETS.cashier;
   const { permissions } = useCurrentUser();
-  const shown = useMemo(
-    () => new Set(visiblePortlets(preset, permissions).map((p) => p.id)),
-    [preset, permissions],
-  );
 
   const tillQuery = useActiveTill();
   const ordersQuery = useOrderSummaries();
@@ -74,49 +60,39 @@ export function CashierDashboard() {
   const openOrders = orders.filter((o) => !TERMINAL_STATUSES.has(o.settlementStatus));
   const till = tillQuery.data;
 
+  const models: PortletModels<CashierPortlets> = {
+    "cashier-till": till
+      ? {
+          kind: "KpiTile",
+          value: <MoneyDisplay paisa={till.expectedClosingPaisa ?? till.openingFloatPaisa} />,
+          caption: `Till ${till.status.toLowerCase()}`,
+          boundary: { query: tillQuery, what: "your till" },
+        }
+      : {
+          // No value alongside the reason — the union forbids it, and it forbade it for a
+          // reason: this tile used to pass `value="—"` next to the reason, so the dash was
+          // live on any render where the reason went undefined.
+          kind: "KpiTile",
+          caption: "No till open",
+          unavailableReason: "You have no open till. Open one from the POS before taking payment.",
+          boundary: { query: tillQuery, what: "your till" },
+        },
+    "cashier-open-orders": {
+      kind: "KpiTile",
+      value: openOrders.length.toString(),
+      caption: "Still to be settled",
+      tone: openOrders.length > 0 ? "warning" : "neutral",
+      boundary: { query: ordersQuery, what: "your open orders" },
+    },
+    "cashier-shortcuts": {
+      kind: "Shortcuts",
+      actions: [{ href: "/app/pos", label: "Open POS", icon: MonitorPlay }],
+    },
+  };
+
   return (
     <DashboardShell preset={preset}>
-      <QueryBoundary query={[ordersQuery]} what="your shift">
-        <PortletRow density={preset.density} columns={2}>
-          {shown.has("cashier-till") && (
-            <KpiTile
-              id="cashier-till"
-              title="My till"
-              drillTo="/app/pos"
-              density={preset.density}
-              value={
-                till ? (
-                  <MoneyDisplay paisa={till.expectedClosingPaisa ?? till.openingFloatPaisa} />
-                ) : (
-                  "—"
-                )
-              }
-              caption={till ? `Till ${till.status.toLowerCase()}` : "No till open"}
-              unavailableReason={
-                till
-                  ? undefined
-                  : "You have no open till. Open one from the POS before taking payment."
-              }
-            />
-          )}
-          {shown.has("cashier-open-orders") && (
-            <KpiTile
-              id="cashier-open-orders"
-              title="My open orders"
-              drillTo="/app/pos/orders"
-              density={preset.density}
-              value={openOrders.length.toString()}
-              caption="Still to be settled"
-              tone={openOrders.length > 0 ? "warning" : "neutral"}
-            />
-          )}
-        </PortletRow>
-        <PortletRow density={preset.density} columns={1}>
-          <div>
-            <PrimaryAction href="/app/pos" label="Open POS" icon={MonitorPlay} />
-          </div>
-        </PortletRow>
-      </QueryBoundary>
+      <PortletGrid preset={preset} permissions={permissions} models={models} />
     </DashboardShell>
   );
 }
@@ -133,10 +109,6 @@ export function CashierDashboard() {
 export function KitchenDashboard() {
   const preset = DASHBOARD_PRESETS.kitchen;
   const { branchId, permissions } = useCurrentUser();
-  const shown = useMemo(
-    () => new Set(visiblePortlets(preset, permissions).map((p) => p.id)),
-    [preset, permissions],
-  );
 
   const ticketsQuery = useKdsTickets(branchId);
   const stationsQuery = useKdsStations(branchId);
@@ -150,42 +122,39 @@ export function KitchenDashboard() {
   const lateCount = liveTickets.filter(
     (t) => getAgingState(now - t.receivedAt.getTime(), thresholdFor(t.stationCode)) === "late",
   ).length;
+  const activeStations = stations.filter((s) => s.active).length;
+
+  // Both queries genuinely feed both numbers: "late" is decided against each station's own
+  // escalationThresholdSeconds, so a ticket list without its stations would silently fall back
+  // to the 900s default and report a different count.
+  const board = { query: [ticketsQuery, stationsQuery], what: "the kitchen board" };
+
+  const models: PortletModels<KitchenPortlets> = {
+    "kitchen-late-tickets": {
+      kind: "KpiTile",
+      value: lateCount.toString(),
+      caption: "Past this station's target",
+      // `higherIsBetter` is NOT passed. There is no delta on this tile and no honest prior
+      // period for one — the kitchen keeps no historical snapshot of its own lateness — so the
+      // polarity had nothing to apply to and the type now refuses it.
+      tone: lateCount > 0 ? "danger" : "neutral",
+      boundary: board,
+    },
+    "kitchen-open-tickets": {
+      kind: "KpiTile",
+      value: liveTickets.length.toString(),
+      caption: `Across ${activeStations} active station${activeStations === 1 ? "" : "s"}`,
+      boundary: board,
+    },
+    "kitchen-shortcuts": {
+      kind: "Shortcuts",
+      actions: [{ href: "/app/kitchen", label: "Open KDS board", icon: ChefHat }],
+    },
+  };
 
   return (
     <DashboardShell preset={preset}>
-      <QueryBoundary query={[ticketsQuery, stationsQuery]} what="the kitchen board">
-        <PortletRow density={preset.density} columns={2}>
-          {shown.has("kitchen-late-tickets") && (
-            <KpiTile
-              id="kitchen-late-tickets"
-              title="Late tickets"
-              drillTo="/app/kitchen"
-              density={preset.density}
-              value={lateCount.toString()}
-              caption="Past this station's target"
-              higherIsBetter={false}
-              tone={lateCount > 0 ? "danger" : "neutral"}
-            />
-          )}
-          {shown.has("kitchen-open-tickets") && (
-            <KpiTile
-              id="kitchen-open-tickets"
-              title="Tickets on the board"
-              drillTo="/app/kitchen"
-              density={preset.density}
-              value={liveTickets.length.toString()}
-              caption={`Across ${stations.filter((s) => s.active).length} active station${
-                stations.filter((s) => s.active).length === 1 ? "" : "s"
-              }`}
-            />
-          )}
-        </PortletRow>
-        <PortletRow density={preset.density} columns={1}>
-          <div>
-            <PrimaryAction href="/app/kitchen" label="Open KDS board" icon={ChefHat} />
-          </div>
-        </PortletRow>
-      </QueryBoundary>
+      <PortletGrid preset={preset} permissions={permissions} models={models} />
     </DashboardShell>
   );
 }

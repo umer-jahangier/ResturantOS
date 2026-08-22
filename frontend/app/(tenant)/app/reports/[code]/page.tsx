@@ -2,17 +2,25 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import { FileQuestion } from "lucide-react";
+import { ArrowLeft, FileQuestion } from "lucide-react";
+
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { AccessDenied } from "@/components/shared/access-denied";
 import { ReportTable } from "@/components/reporting/ReportTable";
+import { ReportVisual } from "@/components/reporting/ReportVisual";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FilterBar } from "@/components/ui/filter-bar";
+import { Input } from "@/components/ui/input";
+import { PageBody } from "@/components/ui/page-body";
+import { PageHeader } from "@/components/ui/page-header";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useReports, useRunReport } from "@/lib/hooks/reporting/use-reports";
+import { formatNumber } from "@/lib/format/locale";
 import { thisMonthRange, type PeriodRange } from "@/components/purchasing/PeriodPicker";
+import type { ReportResult } from "@/lib/models/reporting.model";
 
 interface ReportRunPageProps {
   params: Promise<{ code: string }>;
@@ -43,7 +51,7 @@ interface ReportRunPageProps {
  */
 function UnknownReport({ code }: { code: string }) {
   return (
-    <div data-testid="report-not-found" className="space-y-4">
+    <div data-testid="report-not-found" className="space-y-(--space-md)">
       <EmptyState
         icon={FileQuestion}
         title="This report doesn't exist"
@@ -56,6 +64,30 @@ function UnknownReport({ code }: { code: string }) {
       </div>
     </div>
   );
+}
+
+/**
+ * The `·`-separated subtitle, and the rule it has to obey.
+ *
+ * <p>Every count in it is derived from `result.rows` — the SAME array `DataGrid` renders and
+ * counts in its own footer — so the header and the grid cannot disagree. Deriving the row count
+ * from the server's `rowCount` field instead would look identical and would be a second source
+ * of truth for one number; when the two DO disagree that is a real defect in the result, and it
+ * is reported here rather than quietly resolved in favour of whichever one was read first.
+ */
+function reportMeta(result: ReportResult, period: PeriodRange): string {
+  const rows = result.rows.length;
+  const parts = [
+    `${formatNumber(rows)} row${rows === 1 ? "" : "s"}`,
+    `${period.from} to ${period.to}`,
+    `ran in ${formatNumber(result.durationMs)} ms`,
+  ];
+  if (result.rowCount !== rows) {
+    parts.push(
+      `server reported ${formatNumber(result.rowCount)} — this grid shows ${formatNumber(rows)}`,
+    );
+  }
+  return parts.join(" · ");
 }
 
 function ReportRunner({ code }: { code: string }) {
@@ -79,13 +111,24 @@ function ReportRunner({ code }: { code: string }) {
   const heading = definition ? definition.title : catalog.isSuccess ? "Report not found" : "Report";
 
   return (
-    <div className="space-y-6">
+    <>
       <div>
-        <Link href="/app/reports" className="text-sm text-muted-foreground hover:underline">
-          ← All reports
+        <Link
+          href="/app/reports"
+          className="inline-flex items-center gap-1 text-small font-medium text-primary underline-offset-4 hover:underline"
+        >
+          <ArrowLeft className="size-3.5 shrink-0" aria-hidden="true" />
+          All reports
         </Link>
-        <h1 className="text-xl font-semibold">{heading}</h1>
       </div>
+
+      <PageHeader
+        title={heading}
+        description={
+          definition ? `${definition.category} · ${definition.columns.length} columns` : undefined
+        }
+        meta={run.data ? reportMeta(run.data, period) : undefined}
+      />
 
       {/*
        * Error → loading → unknown-code → the report itself, in that order and enforced by the
@@ -100,41 +143,57 @@ function ReportRunner({ code }: { code: string }) {
         isEmpty={!definition}
         empty={<UnknownReport code={code} />}
         loading={
-          <div className="space-y-6">
-            <div className="flex flex-wrap items-end gap-3">
-              <Skeleton className="h-14 w-36" />
-              <Skeleton className="h-14 w-36" />
-            </div>
+          <div className="space-y-(--space-lg)">
+            <Skeleton className="h-24 w-full" />
             <Skeleton className="h-64 w-full" />
           </div>
         }
       >
         {definition && (
-          <div className="space-y-6">
-            <div className="flex flex-wrap items-end gap-3">
-              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                From
-                <input
+          <div className="space-y-(--space-lg)">
+            <FilterBar title="Report period">
+              {/*
+               * The visible `<label>` says "From"; the `aria-label` says "Report period from",
+               * which is the accessible name a screen-reader user hears out of context and the
+               * name this screen's coverage has always addressed the field by. It CONTAINS the
+               * visible word, so WCAG 2.2 SC 2.5.3 (Label in Name) still holds and a voice-control
+               * user saying "From" still matches.
+               */}
+              <div className="flex flex-col gap-1">
+                <label
+                  htmlFor="report-period-from"
+                  className="text-label font-semibold tracking-wide text-foreground-tertiary uppercase"
+                >
+                  From
+                </label>
+                <Input
+                  id="report-period-from"
                   type="date"
                   aria-label="Report period from"
                   value={period.from}
                   max={period.to}
                   onChange={(e) => setPeriod({ from: e.target.value, to: period.to })}
-                  className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm focus-visible:border-ring"
+                  className="w-44"
                 />
-              </label>
-              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                To
-                <input
+              </div>
+              <div className="flex flex-col gap-1">
+                <label
+                  htmlFor="report-period-to"
+                  className="text-label font-semibold tracking-wide text-foreground-tertiary uppercase"
+                >
+                  To
+                </label>
+                <Input
+                  id="report-period-to"
                   type="date"
                   aria-label="Report period to"
                   value={period.to}
                   min={period.from}
                   onChange={(e) => setPeriod({ from: period.from, to: e.target.value })}
-                  className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm focus-visible:border-ring"
+                  className="w-44"
                 />
-              </label>
-            </div>
+              </div>
+            </FilterBar>
 
             {/*
              * A run that fails is announced. `ReportTable` alone cannot do this: it takes
@@ -148,12 +207,15 @@ function ReportRunner({ code }: { code: string }) {
               stillWorks="The rest of the product is unaffected — orders, the till and the kitchen board keep working."
               loading={<ReportTable result={undefined} isLoading />}
             >
-              <ReportTable result={run.data} isLoading={false} />
+              <div className="space-y-(--space-lg)">
+                {run.data && <ReportVisual result={run.data} />}
+                <ReportTable result={run.data} isLoading={false} />
+              </div>
             </QueryBoundary>
           </div>
         )}
       </QueryBoundary>
-    </div>
+    </>
   );
 }
 
@@ -161,9 +223,9 @@ export default function ReportRunPage({ params }: ReportRunPageProps) {
   const { code } = use(params);
   return (
     <PermissionGuard require="reporting.report.view" fallback={<AccessDenied />}>
-      <div className="p-6">
+      <PageBody className="space-y-(--space-lg)">
         <ReportRunner code={code} />
-      </div>
+      </PageBody>
     </PermissionGuard>
   );
 }

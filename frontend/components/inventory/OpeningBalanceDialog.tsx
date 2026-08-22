@@ -73,7 +73,11 @@ export function OpeningBalanceDialog({
 
   const { branchId } = useCurrentUser();
   const { data: branches } = useMyBranches();
-  const { data: ingredients } = useIngredients();
+  const {
+    data: ingredients,
+    isError: ingredientsFailed,
+    refetch: refetchIngredients,
+  } = useIngredients();
   const recordOpeningBalance = useRecordOpeningBalance();
 
   const branchName = (branches ?? []).find((b) => b.id === branchId)?.name ?? "Current branch";
@@ -126,7 +130,7 @@ export function OpeningBalanceDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="md:max-w-md">
         <DialogHeader>
           <DialogTitle>Record opening balance</DialogTitle>
           <DialogDescription>
@@ -158,6 +162,9 @@ export function OpeningBalanceDialog({
                       placeholder="Select an ingredient…"
                       emptyHeading="No ingredients match"
                       emptyBody="Try a different search."
+                      isError={ingredientsFailed}
+                      errorLabel="your ingredients"
+                      onRetry={() => void refetchIngredients()}
                     />
                   </FormControl>
                   <FormMessage />

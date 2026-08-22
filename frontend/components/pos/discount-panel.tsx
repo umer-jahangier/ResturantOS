@@ -295,7 +295,7 @@ export function DiscountPanel({ order }: DiscountPanelProps) {
   return (
     <div
       data-testid="discount-panel"
-      className="flex flex-col gap-3 rounded-xl border bg-background p-3 sm:p-4"
+      className="flex flex-col gap-3 rounded-xl border bg-background p-3 md:p-4"
     >
       {appliedList}
 
@@ -519,7 +519,7 @@ export function DiscountPanel({ order }: DiscountPanelProps) {
             // h-11 = 44px. This is pressed with a thumb, on a greasy screen, with a queue
             // behind it; 38px (px-4 py-2) is a mouse target, not a till one.
             "inline-flex h-11 items-center gap-1.5 rounded-lg px-4 text-sm font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary/90",
+            "bg-primary-solid text-primary-solid-foreground hover:bg-primary-solid/90",
             "disabled:cursor-not-allowed disabled:opacity-50",
           )}
         >

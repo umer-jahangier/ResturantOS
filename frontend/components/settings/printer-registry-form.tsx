@@ -20,6 +20,7 @@ import {
 import { useStations } from "@/lib/hooks/pos/use-station-admin";
 import { probeAgent, requestTestPrint, type AgentHealth } from "@/lib/print/agent-client";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
@@ -258,6 +259,8 @@ export function PrinterRegistryForm({ branchId }: { branchId: string | null }) {
    * and the model's own doc comment forbids it.
    */
   const [edits, setEdits] = useState<ReceiptConfig | null>(null);
+  /** Which row the operator asked to remove, and what to call it in the question. */
+  const [removing, setRemoving] = useState<{ index: number; label: string } | null>(null);
   const [agentHealth, setAgentHealth] = useState<AgentHealth | null>(null);
   const [testing, setTesting] = useState<string | null>(null);
 
@@ -424,7 +427,7 @@ export function PrinterRegistryForm({ branchId }: { branchId: string | null }) {
       </CardHeader>
 
       <CardContent className="space-y-5">
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1">
             <Label htmlFor="agent-base-url">Print agent address on this machine</Label>
             <Input
@@ -574,7 +577,7 @@ export function PrinterRegistryForm({ branchId }: { branchId: string | null }) {
                     <span className="text-label text-muted-foreground">{described.detail}</span>
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                     <div className="space-y-1">
                       <Label htmlFor={`role-${printer.id}`}>What it prints</Label>
                       <Select
@@ -712,7 +715,7 @@ export function PrinterRegistryForm({ branchId }: { branchId: string | null }) {
                       a form that quietly erases a working configuration because a machine is asleep
                       is worse than the problem it was built to fix.
                     */
-                      <div className="space-y-1 sm:col-span-2">
+                      <div className="space-y-1 md:col-span-2">
                         <Label htmlFor={`queue-${printer.id}`}>Printer on the machine</Label>
                         <Select
                           id={`queue-${printer.id}`}
@@ -823,11 +826,28 @@ export function PrinterRegistryForm({ branchId }: { branchId: string | null }) {
                         <TestTube2 className="size-3.5" aria-hidden="true" />
                         {testing === printer.id ? "Sending…" : "Test print"}
                       </Button>
+                      {/*
+                      38-10 task 5. One click removed the row and everything typed into it — the
+                      transport, the address, the measured column count — with no confirmation and
+                      no undo. The audit named this and the tax-class delete together as the two
+                      destructive settings actions with no shared ConfirmDialog.
+
+                      The body states the honest two-step: the row goes now, the branch loses the
+                      printer on Save. Conflating those would either overstate the damage of a
+                      mistaken click or understate what Save is about to do.
+                    */}
                       <Button
                         type="button"
                         variant="destructive"
                         size="sm"
-                        onClick={() => removePrinter(index)}
+                        onClick={() =>
+                          setRemoving({
+                            index,
+                            label: printer.stationCode
+                              ? `the ${printer.stationCode} printer`
+                              : `this ${printer.role.toLowerCase()} printer`,
+                          })
+                        }
                       >
                         <Trash2 className="size-3.5" aria-hidden="true" />
                         Remove
@@ -882,6 +902,20 @@ export function PrinterRegistryForm({ branchId }: { branchId: string | null }) {
           </div>
         </div>
       </CardContent>
+
+      <ConfirmDialog
+        open={removing !== null}
+        onOpenChange={(next) => {
+          if (!next) setRemoving(null);
+        }}
+        title={`Remove ${removing?.label ?? "this printer"}?`}
+        body="Its transport, address and column count are lost as soon as you confirm — there is no undo for what you typed. The branch keeps the printer until you press Save printers, so nothing at the till changes before then."
+        confirmLabel="Remove printer"
+        onConfirm={() => {
+          if (removing) removePrinter(removing.index);
+          setRemoving(null);
+        }}
+      />
     </Card>
   );
 }

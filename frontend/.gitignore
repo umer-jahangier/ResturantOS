@@ -62,3 +62,17 @@ next-env.d.ts
 # or by giving it a .ts extension — which also brings it back under the prettier
 # and typecheck gates, where real test infrastructure belongs.
 e2e/**/*.mjs
+
+# The one exception, and it is not a probe.
+#
+# `viewport-integrity.mjs` (plan 38-14 task 5) is IMPORTED by two things that must run in CI:
+# `e2e/journeys/responsive.spec.ts` and `__tests__/e2e/viewport-integrity.test.ts`. Ignored, it
+# would be missing from a fresh clone and both of them would fail to resolve the module — a gate
+# that is red for everyone except the person who wrote it, which is worse than no gate.
+#
+# It stays `.mjs` rather than taking the `.ts` route the note above recommends because the plan
+# fixes this path by name AND because the file's whole point is that it is a single module shared
+# by a Playwright spec and a vitest suite: `tsconfig` excludes `e2e/**`, so a `.ts` here would be
+# neither type-checked nor any better off. It carries JSDoc types instead, which is what makes the
+# vitest import typed, and `.prettierignore` carries the matching exception.
+!e2e/viewport-integrity.mjs

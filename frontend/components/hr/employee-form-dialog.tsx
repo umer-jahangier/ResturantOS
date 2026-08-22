@@ -153,7 +153,7 @@ export function EmployeeFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto md:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{isEdit ? `Edit ${employee.fullName}` : "New employee"}</DialogTitle>
           <DialogDescription>
@@ -164,7 +164,7 @@ export function EmployeeFormDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-2">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 md:grid-cols-2">
             <FormField
               control={form.control}
               name="employeeNo"
@@ -344,12 +344,12 @@ export function EmployeeFormDialog({
             />
 
             {form.formState.errors.root ? (
-              <p role="alert" className="text-destructive sm:col-span-2 text-sm">
+              <p role="alert" className="text-destructive md:col-span-2 text-small">
                 {form.formState.errors.root.message}
               </p>
             ) : null}
 
-            <DialogFooter className="sm:col-span-2">
+            <DialogFooter className="md:col-span-2">
               <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>

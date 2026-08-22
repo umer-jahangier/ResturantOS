@@ -5,6 +5,7 @@ import { Command } from "cmdk";
 import { ChevronsUpDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { MoneyDisplay } from "@/components/ui/money-display";
 
@@ -30,6 +31,42 @@ interface CatalogItemComboboxProps {
    */
   emptyBody?: React.ReactNode;
   isLoading?: boolean;
+  /**
+   * Whether the request that produced `options` FAILED.
+   *
+   * <h3>Why a picker needs its own error state at all</h3>
+   *
+   * Six dialogs destructured `useIngredients()` as `const { data: ingredients } = …` and dropped
+   * `isError` on the floor — bug shape 2 from `query-boundary.tsx`'s docblock, verbatim, at the
+   * size of one dropdown. A failed catalog became a zero-length array one line later, and this
+   * component then told the reader *"No ingredients match — try a different search."*
+   *
+   * <p>That sentence is GA-001: it reports the empty result of a search that never ran. Someone
+   * counting stock reads it as "this ingredient is not set up", and the next thing they do is
+   * create a duplicate ingredient — a write, against a service that is down, which the count
+   * sheet will then carry for ever.
+   *
+   * <p>The failure branch is checked BEFORE the empty branch here for the same reason
+   * `QueryBoundary` checks it first: a list that failed to load has no trustworthy length, so
+   * "is it empty?" is not yet an honest question.
+   */
+  isError?: boolean;
+  /** Offered inside the failure notice. Omit it and the notice names the failure without a retry. */
+  onRetry?: () => void;
+  /** What failed, in the reader's words — "ingredients", "this vendor's catalog". */
+  errorLabel?: string;
+  /**
+   * Replaces the generic failure sentence for a caller that knows more than "it didn't load".
+   *
+   * <p>`GlAccountCombobox` is the case this exists for: it tells a 403 from a 503 from a parse
+   * failure and says which of them happened, and collapsing that into one sentence would be a
+   * downgrade. What it could NOT do on its own is give the notice `role="alert"` and the
+   * destructive ramp, because both live in here — so the copy stays with the caller and the
+   * SALIENCE stays with the component. Neither half is optional and neither belongs to the
+   * other.
+   */
+  errorHeading?: React.ReactNode;
+  errorBody?: React.ReactNode;
   onSearchChange?: (query: string) => void;
   className?: string;
 }
@@ -65,6 +102,11 @@ export function CatalogItemCombobox({
   emptyHeading = "No matches",
   emptyBody = "Try a different search.",
   isLoading = false,
+  isError = false,
+  onRetry,
+  errorLabel = "the list",
+  errorHeading,
+  errorBody,
   onSearchChange,
   className,
 }: CatalogItemComboboxProps) {
@@ -121,15 +163,63 @@ export function CatalogItemCombobox({
       <PopoverContent className="w-64 p-0" align="start">
         <Command shouldFilter={false} className="overflow-hidden rounded-lg">
           <div className="flex items-center border-b px-2">
+            {/*
+              No `outline-none` here: it sits in the `utilities` layer and beats the `:focus-visible`
+              rule in `base`, so it was silently deleting this field's only focus indicator — the
+              demo's exact failure (D-38-15, "outline:none on inputs with no replacement"). The
+              offset is negative because `Command`'s surface is `overflow-hidden` and a `+2px`
+              outline would be clipped away. See `command-palette.tsx` for the full note.
+              */}
             <Command.Input
               value={query}
               onValueChange={handleQueryChange}
               placeholder="Search…"
-              className="flex h-9 w-full rounded-md bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-9 w-full rounded-md bg-transparent py-2 text-sm focus-visible:outline-offset-[-2px] placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
           <Command.List className="max-h-64 overflow-y-auto overflow-x-hidden p-1">
-            {isLoading ? (
+            {isError ? (
+              /*
+               * The failure, and it is deliberately LOUDER than the empty state below — the same
+               * asymmetry `__tests__/components/state-character.test.tsx` measures on the
+               * full-size surfaces. `--destructive` at /15 against an empty state whose only
+               * decoration is `--decorative`, plus `role="alert"` where the empty branch has no
+               * role at all: two facts an assistive-technology user can tell apart, not one
+               * colour a sighted user might.
+               *
+               * 34-05 forbids softening this. No fade-in, no reduced opacity — if the animation
+               * never runs the notice must already be readable, because the reader is about to
+               * make a stock decision against a list the product could not read.
+               */
+              <div
+                role="alert"
+                data-testid="catalog-combobox-error"
+                className="m-1 flex flex-col items-start gap-(--space-sm) rounded-md border border-destructive/30 bg-destructive/15 p-3 text-small text-destructive shadow-depth-1"
+              >
+                <span className="font-medium">
+                  {errorHeading ?? <>Couldn&apos;t load {errorLabel}.</>}
+                </span>
+                <span>
+                  {errorBody ?? (
+                    <>
+                      This list is not your data, so nothing here can be trusted. Nothing you have
+                      typed has been lost.
+                    </>
+                  )}
+                </span>
+                {onRetry && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={onRetry}
+                    data-testid="catalog-combobox-retry"
+                  >
+                    Try again
+                  </Button>
+                )}
+              </div>
+            ) : isLoading ? (
               <div className="px-2 py-6 text-center text-sm text-muted-foreground">Loading…</div>
             ) : filtered.length === 0 ? (
               <Command.Empty className="flex flex-col gap-0.5 px-2 py-4">

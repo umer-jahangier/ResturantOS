@@ -25,15 +25,15 @@ export function GuideSection({ tab }: { tab: FinanceGuideTab }) {
       className="scroll-mt-24 space-y-4 border-b pb-8 last:border-0"
     >
       <div>
-        <h2 className="text-xl font-semibold">
+        <h2 className="text-h1 font-semibold">
           <Link href={tab.href} className="hover:underline">
             {tab.label}
           </Link>
         </h2>
-        <p className="text-sm text-muted-foreground">{tab.oneLiner}</p>
+        <p className="text-small text-muted-foreground">{tab.oneLiner}</p>
       </div>
 
-      <dl className="grid gap-4 sm:grid-cols-2">
+      <dl className="grid gap-4 md:grid-cols-2">
         <Answer term="What it is" definition={tab.whatItIs} />
         <Answer term="When you use it" definition={tab.whenYouUseIt} />
         <Answer term="What a typical entry looks like" definition={tab.typicalEntry} />
@@ -42,7 +42,7 @@ export function GuideSection({ tab }: { tab: FinanceGuideTab }) {
 
       {tab.claims.length > 0 && (
         <div className="space-y-2" data-testid={`guide-claims-${tab.anchor}`}>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <h3 className="text-label font-semibold uppercase tracking-wide text-muted-foreground">
             Rules worth knowing before you hit them
           </h3>
           {tab.claims.map((id) => (
@@ -57,10 +57,10 @@ export function GuideSection({ tab }: { tab: FinanceGuideTab }) {
 function Answer({ term, definition }: { term: string; definition: string }) {
   return (
     <div>
-      <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <dt className="text-label font-semibold uppercase tracking-wide text-muted-foreground">
         {term}
       </dt>
-      <dd className="mt-1 text-sm leading-relaxed">{definition}</dd>
+      <dd className="mt-1 text-small leading-relaxed">{definition}</dd>
     </div>
   );
 }
