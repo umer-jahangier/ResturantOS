@@ -35,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -214,7 +215,7 @@ public class IngredientService {
     public IngredientDto archiveIngredient(UUID id) {
         UUID tenantId = tenantContext.requireTenantId();
         Ingredient ingredient = requireIngredient(tenantId, id);
-        ingredient.setArchivedAt(Instant.now());
+        ingredient.setArchivedAt(stampNow());
         ingredient.setActive(false);
         Ingredient saved = ingredientRepository.save(ingredient);
         return toDtos(List.of(saved), tenantId).get(0);
@@ -450,8 +451,25 @@ public class IngredientService {
             throw UomInvalidException.conversionInvalid(describeReferences(uom.getCode(), refs));
         }
 
-        uom.setArchivedAt(Instant.now());
+        uom.setArchivedAt(stampNow());
         return toDto(uomRepository.save(uom));
+    }
+
+    /**
+     * Now, at the precision the database can actually keep.
+     *
+     * <p>Postgres {@code timestamptz} holds microseconds; {@code Instant.now()} carries
+     * nanoseconds. Archiving stamped the raw value and returned the in-memory entity, so the
+     * FIRST archive reported digits the stored row never kept — and a second, idempotent archive,
+     * which returns the row as loaded, reported the truncated value instead. The two disagreed
+     * below the microsecond, which is what {@code UomLifecycleIT.retiringIsIdempotent} caught.
+     *
+     * <p>It only ever failed on CI because the resolution is the platform's: {@code Instant.now()}
+     * is microsecond-resolution on macOS, so the digits that diverge do not exist there, while
+     * Linux runners produce them on every call.
+     */
+    private static Instant stampNow() {
+        return Instant.now().truncatedTo(ChronoUnit.MICROS);
     }
 
     /** Bring a retired unit back into the pickers. */
