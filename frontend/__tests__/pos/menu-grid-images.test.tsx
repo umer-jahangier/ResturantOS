@@ -75,7 +75,7 @@ function mockMenu(items: unknown[], imageStatus = 200) {
     // it and no local run did. The sibling menu suites all stub it (menu-items-page,
     // menu-item-tax-roundtrip, menu-availability-toggle).
     http.get("*/api/v1/pos/menu/categories/admin", () =>
-      HttpResponse.json({ data: [], meta: null, warnings: [] }),
+      HttpResponse.json({ data: rawCategories, meta: null, warnings: [] }),
     ),
     http.get("*/api/v1/pos/menu/categories", () =>
       HttpResponse.json({ data: rawCategories, meta: null, warnings: [] }),
@@ -193,7 +193,7 @@ describe("MenuGrid — menu item pictures on the till", () => {
       // it and no local run did. The sibling menu suites all stub it (menu-items-page,
       // menu-item-tax-roundtrip, menu-availability-toggle).
       http.get("*/api/v1/pos/menu/categories/admin", () =>
-        HttpResponse.json({ data: [], meta: null, warnings: [] }),
+        HttpResponse.json({ data: rawCategories, meta: null, warnings: [] }),
       ),
       http.get("*/api/v1/pos/menu/categories", () =>
         HttpResponse.json({ data: rawCategories, meta: null, warnings: [] }),
