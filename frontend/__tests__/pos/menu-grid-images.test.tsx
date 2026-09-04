@@ -8,6 +8,7 @@ import { seedSession, clearSession } from "@/__tests__/utils/auth-fixtures";
 import { createQueryWrapper } from "@/__tests__/utils/query-wrapper";
 import { MenuGrid } from "@/components/pos/menu-grid";
 import { __resetAuthenticatedImageCache } from "@/lib/hooks/files/use-file-upload";
+import { FileRepository } from "@/lib/repositories/file.repository";
 
 /**
  * S7 — "menu item images never reach the POS grid".
@@ -66,14 +67,29 @@ const PNG_BYTES = Uint8Array.from(
   (c) => c.charCodeAt(0),
 );
 
+/**
+ * Which way the image transport resolves for the current test.
+ *
+ * The photograph used to be served by an MSW handler, which meant these tests depended on MSW
+ * delivering a BINARY body to an axios XHR under jsdom — FileRepository.fetchBlob calls
+ * apiClient.get(path, { responseType: "blob" }). That request does not reliably settle in jsdom
+ * (the same limitation menu-item-image-field.test.tsx documents for multipart upload), so on CI
+ * the promise never resolved OR rejected: no <img> appeared and the "picture could not be loaded"
+ * fallback did not either, because the hook was still waiting. Five tests failed there and none
+ * failed locally.
+ *
+ * What these tests are about is what the CASHIER sees — an <img> carrying the dish's name — not
+ * whether MSW can push bytes through XHR. So the transport is mocked at FileRepository.fetchBlob
+ * and the outcome is chosen here.
+ */
+let imageOutcome = 200;
+
 function mockMenu(items: unknown[], imageStatus = 200) {
+  imageOutcome = imageStatus;
   server.use(
-    // MenuGrid renders MenuScopeSwitch (menu-grid.tsx:191), which asks for the ADMIN catalogue.
-    // MSW does not treat "*/menu/categories" as covering "/menu/categories/admin", so without
-    // this the request is unhandled and onUnhandledRequest:"error" fails the test — but only on a
-    // machine slow enough for the scope switch to fetch before the test ends, which is why CI saw
-    // it and no local run did. The sibling menu suites all stub it (menu-items-page,
-    // menu-item-tax-roundtrip, menu-availability-toggle).
+    // Defensive, matching the sibling menu suites: MenuScopeSwitch can ask for the ADMIN
+    // catalogue and MSW does not treat "*/menu/categories" as covering "/admin". NOT the cause
+    // of this file's CI failure — that was the image transport, mocked below.
     http.get("*/api/v1/pos/menu/categories/admin", () =>
       HttpResponse.json({ data: rawCategories, meta: null, warnings: [] }),
     ),
@@ -83,12 +99,6 @@ function mockMenu(items: unknown[], imageStatus = 200) {
     http.get("*/api/v1/pos/menu/items", () =>
       HttpResponse.json({ data: items, meta: null, warnings: [] }),
     ),
-    http.get(`*${PHOTO_URL}`, () => {
-      if (imageStatus !== 200) return new HttpResponse(null, { status: imageStatus });
-      return HttpResponse.arrayBuffer(PNG_BYTES.buffer as ArrayBuffer, {
-        headers: { "Content-Type": "image/png" },
-      });
-    }),
   );
 }
 
@@ -111,11 +121,20 @@ describe("MenuGrid — menu item pictures on the till", () => {
     let n = 0;
     globalThis.URL.createObjectURL = vi.fn(() => `blob:menu-image-${++n}`);
     globalThis.URL.revokeObjectURL = vi.fn();
+
+    imageOutcome = 200;
+    vi.spyOn(FileRepository, "fetchBlob").mockImplementation(async () => {
+      if (imageOutcome !== 200) {
+        throw new Error(`image request failed with ${imageOutcome}`);
+      }
+      return new Blob([PNG_BYTES], { type: "image/png" });
+    });
   });
 
   afterEach(() => {
     __resetAuthenticatedImageCache();
     clearSession();
+    vi.restoreAllMocks();
   });
 
   it("shows the photograph on the tile of an item that has one", async () => {
@@ -184,14 +203,10 @@ describe("MenuGrid — menu item pictures on the till", () => {
 
   it("fetches one picture once however many tiles show it", async () => {
     const sameShot = { ...withoutPicture, name: "Karahi Half", imageUrl: PHOTO_URL };
-    let hits = 0;
     server.use(
-      // MenuGrid renders MenuScopeSwitch (menu-grid.tsx:191), which asks for the ADMIN catalogue.
-      // MSW does not treat "*/menu/categories" as covering "/menu/categories/admin", so without
-      // this the request is unhandled and onUnhandledRequest:"error" fails the test — but only on a
-      // machine slow enough for the scope switch to fetch before the test ends, which is why CI saw
-      // it and no local run did. The sibling menu suites all stub it (menu-items-page,
-      // menu-item-tax-roundtrip, menu-availability-toggle).
+      // Defensive, matching the sibling menu suites: MenuScopeSwitch can ask for the ADMIN
+      // catalogue and MSW does not treat "*/menu/categories" as covering "/admin". NOT the cause
+      // of this file's CI failure — that was the image transport, mocked below.
       http.get("*/api/v1/pos/menu/categories/admin", () =>
         HttpResponse.json({ data: rawCategories, meta: null, warnings: [] }),
       ),
@@ -201,12 +216,6 @@ describe("MenuGrid — menu item pictures on the till", () => {
       http.get("*/api/v1/pos/menu/items", () =>
         HttpResponse.json({ data: [withPicture, sameShot], meta: null, warnings: [] }),
       ),
-      http.get(`*${PHOTO_URL}`, () => {
-        hits += 1;
-        return HttpResponse.arrayBuffer(PNG_BYTES.buffer as ArrayBuffer, {
-          headers: { "Content-Type": "image/png" },
-        });
-      }),
     );
     renderGrid();
 
@@ -214,6 +223,6 @@ describe("MenuGrid — menu item pictures on the till", () => {
     await screen.findByAltText("Karahi Half", {}, { timeout: 4000 });
     // Two tiles, one photograph, one request. A per-component fetch would make this 2 — and 40 on
     // a fully photographed menu, again on every category tap, mid-service.
-    expect(hits).toBe(1);
+    expect(FileRepository.fetchBlob).toHaveBeenCalledTimes(1);
   });
 });
