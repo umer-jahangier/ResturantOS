@@ -43,6 +43,17 @@ class StepUpLoginIT extends BaseIntegrationTest {
         UserEntity owner = userRepository.findByEmail(TestFixtures.OWNER_EMAIL).orElseThrow();
         owner.setTotpSecret(ownerTotpSecret);
         owner.setTotpEnabled(true);
+        // The owner is a SHARED fixture and every test here logs in as them. A sibling class that
+        // exercises a wrong-password path leaves failed_login_count raised or locked_until set,
+        // and the next login is then refused with the deliberately generic UNAUTHENTICATED — the
+        // same body a wrong password gets, because the refusals are indistinguishable on purpose.
+        // That is what CI hit: "expected TOTP_REQUIRED but was UNAUTHENTICATED" and two 401s from
+        // loginWithCurrentCode, in a class that had not typed a wrong password at all. Clearing
+        // the lock here is the established shape in this module — PasswordChangeIT,
+        // ForcedPasswordChangeIT, AuthLoginIT and CustomRoleBuilderIT all do it for the same
+        // reason. A test that logs in must own the login state it depends on.
+        owner.setLockedUntil(null);
+        owner.setFailedLoginCount(0);
         userRepository.save(owner);
     }
 
