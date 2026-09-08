@@ -38,10 +38,15 @@ class DeviceFeatureGateIT extends AdmsWireTestBase {
         assertThat(res.statusCode())
                 .as("a tenant whose HR module is off, or who has stopped paying for it, stops ingesting")
                 .isNotEqualTo(200);
-        assertThat(countPunchesByRef("8001"))
+        // Scoped to THIS fixture's device, not to the bare ref. countPunchesByRef counts the whole
+        // table on device_user_ref alone, and "8001" is registered by PunchRetentionIT as well —
+        // so its punches made this assertion fail even though the gate here had correctly refused
+        // (the status assertion above passed). register() mints a globally unique serial, so the
+        // device join cannot collide with a sibling class.
+        assertThat(countPunchesForDevice(fx.serial()))
                 .as("refused after resolution and BEFORE any write")
                 .isZero();
-        assertThat(countQuarantineByRef("8001")).isZero();
+        assertThat(countQuarantineForDevice(fx.serial())).isZero();
     }
 
     @Test
