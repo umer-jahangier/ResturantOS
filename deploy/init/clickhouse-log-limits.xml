@@ -21,11 +21,34 @@
         <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
         <max_size_rows>5000000</max_size_rows>
     </text_log>
+    <!--
+      metric_log is the one that actually threatens this deployment, and a TTL alone does
+      not bound it usefully. MEASURED on dev 2026-09-08 after clearing: ~960MB/day. At the
+      3-day TTL it was written with, that settles near 2.9GB — essentially the 3.2GB that
+      OOMKilled the server at startup, so the previous setting was on course to reproduce
+      the outage it was added after.
+
+      Two changes, attacking different halves:
+        - collect_interval_milliseconds 1000 -> 15000. The default writes one row of ~1000
+          columns EVERY SECOND. Fifteen-second granularity is still finer than anything
+          anyone reads on a dev box, and it is a 15x cut at the source.
+        - TTL 3 days -> 1 day. Diagnostic value here is measured in hours.
+      Together: ~64MB steady state instead of ~2.9GB.
+
+      Disk was never the binding constraint — the PVC has 167G free. STARTUP MEMORY is.
+      ClickHouse loads part metadata for every table before it serves, and that work sits
+      OUTSIDE max_server_memory_usage, so a fat system log table OOMKills a 2Gi container
+      before it can run the TTL merge that would have shrunk it. Self-feeding: it died in
+      13 seconds, every crash logged more, and the table causing the crash grew from the
+      crashing. 2,151 restarts over 18 days, and audit-service's own outage sat behind it.
+    -->
     <metric_log>
-        <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
+        <ttl>event_date + INTERVAL 1 DAY DELETE</ttl>
+        <collect_interval_milliseconds>15000</collect_interval_milliseconds>
     </metric_log>
     <asynchronous_metric_log>
-        <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
+        <ttl>event_date + INTERVAL 1 DAY DELETE</ttl>
+        <collect_interval_milliseconds>15000</collect_interval_milliseconds>
     </asynchronous_metric_log>
     <query_log>
         <ttl>event_date + INTERVAL 7 DAY DELETE</ttl>
