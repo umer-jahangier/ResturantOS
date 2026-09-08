@@ -16,7 +16,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Keeps {@code AuditRabbitConfig} and {@code deploy/init/rabbitmq-definitions.json} in agreement.
+ * Keeps {@code AuditRabbitConfig} and {@code deploy/init/rabbitmq-definitions.template.json} in agreement.
  *
  * <h3>Why this test exists</h3>
  *
@@ -36,16 +36,32 @@ class AuditTopologyMatchesDefinitionsTest {
 
     private static JsonNode definitions;
 
+    /**
+     * The TEMPLATE, not the rendered file.
+     *
+     * <p>{@code deploy/init/rabbitmq-definitions.template.json} is gitignored (.gitignore:8) — it is
+     * RENDERED from this template by {@code scripts/dev-stack-up.sh}. Reading the rendered file
+     * passes on a developer machine that has run the dev stack and fails everywhere else,
+     * including CI and any fresh checkout. The template is the tracked source of truth and is the
+     * only version that exists on every branch.
+     *
+     * <p>This was not a hypothetical: the first version of this test read the rendered file, went
+     * green locally, and failed the moment it was cherry-picked onto a branch whose worktree had
+     * never rendered one. A test that depends on generated, ignored state is a test that reports
+     * the state of your laptop.
+     */
+    private static final String TEMPLATE = "deploy/init/rabbitmq-definitions.template.json";
+
     @BeforeAll
     static void loadDefinitions() throws Exception {
         // Walk up from the module dir to the repo root, so this works whether the suite is run
         // from services/audit-service or from the reactor root.
-        File probe = new File("deploy/init/rabbitmq-definitions.json");
+        File probe = new File(TEMPLATE);
         if (!probe.exists()) {
-            probe = new File("../../deploy/init/rabbitmq-definitions.json");
+            probe = new File("../../" + TEMPLATE);
         }
         assertThat(probe)
-                .as("rabbitmq-definitions.json must be findable from the module or the reactor root")
+                .as("%s must be findable from the module or the reactor root", TEMPLATE)
                 .exists();
         definitions = new ObjectMapper().readTree(probe);
     }
