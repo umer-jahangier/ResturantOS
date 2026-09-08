@@ -59,21 +59,20 @@ class StepUpLoginIT extends BaseIntegrationTest {
         owner.setFailedLoginCount(0);
         owner.setMustChangePassword(false);
         owner.setActive(true);
-        userRepository.save(owner);
 
-        // Clearing the lock did not stop the UNAUTHENTICATED refusals, so the credential itself is
-        // suspect: some sibling may be overwriting the shared owner's hash. A login refusal cannot
-        // say which — every refusal here is deliberately the same generic body — so check the one
-        // thing that distinguishes "wrong password" from "locked", "inactive" and "must change",
-        // and fail with that name instead of with a 401.
         // CONFIRMED on CI: the stored hash no longer matches OWNER_PASSWORD, so a sibling class
-        // does re-credential the shared owner. Rather than hunt it down and forbid it — the owner
-        // is a shared fixture and any class is entitled to change one — this class now restores
-        // the credential it depends on, which is the same principle as clearing the lock above.
+        // re-credentials the shared owner. Rather than hunt it down and forbid it — the owner is a
+        // shared fixture and any class is entitled to change one — this class restores the
+        // credential it depends on, the same principle as clearing the lock above.
         if (!passwordEncoder.matches(TestFixtures.OWNER_PASSWORD, owner.getPasswordHash())) {
             owner.setPasswordHash(passwordEncoder.encode(TestFixtures.OWNER_PASSWORD));
-            userRepository.save(owner);
         }
+
+        // ONE save. Saving this same instance twice is an ObjectOptimisticLockingFailure: the first
+        // write increments @Version in the database while this in-memory copy keeps the old value,
+        // and the second is rejected as stale. That is exactly what my previous attempt did — it
+        // turned three login failures into five setup errors.
+        userRepository.save(owner);
     }
 
     @AfterEach

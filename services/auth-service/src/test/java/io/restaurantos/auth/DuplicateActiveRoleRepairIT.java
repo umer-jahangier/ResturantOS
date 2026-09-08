@@ -235,6 +235,19 @@ class DuplicateActiveRoleRepairIT extends BaseIntegrationTest {
             Scope.getCurrentScope().getSingleton(ChangeLogHistoryServiceFactory.class).resetAll();
             try (Liquibase liquibase =
                          new Liquibase(CHANGELOG, new ClassLoaderResourceAccessor(), database)) {
+                // Ask Liquibase what it believes BEFORE updating. Three explanations for "zero 056
+                // rows afterwards" have now been eliminated by measurement — the DELETE does remove
+                // rows, contexts match the ones that applied 056 at start-up, and the delete and
+                // the update share a connection — so the next question is not why the update did
+                // nothing but whether it had anything to do. If 056 is absent from the unrun list,
+                // Liquibase considers it applied despite an empty changelog table, and the fault is
+                // in changeset identity or a cache this reset does not reach. If it is present,
+                // the update ran it and the recording is what failed.
+                long unrun056 = liquibase.listUnrunChangeSets(new Contexts("seed"), new LabelExpression())
+                        .stream()
+                        .filter(cs -> cs.getId() != null && cs.getId().startsWith("auth-1.0.0-056"))
+                        .count();
+                System.out.println("DIAG_UNRUN_056=" + unrun056);
                 liquibase.update(new Contexts("seed"), new LabelExpression());
             }
         }
