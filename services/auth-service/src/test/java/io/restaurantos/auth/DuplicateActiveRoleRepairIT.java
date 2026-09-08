@@ -59,6 +59,22 @@ class DuplicateActiveRoleRepairIT extends BaseIntegrationTest {
 
     @Test
     void theMigrationRepairsPreExistingDuplicatesAndThenTakesHold() throws Exception {
+        try {
+            runTheRepairScenario();
+        } finally {
+            // The rewind above is performed on the SHARED container's real schema, which is what
+            // makes this test worth having and also what makes it dangerous: if the replay does
+            // not restore `is_primary`, every other class in this module that touches
+            // UserBranchRoleEntity dies on "column ubre1_0.is_primary does not exist". That is
+            // exactly what happened on CI — this test failed with 3 surviving rows and took six
+            // OneActiveRolePerBranchIT tests plus the login suites down with it, turning one
+            // honest failure into eight. A test may fail; it may not leave the database broken
+            // for everything that runs after it.
+            restoreSchemaAfterRewind();
+        }
+    }
+
+    private void runTheRepairScenario() throws Exception {
         rewind056();
         seedThreeActiveRowsForOnePair();
 
@@ -97,6 +113,46 @@ class DuplicateActiveRoleRepairIT extends BaseIntegrationTest {
     }
 
     // ── Rewind / replay machinery ─────────────────────────────────────────────
+
+    /**
+     * Puts the schema back after {@link #rewind056()}, whatever happened in between.
+     *
+     * <p>Deliberately restores the COLUMN only, never the two indexes. 056's
+     * {@code add-is-primary} carries {@code preConditions onFail="MARK_RAN"} on
+     * {@code columnExists}, so a later Liquibase run skips it cleanly when the column is already
+     * there — whereas the two index changesets are plain {@code CREATE UNIQUE INDEX}, which would
+     * fail against an index this method had recreated. Leaving the indexes to Liquibase keeps a
+     * subsequent context start-up able to repair itself; recreating them here would break it.
+     *
+     * <p>The probe's rows go first: three active rows for one pair are precisely what the partial
+     * unique index cannot be built over.
+     */
+    private void restoreSchemaAfterRewind() {
+        try {
+            jdbc.update("DELETE FROM user_branch_roles WHERE user_id = ?", USER);
+
+            if (!isPrimaryColumnPresent()) {
+                // The proper repair: let the real changeset put back what it owns.
+                runLiquibase();
+            }
+            if (!isPrimaryColumnPresent()) {
+                jdbc.execute("ALTER TABLE user_branch_roles "
+                        + "ADD COLUMN IF NOT EXISTS is_primary BOOLEAN NOT NULL DEFAULT false");
+            }
+        } catch (Exception e) {
+            // Never let cleanup mask the assertion that actually failed.
+            System.err.println("DuplicateActiveRoleRepairIT: could not restore the schema after the "
+                    + "056 rewind — sibling classes in this container may now fail on is_primary: " + e);
+        }
+    }
+
+    private boolean isPrimaryColumnPresent() {
+        Long n = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.columns "
+                        + "WHERE table_name = 'user_branch_roles' AND column_name = 'is_primary'",
+                Long.class);
+        return n != null && n == 1L;
+    }
 
     private void rewind056() {
         jdbc.execute("DROP INDEX IF EXISTS uk_user_branch_roles_one_active");
