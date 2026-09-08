@@ -8,6 +8,8 @@ import liquibase.Liquibase;
 import liquibase.database.Database;
 import liquibase.database.DatabaseFactory;
 import liquibase.database.jvm.JdbcConnection;
+import liquibase.Scope;
+import liquibase.changelog.ChangeLogHistoryServiceFactory;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -158,7 +160,14 @@ class DuplicateActiveRoleRepairIT extends BaseIntegrationTest {
         jdbc.execute("DROP INDEX IF EXISTS uk_user_branch_roles_one_active");
         jdbc.execute("DROP INDEX IF EXISTS uk_user_branch_roles_one_primary");
         jdbc.execute("ALTER TABLE user_branch_roles DROP COLUMN IF EXISTS is_primary");
-        jdbc.update("DELETE FROM databasechangelog WHERE id LIKE 'auth-1.0.0-056%'");
+        int removed = jdbc.update("DELETE FROM databasechangelog WHERE id LIKE 'auth-1.0.0-056%'");
+        // If this is ever 0 the replay below is a no-op and every assertion after it is
+        // meaningless — the failure then reads "expected 1 but was 3", which points at the
+        // migration rather than at the rewind that never happened. Say which it is.
+        assertThat(removed)
+                .as("the rewind must actually remove 056's databasechangelog rows, or Liquibase "
+                        + "will consider the changeset applied and replay nothing")
+                .isGreaterThan(0);
     }
 
     private void seedThreeActiveRowsForOnePair() {
@@ -185,6 +194,14 @@ class DuplicateActiveRoleRepairIT extends BaseIntegrationTest {
         try (Connection connection = dataSource.getConnection()) {
             Database database = DatabaseFactory.getInstance()
                     .findCorrectDatabaseImplementation(new JdbcConnection(connection));
+            // Liquibase caches the ran-changeset history per database. Spring already ran the
+            // changelog during context start-up, so that cache still lists 056 as applied — and a
+            // replay that trusts it skips every changeset the rewind just deleted, silently. That
+            // is the shape of the CI failure: three rows survived and NOTHING threw, even though
+            // the repair changeset ends in a DO block that raises if duplicates remain. It cannot
+            // have raised, because it cannot have run. Drop the cache so the update re-reads
+            // DATABASECHANGELOG from the database it is about to modify.
+            Scope.getCurrentScope().getSingleton(ChangeLogHistoryServiceFactory.class).resetAll();
             try (Liquibase liquibase =
                          new Liquibase(CHANGELOG, new ClassLoaderResourceAccessor(), database)) {
                 liquibase.update(new Contexts("seed"), new LabelExpression());
