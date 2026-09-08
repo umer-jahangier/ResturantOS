@@ -249,6 +249,16 @@ class DuplicateActiveRoleRepairIT extends BaseIntegrationTest {
                         .count();
                 System.out.println("DIAG_UNRUN_056=" + unrun056);
                 liquibase.update(new Contexts("seed"), new LabelExpression());
+
+                // COMMIT. This is the whole bug. The probe above reports 5 unrun changesets, so
+                // Liquibase always had work to do — and afterwards databasechangelog held none of
+                // them. The work was not skipped, it was discarded: this connection comes from
+                // Hikari, Liquibase runs inside a transaction on it, and try-with-resources closes
+                // it without committing, at which point the pool rolls the whole thing back. The
+                // repair, the column, the indexes and the changelog rows all went with it, which
+                // is why the symptom read as "the migration did nothing" for five rounds.
+                // Spring's own start-up run never showed this because Spring commits for it.
+                database.commit();
             }
         }
     }
