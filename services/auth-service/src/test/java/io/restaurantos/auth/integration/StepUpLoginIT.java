@@ -66,11 +66,14 @@ class StepUpLoginIT extends BaseIntegrationTest {
         // say which — every refusal here is deliberately the same generic body — so check the one
         // thing that distinguishes "wrong password" from "locked", "inactive" and "must change",
         // and fail with that name instead of with a 401.
-        assertThat(passwordEncoder.matches(TestFixtures.OWNER_PASSWORD, owner.getPasswordHash()))
-                .as("the shared owner's stored hash must still match OWNER_PASSWORD — if this "
-                        + "fails, a sibling class re-credentialled owner@demo.local and every "
-                        + "login here is refused with the generic UNAUTHENTICATED body")
-                .isTrue();
+        // CONFIRMED on CI: the stored hash no longer matches OWNER_PASSWORD, so a sibling class
+        // does re-credential the shared owner. Rather than hunt it down and forbid it — the owner
+        // is a shared fixture and any class is entitled to change one — this class now restores
+        // the credential it depends on, which is the same principle as clearing the lock above.
+        if (!passwordEncoder.matches(TestFixtures.OWNER_PASSWORD, owner.getPasswordHash())) {
+            owner.setPasswordHash(passwordEncoder.encode(TestFixtures.OWNER_PASSWORD));
+            userRepository.save(owner);
+        }
     }
 
     @AfterEach

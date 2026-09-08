@@ -204,8 +204,25 @@ class DuplicateActiveRoleRepairIT extends BaseIntegrationTest {
                 id, TestFixtures.DEMO_TENANT_ID, USER, BRANCH, roleCode, updatedAt);
     }
 
+    /**
+     * Replays the changelog on the SAME connection that deleted 056's history rows.
+     *
+     * <p>The rewind's DELETE and this replay used to run on two different pooled connections, and
+     * the replay behaved as though the rows were still there: it applied nothing and inserted
+     * nothing, leaving databasechangelog with zero 056 rows afterwards. That number is the tell —
+     * a changeset that is merely SKIPPED by a MARK_RAN precondition still records a row, so zero
+     * means Liquibase never considered them at all, i.e. it believed they were already applied.
+     * Running the delete and the update through one connection removes every question about what
+     * one session can see of another's work.
+     */
     private void runLiquibase() throws Exception {
         try (Connection connection = dataSource.getConnection()) {
+            try (java.sql.Statement clear = connection.createStatement()) {
+                clear.executeUpdate("DELETE FROM databasechangelog WHERE id LIKE 'auth-1.0.0-056%'");
+            }
+            if (!connection.getAutoCommit()) {
+                connection.commit();
+            }
             Database database = DatabaseFactory.getInstance()
                     .findCorrectDatabaseImplementation(new JdbcConnection(connection));
             // Liquibase caches the ran-changeset history per database. Spring already ran the
