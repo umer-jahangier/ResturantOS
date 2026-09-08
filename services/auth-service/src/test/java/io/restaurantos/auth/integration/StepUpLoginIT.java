@@ -34,6 +34,9 @@ class StepUpLoginIT extends BaseIntegrationTest {
     private final DefaultCodeGenerator codeGenerator = new DefaultCodeGenerator();
     private final SystemTimeProvider timeProvider = new SystemTimeProvider();
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
     private String ownerTotpSecret;
 
     @BeforeEach
@@ -54,7 +57,20 @@ class StepUpLoginIT extends BaseIntegrationTest {
         // reason. A test that logs in must own the login state it depends on.
         owner.setLockedUntil(null);
         owner.setFailedLoginCount(0);
+        owner.setMustChangePassword(false);
+        owner.setActive(true);
         userRepository.save(owner);
+
+        // Clearing the lock did not stop the UNAUTHENTICATED refusals, so the credential itself is
+        // suspect: some sibling may be overwriting the shared owner's hash. A login refusal cannot
+        // say which — every refusal here is deliberately the same generic body — so check the one
+        // thing that distinguishes "wrong password" from "locked", "inactive" and "must change",
+        // and fail with that name instead of with a 401.
+        assertThat(passwordEncoder.matches(TestFixtures.OWNER_PASSWORD, owner.getPasswordHash()))
+                .as("the shared owner's stored hash must still match OWNER_PASSWORD — if this "
+                        + "fails, a sibling class re-credentialled owner@demo.local and every "
+                        + "login here is refused with the generic UNAUTHENTICATED body")
+                .isTrue();
     }
 
     @AfterEach

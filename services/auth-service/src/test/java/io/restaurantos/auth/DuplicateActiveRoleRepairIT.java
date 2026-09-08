@@ -84,6 +84,20 @@ class DuplicateActiveRoleRepairIT extends BaseIntegrationTest {
 
         runLiquibase();
 
+        // Which of the two remaining explanations is it? Either Liquibase skipped 056 (its rows
+        // are still absent afterwards), or it ran and the repair could not SEE the rows — the
+        // changeset does ALTER TABLE ... NO FORCE ROW LEVEL SECURITY precisely because RLS would
+        // otherwise hide them from a non-owner, and if the UPDATE matches nothing then the DO
+        // block's own duplicate count matches nothing either, so it reports success and repairs
+        // nothing. "Expected 1 but was 3" cannot tell those apart; this can.
+        Long replayed = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM databasechangelog WHERE id LIKE 'auth-1.0.0-056%'", Long.class);
+        assertThat(replayed)
+                .as("Liquibase must re-apply 056 after the rewind — if this is 0 the replay was "
+                        + "skipped and nothing below is meaningful; if it is non-zero the "
+                        + "changeset ran and the repair could not see the seeded rows")
+                .isNotZero();
+
         List<Map<String, Object>> survivors = activeRows();
         assertThat(survivors)
                 .as("the repair must leave exactly one active row per (user_id, branch_id), or the "
