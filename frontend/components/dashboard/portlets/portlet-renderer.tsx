@@ -7,10 +7,12 @@ import { T_H2 } from "@/components/dashboard/dashboard-type";
 import {
   ExceptionList,
   KpiTile,
+  MeterStack,
   RankedList,
   RecordList,
   type ExceptionListData,
   type KpiTileData,
+  type MeterStackData,
   type RankedListData,
   type RecordListData,
 } from "@/components/dashboard/portlets/portlet";
@@ -131,6 +133,7 @@ export type PortletBody =
   | ({ kind: "KpiTile" } & KpiTileData)
   | ({ kind: "TrendChart" } & TrendChartData)
   | ({ kind: "RankedList" } & RankedListData)
+  | ({ kind: "MeterStack" } & MeterStackData)
   | ({ kind: "ExceptionList" } & ExceptionListData)
   | ({ kind: "RecordList" } & RecordListData)
   | ({ kind: "Shortcuts" } & ShortcutsData);
@@ -246,6 +249,10 @@ function renderPortlet(
       return model.kind === "RankedList" ? (
         <RankedList key={spec.id} {...chrome} {...model} />
       ) : null;
+    case "MeterStack":
+      return model.kind === "MeterStack" ? (
+        <MeterStack key={spec.id} {...chrome} {...model} />
+      ) : null;
     case "ExceptionList":
       return model.kind === "ExceptionList" ? (
         <ExceptionList key={spec.id} {...chrome} {...model} />
@@ -319,7 +326,17 @@ export function PortletGrid({
         if (shown.length === 0) return null;
 
         return (
-          <PortletRow key={row} density={preset.density} columns={columnsFor(declared.length)}>
+          <PortletRow
+            key={row}
+            density={preset.density}
+            columns={columnsFor(declared.length)}
+            /*
+             * From the DECLARED row, like the column count above it and for the same reason: a
+             * `2fr 1fr` split that becomes `1fr` because the reader lacks one permission is a
+             * dashboard that is not comparable between two readers.
+             */
+            layout={declared.some((p) => p.lead) ? "lead" : "even"}
+          >
             {shown.map((spec, index) => {
               const model = models[spec.id];
               const body = renderPortlet(spec, model, preset.density, index);

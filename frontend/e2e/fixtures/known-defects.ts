@@ -139,37 +139,27 @@ export const DEFECTS = {
         }),
   },
 
-  /**
-   * Found 2026-08-07 while writing this suite's own CLEANUP path — which is exactly the kind
-   * of place an opaque error costs the most time.
+  /*
+   * E2E-D5 — "a tenant-lifecycle precondition violation returns 500, not 409" — WAS HERE.
+   *
+   * RETIRED 2026-08-22, under the rule in this file's own header: the product was fixed, so the
+   * entry and its pin go, rather than the pin being repaired. The entry had already been edited
+   * to open with "FIXED 2026-08-13" and left in place, which is precisely the half-state the
+   * pinning discipline exists to catch.
+   *
+   * What replaced it: `requireStatus` throws `StateInvalidException`
+   * (`TenantLifecycleService.java:174-176`), which shared-lib maps to 409 STATE_INVALID, and the
+   * `DELETE /api/v1/platform/tenants/{id}` this defect was reported against no longer exists —
+   * it is `POST /api/v1/platform/tenants/{id}/close` (`PlatformAdminController.java:206`), by
+   * the decision in `.planning/decisions/D-TENANT-ERASURE.md`, because the old verb and its 204
+   * claimed an erasure the code never performed. The contract is proven by
+   * `TenantLifecycleIT.invalidTransition_reactivateCancelled_is409NotAServerError`, which names
+   * this defect id in its own comment. Measured against dev 2026-08-22: the old DELETE answers
+   * 405.
+   *
+   * The entry declared nothing (`declare: () => {}`), so removing it mutes no observation
+   * anywhere. `superadmin-tenant-lifecycle.spec.ts` mentions the id in a comment only.
    */
-  LIFECYCLE_PRECONDITION_RETURNS_500: {
-    id: "E2E-D5",
-    title: "A tenant-lifecycle precondition violation returns 500, not 409",
-    impact:
-      "FIXED 2026-08-13. requireStatus and cancel now throw StateInvalidException, which " +
-      "shared-lib maps to 409 STATE_INVALID, and the message names the operation, the current " +
-      "status and the required one. The endpoint also moved: DELETE /api/v1/platform/tenants/{id} " +
-      "is now POST /api/v1/platform/tenants/{id}/close, because the old verb and its 204 claimed " +
-      "an erasure that never happened (see .planning/decisions/D-TENANT-ERASURE.md). " +
-      "ORIGINAL REPORT: calling DELETE on a tenant that is not CANCELLED " +
-      "returned `500 INTERNAL_ERROR` with the message 'An unexpected error occurred'. The " +
-      "precondition is CORRECT — cancel must precede close — but the caller was told nothing " +
-      "about it. A client cannot distinguish 'you called these in the wrong order' from 'the " +
-      "server is broken', so the only way to learn the required sequence is to read the " +
-      "service source. It also means a real 500 in this endpoint is indistinguishable from " +
-      "routine misuse in logs and alerting.",
-    evidence:
-      "Measured live 2026-08-07 against the running gateway. DELETE on an ACTIVE tenant -> " +
-      "500 {'code':'INTERNAL_ERROR'}; POST .../cancel -> 200; DELETE -> 204; DELETE again " +
-      "(now PURGED) -> 500 again. TenantLifecycleService.purge (L86-93) calls requireStatus, " +
-      "which throws IllegalStateException (L102-108). The shared GlobalExceptionHandler maps " +
-      "IllegalArgumentException to 400 (proved by UNKNOWN_ROLE_CODE returning 400) but has no " +
-      "mapping for IllegalStateException, so it falls through to the catch-all 500. Remedy: " +
-      "map IllegalStateException to 409 CONFLICT with a code such as INVALID_LIFECYCLE_STATE " +
-      "and put the required status in the message.",
-    declare: () => {},
-  },
 
   /**
    * Found 2026-08-07. Arguably the most consequential finding in this suite: it blocks the

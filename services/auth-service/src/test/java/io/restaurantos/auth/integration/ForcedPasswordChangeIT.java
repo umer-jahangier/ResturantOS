@@ -549,9 +549,15 @@ class ForcedPasswordChangeIT extends BaseIntegrationTest {
 
     private List<String> outboxEnvelopes() {
         setRls(TestFixtures.demoTenantId());
-        return java.util.stream.Stream.concat(
-                outboxRepository.findTop200ByStatusOrderByCreatedAtAsc("PENDING").stream(),
-                outboxRepository.findTop200ByStatusOrderByCreatedAtAsc("SENT").stream())
+        // findTop200...OrderByCreatedAtAsc returns the OLDEST 200 of each status, which makes a
+        // newly written envelope invisible the moment the table passes 200 rows of that status.
+        // It does pass it: OutboxRelay cannot reach the broker in this environment ("Publish
+        // failed ... leaving PENDING for retry"), so PENDING accumulates across all 227 tests in
+        // the module. The snapshot then equals the post-login read, removeAll leaves nothing, and
+        // "a refused login is still auditable" fails against an event that was written correctly.
+        // Read the whole table instead — it is a per-run container, not production.
+        return outboxRepository.findAll().stream()
+            .filter(e -> "PENDING".equals(e.getStatus()) || "SENT".equals(e.getStatus()))
             .map(OutboxEntry::getEnvelopeJson)
             .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
     }

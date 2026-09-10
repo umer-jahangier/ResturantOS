@@ -42,7 +42,7 @@ export function GuideSection({ tab }: { tab: FinanceGuideTab }) {
 
       {tab.claims.length > 0 && (
         <div className="space-y-2" data-testid={`guide-claims-${tab.anchor}`}>
-          <h3 className="text-label font-semibold uppercase tracking-wide text-muted-foreground">
+          <h3 className="text-label font-semibold uppercase tracking-[0.08em] text-muted-foreground">
             Rules worth knowing before you hit them
           </h3>
           {tab.claims.map((id) => (
@@ -57,7 +57,7 @@ export function GuideSection({ tab }: { tab: FinanceGuideTab }) {
 function Answer({ term, definition }: { term: string; definition: string }) {
   return (
     <div>
-      <dt className="text-label font-semibold uppercase tracking-wide text-muted-foreground">
+      <dt className="text-label font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         {term}
       </dt>
       <dd className="mt-1 text-small leading-relaxed">{definition}</dd>

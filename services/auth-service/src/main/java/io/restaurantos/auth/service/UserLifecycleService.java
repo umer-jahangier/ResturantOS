@@ -6,12 +6,14 @@ import io.restaurantos.auth.dto.request.UpdateUserRequest;
 import io.restaurantos.auth.dto.response.UserDtos.CreatedUser;
 import io.restaurantos.auth.dto.response.UserDtos.UserAssignment;
 import io.restaurantos.auth.dto.response.UserDtos.UserDetail;
+import io.restaurantos.auth.dto.response.UserDtos.UserSecurityState;
 import io.restaurantos.auth.dto.response.UserDtos.UserSummary;
 import io.restaurantos.auth.entity.UserBranchRoleEntity;
 import io.restaurantos.auth.entity.UserEntity;
 import io.restaurantos.auth.repository.UserBranchRoleRepository;
 import io.restaurantos.auth.exception.InvalidUserRequestException;
 import io.restaurantos.auth.repository.UserRepository;
+import io.restaurantos.auth.service.AdminPasswordResetService.ActorTier;
 import io.restaurantos.shared.exception.ResourceNotFoundException;
 import io.restaurantos.shared.exception.StateInvalidException;
 import jakarta.persistence.EntityManager;
@@ -22,6 +24,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -108,13 +111,60 @@ public class UserLifecycleService {
      */
     @Transactional(readOnly = true)
     public Page<UserSummary> list(UUID tenantId, int page, int size, boolean activeOnly, String search) {
+        return list(tenantId, page, size, activeOnly, search, null, null);
+    }
+
+    /**
+     * The same page, with the two filters a cross-tenant user directory needs (superadmin plan).
+     *
+     * <p>Both are optional and null means "no filter", so {@link #list(UUID, int, int, boolean,
+     * String)} is this method with them omitted — one query, one implementation, no second listing
+     * path to drift from this one.
+     *
+     * <p>They are enforced in the QUERY and not here; see {@link UserRepository#findPageForTenant}
+     * for why filtering a fetched page in memory produces a {@code totalCount} that describes a
+     * different set from its own rows, and why the role predicate cannot live in a caller at all.
+     *
+     * <p><b>An unknown status string is a refusal, not an ignored filter.</b> A caller who typed
+     * {@code ACTIVE_ONLY} and received every user including the deactivated ones has been told the
+     * opposite of the truth, and would have no way to notice. The role code is deliberately NOT
+     * validated against the catalogue: an unknown code legitimately matches nobody, and refusing it
+     * would make a directory unable to answer "does anyone still hold this retired role?".
+     *
+     * @param status {@code ACTIVE} | {@code INACTIVE} | {@code LOCKED}, case-insensitive, or null
+     * @param roleCode an active branch-role code the user must hold, or null
+     */
+    @Transactional(readOnly = true)
+    public Page<UserSummary> list(UUID tenantId, int page, int size, boolean activeOnly,
+                                  String search, String status, String roleCode) {
         setTenantGuc(tenantId);
         Pageable pageable = PageRequest.of(Math.max(page, 0), clampPageSize(size));
         String term = (search == null || search.isBlank())
             ? null
             : "%" + search.trim().toLowerCase(Locale.ROOT) + "%";
-        return userRepository.findPageForTenant(tenantId, activeOnly, term, pageable)
+        return userRepository.findPageForTenant(tenantId, activeOnly, term,
+                normaliseStatus(status), blankToNull(roleCode), Instant.now(), pageable)
             .map(UserSummary::of);
+    }
+
+    /** The three statuses the query understands. Anything else is a 400, never a silent pass. */
+    private static final java.util.Set<String> USER_STATUSES =
+        java.util.Set.of("ACTIVE", "INACTIVE", "LOCKED");
+
+    private static String normaliseStatus(String status) {
+        String normalised = blankToNull(status);
+        if (normalised == null) {
+            return null;
+        }
+        String upper = normalised.toUpperCase(Locale.ROOT);
+        if (!USER_STATUSES.contains(upper)) {
+            throw new InvalidUserRequestException(
+                "Unknown user status '" + status + "'. Expected one of " + USER_STATUSES
+                    + " — an unrecognised filter is refused rather than ignored, because a caller "
+                    + "who received every user when they asked for the locked ones has no way to "
+                    + "notice");
+        }
+        return upper;
     }
 
     /**
@@ -304,9 +354,44 @@ public class UserLifecycleService {
      */
     @Transactional
     public UserDetail setActive(UUID tenantId, UUID actingUserId, UUID userId, boolean active) {
+        return setActive(tenantId, actingUserId, ActorTier.TENANT, userId, active);
+    }
+
+    /**
+     * The same operation, with the tier that decides whether the role ceiling applies made explicit
+     * (superadmin plan).
+     *
+     * <p><b>One implementation, one decision point.</b> The alternative was a second
+     * platform-tier deactivate living beside this one, and the recurring finding of the audit that
+     * produced this phase is two code paths that agree on day one and drift afterwards — with the
+     * weaker one winning. The tier is a single argument, exactly as
+     * {@link AdminPasswordResetService.ActorTier} already is on the reset path, so "is the ceiling
+     * applied?" is answered in one place a reviewer can find.
+     *
+     * <p>{@link ActorTier#PLATFORM} skips {@link RoleCeiling#requireMayAdminister} and that is a
+     * decision, not an omission. A platform id is a {@code platform_users} row holding no
+     * {@code user_branch_roles} at all, so the ceiling would resolve the empty permission set and
+     * refuse to deactivate any account that holds any role — i.e. every real account. What
+     * compensates is stated where the capability is exposed: the {@code SUPER_ADMIN} gate, the
+     * short non-refreshable platform token, the rate-limited platform route, a mandatory reason,
+     * and TWO durable records — this tenant-side event and the platform's own
+     * {@code platform_admin_audit} row.
+     *
+     * <p><b>The exemption is scoped to the ceiling and to nothing else.</b> The tenant boundary
+     * still holds: the GUC is set and {@code findByIdForTenant} carries the tenant predicate, so a
+     * platform operator naming tenant A's user under tenant B's id gets 404, not a cross-tenant
+     * write. And this method cannot grant anything — it flips {@code is_active}. A platform
+     * operator still has no path to mint themselves or anybody else a tenant role; see
+     * {@code RbacCatalogInternalService} for why that surface is read-only.
+     */
+    @Transactional
+    public UserDetail setActive(UUID tenantId, UUID actingUserId, ActorTier actorTier,
+                                UUID userId, boolean active) {
         setTenantGuc(tenantId);
         UserEntity user = requireUser(tenantId, userId);
-        roleCeiling.requireMayAdminister(actingUserId, activeRoleCodesOf(userId));
+        if (actorTier != ActorTier.PLATFORM) {
+            roleCeiling.requireMayAdminister(actingUserId, activeRoleCodesOf(userId));
+        }
 
         user.setActive(active);
         UserEntity saved = userRepository.saveAndFlush(user);
@@ -316,9 +401,76 @@ public class UserLifecycleService {
         }
         // Inside this transaction: the flag flip, the session revocations and the record that it
         // happened are one atomic fact.
-        events.activationChanged(tenantId, actingUserId, userId, saved.getEmail(),
-            active, sessionsRevoked);
+        if (actorTier == ActorTier.PLATFORM) {
+            events.platformActivationChanged(tenantId, userId, saved.getEmail(),
+                active, sessionsRevoked);
+        } else {
+            events.activationChanged(tenantId, actingUserId, userId, saved.getEmail(),
+                active, sessionsRevoked);
+        }
         return detailOf(saved);
+    }
+
+    /**
+     * Clear a brute-force lockout on behalf of a PLATFORM operator (superadmin plan).
+     *
+     * <p><b>This is not "unlock the account" in the sense a console usually means.</b>
+     * {@code users.locked_until} is a fifteen-minute cooldown {@code AuthServiceImpl} writes after
+     * repeated failed logins; it expires on its own. The durable, operator-controlled lock is
+     * {@code is_active}, which is {@link #setActive}. Both are exposed, separately, because
+     * collapsing them would let an operator believe they had disabled an account when all they did
+     * was clear a timer — and the platform reset path already calls
+     * {@link PasswordPolicyService#clearLockout} for the opposite reason (D-18: a reset user who is
+     * still locked out has already done the only thing the error told them to).
+     *
+     * <p>Reuses {@link PasswordPolicyService#clearLockout} rather than writing the two fields here,
+     * so "what clearing a lockout means" keeps its single owner.
+     *
+     * <p>Publishes no event. There is no {@code USER_UNLOCKED} type in
+     * {@code AuditEventCatalog.MUST_AUDIT}, and inventing one is a shared-lib change that would
+     * ripple through sixteen services and a build-enforced allow-list closure test for an action
+     * that grants nothing and revokes nothing. The record lives in
+     * {@code platform_db.platform_admin_audit}, which is where the acting operator's identity is
+     * honest anyway. <b>Stated as a known asymmetry rather than hidden:</b> a tenant reading only
+     * its own {@code audit_events} will not see a platform-cleared lockout.
+     */
+    @Transactional
+    public UserSecurityState clearLockout(UUID tenantId, UUID userId) {
+        setTenantGuc(tenantId);
+        UserEntity user = requireUser(tenantId, userId);
+        passwordPolicyService.clearLockout(user);
+        UserEntity saved = userRepository.saveAndFlush(user);
+        return new UserSecurityState(saved.getId(), saved.getEmail(), saved.isActive(),
+            saved.getLockedUntil(), saved.getFailedLoginCount(), 0);
+    }
+
+    /**
+     * Revoke every live refresh session a user holds, without touching the account (superadmin
+     * plan) — "sign this person out everywhere".
+     *
+     * <p>The auth model supports exactly this and no more, and the bound must reach the caller
+     * rather than be glossed: <b>already-issued ACCESS tokens stay valid until they expire.</b>
+     * They are stateless and there is no revocation list. The residual window is the access-token
+     * TTL — the same bound {@link #setActive} and {@code PasswordPolicyService} document for a
+     * deactivation and a password change. A console that renders this as "access revoked" is
+     * overstating it by that window.
+     *
+     * <p>Revocation is not reversible and deliberately has no undo, for the reason
+     * {@link #setActive} records about reactivation: the sessions being revoked may be on a device
+     * the person no longer has, and a fresh login is the point at which the platform re-establishes
+     * who is holding the account.
+     *
+     * <p>Publishes no event, for the reason {@link #clearLockout} records. A revocation that comes
+     * WITH a deactivation is covered by {@code USER_DEACTIVATED}'s {@code sessionsRevoked} count;
+     * this is the standalone case.
+     */
+    @Transactional
+    public UserSecurityState revokeSessions(UUID tenantId, UUID userId) {
+        setTenantGuc(tenantId);
+        UserEntity user = requireUser(tenantId, userId);
+        int revoked = passwordPolicyService.revokeActiveRefreshSessions(userId);
+        return new UserSecurityState(user.getId(), user.getEmail(), user.isActive(),
+            user.getLockedUntil(), user.getFailedLoginCount(), revoked);
     }
 
     // ───────────────────────────────── internals ─────────────────────────────────

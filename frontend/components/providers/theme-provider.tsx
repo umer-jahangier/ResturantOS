@@ -37,11 +37,30 @@ import type { ComponentProps } from "react";
  * `app/pos/**` for exactly this reason. A theme animation that prints the sidebar onto a
  * customer's bill is not a nice touch.
  */
+/**
+ * DARK IS THE DEFAULT, AND `enableSystem` STAYS ON. Both halves matter.
+ *
+ * This was `defaultTheme="system"`, which meant the product opened in whatever the machine
+ * happened to prefer. The reference the owner reviews against is dark-only — `grep -c
+ * 'prefers-color-scheme|data-theme'` over `Docs/NEXUS_ERP_Demo.html` returns **0**, it has no
+ * light path at all — so on a light-mode laptop the first screen of the product was a white
+ * office app being compared to a dark one, and "does not match the demo" was the correct
+ * reading. The gold-on-blue-black identity is a DARK identity; the light theme is a faithful
+ * translation of it, but it is the translation, not the original.
+ *
+ * `enableSystem` is deliberately NOT removed. Dropping it would delete the "System" option
+ * from `ThemeToggle` and strand anyone who wants the OS to drive it. What `defaultTheme`
+ * governs is only the resolution when NOTHING has been chosen: a stored choice in
+ * `localStorage` still wins, and an explicit "System" selection still follows the OS —
+ * including into light. Light mode remains fully supported and fully gated (every §3.8 light
+ * pairing is still measured in `design-tokens.test.ts`); it is no longer what a first-time
+ * visitor is shown.
+ */
 export function ThemeProvider({ children, ...props }: ComponentProps<typeof NextThemesProvider>) {
   return (
     <NextThemesProvider
       attribute="class"
-      defaultTheme="system"
+      defaultTheme="dark"
       enableSystem
       disableTransitionOnChange
       transition={{

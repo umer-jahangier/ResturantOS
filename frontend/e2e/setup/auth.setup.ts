@@ -156,14 +156,25 @@ setup("mint a storage state for every seeded persona", async () => {
 
     // The UX marker SessionProvider gates its bootstrap on. It is written by client JS in a
     // real browser, so it is absent from an APIRequestContext jar and has to be added here.
+    //
+    // DOMAIN AND SECURE ARE DERIVED FROM THE REFRESH COOKIE, NOT HARDCODED. They used to be
+    // `domain: "localhost", secure: false`, which silently scoped this cookie to localhost. Run
+    // against a real deployment the marker was therefore never sent, SessionProvider never
+    // bootstrapped, and EVERY authenticated journey redirected to /login and failed on a 30s
+    // timeout waiting for a shell that was never going to render — 59 failures that all looked
+    // like product defects and were one wrong string.
+    //
+    // The refresh cookie is minted by the server for the host actually under test, so its own
+    // domain is the correct answer by construction; and on HTTPS a `SameSite=Strict` cookie must
+    // also be `secure` or the browser drops it.
     state.cookies.push({
       name: "has_session",
       value: "1",
-      domain: "localhost",
+      domain: refresh.domain,
       path: "/",
       expires: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30,
       httpOnly: false,
-      secure: false,
+      secure: refresh.secure,
       sameSite: "Strict",
     });
 

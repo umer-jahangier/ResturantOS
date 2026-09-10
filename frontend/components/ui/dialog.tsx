@@ -84,17 +84,76 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
 }) {
   const zone = useZone();
+
+  /**
+   * WHERE FOCUS GOES WHEN THIS CLOSES — measured, because it was going nowhere.
+   *
+   * <h3>What was observed</h3>
+   *
+   * Live on the deployment, 2026-08-22: focus the ⌘K trigger, open the palette, press Escape —
+   * `document.activeElement` is `<body>`. Sampled every 25ms across the close, the only focus
+   * event fired at all was `focusout` from the palette input. Nothing received focus afterwards,
+   * so the next Tab restarts the document from the top. The same probe on
+   * `/app/inventory/stock`'s "Opening balance" dialog gave the identical result, which is what
+   * turned this from a command-palette curiosity into a finding about every dialog in the
+   * product: it is WCAG 2.4.3, and the affected user is the one who cannot use a mouse.
+   *
+   * <h3>Why Radix does not handle it here</h3>
+   *
+   * `DialogContentModal` composes its own `onCloseAutoFocus` that calls `event.preventDefault()`
+   * — switching OFF `FocusScope`'s restore-to-previously-focused — and then focuses
+   * `context.triggerRef.current` instead. That ref is populated by `<DialogTrigger>`. Almost
+   * every dialog in this codebase is CONTROLLED: an ordinary `<Button onClick={() => setOpen(true)}>`
+   * beside an `<XDialog open={open} …/>`, with no `DialogTrigger` anywhere. So the ref is null,
+   * Radix focuses nothing, and it has already disabled the fallback that would have worked.
+   * Nothing is misconfigured at the call sites; the default simply does not cover the shape this
+   * product uses, so the default is supplied here, once, rather than at fifty of them.
+   *
+   * <h3>The mechanism</h3>
+   *
+   * `onOpenAutoFocus` fires from `FocusScope`'s mount effect BEFORE it moves focus into the
+   * dialog, so `document.activeElement` at that moment is still whatever opened it — the
+   * `DialogTrigger` when there is one, the plain button when there is not. Restoring to it makes
+   * the two cases behave identically, so this is a default rather than a divergence.
+   *
+   * <p>`preventDefault()` is ours to call: Radix's `composeEventHandlers` runs the caller's
+   * handler first and skips its own when the default has been prevented. A call site that wants
+   * to place focus somewhere else still can — it prevents the default itself, and the guard
+   * below stands down.
+   */
+  const openerRef = React.useRef<HTMLElement | null>(null);
+
   return (
     <DialogPortal>
       <DialogOverlay />
       <ZoneProvider zone={zone}>
         <DialogPrimitive.Content
           data-slot="dialog-content"
+          onOpenAutoFocus={(event) => {
+            const active = document.activeElement;
+            openerRef.current =
+              active instanceof HTMLElement && active !== document.body ? active : null;
+            onOpenAutoFocus?.(event);
+          }}
+          onCloseAutoFocus={(event) => {
+            onCloseAutoFocus?.(event);
+            if (event.defaultPrevented) return;
+            const opener = openerRef.current;
+            // `isConnected` matters: a row-scoped dialog is routinely opened from a button that
+            // the mutation it performs then removes from the list. Focusing a detached node is a
+            // silent no-op that lands on <body> anyway, so in that case Radix/FocusScope is left
+            // to do whatever it would have done rather than being overridden into nothing.
+            if (!opener || !opener.isConnected) return;
+            event.preventDefault();
+            opener.focus({ preventScroll: true });
+          }}
           // UI-SPEC §11 / brief §40. Measured `null` on all three dialogs the audit probed,
           // including the command palette. Radix sets `role="dialog"` and manages focus, but the
           // audit read `aria-modal` off the DOM and found nothing — so it is set explicitly

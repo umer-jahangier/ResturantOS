@@ -224,7 +224,7 @@ export function FilterBar({
           {title !== undefined ? (
             <h2
               id={titleId}
-              className="text-label font-semibold tracking-wide uppercase text-foreground-secondary"
+              className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary"
             >
               {title}
             </h2>
@@ -269,7 +269,7 @@ export function FilterBar({
           {filters.map((filter) => {
             const controlId = `${barId}-${filter.id}`;
             const labelClass =
-              "text-label font-semibold tracking-wide uppercase text-foreground-tertiary";
+              "text-label font-semibold tracking-[0.08em] uppercase text-foreground-tertiary";
             return (
               <div key={filter.id} className="flex min-w-40 flex-col gap-1">
                 {filter.error ? (

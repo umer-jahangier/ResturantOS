@@ -309,7 +309,9 @@ export function IngredientFormDialog({
                   restates the label is noise, and thirty fields of noise is what makes help
                   invisible on the fields that genuinely need it. */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold">General</h3>
+                <h3 className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary">
+                  General
+                </h3>
                 <div className="grid gap-4 md:grid-cols-2">
                   <FormField
                     control={form.control}
@@ -476,7 +478,9 @@ export function IngredientFormDialog({
 
               {/* Units */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold">Units</h3>
+                <h3 className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary">
+                  Units
+                </h3>
                 <div className="grid gap-4 md:grid-cols-2">
                   <FormField
                     control={form.control}
@@ -707,7 +711,9 @@ export function IngredientFormDialog({
 
               {/* Stock */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold">Stock</h3>
+                <h3 className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary">
+                  Stock
+                </h3>
                 <div className="grid gap-4 md:grid-cols-2">
                   <FormField
                     control={form.control}
@@ -820,7 +826,9 @@ export function IngredientFormDialog({
 
               {/* Compliance */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold">Compliance</h3>
+                <h3 className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary">
+                  Compliance
+                </h3>
                 <FormField
                   control={form.control}
                   name="allergenCodes"

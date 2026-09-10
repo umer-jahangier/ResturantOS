@@ -1,6 +1,6 @@
 import * as React from "react";
 import Link from "next/link";
-import { ArrowUpRight, Minus, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowUpRight, ChevronDown, ChevronUp, Minus } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -76,6 +76,14 @@ import { cn } from "@/lib/utils";
  * a decorative rail painted `danger` would put a second, hand-picked state channel on a tile whose
  * real state channel is derived — reintroducing the demo's Food-Cost bug through the back door.
  * Blue and purple are dropped because `info` is a state token and no purple token exists.
+ *
+ * <p><b>The rail is opt-in per CALL SITE, and today no call site takes it.</b> All 24 of the
+ * demo's KPI cards carry a hue; ours default to `accent="none"` and therefore to a flat top edge,
+ * which is why the strip reads plainer than the demo's even though the device is implemented
+ * here. That is a screen-level gap, not a primitive one — every screen that renders a KPI strip
+ * owes its tiles an `accent`. Do not "fix" it by defaulting to `primary`: a strip of four
+ * identically-gold rails is not what the demo does either, and the hue is supposed to say which
+ * metric family this is.
  *
  * <p>This is also why `KpiTile`'s `tone` prop is <b>not</b> ported: it recolours the value itself
  * `destructive`/`warning` with no second channel, so an escalated tile and a calm one are
@@ -282,14 +290,20 @@ export function StatTile({
   // A delta on a number we do not have is a second claim stacked on a withheld one.
   const showDelta = !unavailable && deltaPct !== undefined;
   const sentiment = sentimentOf(deltaPct, higherIsBetter);
-  // The ARROW is arithmetic direction; the COLOUR is sentiment. They disagree for an inverted
+  // The GLYPH is arithmetic direction; the COLOUR is sentiment. They disagree for an inverted
   // metric, and that is correct — `deltaText` writes the word that reconciles them.
+  //
+  // A CHEVRON, not `TrendingUp`/`TrendingDown`. The demo draws a bare 12px chevron
+  // (`DEMO-COMPONENTS.md:410` — `polyline points="18 15 12 9 6 15"`), and the lucide trend icons
+  // are a different object: a multi-segment polyline with an arrowhead, which at 14px reads as a
+  // sparkline sitting beside a number that is not a sparkline. The chevron is the direction and
+  // nothing else, which is all this row is allowed to claim.
   const TrendIcon =
     deltaPct === undefined || deltaPct === null || deltaPct === 0
       ? Minus
       : deltaPct > 0
-        ? TrendingUp
-        : TrendingDown;
+        ? ChevronUp
+        : ChevronDown;
 
   return (
     <article
@@ -306,7 +320,7 @@ export function StatTile({
       className={cn(
         // `overflow-hidden` clips the 2px rail to the card's radius. It also clips outlines
         // (measured, globals.css:908) — harmless here because the only focusable child is the
-        // drill link, which sits inside 16px of padding and its 2+2px outline cannot reach the
+        // drill link, which sits inside 20px of padding and its 2+2px outline cannot reach the
         // edge. Do not move the link flush to the border without revisiting this.
         "group relative flex flex-col overflow-hidden rounded-xl",
         surface === "glass"
@@ -314,8 +328,30 @@ export function StatTile({
             // it, `glass-surface` is its opaque base declaration and `vdl-lift` resolves to a
             // shadow-only acknowledgement. The opt-in degrades; it does not leak.
             "glass-surface vdl-lift"
-          : "border border-border bg-card text-card-foreground shadow-depth-1",
-        density === "compact" ? "gap-1 p-(--space-sm)" : "gap-1.5 p-(--space-md)",
+          : // The demo's `.kpi-card:hover` (`DEMO-COMPONENTS.md:402`) lifts the border to
+            // `--border-2` — and `DEMO-TOKENS.md` §3c records the general rule it belongs to:
+            // "Hover on a card changes BORDER COLOUR only". Ours acknowledged a pointer with
+            // nothing at all, which is a large part of why a strip of tiles reads as printed
+            // rather than as a surface.
+            //
+            // Colour only, deliberately: the demo pairs this with `translateY(-1px)` and
+            // `--shadow`, and neither is taken here. A transform on a shared primitive is the
+            // exact hazard `receipt-print.css` guards (a containing block for the `position:
+            // fixed` bill) and `vdl-lift` is pinned OFF for this surface by
+            // `stat-tile.test.tsx:279`. A hover that is one hairline shade is a depth cue, which
+            // is all the operational zone permits and all this device actually needed.
+            "border border-border bg-card text-card-foreground shadow-depth-1 transition-colors hover:border-border-strong",
+        // 20px / 16px, which is the demo's `.card` / `.card-sm` pair verbatim
+        // (`DEMO-COMPONENTS.md:373-377`). It used to be 16px / 8px, and the 8px was the
+        // "cheap" verdict in miniature: a 30px serif numeral sitting 8px from a hairline reads
+        // as a number that fell into a box rather than one that was placed in it. Nothing in the
+        // product passed `density="compact"` when this changed, so the compact rung is a
+        // widening with no call site behind it.
+        //
+        // `p-5` and not `p-(--space-*)`: the space ladder is 4/8/16/24/32 and has no 20px rung.
+        // Reported upward as a token request (`--space-card: 20px`) rather than invented here —
+        // this file does not own `globals.css`.
+        density === "compact" ? "gap-1 p-(--space-md)" : "gap-1.5 p-5",
         className,
       )}
     >
@@ -331,7 +367,28 @@ export function StatTile({
         <span
           data-slot="stat-tile-icon"
           className={cn(
-            "mb-(--space-xs) flex size-9 shrink-0 items-center justify-center rounded-lg",
+            // 40px chip, 18px glyph. The demo measures 36/18; the target spec asks for ~40, and
+            // 40 is the better number here because our icon set is lucide at a 1.5 stroke rather
+            // than the demo's hand-drawn 1.8 — the lighter glyph needs the extra 2px of ground on
+            // each side to read as a chip rather than as an icon with a tint behind it.
+            //
+            // `rounded-lg` — 8px — is the demo's own `.kpi-icon` radius (`DEMO-COMPONENTS.md:436`)
+            // and, more importantly, its NESTING rule: `DEMO-TOKENS.md` §3b measures "a card at
+            // 16px never contains anything rounder than 8px". `rounded-xl` (11.2px here) put the
+            // chip's corner within 3px of the card's, which is what makes a tile read as two
+            // stacked blobs rather than as an object placed inside a panel.
+            //
+            // `mb-1.5` and not `mb-(--space-xs)`: this is a flex column at `gap-1.5`, so 6px of
+            // margin plus the 6px gap is the demo's measured 12px of ground under the chip
+            // (`.kpi-icon { margin-bottom: 12px }`). 4px was 10px of total separation — the chip
+            // sat ON the label rather than above it.
+            "mb-1.5 flex size-10 shrink-0 items-center justify-center rounded-lg",
+            // The chip keeps its accent even when the figure is unavailable, and this is the
+            // deliberate half of "considered rather than broken": an unavailable tile sits in a
+            // strip of four, and greying its chip and rail would punch a visible HOLE in the row
+            // — which reads as a rendering failure, not as a stated absence. Every device that
+            // says "this tile belongs here" stays; the one thing that changes is that the figure
+            // is replaced by a ruled-off sentence explaining why there isn't one.
             ACCENT_CHIP[accent],
           )}
         >
@@ -339,9 +396,34 @@ export function StatTile({
         </span>
       )}
 
+      {/*
+       * SENTENCE case, and the demo's `.kpi-label` metrics exactly: 11px / 500 / 0.05em
+       * (`DEMO-COMPONENTS.md:453` — `font-size: 11px; color: var(--text-3); font-weight: 500;
+       * letter-spacing: 0.05em`).
+       *
+       * <p><b>Sentence case, but not untracked.</b> This used to be an 11px UPPERCASE
+       * letterspaced eyebrow, which put the tile's label in the SAME voice as the card section
+       * header above it (`CardEyebrow`) — so a KPI strip inside a card read as two ranks of
+       * small-caps stacked on each other and the hierarchy flattened. The demo keeps them apart
+       * deliberately: `.card-title` is uppercase/0.08em and `.kpi-label` is plain sentence case
+       * (no `text-transform`). The eyebrow names the SECTION; the label names the METRIC.
+       *
+       * <p>The over-correction was dropping the TRACKING with the uppercase. The demo tracks this
+       * line at 0.05em and sets it at 11px/500 — and the two decisions are one decision: a label
+       * is legible at 11px BECAUSE it is opened up, and a tracked 11px line reads as a caption
+       * for the numeral beneath it where an untracked 13px line reads as the first line of a
+       * paragraph that happens to be above a big number. That is the whole difference between a
+       * KPI and a `<div>` with text in it, and it was the shipped rendering.
+       *
+       * <p>`tracking-wider` IS 0.05em on Tailwind's stock ladder — the same utility
+       * `activity-row.tsx` puts on its severity tag, so the two small-type devices agree. The two
+       * declared tracking tokens are 0.12em (`--tracking-eyebrow`) and 0.08em
+       * (`--tracking-brandmark`); neither is this value, and a `--tracking-label: 0.05em` role
+       * has been reported upward rather than invented here.
+       */}
       <p
         data-slot="stat-tile-label"
-        className="text-label font-medium tracking-wider text-foreground-tertiary uppercase"
+        className="text-label font-medium tracking-wider text-foreground-secondary"
       >
         {label}
       </p>
@@ -353,18 +435,25 @@ export function StatTile({
           <p
             aria-hidden="true"
             data-slot="stat-tile-value"
-            className="font-heading text-display font-semibold tabular-nums text-foreground-tertiary"
+            className="font-heading text-display leading-none font-semibold tabular-nums text-foreground-tertiary"
           >
             —
           </p>
-          <p data-slot="stat-tile-unavailable" className="text-small text-foreground-tertiary">
+          {/* The dashed hairline is `Meter`'s established rendering for a track with no honest
+              reading (`meter.tsx`, `border-dashed` on the unknown track). Reusing it here makes
+              the absence look ISSUED rather than broken — a deliberately ruled-off note, which is
+              what an unavailable figure is — and it costs no new vocabulary. */}
+          <p
+            data-slot="stat-tile-unavailable"
+            className="mt-(--space-xs) border-t border-dashed border-border pt-(--space-xs) text-small text-foreground-tertiary"
+          >
             {unavailableReason}
           </p>
         </>
       ) : (
         <p
           data-slot="stat-tile-value"
-          className="font-heading text-display font-semibold tabular-nums"
+          className="font-heading text-display leading-none font-semibold tabular-nums"
         >
           {value}
         </p>

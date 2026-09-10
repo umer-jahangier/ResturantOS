@@ -105,7 +105,27 @@ describe("MenuItemImageField", () => {
           requestUrl = request.url;
           contentType = request.headers.get("content-type");
           resolve();
-          return HttpResponse.json({ data: null, meta: null, warnings: [] }, { status: 201 });
+          // A VALID payload, not `data: null`. The field previews optimistically and rolls the
+          // preview back in the mutation's onError (MenuItemImageField.tsx:91). `data: null` fails
+          // apiFileUploadResponseSchema, so IF the multipart XHR settles the rollback wipes the
+          // preview this test then asserts on — and the ZodError surfaces as an unhandled
+          // rejection blamed on whichever file is running. Under jsdom locally it never settled,
+          // so neither happened; on CI it did, and did both.
+          return HttpResponse.json(
+            {
+              data: {
+                fileId: "9f1d5e2a-3c47-4b9e-8a10-2f6c7d8e9b01",
+                objectKey: "menu/9f1d5e2a.png",
+                downloadUrl: "/api/v1/files/9f1d5e2a-3c47-4b9e-8a10-2f6c7d8e9b01/download",
+                sizeBytes: 1024,
+                contentType: "image/png",
+                sha256: "0".repeat(64),
+              },
+              meta: null,
+              warnings: [],
+            },
+            { status: 201 },
+          );
         }),
       );
     });
@@ -120,7 +140,11 @@ describe("MenuItemImageField", () => {
     expect(contentType).toMatch(/^multipart\/form-data; *boundary=.+/);
     // A local preview appears immediately, before any response — the picker should not feel
     // like it did nothing while the bytes are in flight.
-    expect(screen.getByTestId("menu-item-image-preview")).toBeInTheDocument();
+    // findBy, not getBy: the preview is state set from the object URL during the upload, and
+    // whether that state has flushed by the time this line runs is a question of microtask
+    // ordering, not of behaviour. A fast machine wins the race and CI lost it. The assertion is
+    // unchanged — the preview must appear — it just stops depending on WHICH tick it appears on.
+    expect(await screen.findByTestId("menu-item-image-preview")).toBeInTheDocument();
   });
 
   it("does not upload a file the server would reject anyway — a courtesy, not the control", async () => {

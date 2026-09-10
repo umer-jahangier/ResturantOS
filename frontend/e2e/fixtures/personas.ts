@@ -99,6 +99,43 @@ const ROLE_BY_LOCAL: Record<PersonaLocal, string> = {
   accountant: "ACCOUNTANT",
 };
 
+/**
+ * The dashboard PRESET each persona's role resolves to.
+ *
+ * <p>Mirrors `resolveDashboardPreset(roles, permissions)` (`components/dashboard/presets.ts`),
+ * which branches on ROLE first and only falls through to permissions for a role it does not
+ * know. All six locals below hit a named branch, so this table is a total function of the role
+ * and never depends on the permission fallback.
+ *
+ * <h3>Why this exists — the assertion it replaces</h3>
+ *
+ * <p>Specs used to prove "the shell rendered with a session" with
+ * `getByRole("heading", { level: 1, name: "Dashboard" })`. There has been no `<h1>Dashboard</h1>`
+ * in this product since the role-preset dashboards shipped: the `<h1>` is `preset.question`, so
+ * an OWNER's reads "Is the business healthy?" and a KITCHEN_STAFF's "What is on the pass?"
+ * (`dashboard-shell.tsx:133-135`, and identically at `:37` on `origin/main`, which is what dev
+ * runs — so this is not a not-yet-deployed change). Six persona journeys, an axe scan and a
+ * known-defect probe were all waiting 20-30s for a heading that cannot exist, and everything
+ * downstream of that wait — including the 403 assertion that was the point of the defect probe —
+ * never executed.
+ *
+ * <p>Asserting `data-preset` instead is STRICTLY STRONGER than the string it replaces, which is
+ * the reason to prefer it over simply retyping the new copy. `<h1>Dashboard</h1>` proved only
+ * that a heading existed; `data-preset` proves the session resolved, the token's ROLE was read,
+ * and the role-correct dashboard was selected — a cashier served the owner's dashboard now
+ * fails, where before it passed. It is also copy-independent, so editing a question is not a
+ * test failure. Present on both the deployed and the local build
+ * (`dashboard-shell.tsx:128` / `origin/main:33`) alongside `data-testid="dashboard"`.
+ */
+export const DASHBOARD_PRESET_BY_LOCAL: Record<PersonaLocal, string> = {
+  owner: "owner",
+  manager: "manager",
+  cashier: "cashier",
+  waiter: "waiter",
+  kitchen: "kitchen",
+  accountant: "accountant",
+};
+
 /** Enrolled at creation because their role holds a step-up-gated permission (D-29a). */
 const TOTP_ENROLLED_LOCALS: ReadonlySet<PersonaLocal> = new Set<PersonaLocal>([
   "owner",

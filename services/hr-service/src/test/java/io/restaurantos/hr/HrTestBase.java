@@ -299,6 +299,45 @@ public abstract class HrTestBase {
     @MockitoBean
     protected FeatureFlagService featureFlagService;
 
+    /**
+     * The four HR configuration tables, and their row counts as migration left them.
+     *
+     * <p>Captured HERE rather than in {@code RlsForcedInvariantIT}, which is what asserts on it,
+     * because the Postgres container is a static singleton shared by every subclass in the JVM.
+     * A one-shot capture inside that one class observes "after migration" only when that class
+     * happens to run first; run the whole module and its siblings have already inserted their own
+     * departments and designations, so the snapshot recorded their fixtures as though a migration
+     * had seeded them (14 departments, 2 designations at last count). The class passed alone and
+     * failed in the suite.
+     *
+     * <p>A superclass {@code @BeforeEach} runs before every subclass one and before any test body
+     * anywhere, so the FIRST subclass to run captures the database in the only state that answers
+     * the question: migrated, and otherwise untouched.
+     */
+    protected static final java.util.List<String> CONFIG_TABLES = java.util.List.of(
+            "departments", "designations", "salary_components", "employee_salary_components");
+
+    protected static final java.util.Map<String, Long> COUNTS_AFTER_MIGRATION =
+            new java.util.LinkedHashMap<>();
+
+    @BeforeEach
+    void captureConfigTableCountsOnceBeforeAnyTestBody() throws java.sql.SQLException {
+        if (!COUNTS_AFTER_MIGRATION.isEmpty()) {
+            return;
+        }
+        try (java.sql.Connection c = java.sql.DriverManager.getConnection(
+                        postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+                java.sql.Statement st = c.createStatement()) {
+            for (String table : CONFIG_TABLES) {
+                // Superuser deliberately: RLS must not be what makes this look empty.
+                try (java.sql.ResultSet rs = st.executeQuery("SELECT count(*) FROM " + table)) {
+                    rs.next();
+                    COUNTS_AFTER_MIGRATION.put(table, rs.getLong(1));
+                }
+            }
+        }
+    }
+
     @BeforeEach
     void featureFlagsEnabledByDefault() {
         org.mockito.Mockito.when(featureFlagService.isEnabled(org.mockito.ArgumentMatchers.any(),

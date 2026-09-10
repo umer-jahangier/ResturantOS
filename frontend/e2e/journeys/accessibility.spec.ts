@@ -1,30 +1,32 @@
 import { expect, test } from "../fixtures/auth.fixture";
 import { persona } from "../fixtures/personas";
+import { DEFECTS, tolerate } from "../fixtures/known-defects";
 
 /**
  * GATE G12, browser half — the twenty-two Tab presses (UI-SPEC §11, plan 38-15).
  *
  * ╔══════════════════════════════════════════════════════════════════════════════════════════╗
- * ║  THIS SPEC HAS NOT BEEN RUN.                                                             ║
+ * ║  FIRST RUN: 2026-08-22, against https://dev.restaurantos.softxlogic.com.                 ║
  * ║                                                                                          ║
- * ║  It was written during 38-15 with no live stack available: `e2e/audit-38-a11y.mjs`, the  ║
- * ║  probe that produced the 22, needs a signed-in session against a running gateway, and    ║
- * ║  so does this. Every number quoted below as "measured" comes from that probe's recorded  ║
- * ║  output (`.planning/phases/38-erp-design-transformation/evidence/audit-a11y.json`) or    ║
- * ║  from 38-AUDIT.md — none of it was re-measured, and no assertion here has been observed  ║
- * ║  passing OR failing.                                                                     ║
+ * ║  Until then this file had never executed — it was written during 38-15 with no live      ║
+ * ║  stack, and every number it quoted as "measured" came from `e2e/audit-38-a11y.mjs`'s     ║
+ * ║  recorded output rather than from this spec. What that first run found:                  ║
  * ║                                                                                          ║
- * ║  Two consequences the next person needs, stated rather than discovered:                  ║
- * ║                                                                                          ║
- * ║  1. The SKIP-LINK and LANDMARK assertions should pass — the source-level gate            ║
- * ║     `__tests__/lib/theme/a11y-invariants.test.ts` was run, with negative controls        ║
- * ║     observed red, and it holds the precondition. If they fail, the failure is in the     ║
- * ║     rendered tab order (a portal, a positive `tabindex`), not in the mechanism.          ║
- * ║  2. The TARGET-SIZE and LABEL assertions are expected to be **RED on first run**, and    ║
- * ║     they are written to be. 38-15 did not do the target-size sweep — that is 108         ║
- * ║     controls on one screen and it needs the browser this session did not have. They are  ║
- * ║     ratchets against the audit's own figures, so the first run records the truth and     ║
- * ║     nothing may get worse while the sweep is paid down.                                  ║
+ * ║  1. The SKIP-LINK and LANDMARK assertions were RED on all four routes, and the           ║
+ * ║     PRODUCT WAS NOT THE CAUSE. `<SkipLink />` is genuinely the first focusable element   ║
+ * ║     in the document on every route — measured live, see the note on the Tab preamble     ║
+ * ║     below. The four failures were this file's own preamble poisoning the thing it was    ║
+ * ║     about to measure. Fixed here; the assertion itself was correct and is unchanged.     ║
+ * ║  2. The TARGET-SIZE and LABEL assertions were expected to be red and were GREEN, by a    ║
+ * ║     wide margin: purchase orders measured **8** controls under a 44×44 hit area against  ║
+ * ║     a baseline of 108, stock **6** against 30, and both reported **0** unnamed inputs.   ║
+ * ║     The baselines below are therefore now enormously slack — a screen could regress by   ║
+ * ║     100 controls and still pass. Whoever next touches this file should ratchet them to   ║
+ * ║     the measured figures. That is deliberately NOT done here: a ratchet tightened in     ║
+ * ║     the same change that first measured it has no confirming second observation behind   ║
+ * ║     it, and these two numbers come from one run against one environment.                 ║
+ * ║  3. The ⌘K modality assertion was red because the chord was pressed before hydration.    ║
+ * ║     `aria-modal="true"` is in fact set on the live palette. Also fixed here.             ║
  * ╚══════════════════════════════════════════════════════════════════════════════════════════╝
  *
  * <h3>Anchoring (the plan's explicit warning, and phase 34's vacuous-gate pattern #4)</h3>
@@ -41,11 +43,25 @@ import { persona } from "../fixtures/personas";
  * label and target gates. HR is deliberately absent.
  */
 
-/** Skip-link contract from UI-SPEC §11: the caret reaches `<main>` in at most two presses. */
-const TABS_TO_MAIN_CONTRACT = 2;
+/**
+ * Skip-link contract from UI-SPEC §11: the caret reaches `<main>` in at most two presses.
+ *
+ * <p>PRESSES, not Tabs — and the distinction is the whole reason the measurement below changed
+ * shape on 2026-08-22. A skip link is a CONTROL: reaching it is not arriving, activating it is.
+ * A walk that only ever presses Tab therefore cannot satisfy "2" on any product that has one,
+ * because stop 1 is the link and stop 2 is whatever the shell renders next — measured live, the
+ * branch switcher. The two presses §11 is written about are `Tab` then `Enter`.
+ */
+const KEY_PRESSES_TO_MAIN_CONTRACT = 2;
 
-/** What the audit measured, on 2026-08-12, before any of this existed. */
-const TABS_TO_MAIN_BASELINE = 22;
+/**
+ * What the audit measured, on 2026-08-12, before any of this existed.
+ *
+ * <p>Directly comparable to the number produced below despite the unit rename: with no skip link
+ * anywhere in the product there was nothing to activate, so the audit's 22 Tab presses were also
+ * 22 key presses.
+ */
+const KEY_PRESSES_TO_MAIN_BASELINE = 22;
 
 interface Route {
   name: string;
@@ -79,37 +95,119 @@ const ROUTES: Route[] = [
     name: "POS terminal",
     path: "/app/pos",
     persona: "cashier",
-    anchor: '[data-testid="pos-operator-strip"]',
+    /*
+     * `menu-grid`, NOT `pos-operator-strip` — this file's own rule, applied to this file's own
+     * table. The docblock above says the anchor must be "a piece of the page's own content
+     * rather than a shell element", and `OperatorStrip` is shell: `app/(tenant)/layout.tsx:129`
+     * renders it for every operator route, above `<main>`, whatever the page beneath does.
+     *
+     * That is not theoretical. Measured on dev, 2026-08-22, from one `goto`:
+     *
+     *     +739ms   pos-operator-strip attached   ·  0 <h1>   ·  0 menu-grid
+     *     +2272ms  ——                            ·  1 <h1> "Point of sale"  ·  1 menu-grid
+     *
+     * So the shell anchor released the measurement a second and a half before the page existed,
+     * and the landmark assertion below failed with "exactly one <h1> on /app/pos: received 0" —
+     * reporting a defect the audit had already fixed. `accessibility-smoke.spec.ts` anchors this
+     * same route on `menu-grid` for the same reason.
+     */
+    anchor: '[data-testid="menu-grid"]',
   },
 ];
 
+/** Is the caret inside `<main>` right now? */
+const IN_MAIN = () => {
+  const active = document.activeElement;
+  const main = document.querySelector("main");
+  return !!(active && main && main.contains(active));
+};
+
 /**
- * How many Tab presses before focus lands inside `<main>`.
+ * How many key presses a keyboard user spends, from a document that has just loaded, before
+ * focus is inside `<main>`.
  *
- * <p>Deliberately the same loop `e2e/audit-38-a11y.mjs` used, so the number is comparable to the
- * 22 rather than merely similar to it: press, wait a beat for any focus handler, ask whether
- * `document.activeElement` is contained by `<main>`. Returns `null` if it never gets there
- * within `limit`, which is a different failure from "too many" and is reported as one.
+ * <p>Same loop `e2e/audit-38-a11y.mjs` used — press, ask whether `document.activeElement` is
+ * contained by `<main>`, count — with one addition the audit had nothing to spend it on: when
+ * the caret is sitting on the skip link, the press is `Enter` rather than `Tab`. That is what a
+ * person does, and it is the only way the ≤ 2 contract is reachable at all; see
+ * {@link KEY_PRESSES_TO_MAIN_CONTRACT}.
+ *
+ * <h3>The Enter is offered ONCE, deliberately</h3>
+ *
+ * If activating the link does not move focus — the `tabindex="-1"` on `<main>` removed, so the
+ * fragment scrolls and leaves the caret behind — a second Enter would do nothing again and the
+ * walk would burn its whole budget on one element. Falling back to Tab makes that regression
+ * report as the ~22-press walk it actually is, which is the number worth reading.
+ *
+ * <h3>Why it re-navigates instead of measuring the page it was handed</h3>
+ *
+ * Both measured against dev on 2026-08-22:
+ *
+ * <p>· FOCUS. By the time this runs, the caller has already activated the skip link, so
+ * `document.activeElement` is `<main>`. One Tab from there lands on main's first control and the
+ * walk returns 1 without having walked anything — a vacuous green in the shape of a perfect
+ * score.
+ *
+ * <p>· THE FRAGMENT. `SkipLink`'s handler calls `history.replaceState(…, "#main-content")`, so a
+ * `reload()` re-enters ON the fragment, and Chrome focuses a `tabindex="-1"` fragment target at
+ * load. Same vacuous 1, arrived at differently. A `goto` of the bare path avoids both.
+ *
+ * <p>Returns `null` if focus never gets there within `limit`, which is a different failure from
+ * "too many" and is reported as one.
  */
-async function tabsToMain(page: import("@playwright/test").Page, limit = 40) {
-  await page.locator("body").click({ position: { x: 2, y: 2 } });
-  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+async function keyPressesToMain(
+  page: import("@playwright/test").Page,
+  route: Route,
+  limit = 40,
+): Promise<number | null> {
+  await page.goto(route.path, { waitUntil: "domcontentloaded" });
+  await expect(page.locator(route.anchor).first()).toBeAttached({ timeout: 45_000 });
+
+  let skipLinkTried = false;
   for (let i = 1; i <= limit; i += 1) {
-    await page.keyboard.press("Tab");
-    const inMain = await page.evaluate(() => {
-      const active = document.activeElement;
-      const main = document.querySelector("main");
-      return !!(active && main && main.contains(active));
-    });
-    if (inMain) return i;
+    const onSkipLink = await page.evaluate(
+      () => document.activeElement?.getAttribute("data-testid") === "skip-to-content",
+    );
+    if (onSkipLink && !skipLinkTried) {
+      skipLinkTried = true;
+      await page.keyboard.press("Enter");
+    } else {
+      await page.keyboard.press("Tab");
+    }
+    if (await page.evaluate(IN_MAIN)) return i;
   }
   return null;
 }
 
 test.describe("G12 — accessibility invariants in the browser", () => {
   for (const route of ROUTES) {
-    test(`skip link and landmarks: ${route.name}`, async ({ as }) => {
+    test(`skip link and landmarks: ${route.name}`, async ({ as, obs }) => {
       test.setTimeout(120_000);
+
+      /*
+       * The POS route carries a refused live-orders WebSocket, and this gate is about landmarks.
+       * Declared rather than left to fail the test, for the reason `accessibility-smoke.spec.ts`
+       * states on the same route: a socket the page does not need in order to be navigable must
+       * not be able to mask an accessibility result. Until 2026-08-22 this was invisible here —
+       * the observability guard only judges a test that passed its own assertions, and the skip
+       * link assertion above was failing first.
+       *
+       * <p>READ THIS BEFORE TREATING IT AS CLOSED. E2E-D4's matcher covers the URL, but the
+       * message dev actually emits is NOT E2E-D4's:
+       *
+       *     Error during WebSocket handshake: 'Connection' header value must contain 'Upgrade'
+       *
+       * E2E-D4 is a 401 caused by `WS_UPGRADE_PATHS` omitting `/api/v1/pos/ws/`. This one also
+       * hits `wss://…/api/v1/kitchen/kds/…`, which IS in that list — so it is a second, broader
+       * fault in front of the gateway (the dev reverse proxy is not forwarding `Upgrade` /
+       * `Connection`), and it takes down every socket in the product on that environment, not
+       * just this one. This declaration silences it for a landmark test; it is not evidence that
+       * either fault is fixed.
+       */
+      if (route.path.startsWith("/app/pos")) {
+        tolerate(obs, DEFECTS.POS_ORDERS_WEBSOCKET_REJECTED_AT_GATEWAY);
+      }
+
       const page = await as(persona("terrace", route.persona));
       await page.goto(route.path, { waitUntil: "domcontentloaded" });
 
@@ -125,13 +223,43 @@ test.describe("G12 — accessibility invariants in the browser", () => {
       await expect(skip, "measured 0 skip links on every route (audit-a11y.json)").toBeAttached();
       await expect(skip).toHaveAttribute("href", "#main-content");
 
-      await page.locator("body").click({ position: { x: 2, y: 2 } });
-      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      /*
+       * NO CLICK BEFORE THIS TAB. The two lines that used to stand here —
+       *
+       *     await page.locator("body").click({ position: { x: 2, y: 2 } });
+       *     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+       *
+       * — failed this assertion on all four routes on 2026-08-22, and the product was correct
+       * throughout. Measured live on that run:
+       *
+       *     first focusable in DOM order      -> A[data-testid=skip-to-content]   ✔ on 4/4
+       *     fresh-load Tab                    -> A[data-testid=skip-to-content]   ✔ on 4/4
+       *     element at viewport point (2,2)   =  the sidebar's brand row (a plain DIV)
+       *     after body-click(2,2)+blur, Tab   -> BUTTON "Floating Terrace HQ"     ✘ on 4/4
+       *
+       * Clicking a non-focusable element sets Chrome's SEQUENTIAL FOCUS NAVIGATION STARTING
+       * POINT to it, and `blur()` does not clear that — it clears `activeElement`, which is a
+       * different piece of state. The next Tab therefore resumed *after the sidebar's brand
+       * row*, i.e. downstream of the skip link, and reported the exact defect the skip link
+       * had been added to remove. `audit-38-a11y.mjs`, which produced the 22 this file is a
+       * ratchet against, pressed Tab straight after `goto` with no click — so the click was
+       * never part of "the same loop" this spec claimed to run.
+       *
+       * The page was navigated to a moment ago and nothing has been clicked since, so the
+       * starting point is unset and this is the press a real user's first Tab makes.
+       */
+      const focusBeforeTab = await page.evaluate(() =>
+        document.activeElement && document.activeElement !== document.body
+          ? `${document.activeElement.tagName}[${document.activeElement.getAttribute("data-testid") ?? ""}]`
+          : "<body> (nothing focused — the state a fresh load is in)",
+      );
       await page.keyboard.press("Tab");
       await expect(
         skip,
         "the skip link must be the FIRST tab stop. Rendered after the sidebar it is still a " +
-          "skip link, still announced, still correct in a screenshot — and still stop 22.",
+          "skip link, still announced, still correct in a screenshot — and still stop 22. " +
+          `Before this Tab, focus was on: ${focusBeforeTab} — if that is not <body>, something ` +
+          "on the route autofocuses and THAT is the finding, not the link's position.",
       ).toBeFocused();
 
       // ── 2. …and it is VISIBLE while focused, which is the half a DOM check cannot see ───
@@ -147,10 +275,7 @@ test.describe("G12 — accessibility invariants in the browser", () => {
 
       // ── 3. Activating it moves FOCUS, not just the scroll offset ───────────────────────
       await page.keyboard.press("Enter");
-      const landedInMain = await page.evaluate(() => {
-        const main = document.querySelector("main");
-        return !!(main && document.activeElement && main.contains(document.activeElement));
-      });
+      const landedInMain = await page.evaluate(IN_MAIN);
       expect(
         landedInMain,
         "after activating the skip link the caret must be inside <main>. A fragment target " +
@@ -159,14 +284,17 @@ test.describe("G12 — accessibility invariants in the browser", () => {
       ).toBe(true);
 
       // ── 4. The headline number ─────────────────────────────────────────────────────────
-      const tabs = await tabsToMain(page);
-      expect(tabs, `focus never reached <main> within 40 presses on ${route.path}`).not.toBeNull();
+      const presses = await keyPressesToMain(page, route);
       expect(
-        tabs!,
-        `tabs to <main> on ${route.path}. Baseline ${TABS_TO_MAIN_BASELINE} ` +
+        presses,
+        `focus never reached <main> within 40 presses on ${route.path}`,
+      ).not.toBeNull();
+      expect(
+        presses!,
+        `key presses to <main> on ${route.path}. Baseline ${KEY_PRESSES_TO_MAIN_BASELINE} ` +
           `(measured 2026-08-12 on /app/purchasing/purchase-orders); contract ` +
-          `${TABS_TO_MAIN_CONTRACT}.`,
-      ).toBeLessThanOrEqual(TABS_TO_MAIN_CONTRACT);
+          `${KEY_PRESSES_TO_MAIN_CONTRACT} — one Tab onto the skip link, one Enter to take it.`,
+      ).toBeLessThanOrEqual(KEY_PRESSES_TO_MAIN_CONTRACT);
 
       // ── 5. Landmarks ───────────────────────────────────────────────────────────────────
       const landmarks = await page.evaluate(() => ({
@@ -293,16 +421,60 @@ test.describe("G12 — accessibility invariants in the browser", () => {
   test("every dialog is modal to assistive tech", async ({ as }) => {
     test.setTimeout(120_000);
     const page = await as(persona("terrace", "manager"));
-    await page.goto("/app/purchasing/vendors", { waitUntil: "domcontentloaded" });
 
-    // The command palette is the one dialog reachable from every route, and it is the one the
-    // audit probed and found `aria-modal: null` on.
-    await page.keyboard.press("ControlOrMeta+k");
-    const palette = page.getByTestId("command-palette-input");
+    /*
+     * THE CHORD CANNOT BE PRESSED BEFORE HYDRATION, AND "VISIBLE" DOES NOT MEAN HYDRATED.
+     *
+     * This test used to `goto(…, { waitUntil: "domcontentloaded" })` and press ⌘K on the next
+     * line, then wait 15s for a palette that never came — red on 2026-08-22, and not because of
+     * the palette. The shortcut is a `document` keydown listener registered in an effect
+     * (`components/ui/command-palette.tsx:133-143`). A press issued before that effect runs is
+     * not queued anywhere: it is delivered to a document with no listener on it and is simply
+     * lost. No timeout recovers a press that already happened, which is why the symptom was a
+     * 15-second hang rather than a race.
+     *
+     * Waiting for the trigger BUTTON to be visible is not enough on its own, and that is worth
+     * stating because it is the obvious fix and it does not work: the button is server-rendered
+     * markup, so it is on screen well before the bundle that animates it. Measured on dev:
+     *
+     *     goto waitUntil          trigger visible   palette after ONE press
+     *     domcontentloaded        +691ms            0   (opened only on the retry, +2740ms)
+     *     load                    +1256ms           1
+     *
+     * So: `load`, which waits for the scripts, THEN the trigger, and then the chord pressed
+     * under `expect.poll` so a press that lands in the remaining gap costs a retry instead of
+     * the test. This cannot mask a defect — a palette that never opens still fails, and the
+     * `aria-modal` assertion below is untouched. `command-palette.spec.ts:38-41` gets away with
+     * a single press for the same reason: its `goto` uses the default `load`.
+     */
+    await page.goto("/app/purchasing/vendors");
+
+    // The command palette is the one dialog reachable from every BACK-OFFICE route, and it is
+    // the one the audit probed and found `aria-modal: null` on. (Not from every route: the
+    // operator shell removes `<TopBar>`, and with it the palette, from `/app/pos/**` by design
+    // — UI-SPEC §4.1.)
     await expect(
-      palette,
-      "the ⌘K palette must open before its modality can be measured",
-    ).toBeAttached({ timeout: 15_000 });
+      page.getByRole("button", { name: "Open command palette" }),
+      "the ⌘K trigger must be on screen before the chord is pressed",
+    ).toBeVisible({ timeout: 25_000 });
+
+    const palette = page.getByTestId("command-palette-input");
+    await expect
+      .poll(
+        async () => {
+          if ((await palette.count()) > 0) return 1;
+          await page.keyboard.press("ControlOrMeta+k");
+          // Radix mounts the content synchronously on the state change; this is slack, not a
+          // guess. It also keeps the poll from pressing twice and toggling the palette shut.
+          await page.waitForTimeout(600);
+          return palette.count();
+        },
+        {
+          message: "the ⌘K palette must open before its modality can be measured",
+          timeout: 20_000,
+        },
+      )
+      .toBeGreaterThan(0);
 
     const modal = await page.evaluate(
       () =>

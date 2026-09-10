@@ -269,7 +269,7 @@ export function PrintAgentPanel({ branchId }: { branchId: string | null }) {
 
               <div className="rounded-lg border bg-muted/40 p-3">
                 <p className="text-label font-medium">Start the agent on that machine with:</p>
-                <pre className="mt-1 overflow-x-auto text-[11px] leading-relaxed text-muted-foreground">
+                <pre className="relative mt-1 overflow-x-auto text-[11px] leading-relaxed text-muted-foreground">
                   {`PRINT_AGENT_CLOUD_URL=<gateway url> \\
 PRINT_AGENT_CREDENTIAL=<the credential above> \\
 node print-agent/dist/main.js`}

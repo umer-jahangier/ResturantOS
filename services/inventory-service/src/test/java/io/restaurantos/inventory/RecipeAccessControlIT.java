@@ -1,5 +1,6 @@
 package io.restaurantos.inventory;
 
+import io.restaurantos.shared.testsupport.TenantContextBindingTestFilter;
 import io.restaurantos.inventory.domain.model.Ingredient;
 import io.restaurantos.inventory.domain.model.ItemCategory;
 import io.restaurantos.inventory.domain.model.MenuItemCatalog;

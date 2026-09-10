@@ -4,6 +4,7 @@ import io.restaurantos.audit.entity.AuditEventEntity;
 import io.restaurantos.audit.entity.AuditEventId;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -30,9 +31,28 @@ import java.util.UUID;
  * that can be called without naming a tenant, so a caller cannot accidentally read across the
  * boundary by omitting a predicate. {@code AuditQueryController} supplies it from the verified
  * token and from nothing else.
+ *
+ * <h2>{@code JpaSpecificationExecutor}, and why it does not reopen the boundary</h2>
+ *
+ * <p>{@code JpaSpecificationExecutor} adds {@code findAll(Specification, Pageable)}, whose
+ * predicate is supplied by the caller and can therefore omit the tenant. That is not a hole,
+ * because the tenant boundary on this table has never been enforced by the WHERE clause: it is
+ * enforced by {@code FORCE ROW LEVEL SECURITY} on the parent AND on every partition (changeset
+ * 030), against a runtime role that is {@code NOSUPERUSER NOBYPASSRLS}. A specification with no
+ * tenant predicate returns the rows of whichever tenant {@code app.current_tenant_id} names, and
+ * an empty GUC returns nothing at all — the policy fails closed. The derived finders above name
+ * the tenant as a second, redundant layer; the specification path relies on the first one, which
+ * is the layer a test can actually observe ({@code AuditTenantIsolationIT},
+ * {@code RlsForcedInvariantIT}).
+ *
+ * <p>It exists for {@code PlatformAuditReadService}, whose read has four independent optional
+ * filters — sixteen derived finders — and which must not express any of them as a nullable JPQL
+ * parameter for the reason this class already documents.
  */
 @Repository
-public interface AuditEventRepository extends JpaRepository<AuditEventEntity, AuditEventId> {
+public interface AuditEventRepository
+        extends JpaRepository<AuditEventEntity, AuditEventId>,
+                JpaSpecificationExecutor<AuditEventEntity> {
 
     // ── page reads ─────────────────────────────────────────────────────────────
 

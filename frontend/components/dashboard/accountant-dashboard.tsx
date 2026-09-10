@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { BookOpen, CalendarClock, FileWarning, HandCoins, Landmark, Scale } from "lucide-react";
 
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { PortletGrid, type PortletModels } from "@/components/dashboard/portlets/portlet-renderer";
@@ -133,6 +134,7 @@ export function AccountantDashboard() {
         </>
       ),
       severity: "danger" as const,
+      icon: <FileWarning />,
     }));
     for (const entry of unbalanced.slice(0, 2)) {
       rows.push({
@@ -146,6 +148,7 @@ export function AccountantDashboard() {
           </>
         ),
         severity: "danger" as const,
+        icon: <Scale />,
       });
     }
     for (const period of overdue.slice(0, 2)) {
@@ -158,6 +161,7 @@ export function AccountantDashboard() {
           year: "numeric",
         })} and has not been locked`,
         severity: "warning" as const,
+        icon: <CalendarClock />,
       });
     }
     return rows.slice(0, 6);
@@ -166,6 +170,8 @@ export function AccountantDashboard() {
   const models: PortletModels<AccountantPortlets> = {
     "accountant-unposted-journals": {
       kind: "KpiTile",
+      accent: "primary",
+      icon: BookOpen,
       value: formatNumber(draftCount),
       caption: "Draft entries in the last 12 months",
       tone: draftCount > 0 ? "warning" : "neutral",
@@ -179,6 +185,8 @@ export function AccountantDashboard() {
     "accountant-payables-outstanding": ap
       ? {
           kind: "KpiTile",
+          accent: "warning",
+          icon: HandCoins,
           value: <MoneyDisplay paisa={ap.totalApPaisa} />,
           caption: `Across ${formatNumber(ap.buckets.length)} ageing bucket${
             ap.buckets.length === 1 ? "" : "s"
@@ -187,6 +195,8 @@ export function AccountantDashboard() {
         }
       : {
           kind: "KpiTile",
+          accent: "warning",
+          icon: HandCoins,
           caption: "Owed to vendors",
           unavailableReason: "Payables ageing has not been read yet.",
           boundary: { query: apQuery, what: "payables ageing" },
@@ -194,18 +204,24 @@ export function AccountantDashboard() {
     "accountant-receivables-outstanding": ar
       ? {
           kind: "KpiTile",
+          accent: "success",
+          icon: Landmark,
           value: <MoneyDisplay paisa={ar.totalArPaisa} />,
           caption: "Owed by house accounts",
           boundary: { query: arQuery, what: "receivables ageing" },
         }
       : {
           kind: "KpiTile",
+          accent: "success",
+          icon: Landmark,
           caption: "Owed by house accounts",
           unavailableReason: "Receivables ageing has not been read yet.",
           boundary: { query: arQuery, what: "receivables ageing" },
         },
     "accountant-net-income": {
       kind: "KpiTile",
+      accent: "secondary",
+      icon: Scale,
       caption: "Revenue less cost of goods and operating expense",
       // No `value`. The union will not accept one beside this, which is the point (D-38-16).
       unavailableReason:
@@ -215,12 +231,14 @@ export function AccountantDashboard() {
     },
     "accountant-payables-ageing": {
       kind: "RankedList",
+      accent: "warning",
       rows: apBuckets,
       emptyLabel: "Nothing is payable.",
       boundary: { query: apQuery, what: "payables ageing" },
     },
     "accountant-unposted-list": {
       kind: "RecordList",
+      monoPrimary: true,
       rows: journalRecordRows(drafts),
       emptyLabel: "Every entry in this window is posted.",
       boundary: { query: draftsQuery, what: "journal entries" },
@@ -238,6 +256,7 @@ export function AccountantDashboard() {
     },
     "accountant-invoices": {
       kind: "RecordList",
+      monoPrimary: true,
       rows: invoiceRows,
       emptyLabel: "No vendor invoice is waiting to be settled.",
       boundary: {

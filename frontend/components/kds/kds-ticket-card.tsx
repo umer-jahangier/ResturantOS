@@ -74,7 +74,7 @@ function cancelledCount(ticket: KdsTicket): number {
  * a single `truncate`d 14px row: `2× Chicken Karahi, 1× Garlic Naan, 3× Raita…`. At the two
  * metres a wall-mounted board is actually read from, that is not a list — it is a grey
  * smear, and the third item is literally not on the screen. Now: **one item per line** at
- * `--text-kds` (22/28, weight 600, measured 16.06:1 on `--kds-card`), quantity in its own
+ * `--text-kds` (22/28, weight 600, measured 16.09:1 on `--kds-card`), quantity in its own
  * fixed column so the eye scans counts vertically, **modifiers bold and inline beneath the
  * item they modify**, and notes in a visually distinct block. A modifier hidden inside a
  * notes field is how a nut allergy gets cooked; §7.2 forbids it and so does this component.

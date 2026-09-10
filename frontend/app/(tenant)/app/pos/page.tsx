@@ -126,7 +126,7 @@ export default function PosPage() {
             the scarcest axis on a screen where the audit already measured the first menu tile
             pushed below the fold. A tab strip is a rail; it scrolls.
           */}
-          <div className="flex items-center gap-1 overflow-x-auto border-b bg-background px-4 pt-3 shrink-0">
+          <div className="relative flex items-center gap-1 overflow-x-auto border-b bg-background px-4 pt-3 shrink-0">
             {TABS.map((tab) => (
               <button
                 key={tab.id}

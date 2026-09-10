@@ -248,9 +248,24 @@ class SettledOrderVisibilityIT extends PosTestBase {
      * The name is decoration; the id is the fact. auth-service being unreachable must cost the
      * display name and nothing else — a directory hiccup that blanked a manager's order screen
      * would be a worse defect than the one being fixed.
+     *
+     * <p><b>The check is voided by somebody the directory has never been asked about, and that is
+     * load-bearing.</b> {@code StaffNameDirectory} caches a resolved name for five minutes keyed
+     * on tenant AND user, and since {@code 27225227} every till DTO names its owner —
+     * {@code TillServiceImpl.toDto} calls {@code resolve} — so {@code setUp}'s
+     * {@code openTillForCashier} puts {@code cashierId}'s name in that cache before any test body
+     * runs. Declaring an outage against an already-cached name proves nothing: the row came back
+     * carrying the cached "Terrace Manager", which is what this test failed on. Acting as a user
+     * with no cache entry is what makes the outage reach the code under test — and a warm cache
+     * is a name the outage genuinely does not cost, so there is nothing here to assert about it.
      */
     @Test
     void directoryOutage_costsTheNameAndNotTheRow() throws Exception {
+        cashierId = UUID.randomUUID();
+        tenantContext.set(tenantId, branchId, cashierId, null);
+        setSecurityContext(List.of("pos.order.void.own", "pos.order.void.any",
+                "pos.order.refund", "pos.order.view", "pos.order.view.all"));
+
         OrderDto order = openOrderWithOneItem();
         orderService.voidOrder(order.id(),
                 new VoidOrderRequest("Till error"), UUID.randomUUID().toString());

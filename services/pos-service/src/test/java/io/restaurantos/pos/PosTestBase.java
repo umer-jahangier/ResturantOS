@@ -88,11 +88,61 @@ public abstract class PosTestBase {
         registry.add("spring.rabbitmq.host", () -> "127.0.0.1");
         registry.add("spring.rabbitmq.port", () -> "1");
         registry.add("spring.rabbitmq.listener.simple.missing-queues-fatal", () -> "false");
+
+        // ── Why this module ran the Testcontainers Postgres out of connections ───────────────
+        //
+        // Eight suites here declare a @MockitoBean of their own, and a bean override is part of
+        // Spring's context cache KEY, so one Failsafe fork ends the module holding TEN distinct
+        // application contexts (measured: HikariPool-1 … HikariPool-10 in a single run). None is
+        // ever evicted — spring.test.context.cache.maxSize is 32.
+        //
+        // Hikari's defaults are maximumPoolSize=10 AND minimumIdle=10, so each of those ten
+        // contexts opens and PARKS ten physical connections. 10 x 10 = 100, against a
+        // Testcontainers postgres:16 whose max_connections is 100 with 3 of those reserved for
+        // the superuser. The module therefore hit the ceiling near its end and the NEXT class's
+        // Flyway @BeforeAll could no longer connect at all: TableCatalogueIT, OrderLifecycleIT,
+        // DiscountedTaxBaseIT and DiscountAuditTrailIT each reported "Tests run: 1, Errors: 1"
+        // with FATAL: sorry, too many clients already — a harness failure wearing the costume of
+        // a test failure, and one that lands on whichever classes happen to run last.
+        //
+        // Sized DOWN here rather than raising max_connections on the container, because the idle
+        // pools are the cause and the ceiling is only where it becomes visible. Failsafe runs
+        // this module in ONE fork on ONE thread: at most one context is doing work at any moment,
+        // and none of them needs ten connections to serve a single-threaded test plus its
+        // scheduler. minimum-idle=1 with the shortest idle-timeout Hikari accepts lets the nine
+        // dormant contexts fall back to a single connection each, which puts the steady state
+        // near a dozen instead of at the limit.
+        registry.add("spring.datasource.hikari.maximum-pool-size", () -> "5");
+        registry.add("spring.datasource.hikari.minimum-idle", () -> "1");
+        registry.add("spring.datasource.hikari.idle-timeout", () -> "10000");
     }
 
     // Mock AMQP to prevent actual broker publishing
     @MockitoBean
     protected RabbitTemplate rabbitTemplate;
+
+    /**
+     * The outbox RELAY is stopped for this module. The outbox REPOSITORY deliberately is not —
+     * suites here read {@code event_outbox} directly to prove an event was written in the same
+     * transaction as the row it describes, and mocking the repository would delete that proof.
+     *
+     * <p>This is what silences the {@code relation "event_outbox" does not exist} stack traces a
+     * full run used to print (measured: 20 of them, all logged by {@code [scheduling-1]}). The
+     * table is NOT missing — {@code V2__pos_infra_tables.sql} creates it, and every one of those
+     * errors names a window of a few milliseconds rather than a schema gap. {@link
+     * #applyMigrations} runs {@code flyway.clean()} before every test CLASS, but the contexts are
+     * cached and keep running: while class N+1 is dropping and re-creating the schema, the
+     * relays belonging to the ten contexts already in the cache are still polling
+     * {@code event_outbox} once a second and find it briefly gone.
+     *
+     * <p>Nothing here needs the relay. It has no broker to reach (the properties above point AMQP
+     * at a dead port), so its only possible outcomes are a failed publish or an exception, and no
+     * suite in this module asserts that a row reaches {@code SENT}. Stopping it also removes a
+     * per-second transaction from each cached context, which is connections this module was
+     * measurably short of.
+     */
+    @MockitoBean
+    protected io.restaurantos.shared.event.OutboxRelay outboxRelay;
 
     // Mock Redis — not used in POS unit flows
     @MockitoBean

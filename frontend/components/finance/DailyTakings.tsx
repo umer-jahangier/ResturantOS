@@ -4,6 +4,7 @@ import { useCallback, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { EmptyState } from "@/components/ui/empty-state";
+import { Label } from "@/components/ui/label";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import { FigureValue } from "@/components/finance/UnknownFigure";
 import { TenderSplit } from "@/components/finance/TenderSplit";
@@ -92,17 +93,39 @@ export function DailyTakings() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <label className="text-body">
-          <span className="mb-1 block text-muted-foreground">Business date</span>
+        {/*
+         * `<Label htmlFor>` beside the control rather than wrapped around it (G12g). The inner
+         * `<span className="block">` used to carry this on the label's behalf, which worked only
+         * because the date input is intrinsically sized — the moment anything here goes `w-full`
+         * it collides, exactly as the till panel's cash-count field did.
+         */}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="takings-date" className="text-small text-foreground-secondary">
+            Business date
+          </Label>
+          {/*
+           * `touch-floor` — 44px below `lg`, the declared 36px at and above it. Exactly the
+           * pairing `components/ui/input.tsx` uses, and it is here because this control is
+           * hand-rolled rather than an `<Input>`: a native `type="date"` renders Chromium's own
+           * calendar affordance, and routing it through the primitive would put the primitive's
+           * `file:`/`aria-invalid` rules on a widget that has neither.
+           *
+           * <p>Being hand-rolled is precisely why it was the one control on this screen still
+           * under the target size. Measured against the live deployment 2026-08-22:
+           * `input[takings-date] 160×32 @24,421` at 390px — the only WCAG 2.5.8 offender on
+           * `/app/finance/takings`. `min-h-9` was 36px, which is not 44 and never was; the phase
+           * that raised every other control raised this one to a number that still fails.
+           */}
           <input
+            id="takings-date"
             type="date"
             value={shownDate}
             disabled={!shownDate}
             data-testid="takings-date"
             onChange={(e) => setDate(e.target.value)}
-            className="rounded-md border bg-background px-2 py-1 disabled:opacity-50"
+            className="touch-floor h-9 rounded-md border bg-background px-3 py-1.5 text-body disabled:opacity-50"
           />
-        </label>
+        </div>
         {takings && (
           <p className="text-small text-muted-foreground">
             {takings.orderCount} {takings.orderCount === 1 ? "order" : "orders"} closed on this
@@ -139,7 +162,10 @@ function TakingsBody({
   return (
     <div className="space-y-6">
       <section aria-labelledby="takings-summary-heading" className="space-y-3">
-        <h2 id="takings-summary-heading" className="text-small font-semibold text-muted-foreground">
+        <h2
+          id="takings-summary-heading"
+          className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary"
+        >
           The day&apos;s money
         </h2>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -189,7 +215,10 @@ function TakingsBody({
 
       <section aria-labelledby="tender-heading" className="space-y-3">
         <div>
-          <h2 id="tender-heading" className="text-small font-semibold text-muted-foreground">
+          <h2
+            id="tender-heading"
+            className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary"
+          >
             How it came in
           </h2>
           <p className="text-label text-muted-foreground">
@@ -221,7 +250,10 @@ function TakingsBody({
 
       <section aria-labelledby="till-heading" className="space-y-3">
         <div>
-          <h2 id="till-heading" className="text-small font-semibold text-muted-foreground">
+          <h2
+            id="till-heading"
+            className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary"
+          >
             What each till counted
           </h2>
           <p className="text-label text-muted-foreground">
@@ -238,7 +270,10 @@ function TakingsBody({
 
       {takings.residualUnknowns.length > 0 && (
         <section aria-labelledby="residual-heading" className="space-y-2">
-          <h2 id="residual-heading" className="text-small font-semibold text-muted-foreground">
+          <h2
+            id="residual-heading"
+            className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary"
+          >
             Also not known
           </h2>
           <ul className="space-y-1" data-testid="residual-unknowns">
@@ -358,7 +393,7 @@ function FigureTile({
       className={cn("rounded-lg border p-3", emphasis && "border-primary/40 bg-primary/5")}
       data-testid={`figure-tile-${label.toLowerCase().replace(/\s+/g, "-")}`}
     >
-      <p className="text-label uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-label uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
       <div className="mt-1">
         {/* 38-08 task 3 — ONE money typeface. This screen rendered every amount in
             `font-mono`, alone in the product: UI-SPEC §3.11 reserves Geist Mono for IDENTIFIERS

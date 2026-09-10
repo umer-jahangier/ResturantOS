@@ -90,6 +90,8 @@ export function TrendChart({ categories, series, className }: TrendChartProps) {
    * both renderers, with no effect and no re-render.
    */
   const revealLength = PAD_L + plotW;
+  /** At most ~6 axis labels, whatever the series length. See the axis block below. */
+  const labelStride = Math.max(1, Math.ceil(categories.length / 6));
 
   return (
     <figure className={cn("m-0", className)} data-testid="trend-chart">
@@ -102,7 +104,7 @@ export function TrendChart({ categories, series, className }: TrendChartProps) {
       >
         <defs>
           <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="var(--chart-1)" stopOpacity="0.18" />
+            <stop offset="0%" stopColor="var(--chart-1)" stopOpacity="0.22" />
             <stop offset="100%" stopColor="var(--chart-1)" stopOpacity="0" />
           </linearGradient>
 
@@ -143,7 +145,31 @@ export function TrendChart({ categories, series, className }: TrendChartProps) {
           </mask>
         </defs>
 
-        {/* Baseline only. Gridlines on four data points is chartjunk. */}
+        {/*
+          Four dotted gridlines and a solid baseline.
+
+          The comment this replaces read "Gridlines on four data points is chartjunk", and on four
+          points it was right. This series is a THIRTY-day window — `owner-dashboard.tsx` runs
+          `sales-by-day` over `WINDOW_DAYS = 30` — and over thirty points a line with no horizontal
+          reference is a shape a reader can only compare to itself. Tufte's objection is to grids
+          that compete with the data, so these are dotted, sit on `--border` — the quietest line in the system, already the colour of
+          the card's own hairline — and are drawn
+          OUTSIDE the reveal mask: they are the paper, and they are there before the ink.
+        */}
+        <g aria-hidden="true" data-testid="trend-chart-grid">
+          {[0.25, 0.5, 0.75, 1].map((step) => (
+            <line
+              key={step}
+              x1={PAD_L}
+              x2={PAD_L + plotW}
+              y1={PAD_T + plotH - step * plotH}
+              y2={PAD_T + plotH - step * plotH}
+              stroke="var(--border)"
+              strokeWidth="1"
+              strokeDasharray="2 5"
+            />
+          ))}
+        </g>
         <line
           x1={PAD_L}
           x2={PAD_L + plotW}
@@ -210,18 +236,33 @@ export function TrendChart({ categories, series, className }: TrendChartProps) {
           );
         })}
 
-        {categories.map((c, i) => (
-          <text
-            key={c}
-            x={x(i)}
-            y={VIEW_H - 8}
-            fill="var(--foreground-tertiary)"
-            fontSize="11"
-            textAnchor={i === 0 ? "start" : i === categories.length - 1 ? "end" : "middle"}
-          >
-            {c}
-          </text>
-        ))}
+        {/*
+          THINNED. Every category used to be labelled, and the owner's window is thirty days: at
+          640 units of viewBox that is a "07 Aug" every 19 units, so the axis rendered as one
+          unbroken smear of overlapping glyphs — visible in any screenshot, invisible to a test
+          that asserts text content. `labelStride` keeps roughly six labels whatever the series
+          length, and ALWAYS keeps the first and the last, because the two ends are the only
+          labels a reader needs to know what window they are looking at. The screen-reader table
+          below carries every period regardless, so nothing is lost — only the smear.
+        */}
+        {categories.map((c, i) =>
+          // The last label always wins, and a strided label within one stride of it is dropped —
+          // otherwise "13 Aug" and "14 Aug" print on top of each other at the right-hand end,
+          // which is the collision thinning was supposed to remove.
+          i === categories.length - 1 ||
+          (i % labelStride === 0 && categories.length - 1 - i >= labelStride) ? (
+            <text
+              key={c}
+              x={x(i)}
+              y={VIEW_H - 8}
+              fill="var(--foreground-tertiary)"
+              fontSize="11"
+              textAnchor={i === 0 ? "start" : i === categories.length - 1 ? "end" : "middle"}
+            >
+              {c}
+            </text>
+          ) : null,
+        )}
       </svg>
 
       {/* CHANNEL 2 — the pattern key, described in words, so it reads in greyscale too. */}

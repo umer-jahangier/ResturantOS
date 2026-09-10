@@ -127,6 +127,46 @@ public class RoleCatalogService {
     }
 
     /**
+     * The WHOLE role catalogue this tenant can see — no ceiling filter (superadmin plan, D-39-02).
+     *
+     * <p>{@link #listAssignableRoles} answers "what may I grant?" and is therefore filtered by the
+     * caller's own permissions. The platform control plane is asking a different question — "what
+     * does this tenant's authorization model actually look like?" — and a filtered answer would be
+     * a lie in either direction: a platform token holds exactly one authority ({@code SUPER_ADMIN},
+     * see {@code JwtSigningService.signPlatformToken}), so the ceiling would resolve to the empty
+     * set and hide EVERY role that grants anything, leaving a role×permission matrix with no rows.
+     *
+     * <p><b>Read-only, and that is a security property rather than a limitation.</b> Returning the
+     * catalogue unfiltered grants nobody anything: no endpoint in this system accepts a permission
+     * code from a caller, and this method writes nothing. What it must never become is the read
+     * half of a platform-tier role EDITOR — 13-02 split {@code rbac.manage} precisely so that a
+     * tenant administrator could not compose themselves an OWNER, and the platform tier has no
+     * ceiling at all to bound the same move. See {@code RoleAdminController} for the tenant-tier
+     * write path, which keeps its ceiling.
+     *
+     * <p>A null {@code tenantId} yields the SYSTEM roles only — {@link RoleRepository#findVisibleToTenant}
+     * fails closed, and a platform caller that names no tenant is asking about the global catalogue.
+     *
+     * <p>Same two-query shape as {@link #listAssignableRoles}, plus the holder count; the caller
+     * must have set the tenant GUC, which is why {@code RbacCatalogInternalService} wraps it.
+     */
+    @Transactional(readOnly = true)
+    public List<RoleEntry> listRolesForTenant(UUID tenantId) {
+        Map<String, RoleEntity> byCode = distinctByCode(roleRepository.findVisibleToTenant(tenantId));
+        Map<String, List<String>> permissionsByRole = permissionsFor(byCode.keySet(), tenantId);
+        Map<String, Long> holdersByRole = holdersFor(byCode.keySet(), tenantId);
+
+        List<RoleEntry> roles = new ArrayList<>();
+        for (Map.Entry<String, RoleEntity> entry : byCode.entrySet()) {
+            RoleEntity role = entry.getValue();
+            roles.add(new RoleEntry(role.getCode(), role.getName(), role.isSystem(),
+                permissionsByRole.getOrDefault(entry.getKey(), List.of()),
+                holdersByRole.getOrDefault(entry.getKey(), 0L)));
+        }
+        return List.copyOf(roles);
+    }
+
+    /**
      * The whole permission vocabulary, grouped by module.
      *
      * <p>Grouped here rather than by the caller so that every client groups it the same way, and so

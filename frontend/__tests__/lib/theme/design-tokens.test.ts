@@ -132,8 +132,27 @@ const POS: readonly Row[] = [
   ["Send button: white on --primary-700", "--neutral-0", "--primary-700", 5.85, "AA"],
 ];
 
+/*
+ * RE-MEASURED after the KDS neutrals moved from `--brand-h` to `--neutral-h` (see the block
+ * comment on `[data-surface="kds"]` in globals.css). The board was a WARM brown-black next to a
+ * COOL blue-black app — "the KDS does not sync with the rest of the app", and measurably so.
+ *
+ * Five of these six numbers are UNCHANGED, and that is the point: the lightness ladder was held
+ * and only the hue and chroma moved, so this was a hue correction rather than a contrast
+ * rewrite. The sixth, `--kds-text` on `--kds-card`, moves 16.06 → 16.09 — three hundredths, the
+ * cost of the card sitting on the neutral ramp's chroma at hue 260 instead of 0.008 at hue 69.
+ * It is recorded here rather than absorbed, because the drift gate's whole job is to make even a
+ * 0.03 move something a human had to type.
+ *
+ * <p>NOTE ON THE SPEC ROW. The §3.7/§3.8 tables in `.planning/phases/20-design-system/UI-SPEC.md`
+ * still print the PRE-D-38-12 KDS values — `#151a1a` for `--kds-card` and 16.06:1 for this row —
+ * i.e. they were already describing the cyan identity, two hue moves ago. This file is the live
+ * measurement; that table is a historical record that phase 20 wrote and D-38-12 superseded. The
+ * divergence is stated here on purpose rather than left for someone to trip over, because a
+ * silent one is exactly what this suite exists to prevent.
+ */
 const KDS: readonly Row[] = [
-  ["--kds-text on --kds-card", "--kds-text", "--kds-card", 16.06, "AAA"],
+  ["--kds-text on --kds-card", "--kds-text", "--kds-card", 16.09, "AAA"],
   ["--kds-muted on --kds-card", "--kds-muted", "--kds-card", 7.64, "AAA"],
   ["--kds-fresh on --kds-card", "--kds-fresh", "--kds-card", 9.99, "AAA"],
   ["--kds-warn on --kds-card", "--kds-warn", "--kds-card", 11.64, "AAA"],
@@ -309,9 +328,9 @@ describe("UI-SPEC §3.5 — sequential ramp cell labels", () => {
  * What is asserted now is STRICTER than "some tokens use some hue": every ramp is pinned to
  * its OWN axis, and crossing them is a failure. The ratchet did not loosen; it forked.
  *
- *   --brand-h   69   primary ramp, sequential ramp, --div-mid, every KDS surface
+ *   --brand-h   69   primary ramp, sequential ramp, --div-mid
  *   --accent-h  182  secondary ramp, --chart-1
- *   --neutral-h 260  the 13 neutral stops
+ *   --neutral-h 260  the 13 neutral stops, and the KDS board's five neutral surfaces
  *
  * If you are here to re-tie the neutrals to `--brand-h`: read D-38-12 first. That is a
  * product decision, not a tidy-up.
@@ -368,10 +387,37 @@ describe("D-38-12 — every ramp regenerates from its own hue axis", () => {
     }
   });
 
+  /*
+   * MOVED OFF --brand-h, DELIBERATELY. These five are the KDS's NEUTRALS — board ground, ticket
+   * card, focused card, text, muted text — and a neutral belongs on the neutral axis. Left on
+   * --brand-h they regenerated as gold-tinted brown-black while every other surface in the
+   * product was blue-black, which is the defect the owner reported as the board "not syncing".
+   *
+   * The negative assertion is the load-bearing half: without it, a later edit could put one stop
+   * back on --brand-h and this suite would still pass if someone edited the list to match.
+   */
   it.each(["--kds-surface", "--kds-card", "--kds-card-focus", "--kds-text", "--kds-muted"])(
-    "%s is authored against var(--brand-h)",
+    "%s is authored against var(--neutral-h) — a neutral is not a brand colour",
     (name) => {
-      expect(rawToken(name, "kds")).toContain("var(--brand-h)");
+      expect(rawToken(name, "kds")).toContain("var(--neutral-h)");
+      expect(rawToken(name, "kds"), `${name} must not borrow the brand hue`).not.toContain(
+        "var(--brand-h)",
+      );
+    },
+  );
+
+  /*
+   * The ageing hues are the counterweight. They are NOT on any axis and must never be: green /
+   * amber / red carry the meaning of how late a ticket is (§3.7 channel 4), and a token that
+   * followed a brand hue would make ticket age a branding decision. Literal, and gated as such.
+   */
+  it.each(["--kds-fresh", "--kds-warn", "--kds-late", "--kds-late-fill"])(
+    "%s keeps its literal semantic hue — ageing is meaning, not identity",
+    (name) => {
+      const raw = rawToken(name, "kds");
+      expect(raw).not.toContain("var(--brand-h)");
+      expect(raw).not.toContain("var(--accent-h)");
+      expect(raw).not.toContain("var(--neutral-h)");
     },
   );
 

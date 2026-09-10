@@ -342,6 +342,133 @@ describe("G13 — the adaptations this plan is accountable for", () => {
     ).toEqual([]);
   });
 
+  /**
+   * Every hand-rolled `<table>` declares how it survives a phone.
+   *
+   * <h3>What was measured</h3>
+   *
+   * `DataGrid` (38-02) carries a card fallback and the list SCREENS use it. Sixteen tables in this
+   * product are not list screens — a tender split, a PAYE slab editor, a three-way match, a till
+   * variance panel — and every one of them shipped as a desktop table with no adaptation at all.
+   * Measured in Chromium at 390px through `__tests__/responsive/responsive-viewport.test.tsx`:
+   * `finance/tender-split` and `purchasing/spend-analytics` both rendered five- and four-column
+   * tables into 342px.
+   *
+   * <h3>The two answers, and why both are accepted</h3>
+   *
+   * Brief §57 names them: *become a card list*, or *scroll inside your own container with the page
+   * still fixed*. So a table passes if it carries `table-stack` (globals.css turns it into a card
+   * list below `md`) or if it sits inside a horizontal scroll container. It fails if it does
+   * neither — which is the state all sixteen were in.
+   *
+   * <p>`sr-only` tables are exempt and that is not a loophole: a visually-hidden table is the
+   * accessible TEXT of a chart (`trend-chart.tsx`), it has no layout, and stacking it would
+   * change what a screen reader announces for no visual gain whatsoever.
+   */
+  it("gives every hand-rolled table a way to survive 390px", () => {
+    const offenders: Record<string, string[]> = {};
+    for (const file of FILES) {
+      const source = read(file);
+      for (const match of source.matchAll(/<table([^>]*)>/g)) {
+        const attrs = match[1] ?? "";
+        if (/\bsr-only\b/.test(attrs)) continue;
+        if (/\btable-stack\b/.test(attrs)) continue;
+        // The scroll container is a wrapper, not an attribute on the table, so the check is on
+        // the file: a file with a horizontal scroller and a table has put the one inside the
+        // other, and `responsive-viewport.test.tsx` measures whether it actually contained it.
+        if (/overflow-x-auto|overflow-x-scroll/.test(source)) continue;
+        (offenders[file] ??= []).push(attrs.trim().slice(0, 60));
+      }
+    }
+    expect(
+      offenders,
+      "a hand-rolled <table> must either carry `table-stack` (globals.css: rows become labelled " +
+        "cards below md) or sit inside an `overflow-x-auto` container. Neither means the page " +
+        "scrolls sideways on a phone, which is what the owner reviewed and rejected.",
+    ).toEqual({});
+  });
+
+  /**
+   * A stacked cell without a label is a value with nothing saying what it is.
+   *
+   * <p>`table-stack` deletes the `<thead>` below `md` — it has to, or a screen reader hears every
+   * column name twice per record — and puts each column name back through
+   * `td::before { content: attr(data-label) }`. A `<td>` that forgot the attribute renders as a
+   * bare figure in a list of bare figures, which is strictly worse than the horizontal scrollbar
+   * it replaced. There is no way to notice that from the desktop layout, where the header row is
+   * still there and everything looks right.
+   *
+   * <p>`colSpan` cells are exempt: a spanning cell is a note, an empty state or a row of actions,
+   * and globals.css gives those the full width with no label gutter.
+   */
+  it("labels every cell of a table it has stacked", () => {
+    const offenders: Record<string, number> = {};
+    for (const file of FILES) {
+      const source = read(file);
+      if (!/\btable-stack\b/.test(source)) continue;
+      let unlabelled = 0;
+      // Per TABLE, not per file: `till-review.tsx` holds three tables, and only two of them are
+      // stacked — the eleven-column one lives inside a scroll container and keeps its header row.
+      // Counting the file's `<td>`s would report that table's cells as defects of this pattern.
+      for (const table of source.matchAll(/<table([^>]*)>([\s\S]*?)<\/table>/g)) {
+        if (!/\btable-stack\b/.test(table[1] ?? "")) continue;
+        for (const cell of (table[2] ?? "").matchAll(/<td([^>]*)>/g)) {
+          const attrs = cell[1] ?? "";
+          if (/data-label=/.test(attrs)) continue;
+          if (/colSpan=/.test(attrs)) continue;
+          // The declared exception — see globals.css. A cell that is not a value.
+          if (/data-stack="full"/.test(attrs)) continue;
+          unlabelled += 1;
+        }
+      }
+      if (unlabelled > 0) offenders[file] = unlabelled;
+    }
+    expect(
+      offenders,
+      "every <td> in a `table-stack` table needs `data-label`, or the stacked card shows a value " +
+        "with no column name. `colSpan` cells are exempt.",
+    ).toEqual({});
+  });
+
+  /**
+   * A horizontal scroll container is `position: relative`.
+   *
+   * <h3>The defect, measured</h3>
+   *
+   * `/app/roles/matrix` at 768px: `document.documentElement.scrollWidth` **910** against a 768px
+   * viewport — the whole page scrolled sideways by 142px — while `body.scrollWidth` was exactly
+   * 768 and every over-wide box reported a scroll container above it. The escapee was a 1px
+   * `sr-only` `<span>` inside a `<td>` of the table. `sr-only` is `position: absolute`; `<td>` is
+   * not positioned; the `overflow-x-auto` wrapper was not either — so the span's containing block
+   * resolved to the INITIAL containing block, it was laid out at x≈909 in the document rather
+   * than inside the scroller, and it dragged the document's scroll width with it.
+   *
+   * <p>One `position: relative` on the wrapper fixes it for every absolutely-positioned
+   * descendant at once. It is deliberately not `transform` or `contain`, which would also work:
+   * `receipt-print.css` pins `.receipt-root` to `position: fixed`, and a containing-block creator
+   * on any ancestor prints the app chrome onto a customer's bill. `position: relative` does not
+   * create a containing block for a fixed descendant, which is what makes it the safe member of
+   * that family.
+   */
+  it("positions every horizontal scroll container", () => {
+    const offenders: Record<string, string[]> = {};
+    for (const file of FILES) {
+      for (const literal of stringLiterals(read(file))) {
+        if (!/(?:^|\s)overflow-x-auto(?:\s|$)/.test(literal)) continue;
+        // `pre` and single-line code blocks scroll their own text; nothing is positioned inside
+        // them, and requiring `relative` there would be cargo cult.
+        if (/^\s*$/.test(literal)) continue;
+        if (/\brelative\b/.test(literal)) continue;
+        (offenders[file] ??= []).push(literal.slice(0, 70));
+      }
+    }
+    expect(
+      offenders,
+      "an `overflow-x-auto` element must also be `relative`, or an absolutely-positioned " +
+        "descendant (every `sr-only` span is one) escapes the scroller and scrolls the PAGE.",
+    ).toEqual({});
+  });
+
   it("never truncates an item name on a kitchen ticket", () => {
     // "Chicken Karahi (Half)" and "Chicken Karahi (Full)" truncate to the same characters, and
     // the cook cannot tell which one to plate.

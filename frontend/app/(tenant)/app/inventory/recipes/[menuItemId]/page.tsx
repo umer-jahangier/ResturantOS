@@ -286,7 +286,8 @@ export default function RecipeDetailPage({ params }: { params: Promise<{ menuIte
                     : `active since ${new Date(selectedVersion.effectiveFrom).toLocaleDateString()}`}
                 </p>
 
-                <table className="w-full text-sm">
+                {/* `table-stack` (globals.css) — five columns of recipe arithmetic on a phone. */}
+                <table className="table-stack w-full text-sm">
                   <thead>
                     <tr className="border-b text-left text-muted-foreground">
                       <th className="py-2 pr-4">Ingredient</th>
@@ -303,14 +304,20 @@ export default function RecipeDetailPage({ params }: { params: Promise<{ menuIte
                       );
                       return (
                         <tr key={line.id} className="border-b">
-                          <td className="py-2 pr-4">
+                          <td className="py-2 pr-4" data-label="Ingredient">
                             {(ingredients ?? []).find((i) => i.id === line.ingredientId)?.name ??
                               line.ingredientId}
                           </td>
-                          <td className="py-2 pr-4">{line.qty}</td>
-                          <td className="py-2 pr-4">{line.uomCode}</td>
-                          <td className="py-2 pr-4">{line.yieldPct ?? "—"}</td>
-                          <td className="py-2 pr-4">
+                          <td className="py-2 pr-4" data-label="Qty">
+                            {line.qty}
+                          </td>
+                          <td className="py-2 pr-4" data-label="Unit">
+                            {line.uomCode}
+                          </td>
+                          <td className="py-2 pr-4" data-label="Yield %">
+                            {line.yieldPct ?? "—"}
+                          </td>
+                          <td className="py-2 pr-4" data-label="Share of plate cost">
                             {costLine ? <RecipeCostLineShare line={costLine} /> : "—"}
                           </td>
                         </tr>

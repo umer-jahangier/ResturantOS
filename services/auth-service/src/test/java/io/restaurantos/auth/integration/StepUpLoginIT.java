@@ -34,6 +34,9 @@ class StepUpLoginIT extends BaseIntegrationTest {
     private final DefaultCodeGenerator codeGenerator = new DefaultCodeGenerator();
     private final SystemTimeProvider timeProvider = new SystemTimeProvider();
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
     private String ownerTotpSecret;
 
     @BeforeEach
@@ -43,6 +46,32 @@ class StepUpLoginIT extends BaseIntegrationTest {
         UserEntity owner = userRepository.findByEmail(TestFixtures.OWNER_EMAIL).orElseThrow();
         owner.setTotpSecret(ownerTotpSecret);
         owner.setTotpEnabled(true);
+        // The owner is a SHARED fixture and every test here logs in as them. A sibling class that
+        // exercises a wrong-password path leaves failed_login_count raised or locked_until set,
+        // and the next login is then refused with the deliberately generic UNAUTHENTICATED — the
+        // same body a wrong password gets, because the refusals are indistinguishable on purpose.
+        // That is what CI hit: "expected TOTP_REQUIRED but was UNAUTHENTICATED" and two 401s from
+        // loginWithCurrentCode, in a class that had not typed a wrong password at all. Clearing
+        // the lock here is the established shape in this module — PasswordChangeIT,
+        // ForcedPasswordChangeIT, AuthLoginIT and CustomRoleBuilderIT all do it for the same
+        // reason. A test that logs in must own the login state it depends on.
+        owner.setLockedUntil(null);
+        owner.setFailedLoginCount(0);
+        owner.setMustChangePassword(false);
+        owner.setActive(true);
+
+        // CONFIRMED on CI: the stored hash no longer matches OWNER_PASSWORD, so a sibling class
+        // re-credentials the shared owner. Rather than hunt it down and forbid it — the owner is a
+        // shared fixture and any class is entitled to change one — this class restores the
+        // credential it depends on, the same principle as clearing the lock above.
+        if (!passwordEncoder.matches(TestFixtures.OWNER_PASSWORD, owner.getPasswordHash())) {
+            owner.setPasswordHash(passwordEncoder.encode(TestFixtures.OWNER_PASSWORD));
+        }
+
+        // ONE save. Saving this same instance twice is an ObjectOptimisticLockingFailure: the first
+        // write increments @Version in the database while this in-memory copy keeps the old value,
+        // and the second is rejected as stale. That is exactly what my previous attempt did — it
+        // turned three login failures into five setup errors.
         userRepository.save(owner);
     }
 

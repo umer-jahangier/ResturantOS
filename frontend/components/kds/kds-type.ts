@@ -16,7 +16,7 @@
  * text — a composed or templated class name would not be emitted.
  */
 
-/** 22/28 weight-600 — the item line, sized for two metres. Measured 16.06:1 on --kds-card. */
+/** 22/28 weight-600 — the item line, sized for two metres. Measured 16.09:1 on --kds-card (re-measured after the board moved onto --neutral-h). */
 export const T_KDS = "text-[length:var(--text-kds)] leading-[var(--text-kds-lh)]";
 /** 20/28 — board heading. */
 export const T_H1 = "text-[length:var(--text-h1)] leading-[var(--text-h1-lh)]";

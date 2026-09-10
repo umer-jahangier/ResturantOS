@@ -90,12 +90,13 @@ function formattedAmounts(node: unknown, out: Set<string> = new Set()): Set<stri
 test.describe.configure({ mode: "serial" });
 
 test.describe("a cashier settles an order and prints the bill", () => {
-  test("the receipt route, in a real browser, with no printer attached", async ({
-    as,
-    token,
-    gateway,
-    obs,
-  }) => {
+  /*
+   * The title no longer promises "with no printer attached", because the test cannot arrange
+   * that and never could: which printer a bill is addressed to is decided by pos-service from
+   * the branch's printer configuration, and there is no client-side way to ask for an unassigned
+   * one. Section 6 now asserts the product's actual rule against whatever the server answered.
+   */
+  test("the receipt route, in a real browser", async ({ as, token, gateway, obs }, testInfo) => {
     test.setTimeout(180_000);
 
     // E2E-D4: the POS live-orders socket is refused by the gateway for every user and reconnects
@@ -362,21 +363,80 @@ test.describe("a cashier settles an order and prints the bill", () => {
     const totals = issued.data.document.totals as { grandTotal: { paisa: number } } | null;
     expect(totals?.grandTotal.paisa, "the printed total disagrees with the order").toBe(totalPaisa);
 
-    // ── 6. The print dialog opened exactly once ──────────────────────────────────────
+    // ── 6. The print dialog, judged against WHERE THE SERVER ADDRESSED THE BILL ──────
+    //
+    // This asserted `toBe(1)` unconditionally, and against dev it failed with 0 — which reads as
+    // "the automatic print is broken" and is not what happened. The product's rule
+    // (`components/print/receipt-view.tsx:150-163`) is that the browser dialog opens ONLY when
+    // there is no printer to send the bill to; a bill that IS addressed to a printer must not
+    // raise one, or the cashier gets a dialog on top of a receipt already coming out of the
+    // thermal head. The dev branch has `counter-1` attached with a live agent, so the correct
+    // behaviour there is zero — the test's premise, not the product, was false.
+    //
+    // So the ROUTING decides which half of the rule is being asserted, and BOTH halves are
+    // assertions: neither branch is a pass-by-default. The branch actually taken is recorded as
+    // an annotation, because a suite that silently exercises the other half of a rule from one
+    // run to the next is a suite whose green means something different every day. On an
+    // environment with no printer attached this is exactly the assertion it always was.
     const printCalls = await page.evaluate(
       () => (window as unknown as { __printCalls: number }).__printCalls,
     );
-    expect(
-      printCalls,
-      "window.print was not invoked exactly once. Zero means the automatic print never fired; " +
-        "more than one means the effect guard failed and a cashier gets a dialog they cannot " +
-        "escape.",
-    ).toBe(1);
+    const routedToPrinter = issued.data.targetPrinterId !== "unassigned";
+    testInfo.annotations.push({
+      type: "receipt-delivery",
+      description: routedToPrinter
+        ? `bill routed to printer "${issued.data.targetPrinterId}" — asserting the browser ` +
+          "dialog is SUPPRESSED. The automatic-print path is not covered on this environment."
+        : "bill unassigned — asserting the automatic print fires exactly once.",
+    });
+
+    if (routedToPrinter) {
+      expect(
+        printCalls,
+        `the bill was routed to printer "${issued.data.targetPrinterId}", so a print agent is ` +
+          "collecting it — and the browser must NOT also raise its own dialog. One dialog here " +
+          "means the cashier is handed a modal they did not ask for on top of a receipt that is " +
+          "already printing, and two copies of the same bill.",
+      ).toBe(0);
+      // …and the screen has to SAY where the paper is coming from, or a cashier who sees no
+      // dialog has no way to tell "it is printing" from "nothing happened".
+      await expect(
+        page.getByTestId("delivery-notice"),
+        "no delivery notice: the dialog was suppressed and the cashier was told nothing at all",
+      ).toBeVisible();
+    } else {
+      expect(
+        printCalls,
+        "window.print was not invoked exactly once. Zero means the automatic print never fired " +
+          "on a bill with NO printer to send it to, so the customer gets no receipt at all; more " +
+          "than one means the effect guard failed and a cashier gets a dialog they cannot escape.",
+      ).toBe(1);
+    }
 
     // ── 7. Reload — the second issue is a REPRINT ────────────────────────────────────
     //
     // The frontend half of definition-of-done item 3. The server half (byte-identical bodies) is
     // proven in PrintJobIssuanceIT; what is proven here is that the paper SAYS so.
+    /*
+     * THE FIRST LOAD MUST HAVE ISSUED EXACTLY ONE, and this assertion is new because the reload
+     * check below cannot tell "the reprint took the wrong sequence" from "the first load issued
+     * twice" — it only ever saw the second number.
+     *
+     * <p>Measured against dev 2026-08-22, on the first run in which this section was reached at
+     * all (§6 used to abort the test before it): the reload's issue came back as sequence THREE
+     * on an order created seconds earlier by this same test. Three issues, two page loads. Either
+     * the receipt route issues twice on mount — in which case an ordinary page load inflates the
+     * reprint count printed on a customer's bill — or something in the settlement path issues one
+     * first. Splitting the assertion is what makes the next failure say which.
+     */
+    expect(
+      (issued.data.document.issue as { sequenceNumber: number }).sequenceNumber,
+      "the FIRST load of the receipt route did not take sequence 1. A number higher than 1 on a " +
+        "freshly created order means this bill was issued more than once before the reload — the " +
+        "reprint counter on a customer's receipt is being advanced by page loads rather than by " +
+        "reprints.",
+    ).toBe(1);
+
     const reprintPromise = page.waitForResponse(
       (r) =>
         r.url().includes(`/api/v1/pos/orders/${orderId}/print-jobs`) &&

@@ -323,7 +323,7 @@ export function PermissionMatrix({ roles, modules, className }: PermissionMatrix
                   <li key={group.module}>
                     <a
                       href={`#permission-matrix-${group.module}`}
-                      className="inline-flex min-h-11 items-center rounded-full border border-border px-3 text-label font-semibold uppercase tracking-wide text-foreground-secondary hover:bg-surface-2"
+                      className="inline-flex min-h-11 items-center rounded-full border border-border px-3 text-label font-semibold uppercase tracking-[0.08em] text-foreground-secondary hover:bg-surface-2"
                     >
                       {group.module}
                       <span className="ml-1.5 font-normal tabular-nums text-foreground-tertiary">
@@ -348,7 +348,7 @@ export function PermissionMatrix({ roles, modules, className }: PermissionMatrix
               <div className="flex items-baseline justify-between gap-3">
                 <h2
                   id={`permission-matrix-${group.module}-heading`}
-                  className="text-body font-semibold uppercase tracking-wide text-foreground"
+                  className="text-body font-semibold uppercase tracking-[0.08em] text-foreground"
                 >
                   {group.module}
                 </h2>

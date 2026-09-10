@@ -280,7 +280,9 @@ export function StockCountDialog({ trigger, open: openProp, onOpenChange }: Stoc
             <div key={location} className="space-y-2">
               <h3 className="text-sm font-medium">{location}</h3>
               <div className="overflow-hidden rounded-md border">
-                <table className="w-full text-sm">
+                {/* `table-stack` (globals.css): each ingredient becomes a labelled card below
+                    `md`. A stock count is done walking a store room with a phone in one hand. */}
+                <table className="table-stack w-full text-sm">
                   <thead className="bg-muted/50">
                     <tr className="text-left text-muted-foreground">
                       <th className="p-2 font-medium">Ingredient</th>
@@ -329,9 +331,13 @@ export function StockCountDialog({ trigger, open: openProp, onOpenChange }: Stoc
                               overCap && "border-b-0",
                             )}
                           >
-                            <td className="p-2">{line.ingredientName}</td>
-                            <td className="p-2 text-muted-foreground">{line.expectedQty}</td>
-                            <td className="p-2">
+                            <td className="p-2" data-label="Ingredient">
+                              {line.ingredientName}
+                            </td>
+                            <td className="p-2 text-muted-foreground" data-label="Expected">
+                              {line.expectedQty}
+                            </td>
+                            <td className="p-2" data-label="Counted">
                               <Input
                                 inputMode="decimal"
                                 aria-label={`Counted quantity for ${line.ingredientName}`}
@@ -340,7 +346,7 @@ export function StockCountDialog({ trigger, open: openProp, onOpenChange }: Stoc
                                 className="h-8 w-24"
                               />
                             </td>
-                            <td className="p-2 tabular-nums">
+                            <td className="p-2 tabular-nums" data-label="Variance">
                               {hasCounted ? (variance > 0 ? `+${variance}` : variance) : "—"}
                               {pct !== null ? (
                                 <span className="ml-1 text-xs text-muted-foreground">

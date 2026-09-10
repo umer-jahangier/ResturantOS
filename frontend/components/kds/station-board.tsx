@@ -128,8 +128,25 @@ function StationSwitcher({ stations, currentCode, onSelect }: StationSwitcherPro
         onChange={(e) => onSelect(e.target.value)}
         aria-label="Switch station"
         data-testid="kds-station-switcher"
+        /*
+         * `touch-floor` — 44px below `lg`, the declared density at and above it.
+         *
+         * <p>This select and the two buttons in the board header were the three controls plan
+         * 38-14's runtime gate found under 44×44, measured on the live deployment 2026-08-22 at
+         * 390px: `select[kds-station-switcher] 127×28`, `button[kds-toggle-ready] 115×26`,
+         * `button[kds-all-stations] 102×26`. All three are hand-rolled rather than the
+         * `Select`/`Button` primitives, which is exactly why the phase that put `touch-floor` on
+         * those primitives never reached them. The comment above this function chose a native
+         * element for "reliable touch behaviour on kitchen hardware" — which is the argument for
+         * a target-size floor, not against one.
+         *
+         * <p>The gate had never seen any of it: its `kds` entry pointed at `/app/kds`, a route
+         * that does not exist, so every measurement it took was of a 404 page.
+         * `min-height`/`min-width` introduce no transform, filter or containment, so the
+         * operational-zone rules are untouched.
+         */
         className={cn(
-          "appearance-none rounded-md border border-white/20 bg-kds-card py-1 pl-2.5 pr-7 font-medium text-kds-text",
+          "touch-floor appearance-none rounded-md border border-white/20 bg-kds-card py-1 pl-2.5 pr-7 font-medium text-kds-text",
           T_SMALL,
         )}
       >
@@ -751,8 +768,10 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
                 onClick={() => setShowReady((v) => !v)}
                 aria-pressed={showReady}
                 data-testid="kds-toggle-ready"
+                // `touch-floor` — see StationSwitcher above for the measurement. 26px on a screen
+                // operated with the back of a wrist.
                 className={cn(
-                  "rounded-md border border-white/20 px-2 py-1 font-semibold uppercase tracking-wide text-kds-text",
+                  "touch-floor inline-flex items-center justify-center rounded-md border border-white/20 px-2 py-1 font-semibold uppercase tracking-wide text-kds-text",
                   T_LABEL,
                   showReady && "bg-white/10",
                 )}
@@ -762,8 +781,9 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
               <button
                 type="button"
                 onClick={() => router.push("/app/kitchen")}
+                // `touch-floor` — see StationSwitcher above for the measurement.
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md border border-white/20 px-2 py-1 font-semibold text-kds-text",
+                  "touch-floor inline-flex items-center justify-center gap-1.5 rounded-md border border-white/20 px-2 py-1 font-semibold text-kds-text",
                   T_LABEL,
                 )}
                 data-testid="kds-all-stations"

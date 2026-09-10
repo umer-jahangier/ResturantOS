@@ -378,6 +378,25 @@ public class TillServiceImpl implements TillService {
         // SECURITY (branch isolation): a client-supplied sibling branchId must not expose another
         // branch's till history within the same tenant — RLS is tenant-only, so guard here.
         requireOwnBranch(branchId);
+
+        // SECURITY (till review is privileged): this path returns EVERY till in the branch — each
+        // one's opening float, expected/declared closing and variance. Own-branch on its own is
+        // not a boundary here: without this check any authenticated principal in the branch
+        // (cashier, kitchen, waiter) could read the whole branch's cash position, and the
+        // ownership guard in listTills above becomes decorative — a cashier refused at
+        // ?cashierId=<colleague> simply asks for ?branchId=<own> instead and gets strictly more.
+        // The till-review page gates on pos.order.view.all CLIENT-side only, which is not a
+        // boundary either.
+        //
+        // Restored, not new. c170aee8 added exactly this check; the merge 798098db resolved a
+        // conflict in this method in favour of the side that predated it and dropped it silently,
+        // taking the gate while keeping the test that proves it
+        // (TillOwnershipGuardIT#branchPath_isNotAnEscapeHatchAroundTheOwnershipGuard), which is
+        // why that test has been failing ever since with "Expecting code to raise a throwable".
+        if (!canReviewTills()) {
+            throw new PermissionDeniedException("Till review requires the till-review permission");
+        }
+
         Page<TillSession> page =
                 tillSessionRepository.findByBranchIdOrderByOpenedAtDesc(branchId, pageable);
         // ONE lookup per distinct cashier for the whole page, not one per row: a branch runs a

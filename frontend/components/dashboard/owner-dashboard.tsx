@@ -1,14 +1,16 @@
 "use client";
 
 import { useMemo } from "react";
+import { Banknote, Percent, Receipt, Users } from "lucide-react";
 
-import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { DashboardShell, useNow } from "@/components/dashboard/dashboard-shell";
 import { PortletGrid, type PortletModels } from "@/components/dashboard/portlets/portlet-renderer";
 import type { TrendSeries } from "@/components/dashboard/portlets/trend-chart";
 import { DASHBOARD_PRESETS, type OwnerPortlets } from "@/components/dashboard/presets";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { formatPaisa } from "@/lib/adapters/shared";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
+import { formatElapsedLong } from "@/lib/format/elapsed";
 import { formatDateTime, formatNumber } from "@/lib/format/locale";
 import { useOrderSummaries } from "@/lib/hooks/pos/use-orders";
 import { useRunReport } from "@/lib/hooks/reporting/use-reports";
@@ -86,6 +88,7 @@ export function OwnerDashboard() {
   const priorFrom = isoDay(WINDOW_DAYS * 2);
   const priorTo = isoDay(WINDOW_DAYS + 1);
 
+  const now = useNow();
   const salesQuery = useRunReport("sales-by-day", { branchId, from, to });
   const priorSalesQuery = useRunReport("sales-by-day", { branchId, from: priorFrom, to: priorTo });
   const itemsQuery = useRunReport("sales-by-item", { branchId, from, to });
@@ -199,8 +202,15 @@ export function OwnerDashboard() {
           </>
         ),
         severity: "warning" as const,
+        icon: <Receipt />,
+        // The demo pins a relative age to the right of every alert row. Only rows that carry an
+        // instant get one — an age invented for a row with no timestamp is the same defect as a
+        // figure invented for a tile with no source.
+        ...(o.openedAt
+          ? { timeLabel: formatElapsedLong(o.openedAt, now), dateTime: o.openedAt }
+          : {}),
       })),
-    [voidedOrders],
+    [voidedOrders, now],
   );
 
   const models: PortletModels<OwnerPortlets> = {
@@ -208,7 +218,10 @@ export function OwnerDashboard() {
       kind: "KpiTile",
       value: <MoneyDisplay paisa={netSalesPaisa} />,
       caption: `${orderCount} order${orderCount === 1 ? "" : "s"} in ${WINDOW_DAYS} days`,
+      accent: "primary",
+      icon: Banknote,
       deltaPct: pctChange(netSalesPaisa, priorNetSalesPaisa),
+      comparisonLabel: `vs the ${WINDOW_DAYS} days before`,
       spark: salesRows.map((r) => num(r, "total_paisa")),
       boundary: { query: [salesQuery, priorSalesQuery], what: "net sales" },
     },
@@ -217,6 +230,8 @@ export function OwnerDashboard() {
         ? {
             kind: "KpiTile",
             caption: "Revenue less cost of goods",
+            accent: "secondary",
+            icon: Percent,
             unavailableReason:
               "Cost of goods is not yet posted per item, so margin cannot be computed. " +
               "Showing nothing rather than a wrong number.",
@@ -224,12 +239,16 @@ export function OwnerDashboard() {
           }
         : {
             kind: "KpiTile",
+            accent: "secondary",
+            icon: Percent,
             value: `${formatNumber(margin.pct, { maximumFractionDigits: 1 })}%`,
             caption: `Across ${margin.rows} item${margin.rows === 1 ? "" : "s"} with a posted cost`,
             boundary: { query: itemsQuery, what: "gross margin" },
           },
     "owner-covers": {
       kind: "KpiTile",
+      accent: "info",
+      icon: Users,
       value: formatNumber(covers),
       caption: `Across ${closedOrders.length} closed order${closedOrders.length === 1 ? "" : "s"}`,
       boundary: { query: closedQuery, what: "covers" },
@@ -239,11 +258,15 @@ export function OwnerDashboard() {
         ? {
             kind: "KpiTile",
             caption: "Net sales divided by orders",
+            accent: "success",
+            icon: Receipt,
             unavailableReason: "No orders in this period to average.",
             boundary: { query: [salesQuery, priorSalesQuery], what: "the average order" },
           }
         : {
             kind: "KpiTile",
+            accent: "success",
+            icon: Receipt,
             value: <MoneyDisplay paisa={avgOrderPaisa} />,
             caption: "Net sales divided by orders",
             // `null` when there is no comparable prior average — which KpiTileDelta renders as
@@ -261,6 +284,7 @@ export function OwnerDashboard() {
     },
     "owner-top-items": {
       kind: "RankedList",
+      accent: "secondary",
       rows: topItems,
       emptyLabel: "No items sold in this window.",
       boundary: { query: itemsQuery, what: "top items" },

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { ChefHat, MonitorPlay } from "lucide-react";
+import { ChefHat, Coins, MonitorPlay, ReceiptText, Timer, Utensils } from "lucide-react";
 
 import { DashboardShell, useNow } from "@/components/dashboard/dashboard-shell";
 import { PortletGrid, type PortletModels } from "@/components/dashboard/portlets/portlet-renderer";
@@ -64,6 +64,8 @@ export function CashierDashboard() {
     "cashier-till": till
       ? {
           kind: "KpiTile",
+          accent: "primary",
+          icon: Coins,
           value: <MoneyDisplay paisa={till.expectedClosingPaisa ?? till.openingFloatPaisa} />,
           caption: `Till ${till.status.toLowerCase()}`,
           boundary: { query: tillQuery, what: "your till" },
@@ -73,12 +75,16 @@ export function CashierDashboard() {
           // reason: this tile used to pass `value="—"` next to the reason, so the dash was
           // live on any render where the reason went undefined.
           kind: "KpiTile",
+          accent: "primary",
+          icon: Coins,
           caption: "No till open",
           unavailableReason: "You have no open till. Open one from the POS before taking payment.",
           boundary: { query: tillQuery, what: "your till" },
         },
     "cashier-open-orders": {
       kind: "KpiTile",
+      accent: "info",
+      icon: ReceiptText,
       value: openOrders.length.toString(),
       caption: "Still to be settled",
       tone: openOrders.length > 0 ? "warning" : "neutral",
@@ -132,6 +138,8 @@ export function KitchenDashboard() {
   const models: PortletModels<KitchenPortlets> = {
     "kitchen-late-tickets": {
       kind: "KpiTile",
+      accent: "danger",
+      icon: Timer,
       value: lateCount.toString(),
       caption: "Past this station's target",
       // `higherIsBetter` is NOT passed. There is no delta on this tile and no honest prior
@@ -142,6 +150,8 @@ export function KitchenDashboard() {
     },
     "kitchen-open-tickets": {
       kind: "KpiTile",
+      accent: "secondary",
+      icon: Utensils,
       value: liveTickets.length.toString(),
       caption: `Across ${activeStations} active station${activeStations === 1 ? "" : "s"}`,
       boundary: board,

@@ -4,12 +4,15 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { TriangleAlert } from "lucide-react";
+
 import { createZodResolver } from "@/lib/forms/zod-resolver";
 import { useForcedPasswordChange } from "@/lib/hooks/auth/use-forced-password-change";
 import {
   Form,
   FormControl,
   FormField,
+  FormHint,
   FormItem,
   FormLabel,
   FormMessage,
@@ -17,6 +20,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  authInputClass,
+  authLabelClass,
+  authPrimaryButtonClass,
+  authSecondaryButtonClass,
+} from "@/components/auth/auth-chrome";
 
 /**
  * The forced-password-change step (D-17's missing half).
@@ -146,24 +155,33 @@ export function ForcedPasswordChangeForm({
   }
 
   return (
-    <div className="grid gap-4" data-testid="forced-password-change">
+    <div className="grid gap-5" data-testid="forced-password-change">
       {formError ? (
-        <Alert variant="destructive">
-          <AlertTitle>Could not change password</AlertTitle>
-          <AlertDescription>{formError}</AlertDescription>
+        <Alert
+          variant="destructive"
+          className="items-start gap-x-3 border-destructive/35 bg-destructive/10 px-3.5 py-3"
+        >
+          <TriangleAlert className="size-4" />
+          <AlertTitle className="text-body">Could not change password</AlertTitle>
+          <AlertDescription className="text-small">{formError}</AlertDescription>
         </Alert>
       ) : null}
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4" noValidate>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5" noValidate>
           <FormField
             control={form.control}
             name="currentPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Current password</FormLabel>
+                <FormLabel className={authLabelClass}>Current password</FormLabel>
                 <FormControl>
-                  <Input type="password" autoComplete="current-password" {...field} />
+                  <Input
+                    type="password"
+                    autoComplete="current-password"
+                    className={authInputClass}
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -174,10 +192,24 @@ export function ForcedPasswordChangeForm({
             name="newPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>New password</FormLabel>
+                <FormLabel className={authLabelClass}>New password</FormLabel>
                 <FormControl>
-                  <Input type="password" autoComplete="new-password" {...field} />
+                  <Input
+                    type="password"
+                    autoComplete="new-password"
+                    className={authInputClass}
+                    {...field}
+                  />
                 </FormControl>
+                {/*
+                  The rule, stated BEFORE it can be broken (D-35-02). Twelve characters is this
+                  form's own floor and the only part of the policy the client is the authority on
+                  — the server's `@StrongPassword` owns the rest and its refusals are surfaced
+                  verbatim above, so the hint promises exactly what this component can keep.
+                */}
+                <FormHint className="text-small">
+                  At least 12 characters. Longer is better than more punctuation.
+                </FormHint>
                 <FormMessage />
               </FormItem>
             )}
@@ -187,20 +219,33 @@ export function ForcedPasswordChangeForm({
             name="confirmPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Confirm new password</FormLabel>
+                <FormLabel className={authLabelClass}>Confirm new password</FormLabel>
                 <FormControl>
-                  <Input type="password" autoComplete="new-password" {...field} />
+                  <Input
+                    type="password"
+                    autoComplete="new-password"
+                    className={authInputClass}
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <Button type="submit" disabled={change.isPending} className="w-full">
-            {change.isPending ? "Saving…" : "Change password"}
-          </Button>
-          <Button type="button" variant="ghost" onClick={onCancel} disabled={change.isPending}>
-            Back to sign in
-          </Button>
+          <div className="grid gap-2">
+            <Button type="submit" disabled={change.isPending} className={authPrimaryButtonClass}>
+              {change.isPending ? "Saving…" : "Change password"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onCancel}
+              disabled={change.isPending}
+              className={authSecondaryButtonClass}
+            >
+              Back to sign in
+            </Button>
+          </div>
         </form>
       </Form>
     </div>

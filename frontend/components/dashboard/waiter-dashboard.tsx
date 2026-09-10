@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import { MonitorPlay } from "lucide-react";
+import { BellRing, ConciergeBell, MonitorPlay, Timer, Utensils } from "lucide-react";
 
 import { DashboardShell, useNow } from "@/components/dashboard/dashboard-shell";
 import { PortletGrid, type PortletModels } from "@/components/dashboard/portlets/portlet-renderer";
-import type { RankedRow } from "@/components/dashboard/portlets/portlet";
+import type { MeterStackRow } from "@/components/dashboard/portlets/portlet";
 import { DASHBOARD_PRESETS, type WaiterPortlets } from "@/components/dashboard/presets";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
@@ -109,18 +109,25 @@ export function WaiterDashboard() {
     [openChecks, now],
   );
 
-  const passLoad = useMemo<RankedRow[]>(() => {
+  /**
+   * The pass, as a meter stack against the whole board — the same denominator correction made on
+   * the manager's station-load panel. `count / max` measured each station against the busiest
+   * one, so the busiest station always drew a full bar and the runner learned nothing from it.
+   */
+  const passLoad = useMemo<MeterStackRow[]>(() => {
     const live = tickets.filter((t) => t.status !== "SERVED" && t.status !== "CANCELLED");
     const counts = new Map<string, number>();
     for (const t of live) counts.set(t.stationCode, (counts.get(t.stationCode) ?? 0) + 1);
-    const max = Math.max(1, ...counts.values());
+    const total = live.length;
     return [...counts.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([code, count]) => ({
         key: code,
         label: stations.find((s) => s.code === code)?.name ?? code,
-        value: `${count} ticket${count === 1 ? "" : "s"}`,
-        fraction: count / max,
+        value: count,
+        of: total,
+        // Agrees with the denominator it sits after, not the numerator — "1 / 5 tickets".
+        noun: total === 1 ? "ticket" : "tickets",
       }));
   }, [tickets, stations]);
 
@@ -141,12 +148,16 @@ export function WaiterDashboard() {
     },
     "waiter-open-checks": {
       kind: "KpiTile",
+      accent: "primary",
+      icon: ConciergeBell,
       value: formatNumber(openChecks.length),
       caption: "Across the whole branch, not just your section",
       boundary: { query: ordersQuery, what: "open checks" },
     },
     "waiter-ready-to-run": {
       kind: "KpiTile",
+      accent: "success",
+      icon: BellRing,
       value: formatNumber(readyTickets.length),
       caption: "Plated and waiting on the pass",
       tone: readyTickets.length > 0 ? "warning" : "neutral",
@@ -156,6 +167,8 @@ export function WaiterDashboard() {
       oldestCheck === null
         ? {
             kind: "KpiTile",
+            accent: "warning",
+            icon: Timer,
             caption: "Since the check was opened",
             unavailableReason:
               openChecks.length === 0
@@ -165,6 +178,8 @@ export function WaiterDashboard() {
           }
         : {
             kind: "KpiTile",
+            accent: "warning",
+            icon: Timer,
             value: formatElapsedLong(oldestCheck.at, now),
             caption: `${oldestCheck.order.tableName ?? "No table"} · ${
               oldestCheck.order.orderNo ?? oldestCheck.order.orderId.slice(0, 8)
@@ -178,7 +193,7 @@ export function WaiterDashboard() {
       boundary: { query: ordersQuery, what: "open checks" },
     },
     "waiter-pass": {
-      kind: "RankedList",
+      kind: "MeterStack",
       rows: passLoad,
       emptyLabel: "Every station is clear.",
       boundary: board,

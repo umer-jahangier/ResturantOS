@@ -115,7 +115,9 @@ export default function InventorySetupPage() {
     {
       accessorKey: "code",
       header: "Code",
-      cell: ({ row }) => <span className="font-medium">{row.original.code}</span>,
+      // A unit code is an identifier, so it takes the mono face the rest of the product's
+      // identifier columns take.
+      cell: ({ row }) => <span className="font-mono font-medium">{row.original.code}</span>,
     },
     { accessorKey: "name", header: "Name" },
     {

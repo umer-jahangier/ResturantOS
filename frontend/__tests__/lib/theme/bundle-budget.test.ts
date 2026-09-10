@@ -163,7 +163,14 @@ describe("phase 34 · the built output, when a build is present", () => {
     return best;
   }
 
-  it("the shipped stylesheet is under its ceiling", () => {
+  // 30s, not vitest's default 5s. `largestBuiltCss()` walks the whole `.next` tree — 595 MB and
+  // ~11 stylesheets on a machine that has run a production build — and it does that synchronously
+  // while the rest of the suite runs in parallel. It passes in isolation every time and timed out
+  // once under full-suite load, which is the worst kind of gate: one that fails for a reason
+  // unrelated to what it measures, teaching the reader to re-run rather than to look.
+  //
+  // The budget itself is unchanged. Only the time allowed to walk the directory moved.
+  it("the shipped stylesheet is under its ceiling", { timeout: 30_000 }, () => {
     const built = largestBuiltCss();
     if (!built) {
       // Skipped LOUDLY. A budget test that silently passes without a build is a budget nobody

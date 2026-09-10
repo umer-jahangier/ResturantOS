@@ -47,7 +47,9 @@ export function VendorScorecardCard({
   if (!vendorId) {
     return (
       <div className="rounded-lg border p-4">
-        <h2 className="text-small font-semibold text-muted-foreground">Vendor scorecard</h2>
+        <h2 className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary">
+          Vendor scorecard
+        </h2>
         <p className="mt-3 text-small text-muted-foreground">
           Select a vendor to see its scorecard.
         </p>
@@ -60,7 +62,9 @@ export function VendorScorecardCard({
   if (isError) {
     return (
       <div className="rounded-lg border p-4">
-        <h2 className="text-small font-semibold text-muted-foreground">Vendor scorecard</h2>
+        <h2 className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary">
+          Vendor scorecard
+        </h2>
         <QueryErrorNotice
           className="mt-3"
           what="this vendor's scorecard"
@@ -76,7 +80,9 @@ export function VendorScorecardCard({
   if (isLoading && !scorecard) {
     return (
       <div className="rounded-lg border p-4">
-        <h2 className="text-small font-semibold text-muted-foreground">Vendor scorecard</h2>
+        <h2 className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary">
+          Vendor scorecard
+        </h2>
         {/*
           A skeleton matched to the four metrics below, not the words "Loading scorecard…".
           UI-SPEC §24: the placeholder occupies the box the content will, so the card does not
@@ -97,7 +103,9 @@ export function VendorScorecardCard({
   if (!scorecard) {
     return (
       <div className="rounded-lg border p-4">
-        <h2 className="text-small font-semibold text-muted-foreground">Vendor scorecard</h2>
+        <h2 className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary">
+          Vendor scorecard
+        </h2>
         <p className="mt-3 text-small text-muted-foreground">
           No scorecard data for this vendor yet.
         </p>
@@ -108,7 +116,9 @@ export function VendorScorecardCard({
   const priceVarianceSign = scorecard.priceVariancePct >= 0 ? "+" : "";
   return (
     <div className="rounded-lg border p-4">
-      <h2 className="text-small font-semibold text-muted-foreground">Vendor scorecard</h2>
+      <h2 className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary">
+        Vendor scorecard
+      </h2>
       <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-4">
         <Metric label="On-time delivery" value={`${scorecard.onTimeDeliveryPct.toFixed(1)}%`} />
         <Metric label="Fill rate" value={`${scorecard.fillRatePct.toFixed(1)}%`} />

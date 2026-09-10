@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
+import { ChevronRight, KeyRound, Store, TriangleAlert, Wrench } from "lucide-react";
 
+import { cn } from "@/lib/utils";
 import { createZodResolver } from "@/lib/forms/zod-resolver";
 import { useLogin } from "@/lib/hooks/auth/use-login";
 import { STEP_UP_LOGIN_REASON, sanitizeReturnPath } from "@/lib/auth/step-up";
@@ -15,6 +17,7 @@ import {
   Form,
   FormControl,
   FormField,
+  FormHint,
   FormItem,
   FormLabel,
   FormMessage,
@@ -22,6 +25,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AuthNotice,
+  authInputClass,
+  authLabelClass,
+  authPrimaryButtonClass,
+  authSecondaryButtonClass,
+} from "@/components/auth/auth-chrome";
 import { TotpEnrollment } from "@/components/auth/totp-enrollment";
 import { ForcedPasswordChangeForm } from "@/components/auth/forced-password-change-form";
 
@@ -377,16 +387,85 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
           ? "That action needs a fresh authenticator code. Sign in again to continue — you’ll be " +
             "asked for your code, then taken back to where you were."
           : null;
+  /**
+   * Which STEP the card is on, resolved once.
+   *
+   * <p>The heading used to be a nest of ternaries inside the JSX, and it was already carrying the
+   * lesson that produced it: *"a panel titled 'Enter your email and password to continue' above a
+   * new-password form is a screen that lies about what it is asking for."* That was true of two
+   * more branches than it covered — TOTP enrolment and the tenant chooser both rendered under the
+   * credentials heading. Naming the step makes the omission visible instead of implicit.
+   */
+  const step = changing
+    ? "changing"
+    : finishing
+      ? "finishing"
+      : enrolling
+        ? "enrolling"
+        : choices.length > 0
+          ? "choosing"
+          : "credentials";
+
+  /**
+   * Eyebrow / title / subtitle per step.
+   *
+   * The EYEBROW carries the restaurant, so the identity survives every step rather than living
+   * inside a title that has to change five ways. When the URL carried no hint there is nothing
+   * truthful to put there but the product's own name — an email-first login is resolved by the
+   * server, AFTER the password, so at this moment the browser genuinely does not know whose
+   * restaurant this is.
+   */
+  const heading: { eyebrow: string; title: string; subtitle: string | null } =
+    step === "changing"
+      ? {
+          eyebrow: "Set your password",
+          title: "Choose a new password",
+          subtitle: `${changing!.email} must set its own password before signing in.`,
+        }
+      : step === "finishing"
+        ? {
+            eyebrow: "Almost there",
+            title: "Signing you in",
+            // The status line above the form is suppressed while `finishing`, so this is the ONLY
+            // place the fact appears — exactly one node matches "your new password is saved" at
+            // any moment, which is what `login-form.test.tsx` reads it by.
+            subtitle: "Your new password is saved.",
+          }
+        : step === "enrolling"
+          ? {
+              eyebrow: "Two-factor setup",
+              title: "Secure this account",
+              // No subtitle: TotpEnrollment opens with its own heading and explanation, and a
+              // second paragraph three centimetres above it would be the same sentence twice.
+              subtitle: null,
+            }
+          : step === "choosing"
+            ? {
+                eyebrow: "More than one account",
+                title: "Where would you like to sign in?",
+                subtitle: "This email is used in more than one place.",
+              }
+            : {
+                // NOT the product's name when no tenant is known: the lockup directly above this
+                // card already says "RestaurantOS", and on a phone the two sit twenty pixels
+                // apart. The eyebrow's job is to say WHOSE restaurant this is, and when the URL
+                // carried no hint the only honest answer is a greeting.
+                eyebrow: restaurantLabel ?? "Welcome back",
+                title: "Sign in",
+                subtitle: "Enter your email and password to continue",
+              };
 
   return (
     /*
-     * Phase 34: glass + depth-3 + an entrance. ONLY the surface around the form changed.
+     * Phase 34: glass + depth-3 + an entrance. Phase 38 re-typeset what is INSIDE it.
      *
      * The field names, the submit path, the error wording, the step-up prompt behaviour and
      * every redirect target below are untouched, and `__tests__/auth/login-form.test.tsx`
      * asserts it. This is the one screen where a cosmetic change that breaks a flow locks
      * every user out of the product, and it is reachable without a session — so nobody is
-     * watching it in a staging tenant either.
+     * watching it in a staging tenant either. Every `data-testid`, every visible label string
+     * and the accessible name of every control is the same as it was before the restyle; what
+     * changed is size, weight, case, spacing and colour.
      *
      * The glass sits over `--surface-2`, which the (auth) layout declares and 34-02's manifest
      * enumerates, so its contrast is measured (17.73:1 composited, 18.01:1 with the filter
@@ -397,302 +476,363 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
      * appears.
      */
     <GlassPanel depth={3} className="vdl-enter overflow-hidden p-0">
-      {/* A brand band, so the first screen a customer sees is not an unstyled white box. */}
+      {/*
+       * The demo's KPI-card device, on the card that needs it most (`NEXUS_ERP_Demo.html:227`):
+       * a 2px rail across the top edge in the metric's hue, fading to transparent at BOTH ends.
+       * What shipped here was a 4px hard-edged three-stop band — the same idea drawn as a stripe.
+       * The fade is the whole difference between an accent and a highlighter.
+       */}
       <div
         aria-hidden="true"
-        className="h-1 w-full bg-linear-to-r from-primary-400 via-primary-600 to-primary-800"
+        className="h-0.5 w-full bg-linear-to-r from-transparent via-primary-400 to-transparent"
       />
-      <div className="flex flex-col gap-4 p-6">
-        {/* The heading follows the STEP, not the route — the forced change and TOTP enrolment both
-          happen here now, and a panel titled "Enter your email and password to continue" above a
-          new-password form is a screen that lies about what it is asking for. */}
-        <div className="grid gap-1">
-          <h1 className="font-heading text-lg leading-snug font-medium">
-            {changing
-              ? "Choose a new password"
-              : finishing
-                ? "Signing you in"
-                : restaurantLabel
-                  ? `Sign in to ${restaurantLabel}`
-                  : "Sign in to RestaurantOS"}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {changing
-              ? `${changing.email} must set its own password before signing in.`
-              : finishing
-                ? "Your new password is saved."
-                : "Enter your email and password to continue"}
+
+      <div className="flex flex-col gap-6 p-6 md:p-8">
+        <header className="grid gap-2">
+          <p className="text-label font-semibold tracking-eyebrow text-primary uppercase">
+            {heading.eyebrow}
           </p>
-        </div>
-        <div>
-          {/* ONE status line, three sources. They are mutually exclusive in practice and were three
-            separate paragraphs carrying identical classes, which is three places to drift and three
-            entries against the type-scale gate for one visual element. */}
-          {statusNote ? (
-            <p className="mb-4 text-sm text-muted-foreground" role="status">
-              {statusNote}
-            </p>
+          <h1 className="font-heading text-display leading-tight font-semibold text-balance">
+            {heading.title}
+          </h1>
+          {heading.subtitle ? (
+            <p className="text-body text-foreground-secondary">{heading.subtitle}</p>
           ) : null}
+        </header>
 
-          {formError ? (
-            <Alert variant="destructive" className="mb-4">
-              <AlertTitle>Sign-in failed</AlertTitle>
-              <AlertDescription>{formError}</AlertDescription>
-            </Alert>
-          ) : null}
+        {/* ONE status line, three sources. They are mutually exclusive in practice and were three
+          separate paragraphs carrying identical classes, which is three places to drift and three
+          entries against the type-scale gate for one visual element. */}
+        {statusNote ? <AuthNotice>{statusNote}</AuthNotice> : null}
 
-          {changing ? (
-            /*
-             * F12: the forced password change happens HERE, not at `/login/change-password?token=…`.
-             * The single-use token is in `changing`, in memory, and never reaches the address bar.
-             */
-            <ForcedPasswordChangeForm
-              changeToken={changing.changeToken}
-              currentPassword={changing.currentPassword}
-              onCancel={() => {
-                setChanging(null);
-                form.setValue("password", "");
-              }}
-              onChanged={(newPassword) => {
-                // F19. The change endpoint issues no token and sets no refresh cookie (13-08), so
-                // a sign-in still has to happen — but the user has just typed the password twice
-                // and this component is holding it, so THIS component performs the sign-in.
-                //
-                // It goes through the ordinary `submit`, not a special path, because the login
-                // endpoint is where the TOTP step-up gate lives and where every other refusal is
-                // already handled. A hire whose role needs a second factor is challenged for it
-                // here, which is exactly what would have happened had they retyped the password.
-                const emailUsed = changing.email;
-                const slugUsed = form.getValues("tenantSlug") ?? "";
-                const values: LoginFormValues = {
-                  email: emailUsed,
-                  password: newPassword,
-                  totpCode: "",
-                  tenantSlug: slugUsed,
-                };
-                setChanging(null);
-                setFinishing(true);
-                // The form is kept in step with what is being submitted, so that if the sign-in is
-                // refused the user is looking at a form that already holds their real credential
-                // rather than a blank one.
-                form.reset(values);
-                toast.success("Password changed.");
-                setNotice("Your new password is saved.");
-                submit(values, undefined, { afterPasswordChange: true });
-              }}
-            />
-          ) : finishing ? (
-            /*
-             * F19: the interval between "password saved" and "you are in the app", rendered.
-             *
-             * Nothing here is decorative. Without it the credentials form re-appears for the length
-             * of one round trip with the password box filled — which is indistinguishable, in a
-             * screenshot and to a person, from being asked to sign in again. That is the finding.
-             *
-             * It is a live region because it replaces the control the user just pressed: a screen
-             * reader that was on the "Change password" button is told what happened instead of
-             * being dropped into silence.
-             */
-            <div
-              className="grid gap-2 py-4"
-              data-testid="finishing-sign-in"
-              role="status"
-              aria-live="polite"
-            >
-              <p className="text-sm text-muted-foreground">Taking you into the app…</p>
-            </div>
-          ) : enrolling ? (
-            <TotpEnrollment
-              email={enrolling.email}
-              password={enrolling.password}
-              tenantSlug={enrolling.tenantSlug}
-              onCancel={() => setEnrolling(null)}
-              onEnrolled={() => {
-                // Back to the credentials form with the TOTP field already revealed: the account now
-                // HAS a factor, so the next login will be challenged for a code rather than refused.
-                // Enrolment is not a login and does not become one — the user signs in normally,
-                // which keeps the two events, and their two audit records, distinct.
-                setEnrolling(null);
-                setTotpRequired(true);
-                form.setValue("totpCode", "");
-                window.setTimeout(() => form.setFocus("totpCode"), 0);
-              }}
-            />
-          ) : choices.length > 0 ? (
-            <div className="grid gap-3" data-testid="tenant-chooser">
-              <div>
-                <h2 className="text-base font-medium">Where would you like to sign in?</h2>
-                <p className="text-sm text-muted-foreground">
-                  This email is used in more than one place.
-                </p>
-              </div>
-              {choices.map((choice) => (
-                <Button
-                  key={choice.slug}
-                  type="button"
-                  variant="outline"
-                  className="justify-start"
-                  disabled={login.isPending}
-                  data-testid={`tenant-choice-${choice.slug}`}
-                  onClick={() => chooseTenant(choice.slug)}
-                >
-                  {choice.slug === PLATFORM_CHOICE ? "🛠 " : ""}
-                  {choice.name}
-                </Button>
-              ))}
-              <Button
+        {formError ? (
+          <Alert
+            variant="destructive"
+            className="items-start gap-x-3 border-destructive/35 bg-destructive/10 px-3.5 py-3"
+          >
+            <TriangleAlert className="size-4" />
+            <AlertTitle className="text-body">Sign-in failed</AlertTitle>
+            <AlertDescription className="text-small">{formError}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {changing ? (
+          /*
+           * F12: the forced password change happens HERE, not at `/login/change-password?token=…`.
+           * The single-use token is in `changing`, in memory, and never reaches the address bar.
+           */
+          <ForcedPasswordChangeForm
+            changeToken={changing.changeToken}
+            currentPassword={changing.currentPassword}
+            onCancel={() => {
+              setChanging(null);
+              form.setValue("password", "");
+            }}
+            onChanged={(newPassword) => {
+              // F19. The change endpoint issues no token and sets no refresh cookie (13-08), so
+              // a sign-in still has to happen — but the user has just typed the password twice
+              // and this component is holding it, so THIS component performs the sign-in.
+              //
+              // It goes through the ordinary `submit`, not a special path, because the login
+              // endpoint is where the TOTP step-up gate lives and where every other refusal is
+              // already handled. A hire whose role needs a second factor is challenged for it
+              // here, which is exactly what would have happened had they retyped the password.
+              const emailUsed = changing.email;
+              const slugUsed = form.getValues("tenantSlug") ?? "";
+              const values: LoginFormValues = {
+                email: emailUsed,
+                password: newPassword,
+                totpCode: "",
+                tenantSlug: slugUsed,
+              };
+              setChanging(null);
+              setFinishing(true);
+              // The form is kept in step with what is being submitted, so that if the sign-in is
+              // refused the user is looking at a form that already holds their real credential
+              // rather than a blank one.
+              form.reset(values);
+              toast.success("Password changed.");
+              setNotice("Your new password is saved.");
+              submit(values, undefined, { afterPasswordChange: true });
+            }}
+          />
+        ) : finishing ? (
+          /*
+           * F19: the interval between "password saved" and "you are in the app", rendered.
+           *
+           * Nothing here is decorative. Without it the credentials form re-appears for the length
+           * of one round trip with the password box filled — which is indistinguishable, in a
+           * screenshot and to a person, from being asked to sign in again. That is the finding.
+           *
+           * It is a live region because it replaces the control the user just pressed: a screen
+           * reader that was on the "Change password" button is told what happened instead of
+           * being dropped into silence.
+           */
+          <div
+            className="flex items-center gap-3 rounded-lg border border-border bg-surface-1 px-3.5 py-4"
+            data-testid="finishing-sign-in"
+            role="status"
+            aria-live="polite"
+          >
+            {/* The pulse is `motion-safe:` — under `prefers-reduced-motion` the dot is simply a
+              gold dot, and the sentence beside it is what carries the meaning either way. */}
+            <span aria-hidden="true" className="relative flex size-2.5 shrink-0">
+              <span className="absolute inline-flex size-full rounded-full bg-primary opacity-60 motion-safe:animate-ping" />
+              <span className="relative inline-flex size-2.5 rounded-full bg-primary" />
+            </span>
+            <p className="text-body text-foreground-secondary">Taking you into the app…</p>
+          </div>
+        ) : enrolling ? (
+          <TotpEnrollment
+            email={enrolling.email}
+            password={enrolling.password}
+            tenantSlug={enrolling.tenantSlug}
+            onCancel={() => setEnrolling(null)}
+            onEnrolled={() => {
+              // Back to the credentials form with the TOTP field already revealed: the account now
+              // HAS a factor, so the next login will be challenged for a code rather than refused.
+              // Enrolment is not a login and does not become one — the user signs in normally,
+              // which keeps the two events, and their two audit records, distinct.
+              setEnrolling(null);
+              setTotpRequired(true);
+              form.setValue("totpCode", "");
+              window.setTimeout(() => form.setFocus("totpCode"), 0);
+            }}
+          />
+        ) : choices.length > 0 ? (
+          <div className="grid gap-2.5" data-testid="tenant-chooser">
+            {choices.map((choice) => (
+              /*
+               * A row, not a `Button`. Every entry carries two lines — the restaurant's name and
+               * its identifier in mono — because the names in this list are chosen by whoever set
+               * the tenants up and two of them can legitimately read the same. The slug is the
+               * thing that differs, and it is the thing the next request is keyed on.
+               */
+              <button
+                key={choice.slug}
                 type="button"
-                variant="ghost"
-                onClick={() => setChoices([])}
                 disabled={login.isPending}
+                data-testid={`tenant-choice-${choice.slug}`}
+                onClick={() => chooseTenant(choice.slug)}
+                className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-border bg-surface-1 px-3.5 py-3 text-left transition-colors hover:border-border-strong hover:bg-surface-3 disabled:pointer-events-none disabled:opacity-50"
               >
-                Back
-              </Button>
-            </div>
-          ) : (
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4" noValidate>
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="you@example.com"
-                          autoComplete="email"
-                          autoFocus
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="password"
-                          placeholder="••••••••"
-                          autoComplete="current-password"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {totpRequired ? (
-                  <FormField
-                    control={form.control}
-                    name="totpCode"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Authenticator or recovery code</FormLabel>
-                        <FormControl>
-                          {/*
-                            inputMode is "text", not "numeric", and that is the whole point of this
-                            field now. A recovery code is the ONLY way back in for someone whose
-                            phone is gone, it is redeemed HERE (the server tells the two apart by
-                            shape), and a numeric keypad on a phone makes "ABCDE-FGHJK" close to
-                            untypeable. There is no digit filter either — one would silently eat
-                            every letter and leave the user staring at a field that swallowed most
-                            of what they typed.
-                          */}
-                          <Input
-                            inputMode="text"
-                            autoComplete="one-time-code"
-                            autoCapitalize="characters"
-                            placeholder="123456 or ABCDE-FGHJK"
-                            aria-describedby="totp-hint"
-                            data-testid="totp-code"
-                            {...field}
-                          />
-                        </FormControl>
-                        <p id="totp-hint" className="text-sm text-muted-foreground">
-                          Enter the six-digit code from your authenticator app. Lost your phone? Use
-                          one of the recovery codes you saved when you set it up — each works once.
-                        </p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                ) : null}
-
-                {/* The restaurant field is an ESCAPE HATCH, not a step. It is shown when a hint
-                  already filled it (so the user can see and clear what the URL chose for them),
-                  or on request. Nothing in the normal path needs it. */}
-                {showTenantField || (tenantSlug && form.getValues("tenantSlug")) ? (
-                  <FormField
-                    control={form.control}
-                    name="tenantSlug"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Restaurant identifier (optional)</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="your-restaurant"
-                            autoComplete="organization"
-                            data-testid="tenant-slug"
-                            {...field}
-                          />
-                        </FormControl>
-                        <p className="text-sm text-muted-foreground">
-                          Only needed if you have been asked for it. Leave blank and we&apos;ll find
-                          your account.
-                        </p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                ) : (
-                  /* The label must NOT begin with "Sign in". It did, and that made
-                   `getByRole("button", {name: "Sign in"})` — which `e2e/fixtures/auth.fixture.ts`
-                   uses for every persona login in the suite — ambiguous, breaking journeys that
-                   have nothing to do with this control. Caught by the browser run, not by review. */
-                  <button
-                    type="button"
-                    className="justify-self-start text-sm text-muted-foreground underline underline-offset-4"
-                    data-testid="show-tenant-field"
-                    onClick={() => setShowTenantField(true)}
-                  >
-                    Use a restaurant identifier instead
-                  </button>
-                )}
-
-                {/* Disabled until React has hydrated, and NOT for cosmetic reasons.
-                  `react-hook-form`'s `handleSubmit` is what calls `preventDefault()`; before
-                  hydration it is not attached, so a submit falls through to the browser's native
-                  handling. This form declares no `action` and no `method`, so a native submit is a
-                  GET to the current URL — which puts the typed EMAIL AND PASSWORD in the address
-                  bar, in browser history, and in any access log along the way. Observed live
-                  during 14b verification: `/login?email=owner%40terrace.local&password=…`.
-                  There is no non-JS path worth preserving here (the whole route is `"use client"`
-                  and cannot authenticate without JS), so refusing the submit until it can be
-                  handled properly costs nothing and closes the leak. Mirrors ThemeToggle's
-                  `useSyncExternalStore` mounted check rather than an effect, per the codebase's
-                  react-hooks/set-state-in-effect rule. */}
-                <Button
-                  type="submit"
-                  disabled={login.isPending || !hydrated}
-                  className="w-full"
-                  data-testid="login-submit"
+                <span
+                  aria-hidden="true"
+                  className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10"
                 >
-                  {login.isPending ? "Signing in…" : "Sign in"}
-                </Button>
-              </form>
-            </Form>
-          )}
-        </div>
+                  {choice.slug === PLATFORM_CHOICE ? (
+                    <Wrench className="size-4 text-primary" />
+                  ) : (
+                    <Store className="size-4 text-primary" />
+                  )}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-body font-medium text-foreground">
+                    {choice.name}
+                  </span>
+                  <span className="block truncate font-mono text-label text-foreground-tertiary">
+                    {choice.slug === PLATFORM_CHOICE ? "platform console" : choice.slug}
+                  </span>
+                </span>
+                <ChevronRight
+                  aria-hidden="true"
+                  className="size-4 shrink-0 text-foreground-tertiary"
+                />
+              </button>
+            ))}
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setChoices([])}
+              disabled={login.isPending}
+              className={authSecondaryButtonClass}
+            >
+              Back
+            </Button>
+          </div>
+        ) : (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5" noValidate>
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className={authLabelClass}>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="you@example.com"
+                        autoComplete="email"
+                        autoFocus
+                        className={authInputClass}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className={authLabelClass}>Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        autoComplete="current-password"
+                        className={authInputClass}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {totpRequired ? (
+                <FormField
+                  control={form.control}
+                  name="totpCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className={authLabelClass}>
+                        Authenticator or recovery code
+                      </FormLabel>
+                      <FormControl>
+                        {/*
+                          inputMode is "text", not "numeric", and that is the whole point of this
+                          field now. A recovery code is the ONLY way back in for someone whose
+                          phone is gone, it is redeemed HERE (the server tells the two apart by
+                          shape), and a numeric keypad on a phone makes "ABCDE-FGHJK" close to
+                          untypeable. There is no digit filter either — one would silently eat
+                          every letter and leave the user staring at a field that swallowed most
+                          of what they typed.
+                        */}
+                        <Input
+                          inputMode="text"
+                          autoComplete="one-time-code"
+                          autoCapitalize="characters"
+                          placeholder="123456 or ABCDE-FGHJK"
+                          data-testid="totp-code"
+                          className={cn(authInputClass, "font-mono tracking-[0.14em]")}
+                          {...field}
+                        />
+                      </FormControl>
+                      {/*
+                        `FormHint` rather than a hand-rolled `<p id="totp-hint">` with
+                        `aria-describedby` written onto the Input. That override REPLACED the
+                        description id `FormControl` derives, so the field named its hint and
+                        stopped naming its own error message — a validation failure was on screen
+                        and unreachable from the control. Same words, correct wiring.
+                      */}
+                      <FormHint className="text-small">
+                        Enter the six-digit code from your authenticator app. Lost your phone? Use
+                        one of the recovery codes you saved when you set it up — each works once.
+                      </FormHint>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : null}
+
+              {/* The restaurant field is an ESCAPE HATCH, not a step. It is shown when a hint
+                already filled it (so the user can see and clear what the URL chose for them),
+                or on request. Nothing in the normal path needs it. */}
+              {showTenantField || (tenantSlug && form.getValues("tenantSlug")) ? (
+                <FormField
+                  control={form.control}
+                  name="tenantSlug"
+                  render={({ field }) => (
+                    <FormItem>
+                      {/*
+                        "Optional" is a visible chip rather than a parenthesis inside the label,
+                        because the brief this screen failed was that the field did not READ as
+                        optional. It is still part of the accessible name — the chip is inside the
+                        `<label>`, so the control announces "Restaurant identifier Optional" — and
+                        the hint below still says what to do with it.
+                      */}
+                      <FormLabel className={cn(authLabelClass, "justify-between")}>
+                        <span>Restaurant identifier</span>
+                        <span className="rounded-md bg-decorative px-1.5 py-0.5 text-label font-medium tracking-normal text-foreground-tertiary normal-case">
+                          Optional
+                        </span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="your-restaurant"
+                          autoComplete="organization"
+                          data-testid="tenant-slug"
+                          className={cn(authInputClass, "font-mono")}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormHint className="text-small">
+                        Only needed if you have been asked for it. Leave blank and we&apos;ll find
+                        your account.
+                      </FormHint>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : (
+                /* The label must NOT begin with "Sign in". It did, and that made
+                 `getByRole("button", {name: "Sign in"})` — which `e2e/fixtures/auth.fixture.ts`
+                 uses for every persona login in the suite — ambiguous, breaking journeys that
+                 have nothing to do with this control. Caught by the browser run, not by review. */
+                <button
+                  type="button"
+                  className="inline-flex min-h-8 items-center gap-1.5 justify-self-start text-small text-foreground-tertiary underline underline-offset-4 transition-colors hover:text-foreground"
+                  data-testid="show-tenant-field"
+                  onClick={() => setShowTenantField(true)}
+                >
+                  <KeyRound aria-hidden="true" className="size-3.5" />
+                  Use a restaurant identifier instead
+                </button>
+              )}
+
+              {/* Disabled until React has hydrated, and NOT for cosmetic reasons.
+                `react-hook-form`'s `handleSubmit` is what calls `preventDefault()`; before
+                hydration it is not attached, so a submit falls through to the browser's native
+                handling. This form declares no `action` and no `method`, so a native submit is a
+                GET to the current URL — which puts the typed EMAIL AND PASSWORD in the address
+                bar, in browser history, and in any access log along the way. Observed live
+                during 14b verification: `/login?email=owner%40terrace.local&password=…`.
+                There is no non-JS path worth preserving here (the whole route is `"use client"`
+                and cannot authenticate without JS), so refusing the submit until it can be
+                handled properly costs nothing and closes the leak. Mirrors ThemeToggle's
+                `useSyncExternalStore` mounted check rather than an effect, per the codebase's
+                react-hooks/set-state-in-effect rule. */}
+              <Button
+                type="submit"
+                disabled={login.isPending || !hydrated}
+                className={authPrimaryButtonClass}
+                data-testid="login-submit"
+              >
+                {login.isPending ? "Signing in…" : "Sign in"}
+              </Button>
+
+              {/*
+               * The honest answer to "I've forgotten my password", and it is not a link.
+               *
+               * There is no self-service reset in this product: `admin-reset-dialog.tsx` states
+               * the reason in its own words — *"No email is sent — the platform has no mail
+               * delivery yet"* — so the only route back in is an owner or manager issuing a
+               * temporary password through Users, which then lands the user in the forced-change
+               * panel above. A "Forgot password?" link would be a button that goes nowhere, which
+               * is the shape of control this phase has been deleting everywhere else.
+               */}
+              <p className="text-small text-foreground-tertiary">
+                Forgotten your password? An owner or manager can issue you a new one from Users —
+                there is no reset email.
+              </p>
+            </form>
+          </Form>
+        )}
       </div>
     </GlassPanel>
   );

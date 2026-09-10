@@ -9,7 +9,13 @@ const buttonVariants = cva(
   // inside a scroll container (every DataGrid toolbar, POS panel and KDS header) lost its
   // focus indicator at the container edge. globals.css draws a real `outline` instead
   // (UI-SPEC §3.9/§9.1). The border still tints on focus as a second channel.
-  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all select-none focus-visible:border-ring active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  // `touch-floor` (globals.css) is on the BASE, not on a size variant, and that is the whole
+  // point: it applies to `xs` and `icon-xs` too. Every size in this scale is between 24px and
+  // 36px tall, so on a phone the smallest ones were a fifth of the area a finger needs, and the
+  // sizes most likely to be missed by a per-variant fix are exactly the small ones. Below 1024px
+  // every button in the product is at least 44×44; at 1024 and above the scale below is what
+  // renders, unchanged. See the utility for why the boundary is `lg`.
+  "group/button touch-floor inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all select-none focus-visible:border-ring active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {

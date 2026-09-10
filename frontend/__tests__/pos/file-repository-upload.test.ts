@@ -53,7 +53,26 @@ describe("FileRepository.uploadMenuItemImage — request shape", () => {
           authorization = request.headers.get("authorization");
           url = request.url;
           resolve();
-          return HttpResponse.json({ data: null, meta: null, warnings: [] }, { status: 201 });
+          // Schema-valid, not `data: null`. uploadMenuItemImage ends in
+          // apiFileUploadResponseSchema.parse(response.data.data); null fails it. Under jsdom the
+          // multipart XHR never settled so nothing ever parsed, but on CI it does — and because
+          // the call below is deliberately not awaited, that ZodError surfaced as an unhandled
+          // rejection and failed the whole run, reported against whichever file was running.
+          return HttpResponse.json(
+            {
+              data: {
+                fileId: "7c3f1a90-6b2e-4d55-9f18-4a7b0c2d1e33",
+                objectKey: "menu/7c3f1a90.png",
+                downloadUrl: "/api/v1/files/7c3f1a90-6b2e-4d55-9f18-4a7b0c2d1e33/download",
+                sizeBytes: 4,
+                contentType: "image/png",
+                sha256: "0".repeat(64),
+              },
+              meta: null,
+              warnings: [],
+            },
+            { status: 201 },
+          );
         }),
       );
     });
@@ -61,8 +80,11 @@ describe("FileRepository.uploadMenuItemImage — request shape", () => {
     const file = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], "dish.png", {
       type: "image/png",
     });
-    // Deliberately not awaited — see the class note on the jsdom/MSW multipart limitation.
-    void FileRepository.uploadMenuItemImage(file);
+    // Deliberately not awaited — see the class note on the jsdom/MSW multipart limitation. The
+    // catch is not optional: an unawaited promise that rejects becomes an unhandled rejection,
+    // which vitest counts as a run-level error even when every assertion here passes. This test
+    // asserts the REQUEST, so however the response turns out is none of its business.
+    void FileRepository.uploadMenuItemImage(file).catch(() => {});
     await received;
 
     // THE assertion. `application/json` here means the file was silently dropped.

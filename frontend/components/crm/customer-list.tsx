@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Gift, Sparkles, UserRound, UserRoundX } from "lucide-react";
 
 import { Avatar } from "@/components/ui/avatar";
 import { DataGrid, type ColumnDef } from "@/components/ui/data-grid/data-grid";
@@ -9,7 +10,9 @@ import { FilterBar } from "@/components/ui/filter-bar";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatTile } from "@/components/ui/stat-tile";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { formatNumber } from "@/lib/format/locale";
 import { useCustomerSearch } from "@/lib/hooks/crm/use-customers";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import type { Customer, LoyaltyTier } from "@/lib/models/crm.model";
@@ -79,7 +82,11 @@ export function CustomerList({
         accessorKey: "phone",
         header: "Phone",
         cell: ({ row }) => (
-          <span className="tabular-nums text-foreground-secondary">{row.original.phone}</span>
+          // A phone number is how this product identifies a customer — it is the search key and
+          // the account key — so it takes the identifier face.
+          <span className="font-mono tabular-nums text-foreground-secondary">
+            {row.original.phone}
+          </span>
         ),
       },
       {
@@ -117,8 +124,44 @@ export function CustomerList({
     [onSelect, selectedId],
   );
 
+  /*
+   * Computed off `customers` — the EXACT array the grid beneath renders — so the strip and the
+   * table can never disagree. `CrmRepository.searchCustomers` caps at 20 and the response carries
+   * no total, so a tenant-wide "Customers: N" is a figure this screen does not have; every label
+   * here names the listed set instead of implying the roster (D-38-16).
+   */
+  const enrolled = customers.filter((c) => c.tier !== null).length;
+  const points = customers.reduce((sum, c) => sum + c.pointsBalance, 0);
+  const showStats = customers.length > 0;
+
   return (
     <div className="space-y-(--space-md)">
+      {showStats && (
+        <div
+          data-testid="crm-stat-row"
+          className="grid gap-(--space-md) md:grid-cols-2 xl:grid-cols-4"
+        >
+          <StatTile
+            label="Customers listed"
+            value={formatNumber(customers.length)}
+            icon={UserRound}
+            accent="primary"
+          />
+          <StatTile
+            label="Enrolled in loyalty"
+            value={formatNumber(enrolled)}
+            icon={Sparkles}
+            accent="secondary"
+          />
+          <StatTile
+            label="Not enrolled"
+            value={formatNumber(customers.length - enrolled)}
+            icon={UserRoundX}
+          />
+          <StatTile label="Points these customers hold" value={formatNumber(points)} icon={Gift} />
+        </div>
+      )}
+
       <FilterBar
         title="Customers"
         search={{

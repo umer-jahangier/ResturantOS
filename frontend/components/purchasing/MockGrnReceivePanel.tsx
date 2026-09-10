@@ -64,7 +64,8 @@ export function MockGrnReceivePanel({ poId }: { poId: string }) {
         Simulates Phase 8 GRN while integration-mode=mock.
       </p>
 
-      <table className="mt-3 w-full text-sm">
+      {/* `table-stack` (globals.css): three columns, one of them an input, on a receiving dock. */}
+      <table className="table-stack mt-3 w-full text-sm">
         <thead>
           <tr className="border-b text-left text-muted-foreground">
             <th className="py-1 font-medium">Line</th>
@@ -78,11 +79,13 @@ export function MockGrnReceivePanel({ poId }: { poId: string }) {
             const invalid = Number(value) < 0 || Number(value) > Number(line.qty);
             return (
               <tr key={line.id} className="border-b last:border-0">
-                <td className="py-1">
+                <td className="py-1" data-label="Line">
                   {line.ingredientId.slice(0, 8)}… ({line.uom})
                 </td>
-                <td className="py-1">{line.qty}</td>
-                <td className="py-1">
+                <td className="py-1" data-label="Ordered qty">
+                  {line.qty}
+                </td>
+                <td className="py-1" data-label="Receive qty">
                   <input
                     className="w-24 rounded border px-2 py-1 text-sm aria-invalid:border-destructive"
                     inputMode="decimal"

@@ -209,7 +209,7 @@ class DashboardPushIT {
     void orderClosed_pushesWithinFiveSeconds() throws Exception {
         UUID branchId = UUID.randomUUID();
         UUID tenantId = UUID.randomUUID();
-        String jwt = mintJwt(List.of("reporting.dashboard.view"));
+        String jwt = mintJwt(tenantId, branchId, List.of("reporting.dashboard.view"));
 
         RecordingHandler handler = new RecordingHandler();
         WebSocketSession session = connect(branchId, jwt, handler);
@@ -244,7 +244,7 @@ class DashboardPushIT {
     void tillClosed_pushesWithinFiveSeconds() throws Exception {
         UUID branchId = UUID.randomUUID();
         UUID tenantId = UUID.randomUUID();
-        String jwt = mintJwt(List.of("reporting.dashboard.view"));
+        String jwt = mintJwt(tenantId, branchId, List.of("reporting.dashboard.view"));
 
         RecordingHandler handler = new RecordingHandler();
         WebSocketSession session = connect(branchId, jwt, handler);
@@ -277,7 +277,7 @@ class DashboardPushIT {
     void burstOfOrders_isThrottledButConverges() throws Exception {
         UUID branchId = UUID.randomUUID();
         UUID tenantId = UUID.randomUUID();
-        String jwt = mintJwt(List.of("reporting.dashboard.view"));
+        String jwt = mintJwt(tenantId, branchId, List.of("reporting.dashboard.view"));
 
         RecordingHandler handler = new RecordingHandler();
         WebSocketSession session = connect(branchId, jwt, handler);
@@ -359,7 +359,9 @@ class DashboardPushIT {
         UUID branch1 = UUID.randomUUID();
         UUID branch2 = UUID.randomUUID();
         UUID tenantId = UUID.randomUUID();
-        String jwt = mintJwt(List.of("reporting.dashboard.view"));
+        // Scoped to branch1, so this subscriber genuinely connects. With a random-scope token the
+        // handler closed the socket and "no frame arrived" was true for the wrong reason.
+        String jwt = mintJwt(tenantId, branch1, List.of("reporting.dashboard.view"));
 
         RecordingHandler handler1 = new RecordingHandler();
         WebSocketSession session1 = connect(branch1, jwt, handler1);
@@ -421,13 +423,31 @@ class DashboardPushIT {
         }
     }
 
+    /**
+     * A token scoped to a RANDOM tenant/branch. Only for the refusal tests, which never get as far
+     * as the branch check — {@code validateJwtAndPermission} rejects on permission first.
+     */
     private static String mintJwt(List<String> permissions) {
+        return mintJwt(UUID.randomUUID(), UUID.randomUUID(), permissions);
+    }
+
+    /**
+     * A token scoped to the tenant and branch the test actually subscribes to.
+     *
+     * <p>Every test here used to mint random scope and then connect to an unrelated branch. That
+     * was invisible until b00835a0 made the handler require the URL's branch to be the TOKEN's
+     * branch — a real cross-branch revenue leak. After it, the three push tests could never
+     * connect (they timed out waiting for a frame on a socket the handler had closed), and
+     * crossBranch_isolation started passing for the wrong reason: it asserted no frame arrived at
+     * a subscriber that was never subscribed.
+     */
+    private static String mintJwt(UUID tenantId, UUID branchId, List<String> permissions) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .header().keyId(TEST_KID).and()
                 .subject(UUID.randomUUID().toString())
-                .claim("tenant_id", UUID.randomUUID().toString())
-                .claim("branch_id", UUID.randomUUID().toString())
+                .claim("tenant_id", tenantId.toString())
+                .claim("branch_id", branchId.toString())
                 .claim("roles", List.of("OWNER"))
                 .claim("permissions", permissions)
                 .issuedAt(Date.from(now))

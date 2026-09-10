@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { authLabelClass, authPrimaryButtonClass } from "@/components/auth/auth-chrome";
 
 /**
  * The one and only presentation of a user's recovery codes.
@@ -102,29 +103,35 @@ export function RecoveryCodesPanel({
 
   return (
     <div className="grid gap-4" data-testid="recovery-codes-panel">
-      <Alert>
-        <ShieldAlert className="size-4" />
-        <AlertTitle>Save these recovery codes now</AlertTitle>
-        <AlertDescription>
+      <Alert className="items-start gap-x-3 border-warning/40 bg-warning/10 px-3.5 py-3">
+        <ShieldAlert className="size-4 text-warning" />
+        <AlertTitle className="text-body text-foreground">Save these recovery codes now</AlertTitle>
+        <AlertDescription className="text-small">
           This is the only time they will be shown. Each one works once, in place of your
           authenticator code, if you lose your phone. Without them a lost phone means losing access
           to this account — nobody, including us, can read them back to you.
         </AlertDescription>
       </Alert>
 
-      <ul
-        className="grid grid-cols-2 gap-2 rounded-lg border bg-muted/40 p-3"
-        data-testid="recovery-codes-list"
-      >
-        {codes.map((code) => (
-          <li
-            key={code}
-            className="select-all rounded-md bg-background px-2 py-1.5 text-center font-mono text-body tracking-wider"
-          >
-            {code}
-          </li>
-        ))}
-      </ul>
+      {/*
+        The codes themselves, in the demo's mono voice — every reference and figure in this
+        product is `--font-mono`, and a recovery code is the most reference-like string it has.
+        Wide tracking because these are transcribed by hand off a screen onto paper more often
+        than they are copied, and `O`/`0` and `I`/`1` are the whole failure mode there.
+      */}
+      <div className="grid gap-2 rounded-lg border border-border bg-surface-1 p-3">
+        <p className={authLabelClass}>Your recovery codes</p>
+        <ul className="grid grid-cols-2 gap-2" data-testid="recovery-codes-list">
+          {codes.map((code) => (
+            <li
+              key={code}
+              className="rounded-md border border-border bg-background px-2 py-2 text-center font-mono text-small tracking-[0.12em] text-foreground select-all"
+            >
+              {code}
+            </li>
+          ))}
+        </ul>
+      </div>
 
       <div className="flex flex-wrap gap-2">
         <Button type="button" variant="outline" size="sm" onClick={copyAll}>
@@ -141,10 +148,10 @@ export function RecoveryCodesPanel({
         </Button>
       </div>
 
-      <label className="flex items-start gap-2 text-body">
+      <label className="flex min-h-11 items-center gap-3 rounded-lg border border-border bg-surface-1 px-3.5 py-3 text-small text-foreground has-checked:border-primary/50 has-checked:bg-primary/8">
         <input
           type="checkbox"
-          className="mt-0.5 size-4 rounded-md border-input accent-primary"
+          className="size-4.5 rounded-md border-border-interactive accent-primary"
           checked={acknowledged}
           onChange={(e) => setAcknowledged(e.target.checked)}
           data-testid="recovery-codes-acknowledge"
@@ -157,6 +164,7 @@ export function RecoveryCodesPanel({
         onClick={onAcknowledged}
         disabled={!acknowledged}
         data-testid="recovery-codes-continue"
+        className={authPrimaryButtonClass}
       >
         {continueLabel}
       </Button>

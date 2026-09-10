@@ -1,5 +1,6 @@
 package io.restaurantos.inventory;
 
+import io.restaurantos.shared.testsupport.TenantContextBindingTestFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restaurantos.inventory.dto.StockCountDtos.CountLineRequest;
 import io.restaurantos.inventory.dto.StockCountDtos.CreateStockCountRequest;

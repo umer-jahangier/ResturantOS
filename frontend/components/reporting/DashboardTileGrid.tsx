@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Banknote, Percent, Receipt, ReceiptText } from "lucide-react";
 
 import { EmptyState } from "@/components/ui/empty-state";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
-import { StatTile } from "@/components/ui/stat-tile";
+import { StatTile, type StatTileAccent } from "@/components/ui/stat-tile";
 import { ELAPSED_ABSOLUTE_BOUND_MS, readElapsed } from "@/lib/format/elapsed";
 import { formatNumber } from "@/lib/format/locale";
 import type { DashboardTile } from "@/lib/models/reporting.model";
@@ -83,6 +84,46 @@ function oldestComputedAt(tiles: readonly DashboardTile[]): string | null {
   return oldest?.at ?? null;
 }
 
+/**
+ * Four across, not three.
+ *
+ * <p>`DashboardTileService.queryTiles` returns exactly FOUR tiles and has since it was written
+ * (`todays-revenue`, `todays-orders`, `todays-tax`, `average-order-value`), so a three-column grid
+ * put one tile alone on a second row at every desktop width — the 3-2 orphan the portlet grid's
+ * own docblock warns about, shipped. Four matches the role dashboards' KPI row, which is the
+ * point: this page and `/app/dashboard` should not look like two different products.
+ */
+const TILE_GRID = "grid gap-(--space-md) md:grid-cols-2 xl:grid-cols-4";
+
+/**
+ * The hue rotation. Four tiles in one accent is the flat read the demo comparison rejected; four
+ * DIFFERENT hues let a reader find "today's tax" without reading all four labels.
+ *
+ * <p>`StatTile` offers three accents, so the fourth tile is deliberately the quiet one rather
+ * than a repeat — a repeated hue in a row of four reads as a relationship between those two
+ * tiles, and there is none.
+ */
+const TILE_ACCENTS: readonly StatTileAccent[] = ["primary", "secondary", "primary", "none"];
+
+function accentFor(index: number): StatTileAccent {
+  return TILE_ACCENTS[index % TILE_ACCENTS.length] ?? "none";
+}
+
+/**
+ * Glyphs for the tile ids this service actually emits, and nothing else.
+ *
+ * <p>Keyed by `tileId` rather than by index, because the index is the server's ordering and a
+ * glyph that moves when the ordering changes is worse than no glyph. An unknown id gets
+ * `undefined`, and `StatTile` draws no chip at all — a tile whose subject we cannot name does not
+ * get a guessed picture of it.
+ */
+const TILE_ICON: Record<string, React.ComponentType<{ className?: string }> | undefined> = {
+  "todays-revenue": Banknote,
+  "todays-orders": ReceiptText,
+  "todays-tax": Percent,
+  "average-order-value": Receipt,
+};
+
 interface DashboardTileGridProps {
   tiles: DashboardTile[] | undefined;
   isLoading: boolean;
@@ -144,7 +185,7 @@ export function DashboardTileGrid({
 
   if (isLoading && !tiles) {
     return (
-      <div className="grid gap-(--space-md) md:grid-cols-2 lg:grid-cols-3">
+      <div className={TILE_GRID}>
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} className="h-32 w-full" />
         ))}
@@ -165,21 +206,23 @@ export function DashboardTileGrid({
 
   return (
     <div className="space-y-(--space-md)">
-      <div className="grid gap-(--space-md) md:grid-cols-2 lg:grid-cols-3">
+      <div className={TILE_GRID}>
         {tiles.map((tile, index) =>
           tile.valuePaisa === null && tile.valueNumber === null ? (
             <StatTile
               key={tile.tileId}
               label={tile.title}
               unavailableReason="Not applicable for today's figures"
-              accent={index === 0 ? "primary" : "none"}
+              accent={accentFor(index)}
+              icon={TILE_ICON[tile.tileId]}
             />
           ) : (
             <StatTile
               key={tile.tileId}
               label={tile.title}
               value={<TileValue tile={tile} />}
-              accent={index === 0 ? "primary" : "none"}
+              accent={accentFor(index)}
+              icon={TILE_ICON[tile.tileId]}
             />
           ),
         )}

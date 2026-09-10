@@ -82,6 +82,7 @@ export type PortletType =
   | "KpiTile"
   | "TrendChart"
   | "RankedList"
+  | "MeterStack"
   | "ExceptionList"
   | "RecordList"
   | "Shortcuts";
@@ -113,6 +114,17 @@ export interface PortletSpec {
   drillTo: string;
   /** Which row it occupies — row 1 is what the role sees first. */
   row: 1 | 2 | 3;
+  /**
+   * Marks this portlet as the WIDE half of a two-portlet row, which the grid then lays out
+   * `2fr 1fr` instead of `1fr 1fr` (`dashboard-shell.tsx`, `RowLayout`) — the split the demo's
+   * dashboard uses under its KPI row.
+   *
+   * <p>DECLARED rather than inferred. The renderer could guess — "a TrendChart is always the wide
+   * one" — and it would be wrong on the manager's row, where the wide half is a record table and
+   * the narrow half is a meter stack. It is a composition decision, so it lives in the
+   * composition table. Only read on a row that declares exactly two portlets.
+   */
+  lead?: true;
 }
 
 export interface DashboardPreset {
@@ -178,6 +190,7 @@ const OWNER_PORTLETS = [
     permission: "reporting.report.view",
     drillTo: "/app/reports",
     row: 2,
+    lead: true,
   },
   {
     id: "owner-top-items",
@@ -252,10 +265,11 @@ const MANAGER_PORTLETS = [
     permission: "pos.order.view",
     drillTo: "/app/pos",
     row: 2,
+    lead: true,
   },
   {
     id: "manager-station-load",
-    type: "RankedList",
+    type: "MeterStack",
     title: "Station load",
     permission: "pos.kds.view",
     drillTo: "/app/kitchen",
@@ -268,6 +282,7 @@ const MANAGER_PORTLETS = [
     permission: "pos.order.view",
     drillTo: "/app/pos",
     row: 3,
+    lead: true,
   },
   {
     id: "manager-86d",
@@ -363,6 +378,7 @@ const ACCOUNTANT_PORTLETS = [
     permission: "finance.journal.view",
     drillTo: "/app/finance/journal-entries",
     row: 3,
+    lead: true,
   },
   {
     id: "accountant-invoices",
@@ -687,10 +703,11 @@ const WAITER_PORTLETS = [
     permission: "pos.order.view",
     drillTo: "/app/pos",
     row: 2,
+    lead: true,
   },
   {
     id: "waiter-pass",
-    type: "RankedList",
+    type: "MeterStack",
     title: "On the pass, by station",
     permission: "pos.kds.view",
     drillTo: "/app/kitchen/expo",

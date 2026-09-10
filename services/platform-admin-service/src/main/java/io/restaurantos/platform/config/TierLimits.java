@@ -45,7 +45,21 @@ public class TierLimits {
 
     /** Stamp the tier's limits onto the tenant row. Does NOT save — the caller owns the transaction. */
     public void applyTo(TenantEntity tenant) {
-        Limits limits = forTier(tenant.getTier());
+        applyTo(tenant, forTier(tenant.getTier()));
+    }
+
+    /**
+     * Stamp EXPLICIT limits onto the tenant row.
+     *
+     * <p>Added when plans became first-class: a plan names a tier but carries its own four ceilings,
+     * because a negotiated ENTERPRISE agreement is precisely a tier whose numbers are not the tier's
+     * defaults. Without this overload the subscription path would have to repeat the four setters,
+     * and the day a fifth ceiling is added one of the two copies would not learn about it — the
+     * divergence this class was extracted to prevent, reintroduced one level down.
+     *
+     * <p>Does NOT save. The caller owns the transaction.
+     */
+    public void applyTo(TenantEntity tenant, Limits limits) {
         tenant.setMaxBranches(limits.maxBranches());
         tenant.setMaxUsers(limits.maxUsers());
         tenant.setStorageGb(limits.storageGb());

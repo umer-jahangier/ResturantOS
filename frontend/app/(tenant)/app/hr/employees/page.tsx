@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Building2, UserRound, UserRoundCheck, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import { EmployeeFormDialog } from "@/components/hr/employee-form-dialog";
@@ -15,7 +16,10 @@ import { MoneyDisplay } from "@/components/ui/money-display";
 import { PageBody } from "@/components/ui/page-body";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatTile } from "@/components/ui/stat-tile";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { countLine, filteredCountLine, statLine } from "@/lib/format/stat-line";
+import { formatNumber } from "@/lib/format/locale";
 import { useDepartments } from "@/lib/hooks/hr/use-hr-config";
 import { useDeactivateEmployee, useEmployees } from "@/lib/hooks/hr/use-employees";
 import type { Employee } from "@/lib/models/hr.model";
@@ -91,6 +95,21 @@ export default function EmployeesPage() {
   }
 
   const total = employees?.length ?? 0;
+
+  /*
+   * Computed off `employees` — the whole roster the hook returned, which is also what `rows`
+   * filters — so the strip states the branch and the subtitle states how much of it survived the
+   * filters. `payrollPaisa` sums ACTIVE employees only: a deactivated leaver's basic salary is
+   * still on their record and adding it to a monthly wage bill would overstate it by however many
+   * people have ever left.
+   */
+  const roster = employees ?? [];
+  const activeCount = roster.filter((e) => e.active).length;
+  const departmentCount = new Set(
+    roster.filter((e) => e.departmentId !== null).map((e) => e.departmentId),
+  ).size;
+  const undepartmented = roster.filter((e) => e.departmentId === null).length;
+  const payrollPaisa = roster.reduce((sum, e) => (e.active ? sum + e.basicSalaryPaisa : sum), 0);
 
   const columns = useMemo<ColumnDef<Employee, unknown>[]>(
     () => [
@@ -182,13 +201,49 @@ export default function EmployeesPage() {
       <PageHeader
         title="Employees"
         description="Everyone on the payroll for this branch."
-        meta={`${rows.length} of ${total} shown`}
+        /*
+         * `${rows.length} of ${total} shown` was the whole subtitle: true, and it says nothing a
+         * person came to this screen to learn. The `·` line now reconciles with the grid AND with
+         * the strip below it — shown/total is the grid, active is the first tile, and the
+         * department count is the third.
+         */
+        meta={statLine(
+          filteredCountLine(rows.length, total, "employee"),
+          `${formatNumber(activeCount)} active`,
+          departmentCount > 0 ? countLine(departmentCount, "department") : undefined,
+          undepartmented > 0 ? `${formatNumber(undepartmented)} unassigned` : undefined,
+        )}
         actions={
           <PermissionGuard require="hr.employee.manage" fallback={null}>
             <Button onClick={openCreate}>New employee</Button>
           </PermissionGuard>
         }
       />
+
+      <div className="grid gap-(--space-md) md:grid-cols-2 xl:grid-cols-4">
+        <StatTile
+          label="On the roster"
+          value={formatNumber(total)}
+          icon={UserRound}
+          accent="primary"
+        />
+        <StatTile
+          label="Active"
+          value={formatNumber(activeCount)}
+          icon={UserRoundCheck}
+          accent="secondary"
+        />
+        <StatTile
+          label="Departments represented"
+          value={formatNumber(departmentCount)}
+          icon={Building2}
+        />
+        <StatTile
+          label="Basic salary, active staff"
+          value={<MoneyDisplay paisa={payrollPaisa} />}
+          icon={Wallet}
+        />
+      </div>
 
       <FilterBar
         title="Roster"

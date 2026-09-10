@@ -285,6 +285,13 @@ function modelsFor(preset: DashboardPreset): PortletModelMap {
       case "RankedList":
         map[p.id] = { kind: "RankedList", rows: [], emptyLabel: "none" };
         break;
+      // Added in phase 38 with the `MeterStack` type. A `PortletType` this factory does not
+      // cover yields no model, `renderPortlet` returns null, and the "renders every portlet its
+      // table declares" assertion below fails naming the missing id — which is how this gap
+      // announces itself rather than silently under-rendering.
+      case "MeterStack":
+        map[p.id] = { kind: "MeterStack", rows: [], emptyLabel: "none" };
+        break;
       case "ExceptionList":
         map[p.id] = { kind: "ExceptionList", rows: [], emptyLabel: "none" };
         break;

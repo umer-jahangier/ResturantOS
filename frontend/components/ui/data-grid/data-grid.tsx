@@ -38,6 +38,25 @@ import { EmptyState } from "@/components/ui/empty-state";
  * | pagination | absent — 84 rows in one ungated list | 25/50/100 with `Page N of M` |
  * | at 390px | desktop table dropped in unchanged, **100 elements past the viewport** | card list |
  *
+ * <h3>Wave 38 — the type is doing the hierarchy now</h3>
+ *
+ * The structural defects above were fixed in 38-02 and the table was still, in the product
+ * owner's words, "very basic". The reason was that every cell rendered identically: same colour,
+ * same weight, same proportional face, so a 25-row page was a uniform field of strings. The demo
+ * spends its entire hierarchy budget on TYPE instead — one promoted column per row, everything
+ * else secondary, and mono on anything a reader compares digit by digit (`.td-primary` 55 uses,
+ * `.td-mono` 93). Three changes carry that here, and all three are in the cell classes rather
+ * than in any caller:
+ *
+ * <ul>
+ *   <li>the first visible column renders `font-medium text-foreground`, the rest
+ *       `text-foreground-secondary` — see the comment on the `<td>` for why it is chosen by
+ *       position;</li>
+ *   <li>`meta.mono` puts a column in the mono face with tabular figures;</li>
+ *   <li>`meta.align: "end"` right-aligns header and cells together, so a money column's digits
+ *       land under each other.</li>
+ * </ul>
+ *
  * <h3>Zone discipline — why this component is deliberately plain</h3>
  *
  * `DataGrid` is consumed by `restrained` **and** `operational` surfaces (UI-SPEC §5). It
@@ -90,6 +109,28 @@ const HIDE_BELOW = {
 
 export type HideBelow = keyof typeof HIDE_BELOW;
 
+/**
+ * The demo's `.td-mono`, which is the most-used component class in the whole demo file after
+ * `.text-dim`: **93 cells** carry it (`DEMO-COMPONENTS.md:713`).
+ *
+ * <h3>Why a column affordance and not a per-cell `className`</h3>
+ *
+ * <p>Mono is not decoration on a table — it is what makes a column of figures COMPARABLE. In a
+ * proportional face the digit `1` is narrower than `8`, so `1,118` and `8,881` do not line up
+ * their thousands separators and the eye cannot scan the column for magnitude; it has to read
+ * each number. The demo monospaces every price, quantity, reference and score for exactly this
+ * reason, and it applies it to the CELL, which means a caller who forgets one cell breaks the
+ * alignment for the whole column and nothing tells them.
+ *
+ * <p>Declaring it on the column instead makes that unfailable: the header, every body cell, and
+ * the alignment travel together, and a column cannot be half-mono.
+ *
+ * <p>`tabular-nums` rides along even though DM Mono is already fixed-pitch — a cell may render a
+ * `MoneyDisplay` or a `StatusBadge` that resets the family, and the numeric variant survives that
+ * where the family does not.
+ */
+const NUMERIC_CELL = "font-mono tabular-nums";
+
 declare module "@tanstack/react-table" {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- the shape of the interface
   // TanStack augments; both parameters are required by its declaration and neither is referenced.
@@ -102,6 +143,28 @@ declare module "@tanstack/react-table" {
      * product ends up with the "dozens of breakpoints" brief §60 names.
      */
     hideBelow?: HideBelow;
+
+    /**
+     * Render this column's cells in the mono face with tabular figures — the demo's `.td-mono`.
+     *
+     * <p>For anything a reader compares digit by digit or matches character by character:
+     * amounts, quantities, percentages, and identifiers (`#INV-2041`, `PO-1094`, SKUs, UUIDs).
+     * Not for dates rendered as words, and not for free text.
+     *
+     * <p>Combine with `align: "end"` for amounts. Identifiers stay left-aligned, because the
+     * feature a reader scans for in a reference is its PREFIX.
+     */
+    mono?: boolean;
+
+    /**
+     * Right-align the header and every cell in this column.
+     *
+     * <p>Money and counts only. The demo right-aligns its trailing action column implicitly
+     * (`DEMO-COMPONENTS.md:698` — `td:last-child { text-align: right }`), and that implicit rule
+     * is deliberately NOT reproduced: it silently right-aligns whatever a screen happens to put
+     * last, which on our purchase-order grid is a status badge.
+     */
+    align?: "start" | "end";
   }
 }
 
@@ -295,7 +358,25 @@ export function DataGrid<TData>({
       {/* ── Desktop: the table. Hidden below md, where the card list takes over. ─────────── */}
       <div
         className={cn(
-          "overflow-x-auto rounded-lg border",
+          // `relative` is not decoration and it is not a stacking-context trick. It is what stops
+          // the SCROLL CONTAINER leaking horizontally into the page.
+          //
+          // Measured in Chromium at 768px on `/app/roles/matrix`: `documentElement.scrollWidth`
+          // 910 against a 768px viewport — the whole page scrolled sideways by 142px — while
+          // `body.scrollWidth` was exactly 768 and every offending box reported a scroll
+          // container above it. The escapee was a one-pixel `sr-only` <span> inside a <td> of the
+          // over-wide table. `sr-only` is `position: absolute`, `<td>` is not positioned, and
+          // neither was this wrapper — so its containing block resolved all the way up to the
+          // INITIAL containing block, it was laid out at x≈909 in the document rather than
+          // inside the scroller, and it dragged the document's scroll width with it.
+          //
+          // One `position: relative` gives every absolutely-positioned descendant a containing
+          // block inside the scroller. It is deliberately NOT `transform`/`contain`, either of
+          // which would also do it: `receipt-print.css` pins `.receipt-root` to `position: fixed`
+          // and a containing-block creator on any ancestor prints the app chrome onto a
+          // customer's bill. `position: relative` does not create a containing block for a fixed
+          // descendant, which is why it is the safe member of that family here.
+          "relative overflow-x-auto rounded-lg border",
           // The card fallback only exists if the caller supplied one. Without it, keeping the
           // table on small screens is still better than rendering nothing — but `card` is
           // strongly expected, and the e2e gate asserts 0 tables at 390px on migrated screens.
@@ -346,7 +427,9 @@ export function DataGrid<TData>({
                 {headerGroup.headers.map((header) => {
                   const canSort = header.column.getCanSort();
                   const sorted = header.column.getIsSorted();
-                  const hide = header.column.columnDef.meta?.hideBelow;
+                  const meta = header.column.columnDef.meta;
+                  const hide = meta?.hideBelow;
+                  const end = meta?.align === "end";
                   return (
                     <th
                       key={header.id}
@@ -364,9 +447,21 @@ export function DataGrid<TData>({
                       }
                       className={cn(
                         "sticky top-0 z-(--z-sticky) bg-surface-2",
-                        "h-9 text-left align-middle whitespace-nowrap",
+                        "h-9 align-middle whitespace-nowrap",
+                        end ? "text-right" : "text-left",
                         // UI-SPEC §3: a column header IS the Label role.
-                        "text-label uppercase tracking-[0.04em] text-foreground-secondary",
+                        //
+                        // Tracking widened 0.04em → 0.08em to the demo's own figure
+                        // (`DEMO-COMPONENTS.md:686`, `.data-table th`). At 11px uppercase the
+                        // tracking is most of what separates a header from a short data value:
+                        // narrow-tracked small-caps reads as shouting, wide-tracked reads as a
+                        // label, and the demo's 0.07-0.08em band is where that flips.
+                        //
+                        // The colour stays `--foreground-secondary` and does NOT follow the demo
+                        // down to its `--text-3` tier. Measured in `DEMO-TOKENS.md` §1f, that tier
+                        // is 3.21:1 on the card surface — below WCAG AA for 11px text, and a
+                        // column header is the one label a screen cannot afford to lose.
+                        "text-label uppercase tracking-[0.08em] text-foreground-secondary",
                         CELL_PADDING[density],
                         hide && HIDE_BELOW[hide],
                       )}
@@ -377,7 +472,13 @@ export function DataGrid<TData>({
                           onClick={header.column.getToggleSortingHandler()}
                           // 44px hit area on a 36px header row (UI-SPEC §11: back-office rows
                           // may use a smaller box with a 44px target).
-                          className="-my-1 flex h-11 w-full items-center gap-1 text-left uppercase"
+                          className={cn(
+                            "-my-1 flex h-11 w-full items-center gap-1 uppercase",
+                            // The sort control fills the cell, so a right-aligned column has to
+                            // push its own contents over — `text-right` on the <th> does nothing
+                            // to a flex child.
+                            end ? "justify-end text-right" : "text-left",
+                          )}
                         >
                           {flexRender(header.column.columnDef.header, header.getContext())}
                           {sorted === "asc" ? (
@@ -426,8 +527,9 @@ export function DataGrid<TData>({
                       />
                     </td>
                   )}
-                  {row.getVisibleCells().map((cell) => {
-                    const hide = cell.column.columnDef.meta?.hideBelow;
+                  {row.getVisibleCells().map((cell, index) => {
+                    const meta = cell.column.columnDef.meta;
+                    const hide = meta?.hideBelow;
                     return (
                       <td
                         key={cell.id}
@@ -440,6 +542,29 @@ export function DataGrid<TData>({
                         className={cn(
                           CELL_PADDING[density],
                           "align-middle whitespace-nowrap",
+                          /*
+                           * TYPE does the hierarchy, which is the demo's central table decision
+                           * and the one this grid was missing.
+                           *
+                           * The demo defaults `td` to `--text-2` and promotes exactly one cell per
+                           * row to full `--text` at weight 500 (`.td-primary`, 55 uses). The
+                           * effect is that a 25-row page reads as a LIST of things with
+                           * attributes, rather than as a uniform grid of equally-loud strings that
+                           * the eye has to parse left to right. Before this, every cell here
+                           * rendered at full foreground and nothing was "the thing".
+                           *
+                           * Chosen by POSITION, not by a `primary` flag on the column. The first
+                           * visible column of a list is the identifying one in all fifteen call
+                           * sites, and `hideBelow` cannot move it: `getVisibleCells()` returns
+                           * every column the TABLE knows about — responsive hiding is CSS on the
+                           * cell, so index 0 is stable at every width and the emphasis cannot
+                           * migrate to a different column when the window narrows. The row
+                           * selection checkbox is rendered outside this map, so it never takes
+                           * the promotion.
+                           */
+                          index === 0 ? "font-medium text-foreground" : "text-foreground-secondary",
+                          meta?.align === "end" && "text-right",
+                          meta?.mono && NUMERIC_CELL,
                           hide && HIDE_BELOW[hide],
                         )}
                       >

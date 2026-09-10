@@ -18,6 +18,13 @@ function CrmPage() {
       <PageHeader
         title="Customers"
         description="Find a customer, see their loyalty standing, and review the points they have earned."
+        /*
+         * The stat subtitle names the SCOPE rather than a count, because the count belongs to the
+         * search below it and moves with every keystroke — stating it twice, in two components,
+         * is how a page starts contradicting itself. The strip inside `CustomerList` carries the
+         * figures, computed off the same array the grid renders.
+         */
+        meta="Search returns the closest 20 matches · Loyalty standing and points come from crm-service"
       />
 
       {/* The demo's universal back-office split — a wide list beside a narrow stack

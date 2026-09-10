@@ -8,11 +8,19 @@ import { readFileSync } from "node:fs";
  * JOURNEY — a tenant admin creates a user, assigns it a role, and that user signs in and
  * sees ONLY its permitted navigation.
  *
- * WHY THE CREATION HALF IS API-DRIVEN. There is no user-management UI: the "Users" nav entry
- * (/app/settings/users) is marked `comingSoon` and no page implements it — honestly hidden
- * rather than a dead link, unlike /platform/tenants (E2E-D3). So the OWNER drives the real
- * public API that a UI would call, and the assertion that matters — the new user signing in
- * and seeing a correctly-scoped app — happens in a browser.
+ * WHY THE CREATION HALF IS API-DRIVEN. The OWNER drives the real public API that a UI would
+ * call, and the assertion that matters — the new user signing in and seeing a correctly-scoped
+ * app — happens in a browser.
+ *
+ * <p>THAT JUSTIFICATION HAS EXPIRED AND IS LEFT NAMED RATHER THAN QUIETLY DROPPED. This
+ * docblock used to read "There is no user-management UI: the 'Users' nav entry
+ * (/app/settings/users) is marked `comingSoon` and no page implements it." Plan 19-01 built
+ * `app/(tenant)/app/users/page.tsx`, moved the nav entry off the never-built href to
+ * `/app/users`, and removed `comingSoon` (`sidebar-nav-items.ts:553-563`) — measured live
+ * 2026-08-22, an OWNER's sidebar renders "Users". So a UI-driven creation half is now possible
+ * and would be a stronger journey. Converting it is a separate change: the API half also
+ * asserts the 400 UNKNOWN_ROLE_CODE refusal and reads the temp password out of the response
+ * body, and neither has a UI equivalent yet.
  *
  * ISOLATION. Emails carry a per-run id, so re-running never collides and a failed run leaves
  * an identifiable orphan rather than blocking the next run. Users are deliberately NOT
@@ -251,20 +259,40 @@ test.describe("tenant admin provisions a user", () => {
     // ── and now the BROWSER: this user sees a WAITER's app, not everyone's ────────────
     const ctx = await browser.newContext();
     const state = await gateway.storageState();
-    await ctx.addCookies(
-      state.cookies
-        .filter((c) => c.name === "refresh_token")
-        .map((c) => ({ ...c, sameSite: "Strict" as const })),
-    );
+    const refreshCookie = state.cookies.find((c) => c.name === "refresh_token");
+    expect(
+      refreshCookie,
+      "the login above returned 200 but set no refresh_token cookie — nothing can rehydrate " +
+        "a session from it, and the browser half of this journey would fail 25s later and far " +
+        "from the cause.",
+    ).toBeTruthy();
+    await ctx.addCookies([{ ...refreshCookie!, sameSite: "Strict" as const }]);
+
+    // DOMAIN AND SECURE ARE DERIVED FROM THE REFRESH COOKIE, NOT HARDCODED.
+    //
+    // They were `domain: "localhost", secure: false`. Against dev.restaurantos.softxlogic.com
+    // the browser therefore never sent this marker, `proxy.ts` treated the request as signed
+    // out and bounced it to /login, and the assertion below timed out for 25s against a login
+    // form — reported as "a newly provisioned WAITER cannot see POS", which is a permissions
+    // sentence about a cookie-scoping bug. The error-context snapshot for the failing run is
+    // the login page, not the app shell.
+    //
+    // This is the SAME defect commit 1dbfae3f fixed in `e2e/setup/auth.setup.ts` (where it cost
+    // 59 failures that all looked like product defects and were one wrong string); that fix did
+    // not reach this spec, which mints its own context rather than using a minted storage
+    // state. The remedy is identical and is copied deliberately: the refresh cookie is issued
+    // by the server for the host actually under test, so its own `domain` is correct by
+    // construction, and on HTTPS a `SameSite=Strict` cookie must also be `secure` or the
+    // browser drops it.
     await ctx.addCookies([
       {
         name: "has_session",
         value: "1",
-        domain: "localhost",
+        domain: refreshCookie!.domain,
         path: "/",
         expires: Math.floor(Date.now() / 1000) + 3600,
         httpOnly: false,
-        secure: false,
+        secure: refreshCookie!.secure,
         sameSite: "Strict" as const,
       },
     ]);

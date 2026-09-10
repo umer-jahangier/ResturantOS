@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal } from "lucide-react";
+import { Layers, MoreHorizontal, Package, Snowflake, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -19,7 +19,9 @@ import { PermissionGuard } from "@/components/shared/permission-guard";
 import { DataGrid, type ColumnDef } from "@/components/ui/data-grid/data-grid";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { Select } from "@/components/ui/select";
+import { StatTile } from "@/components/ui/stat-tile";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { formatNumber } from "@/lib/format/locale";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Button } from "@/components/ui/button";
@@ -88,6 +90,18 @@ export default function IngredientsPage() {
    * cannot disagree about it. They did: the grid distinguished filtered-empty and the boundary
    * short-circuited to the truly-empty state before the grid ever rendered.
    */
+  /*
+   * The demo's Inventory screen opens on four KPI cards — `Total Ingredients 138`,
+   * `Stock Value`, `Low / Critical 5`, `Waste This Week` (DEMO-SCREENS:206). Two of those four
+   * are stock figures this screen does not hold (they are on `/app/inventory/stock` and
+   * `/coverage`, where they already have tiles), so the strip here states what the ingredient
+   * catalogue itself knows. Every figure is computed off `rows` — the array handed to the grid —
+   * so the tiles narrow with the filters exactly as the table does.
+   */
+  const categoriesRepresented = new Set(rows.map((i) => i.categoryId)).size;
+  const withAllergens = rows.filter((i) => i.allergenCodes.length > 0).length;
+  const perishable = rows.filter((i) => i.perishable).length;
+
   const isNarrowed =
     Boolean(categoryFilter) ||
     debouncedSearch.trim() !== "" ||
@@ -255,6 +269,27 @@ export default function IngredientsPage() {
           </PermissionGuard>
         }
       />
+
+      <div className="grid gap-(--space-md) md:grid-cols-2 xl:grid-cols-4">
+        <StatTile
+          label="Ingredients listed"
+          value={formatNumber(rows.length)}
+          icon={Package}
+          accent="primary"
+        />
+        <StatTile
+          label="Categories represented"
+          value={formatNumber(categoriesRepresented)}
+          icon={Layers}
+          accent="secondary"
+        />
+        <StatTile
+          label="Carrying an allergen"
+          value={formatNumber(withAllergens)}
+          icon={TriangleAlert}
+        />
+        <StatTile label="Perishable" value={formatNumber(perishable)} icon={Snowflake} />
+      </div>
 
       {/* Status and allergens are not `filters` entries: status has no "off" position (its
           default IS a filter, so an "All categories"-shaped entry would be a lie), and allergens

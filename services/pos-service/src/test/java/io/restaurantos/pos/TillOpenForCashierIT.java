@@ -63,9 +63,11 @@ class TillOpenForCashierIT extends PosTestBase {
     UUID managerId;
     UUID cashierId;
     UUID otherCashierId;
+    UUID reviewerId;
 
     private static final String OPEN_OWN = "pos.till.open";
     private static final String OPEN_OTHER = "pos.till.open.other";
+    private static final String REVIEW = "pos.till.review";
 
     @BeforeEach
     void setUp() {
@@ -75,6 +77,7 @@ class TillOpenForCashierIT extends PosTestBase {
         managerId = UUID.randomUUID();
         cashierId = UUID.randomUUID();
         otherCashierId = UUID.randomUUID();
+        reviewerId = UUID.randomUUID();
 
         // The directory's default answer: everybody named here is a cashier at this branch.
         when(authUserDirectoryClient.getUserPermissions(any(), any(), any()))
@@ -128,7 +131,7 @@ class TillOpenForCashierIT extends PosTestBase {
         assertThat(theirs.get(0).openingFloatPaisa()).isEqualTo(500_000L);
 
         // The manager did NOT thereby open a drawer for themselves.
-        assertThat(tillService.listTills(managerId, "OPEN")).isEmpty();
+        assertThat(tillsOf(managerId)).isEmpty();
     }
 
     @Test
@@ -163,8 +166,8 @@ class TillOpenForCashierIT extends PosTestBase {
                 .hasMessageContaining("pos.till.open.other");
 
         // …and nothing was created for either of them.
-        assertThat(tillService.listTills(otherCashierId, "OPEN")).isEmpty();
-        assertThat(tillService.listTills(cashierId, "OPEN")).isEmpty();
+        assertThat(tillsOf(otherCashierId)).isEmpty();
+        assertThat(tillsOf(cashierId)).isEmpty();
     }
 
     @Test
@@ -193,7 +196,7 @@ class TillOpenForCashierIT extends PosTestBase {
                 .isInstanceOf(PosExceptions.CashierNotEligibleForTillException.class)
                 .hasMessageContaining("cannot be given a till at this branch");
 
-        assertThat(tillService.listTills(otherCashierId, "OPEN")).isEmpty();
+        assertThat(tillsOf(otherCashierId)).isEmpty();
     }
 
     @Test
@@ -207,7 +210,7 @@ class TillOpenForCashierIT extends PosTestBase {
                 new OpenTillRequest(branchId, 500_000L, cashierId)))
                 .isInstanceOf(PosExceptions.CashierNotEligibleForTillException.class);
 
-        assertThat(tillService.listTills(cashierId, "OPEN")).isEmpty();
+        assertThat(tillsOf(cashierId)).isEmpty();
     }
 
     // ── (4) ONE OPEN TILL PER CASHIER, KEYED ON THE TARGET ────────────────────────────────
@@ -235,8 +238,8 @@ class TillOpenForCashierIT extends PosTestBase {
         TillSessionDto mine = tillService.openTill(new OpenTillRequest(branchId, 200_000L));
 
         assertThat(mine.cashierId()).isEqualTo(managerId);
-        assertThat(tillService.listTills(cashierId, "OPEN")).hasSize(1);
-        assertThat(tillService.listTills(managerId, "OPEN")).hasSize(1);
+        assertThat(tillsOf(cashierId)).hasSize(1);
+        assertThat(tillsOf(managerId)).hasSize(1);
     }
 
     // ── (5) THE PICKER ────────────────────────────────────────────────────────────────────
@@ -286,6 +289,32 @@ class TillOpenForCashierIT extends PosTestBase {
     /** MANAGER: holds pos.till.open.other on top of the cashier's own-drawer permission. */
     private void asManager() {
         signIn(managerId, List.of("MANAGER"), List.of(OPEN_OWN, "pos.till.close", OPEN_OTHER));
+    }
+
+    /**
+     * The OPEN tills belonging to {@code userId}, read by somebody entitled to read them.
+     *
+     * <p>Every assertion that goes through here is about WHOSE drawer exists, never about who may
+     * look. Those are different questions and they now have different owners: {@code
+     * TillServiceImpl.listTills} refuses a foreign {@code cashierId} outright unless the caller
+     * holds {@code pos.till.review} (commit b8658971, landed AFTER this suite was written), and
+     * {@code TillOwnershipGuardIT} is the file that proves that boundary — with a positive control,
+     * a branch-scoped case and the {@code ?branchId=} bypass.
+     *
+     * <p>Before this helper, five tests here asked those questions while still signed in as
+     * whoever had last acted — a cashier asking about the manager's drawer, a manager asking about
+     * the cashier's — and every one of them died on the ownership guard instead of reaching its
+     * own assertion. Reading through a reviewer restores the question each test was written to
+     * ask, and weakens nothing: the guard is not this file's subject, and no assertion in this
+     * file depends on the reader being refused.
+     *
+     * <p>A dedicated reviewer rather than handing {@code pos.till.review} to {@link #asManager()},
+     * so that what the duty manager holds — and therefore what every {@code openTill} assertion
+     * here is measured against — is left exactly as it was.
+     */
+    private List<TillSessionDto> tillsOf(UUID userId) {
+        signIn(reviewerId, List.of("MANAGER"), List.of(OPEN_OWN, REVIEW));
+        return tillService.listTills(userId, "OPEN");
     }
 
     /** CASHIER: holds pos.till.open and deliberately NOT pos.till.open.other. */

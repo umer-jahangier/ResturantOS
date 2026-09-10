@@ -127,6 +127,95 @@ describe("DataGrid — structure (UI-SPEC §7.2)", () => {
   });
 });
 
+/**
+ * Wave 38 — the demo's table hierarchy, which is carried entirely by TYPE.
+ *
+ * <p>The structural defects (sticky headers, one row height, paging, a card list) were fixed in
+ * 38-02 and the result was still judged "very basic", because every cell rendered at the same
+ * colour, weight and face: a 25-row page was a uniform field of strings with nothing to catch on.
+ * The demo spends its whole hierarchy budget here instead — `.td-primary` promotes exactly one
+ * cell per row (55 uses) and `.td-mono` monospaces anything comparable digit by digit (93 uses,
+ * the most-used class in the file after `.text-dim`).
+ *
+ * <p>These are class assertions, and that is deliberate: jsdom computes no cascade, so the class
+ * IS the contract. The alternative is asserting nothing about the thing the wave was asked for.
+ */
+describe("DataGrid — type does the hierarchy (DEMO-COMPONENTS.md §8)", () => {
+  const body = (container: HTMLElement) => Array.from(container.querySelectorAll("tbody tr"));
+
+  it("promotes the first column and drops the rest to secondary — one 'thing' per row", () => {
+    const { container } = render(<DataGrid columns={COLUMNS} data={ROWS} />);
+
+    for (const row of body(container)) {
+      const cells = Array.from(row.querySelectorAll("td"));
+      expect(cells[0]!.className).toContain("text-foreground");
+      expect(cells[0]!.className).toContain("font-medium");
+      for (const rest of cells.slice(1)) {
+        expect(rest.className).toContain("text-foreground-secondary");
+        expect(rest.className).not.toContain("font-medium");
+      }
+    }
+  });
+
+  it("keeps the promotion on the first column when a later one is responsively hidden", () => {
+    // The emphasis is chosen by INDEX, so this is the failure worth pinning: `hideBelow` is CSS
+    // on the cell and never removes it from `getVisibleCells()`, so index 0 must stay index 0 at
+    // every width. If that ever stops being true the promoted column migrates as the window
+    // narrows, and the row's identifying cell silently becomes some other cell.
+    const columns: ColumnDef<Row, unknown>[] = [
+      { accessorKey: "name", header: "Name" },
+      { accessorKey: "category", header: "Category", meta: { hideBelow: "lg" } },
+      { accessorKey: "total", header: "Total" },
+    ];
+    const { container } = render(<DataGrid columns={columns} data={ROWS} />);
+
+    for (const row of body(container)) {
+      const cells = Array.from(row.querySelectorAll("td"));
+      expect(cells).toHaveLength(3);
+      expect(cells[0]!.className).toContain("font-medium");
+      expect(cells[1]!.className).toContain("hidden");
+    }
+  });
+
+  it("gives a column mono + tabular figures so its digits line up down the page", () => {
+    const columns: ColumnDef<Row, unknown>[] = [
+      { accessorKey: "name", header: "Name" },
+      { accessorKey: "total", header: "Total", meta: { mono: true, align: "end" } },
+    ];
+    const { container } = render(<DataGrid columns={columns} data={ROWS} />);
+
+    for (const row of body(container)) {
+      const total = Array.from(row.querySelectorAll("td"))[1]!;
+      expect(total.className).toContain("font-mono");
+      expect(total.className).toContain("tabular-nums");
+      expect(total.className).toContain("text-right");
+    }
+  });
+
+  it("right-aligns the HEADER with its column, not just the cells", () => {
+    // A money column whose figures are right-aligned under a left-aligned header is worse than
+    // no alignment at all — the header stops pointing at the column it names.
+    const columns: ColumnDef<Row, unknown>[] = [
+      { accessorKey: "name", header: "Name" },
+      { accessorKey: "total", header: "Total", meta: { align: "end" } },
+    ];
+    const { container } = render(<DataGrid columns={columns} data={ROWS} />);
+
+    const headers = Array.from(container.querySelectorAll("thead th"));
+    expect(headers[0]!.className).toContain("text-left");
+    expect(headers[1]!.className).toContain("text-right");
+  });
+
+  it("tracks the header caps at the demo's 0.08em, which is what makes them read as labels", () => {
+    const { container } = render(<DataGrid columns={COLUMNS} data={ROWS} />);
+
+    for (const th of Array.from(container.querySelectorAll("thead th"))) {
+      expect(th.className).toContain("uppercase");
+      expect(th.className).toContain("tracking-[0.08em]");
+    }
+  });
+});
+
 describe("DataGrid — pagination (UI-SPEC §7.2)", () => {
   it("pages a long list and reports Page N of M", async () => {
     // /app/purchasing/purchase-orders rendered 84 rows in one ungated list.

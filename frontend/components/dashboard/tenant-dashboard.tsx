@@ -1,5 +1,7 @@
 "use client";
 
+import { useMemo } from "react";
+
 import { DashboardSkeleton } from "@/components/skeletons/dashboard-skeleton";
 import { AccountantDashboard } from "@/components/dashboard/accountant-dashboard";
 import { CashierDashboard, KitchenDashboard } from "@/components/dashboard/focused-dashboard";
@@ -8,8 +10,14 @@ import { InventoryDashboard } from "@/components/dashboard/inventory-dashboard";
 import { ManagerDashboard } from "@/components/dashboard/manager-dashboard";
 import { OwnerDashboard } from "@/components/dashboard/owner-dashboard";
 import { WaiterDashboard } from "@/components/dashboard/waiter-dashboard";
+import {
+  DashboardIdentityProvider,
+  type DashboardIdentity,
+} from "@/components/dashboard/dashboard-shell";
 import { resolveDashboardPreset } from "@/components/dashboard/presets";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
+import { useMyBranches } from "@/lib/hooks/auth/use-my-branches";
+import { useTenantBrand } from "@/lib/hooks/use-tenant-brand";
 
 /**
  * The dashboard router (UI-SPEC §7.3).
@@ -33,9 +41,34 @@ import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
  * asked the owner's question. WAITER reached `cashier` and was asked about a till it cannot
  * open. Each now has its own arm and its own preset; the `default` remains `cashier`, which is
  * still the most conservative page in the product and is what an unrecognised principal gets.
+ *
+ * <h3>It also owns the dateline, because it is the only arm rendered under the providers</h3>
+ *
+ * The demo's dashboard subtitle names the restaurant and the branch, and both come from
+ * `useQuery`. `DashboardShell` cannot fetch them itself — every dashboard unit test renders a
+ * role dashboard directly, with its own hooks mocked and no `QueryClientProvider` above it, so a
+ * query inside the shell throws in eight test files at once. This router is never rendered that
+ * way, so it resolves the identity here and pushes it down through
+ * {@link DashboardIdentityProvider}, which defaults to nothing.
  */
 export function TenantDashboard() {
-  const { roles, permissions, isAuthenticated } = useCurrentUser();
+  const { roles, permissions, branchId, isAuthenticated } = useCurrentUser();
+  const brand = useTenantBrand();
+  const branchesQuery = useMyBranches();
+  /*
+   * The dateline degrades rather than fails, and it says so out loud.
+   *
+   * `isError` is read explicitly — not because a failed branch list should surface an error
+   * notice here (it should not; the dashboard's figures are unaffected and eight `QueryBoundary`
+   * wrappers below already own the failures that matter), but because `data?.find(...) ?? null`
+   * on its own is bug shape 2 from GA-001: an outage silently becoming "no such branch". Written
+   * this way the omission is a DECISION — an unnamed branch, never a wrongly named one — and
+   * `state-coverage.test.tsx` can see that the question was asked.
+   */
+  const branchName = branchesQuery.isError
+    ? null
+    : (branchesQuery.data?.find((branch) => branch.id === branchId)?.name ?? null);
+  const identity = useMemo<DashboardIdentity>(() => ({ brand, branchName }), [brand, branchName]);
 
   // Resolving a preset before the session exists would flash the CASHIER dashboard at an
   // owner: `resolveDashboardPreset([], [])` correctly falls through to the most conservative
@@ -46,6 +79,14 @@ export function TenantDashboard() {
     return <DashboardSkeleton />;
   }
 
+  return (
+    <DashboardIdentityProvider identity={identity}>
+      {dashboardFor(roles, permissions)}
+    </DashboardIdentityProvider>
+  );
+}
+
+function dashboardFor(roles: readonly string[], permissions: readonly string[]) {
   switch (resolveDashboardPreset(roles, permissions)) {
     case "owner":
       return <OwnerDashboard />;

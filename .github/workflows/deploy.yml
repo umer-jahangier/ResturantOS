@@ -266,6 +266,38 @@ jobs:
             exit \$failed
           "
 
+      - name: Capacity and restart diagnostics (read-only, never fails the deploy)
+        # Why this exists. Both environments share ONE 8GB host (deploy/Makefile), and the
+        # manifests commit 5.4Gi of memory REQUESTS and 14.0Gi of limits per namespace — so
+        # dev+prod together request 10.8Gi on a box that also carries CyberPanel, mail and DNS.
+        # That arithmetic predicts eviction and OOM-kill, but it is only arithmetic: nothing
+        # here has ever measured what the node actually does. Restart counts and OOMKilled
+        # events are the difference between "the numbers look bad" and "this is what killed it".
+        #
+        # Strictly read-only, and `|| true` throughout: a diagnostic must never be the reason a
+        # good deploy goes red.
+        if: always()
+        env: { NS: "${{ needs.setup.outputs.namespace }}" }
+        run: |
+          ssh -o StrictHostKeyChecking=yes ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
+            echo '=== node capacity vs what is committed to it ==='
+            k3s kubectl describe node | sed -n '/Allocated resources/,/Events/p' || true
+            free -h || true
+
+            echo; echo '=== pods in BOTH namespaces, with restart counts ==='
+            k3s kubectl get pods -A -o wide 2>/dev/null | grep -E 'restaurantos-(dev|prod)|NAME' || true
+
+            echo; echo '=== anything NOT Running (Pending means it could not be scheduled) ==='
+            k3s kubectl get pods -A --field-selector=status.phase!=Running 2>/dev/null | grep -E 'restaurantos|NAME' || true
+
+            echo; echo '=== OOMKilled / Evicted / FailedScheduling in the last hour ==='
+            k3s kubectl get events -A --sort-by=.lastTimestamp 2>/dev/null \
+              | grep -Ei 'oomkill|evict|failedscheduling|insufficient|backoff' | tail -30 || true
+
+            echo; echo '=== per-pod memory actually in use (needs metrics-server) ==='
+            k3s kubectl top pods -A 2>/dev/null | grep -E 'restaurantos|NAME' || echo '  (metrics-server unavailable)'
+          " || true
+
       - name: Privileged post-migration fixups Liquibase cannot perform
         # The SQL lives in deploy/k8s/post-migrate-privileged.sql so it is reviewable in
         # a diff rather than buried in shell quoting; that file explains the defect and

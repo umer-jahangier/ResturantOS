@@ -1,5 +1,5 @@
 import { expect, test } from "../fixtures/auth.fixture";
-import { ALL_PERSONAS, persona } from "../fixtures/personas";
+import { ALL_PERSONAS, DASHBOARD_PRESET_BY_LOCAL, persona } from "../fixtures/personas";
 import { DEFECTS, tolerate } from "../fixtures/known-defects";
 
 /**
@@ -64,12 +64,29 @@ test.describe("persona access matrix", () => {
       // Not bounced back to /login by either gate.
       await expect(page).toHaveURL(/\/app\/dashboard/);
 
-      // The shell rendered with a session. KITCHEN_STAFF gets a different H1 by design
-      // (components/dashboard/tenant-dashboard.tsx:78-84).
-      const heading = p.local === "kitchen" ? "Kitchen" : "Dashboard";
-      await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible({
-        timeout: 20_000,
-      });
+      // The shell rendered with a session — AND with the right one.
+      //
+      // This was `getByRole("heading", { level: 1, name: "Dashboard" | "Kitchen" })` and could
+      // not pass: the dashboard `<h1>` is `preset.question`, so an OWNER's reads "Is the
+      // business healthy?" and a KITCHEN_STAFF's "What is on the pass?"
+      // (`dashboard-shell.tsx:133`, identical at `origin/main:37` — the build dev runs). All six
+      // personas spent 20s waiting for a heading this product has not rendered since the
+      // role-preset dashboards shipped, and the `nav[aria-label="Primary"]` assertion below it
+      // never ran.
+      //
+      // `data-preset` is deliberately not a re-typing of the new copy. It is the id
+      // `resolveDashboardPreset` picked FROM THE TOKEN'S ROLE (`presets.ts:792-806`), so this
+      // now proves three things the old string proved none of: the session resolved, the role
+      // claim was read, and the role-correct dashboard was chosen. A cashier served the owner's
+      // dashboard fails here; under the old assertion it passed.
+      const dashboard = page.getByTestId("dashboard");
+      await expect(dashboard).toBeVisible({ timeout: 20_000 });
+      await expect(
+        dashboard,
+        `${p.role} did not land on its own dashboard preset. The preset is resolved from the ` +
+          "JWT's `roles` claim, so a mismatch means either the token carries the wrong role or " +
+          "`resolveDashboardPreset` no longer maps it — both are more serious than a layout bug.",
+      ).toHaveAttribute("data-preset", DASHBOARD_PRESET_BY_LOCAL[p.local]);
 
       await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
     });

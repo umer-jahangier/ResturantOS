@@ -218,7 +218,12 @@ export async function uiLoginWithTotp(page: Page, p: Persona, tenantSlug: string
   await page.getByLabel("Password").fill(p.password);
   await page.getByRole("button", { name: "Sign in" }).click();
 
-  const totpField = page.getByLabel("Authenticator code");
+  // "Authenticator OR RECOVERY code" — the label the form has carried since recovery codes were
+  // added (`components/auth/login-form.tsx:704`, identical in origin/main). `getByLabel` matches
+  // a SUBSTRING, and "Authenticator code" is not a substring of that, so the old locator could
+  // never match on any build and this helper spent 15s failing against a form that was correct.
+  // Same defect, same fix, as step-up-totp.spec.ts.
+  const totpField = page.getByLabel("Authenticator or recovery code");
   await expect(
     totpField,
     "the server should have refused with TOTP_REQUIRED and the form should have revealed " +

@@ -5,6 +5,7 @@ import io.restaurantos.finance.web.InternalProvisioningController;
 import io.restaurantos.shared.feature.FeatureFlagService;
 import io.restaurantos.shared.security.JwtClaims;
 import io.restaurantos.shared.tenant.TenantContext;
+import io.restaurantos.shared.testsupport.TenantContextBindingTestFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -70,6 +71,13 @@ class FinanceEndpointAuthorizationIT extends FinanceTestBase {
     void setUp() {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .apply(SecurityMockMvcConfigurers.springSecurity())
+                // Binds TenantContext per REQUEST from the authenticated principal, the way
+                // JwtAuthenticationFilter does in production. Without it, the second perform() in
+                // any method runs with no tenant — the production filter clears on the way out,
+                // and it is right to. Green before this line only because the one multi-request
+                // test's second call expects 403, which short-circuits at @PreAuthorize before
+                // FeatureFlagAspect (LOWEST_PRECEDENCE) can call requireTenantId().
+                .addFilter(TenantContextBindingTestFilter.from(webApplicationContext), "/*")
                 .build();
         tenantContext.set(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), null);
         when(featureFlagService.isEnabled(any(), any())).thenReturn(true);

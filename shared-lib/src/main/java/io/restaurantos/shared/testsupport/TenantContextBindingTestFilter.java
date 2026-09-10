@@ -1,4 +1,4 @@
-package io.restaurantos.inventory;
+package io.restaurantos.shared.testsupport;
 
 import io.restaurantos.shared.security.JwtClaims;
 import io.restaurantos.shared.tenant.TenantContext;
@@ -12,24 +12,42 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.io.IOException;
+import java.util.Optional;
 
 /**
  * Binds {@link TenantContext} from the authenticated principal for the duration of a MockMvc
  * request — the job {@code JwtAuthenticationFilter} does in production from a Bearer token.
  *
+ * <h2>Why this lives in MAIN sources</h2>
+ *
+ * <p>Same reason as {@link TestContainerPorts}: it is reachable from every module's test classpath
+ * with no per-service pom change and no test-jar, which shared-lib does not publish. It is never
+ * loaded at runtime by any service — only a MockMvc setup ever names it.
+ *
  * <h2>Why this exists</h2>
  *
- * <p>These tests used to set the tenant once in {@code @BeforeEach} and rely on the ThreadLocal
- * surviving every {@code perform()} in the method. It did, because {@code JwtAuthenticationFilter}
- * returned early for a tokenless request without reaching the {@code finally} that clears. That
- * early return was a live cross-tenant read in production: an {@code /internal/**} call
- * authenticated by shared secret set the context and nothing unset it, so the next request on the
- * same Tomcat worker inherited that tenant. Fixing it (f72e012) meant the first {@code perform()}
- * in each test cleared the context and every later one ran with none — 124 occurrences of
- * "TenantContext is empty" across 10 IT classes in this module alone.
+ * <p>Tests used to set the tenant once in {@code @BeforeEach} and rely on the ThreadLocal surviving
+ * every {@code perform()} in the method. It did, because {@code JwtAuthenticationFilter} returned
+ * early for a tokenless request without reaching the {@code finally} that clears. That early return
+ * was a live cross-tenant read in production: an {@code /internal/**} call authenticated by shared
+ * secret set the context and nothing unset it, so the next request on the same Tomcat worker
+ * inherited that tenant. Fixing it (f72e012) meant the first {@code perform()} in each test cleared
+ * the context and every later one ran with none — 124 occurrences of "TenantContext is empty"
+ * across 10 IT classes in inventory-service alone.
  *
  * <p>The tests were wrong, not the fix. Production never promised a ThreadLocal would outlive a
  * request, so a test that depended on it was asserting against a guarantee that did not exist.
+ *
+ * <h2>How the same trap hides</h2>
+ *
+ * <p>A suite can carry this bug and still be green. {@code FeatureFlagAspect} declares no
+ * {@code @Order}, so it runs at {@code LOWEST_PRECEDENCE} — inside {@code @PreAuthorize}. A second
+ * request in the same test method that expects 403 short-circuits at method security and never
+ * reaches the aspect that would call {@code requireTenantId()}. Only a second <em>authorized</em>
+ * request exposes it, and then the status depends on how the module maps
+ * {@code IllegalStateException}: 500 in purchasing-service, 400/{@code INVALID_OPERATION} in
+ * finance-service. Install this filter rather than relying on a test's expected status to keep
+ * hiding the problem.
  *
  * <h2>Why it binds from the principal rather than being handed a tenant id</h2>
  *
@@ -46,7 +64,7 @@ import java.io.IOException;
  * calls between requests have a tenant. The request borrows the thread and gives it back as it
  * found it. Requests still cannot see each other's context, which is the property under test.
  */
-final class TenantContextBindingTestFilter implements Filter {
+public final class TenantContextBindingTestFilter implements Filter {
 
     private final TenantContext tenantContext;
 
@@ -54,7 +72,7 @@ final class TenantContextBindingTestFilter implements Filter {
         this.tenantContext = tenantContext;
     }
 
-    static TenantContextBindingTestFilter from(WebApplicationContext context) {
+    public static TenantContextBindingTestFilter from(WebApplicationContext context) {
         return new TenantContextBindingTestFilter(context.getBean(TenantContext.class));
     }
 
@@ -74,11 +92,11 @@ final class TenantContextBindingTestFilter implements Filter {
         }
     }
 
-    private static java.util.Optional<JwtClaims> claims() {
+    private static Optional<JwtClaims> claims() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof JwtClaims c)) {
-            return java.util.Optional.empty();
+            return Optional.empty();
         }
-        return java.util.Optional.of(c);
+        return Optional.of(c);
     }
 }

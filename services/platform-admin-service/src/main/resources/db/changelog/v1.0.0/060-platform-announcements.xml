@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        Platform announcements — in-app banners the SuperAdmin publishes to tenants, with an
+        acknowledgement trail.
+
+        ── What this is NOT, stated first because it is the thing that will be assumed ─────────────
+
+        This is IN-APP ONLY. There is no email, SMS or WhatsApp delivery and none can be built on
+        top of these tables, because notification-service is an empty POM module with no source
+        files, no route and no port. The same absence is why self-service forgot-password ships
+        disabled and the SuperAdmin is the delivery channel for a provisioned tenant's temporary
+        password. An "announcement" here is a row a tenant's own UI reads and renders; nothing
+        leaves the cluster.
+
+        Recording it in the schema rather than only in a service comment because the next author
+        to see an `announcements` table will reasonably assume something sends them.
+
+        ── NO ROW LEVEL SECURITY, deliberately ────────────────────────────────────────────────────
+
+        Read the header of 040-platform-db-rls-posture.xml before adding any policy here. It
+        measured what the fleet-standard predicate does to this database: a platform token carries
+        no tenant_id claim, TenantAwareDataSource therefore writes app.current_tenant_id = '', the
+        standard policy maps that to NULL and fails closed, and a probe table went from 2 rows to
+        0 with writes raising 42501. Isolation in platform_db is by database and by role, and
+        PlatformDbIsolationIT asserts the ABSENCE of policies here as a negative control.
+
+        The tenant-facing read is bounded in the application instead, by the audience match in
+        AnnouncementService.forTenant — which is the same posture as every other row in this
+        database, including impersonation_log.
+
+        ── Ownership and privilege ────────────────────────────────────────────────────────────────
+
+        Nothing here alters ownership, creates a role, or grants to a role that does not exist.
+        The service connects as platform_user (application.yml), which is also the role Liquibase
+        runs as, so these tables are created and used by one identity end to end — the same
+        arrangement 13-14's changeset 030-001 had to repair when they diverged.
+    -->
+
+    <changeSet id="060-001" author="platform-admin">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="announcements"/></not>
+        </preConditions>
+        <createTable tableName="announcements">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="title" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="body" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <!-- INFO / WARNING / CRITICAL. A severity a tenant cannot dismiss is a product
+                 decision, not a schema one, so it is not encoded here. -->
+            <column name="severity" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- ALL_TENANTS / TIER / TENANT. The values themselves live in announcement_audience
+                 so that "the GROWTH and ENTERPRISE tiers" is one announcement rather than two. -->
+            <column name="audience_kind" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="starts_at" type="TIMESTAMPTZ">
+                <constraints nullable="false"/>
+            </column>
+            <!--
+                NULLABLE, and null is a REAL STATE: "no end date", not "unknown" and not "expired".
+                The same distinction TenantEntity.renews_at documents. A UI must render it as
+                "until further notice" rather than as an empty date cell.
+            -->
+            <column name="ends_at" type="TIMESTAMPTZ"/>
+            <!-- platform_users.id. No FK: platform_users rows can be deactivated and, in principle,
+                 removed, and an announcement must not become undeletable-by-proxy or lose its
+                 authorship. Same reasoning as impersonation_log.platform_user_id, which resolves
+                 the email at read time and tolerates a missing row. -->
+            <column name="created_by" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <!--
+                Withdrawal is a REVOCATION, never a DELETE. An announcement that was shown to
+                tenants and then vanished takes its acknowledgement trail's meaning with it — an
+                acknowledgement of a message nobody can read is not evidence of anything. So the
+                row stays, stops matching the active window, and says when it stopped.
+            -->
+            <column name="revoked_at" type="TIMESTAMPTZ"/>
+            <column name="revoked_by" type="UUID"/>
+        </createTable>
+
+        <sql>ALTER TABLE announcements ADD CONSTRAINT chk_announcements_severity
+            CHECK (severity IN ('INFO','WARNING','CRITICAL'))</sql>
+        <sql>ALTER TABLE announcements ADD CONSTRAINT chk_announcements_audience_kind
+            CHECK (audience_kind IN ('ALL_TENANTS','TIER','TENANT'))</sql>
+        <!-- An active window that ends before it starts can never match, so it is a typo that
+             would present as "the announcement never appeared". Refused at the schema. -->
+        <sql>ALTER TABLE announcements ADD CONSTRAINT chk_announcements_window
+            CHECK (ends_at IS NULL OR ends_at > starts_at)</sql>
+
+        <rollback>
+            <dropTable tableName="announcements"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="060-002" author="platform-admin">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="announcement_audience"/></not>
+        </preConditions>
+        <!--
+            One row per targeted tier or tenant. A child table rather than a text[] or a jsonb
+            array because the tenant-facing read filters on it on every page load, and a child
+            table with an index is a join the planner understands. It also keeps the audience
+            queryable in the other direction — "which announcements target ENTERPRISE" — without
+            unnesting.
+        -->
+        <createTable tableName="announcement_audience">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="announcement_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <!-- TIER or TENANT, matching announcements.audience_kind. -->
+            <column name="audience_type" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- A tier name, or a tenant id as text. Text because the two id spaces are different
+                 types and a nullable column per type would allow a row that names neither. -->
+            <column name="audience_value" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <sql>ALTER TABLE announcement_audience ADD CONSTRAINT fk_announcement_audience_announcement
+            FOREIGN KEY (announcement_id) REFERENCES announcements(id) ON DELETE CASCADE</sql>
+        <sql>ALTER TABLE announcement_audience ADD CONSTRAINT chk_announcement_audience_type
+            CHECK (audience_type IN ('TIER','TENANT'))</sql>
+        <sql>CREATE UNIQUE INDEX IF NOT EXISTS ux_announcement_audience_entry
+            ON announcement_audience (announcement_id, audience_type, audience_value)</sql>
+        <sql>CREATE INDEX IF NOT EXISTS ix_announcement_audience_value
+            ON announcement_audience (audience_type, audience_value)</sql>
+
+        <rollback>
+            <dropTable tableName="announcement_audience"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="060-003" author="platform-admin">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="announcement_acknowledgements"/></not>
+        </preConditions>
+        <!--
+            The acknowledgement trail. One row per (announcement, user) — the composite primary key
+            IS the idempotency: a second acknowledgement from the same person is a no-op and the
+            FIRST timestamp survives, because "when did they first see this" is the question the
+            trail exists to answer and a re-render must not move it.
+
+            tenant_id is stored rather than derived. The user id belongs to auth_db, which
+            platform_db cannot reach — no FDW, no dblink, zero grants — so without the tenant on
+            the row there is no way to answer "which tenants have acknowledged" at all.
+        -->
+        <createTable tableName="announcement_acknowledgements">
+            <column name="announcement_id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="acknowledged_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <sql>ALTER TABLE announcement_acknowledgements ADD CONSTRAINT fk_announcement_ack_announcement
+            FOREIGN KEY (announcement_id) REFERENCES announcements(id) ON DELETE CASCADE</sql>
+        <sql>CREATE INDEX IF NOT EXISTS ix_announcement_ack_tenant
+            ON announcement_acknowledgements (announcement_id, tenant_id)</sql>
+
+        <rollback>
+            <dropTable tableName="announcement_acknowledgements"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="060-004" author="platform-admin">
+        <!--
+            The index the tenant-facing read actually uses: "which announcements are live right
+            now". Partial on revoked_at IS NULL because a revoked announcement can never match and
+            there is no reason to carry it in the index.
+        -->
+        <sql>CREATE INDEX IF NOT EXISTS ix_announcements_active_window
+            ON announcements (starts_at, ends_at) WHERE revoked_at IS NULL</sql>
+        <rollback>
+            <sql>DROP INDEX IF EXISTS ix_announcements_active_window</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

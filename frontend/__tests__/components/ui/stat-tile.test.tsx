@@ -319,13 +319,38 @@ describe("StatTile — zone safety (D-38-04) and the accent channel", () => {
   });
 
   it("changes padding with density but keeps the value at the display role", () => {
+    // 20px / 16px — the demo's `.card` / `.card-sm` pair (DEMO-COMPONENTS.md:373-377). Was
+    // 16px / 8px until wave 38; both rungs moved up one, because 8px around a 30px serif numeral
+    // is a large part of the "cheap" verdict this wave exists to answer. No call site in the
+    // product passed `density="compact"` when this changed, so the compact rung widened against
+    // nothing. `p-5` rather than `p-(--space-*)`: the space ladder is 4/8/16/24/32, with no 20.
     const { unmount } = render(<StatTile label="Covers" value="182" density="compact" />);
-    expect(tile().className).toContain("p-(--space-sm)");
+    expect(tile().className).toContain("p-(--space-md)");
     expect(part("value")!.className).toContain("text-display");
     unmount();
 
     render(<StatTile label="Covers" value="182" />);
-    expect(tile().className).toContain("p-(--space-md)");
+    expect(tile().className).toContain("p-5");
     expect(part("value")!.className).toContain("text-display");
+  });
+
+  it("keeps the label out of the eyebrow voice the card section header owns", () => {
+    // The demo separates them on purpose: `.card-title` is uppercase/0.08em, `.kpi-label` is
+    // plain sentence case (DEMO-COMPONENTS.md:453 declares no `text-transform`). This tile used
+    // to render its label uppercase, so a KPI strip inside a card stacked two ranks of small-caps
+    // and the hierarchy flattened. The eyebrow names the SECTION; the label names the METRIC.
+    render(<StatTile label="Today's revenue" value="4,218" />);
+
+    expect(part("label")!.className).not.toContain("uppercase");
+  });
+
+  it("rules the unavailable reason off rather than leaving it looking like a failure", () => {
+    // "Considered rather than broken" is a real requirement, not a mood: an unavailable tile
+    // sits in a strip beside three that have figures. Its accent chip and rail STAY, so the row
+    // has no visible hole, and the reason takes the dashed hairline `Meter` already uses for a
+    // track with no honest reading — the absence reads as issued, not as a render error.
+    render(<StatTile label="Net margin" unavailableReason="cogs_paisa is NULL" />);
+
+    expect(part("unavailable")!.className).toContain("border-dashed");
   });
 });

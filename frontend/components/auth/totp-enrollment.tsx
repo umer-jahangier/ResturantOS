@@ -12,6 +12,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  authInputClass,
+  authLabelClass,
+  authPrimaryButtonClass,
+  authSecondaryButtonClass,
+} from "@/components/auth/auth-chrome";
+import { cn } from "@/lib/utils";
 
 /**
  * First-time two-factor enrolment, in the login card (GA-008).
@@ -146,9 +153,9 @@ export function TotpEnrollment({
   if (recoveryCodes) {
     return (
       <div className="grid gap-4" data-testid="totp-enrollment">
-        <div>
-          <h2 className="text-h2 font-medium">Two-factor authentication is on</h2>
-          <p className="text-body text-muted-foreground">One last step before you sign in.</p>
+        <div className="grid gap-1">
+          <h2 className="text-h2 font-semibold text-foreground">Two-factor authentication is on</h2>
+          <p className="text-body text-foreground-secondary">One last step before you sign in.</p>
         </div>
         <RecoveryCodesPanel
           codes={recoveryCodes}
@@ -165,9 +172,9 @@ export function TotpEnrollment({
 
   return (
     <div className="grid gap-4" data-testid="totp-enrollment">
-      <div>
-        <h2 className="text-h2 font-medium">Set up two-factor authentication</h2>
-        <p className="text-body text-muted-foreground">
+      <div className="grid gap-1">
+        <h2 className="text-h2 font-semibold text-foreground">Set up two-factor authentication</h2>
+        <p className="text-body text-foreground-secondary">
           This account can approve payroll, close accounting periods or manage access, so signing in
           needs a code from an authenticator app as well as your password. Setting it up takes a
           minute and only happens once.
@@ -175,47 +182,74 @@ export function TotpEnrollment({
       </div>
 
       {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>Setup failed</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+        <Alert
+          variant="destructive"
+          className="items-start gap-x-3 border-destructive/35 bg-destructive/10 px-3.5 py-3"
+        >
+          <AlertTitle className="text-body">Setup failed</AlertTitle>
+          <AlertDescription className="text-small">{error}</AlertDescription>
         </Alert>
       ) : null}
 
       {!otpauthUri ? (
         <>
-          <ol className="list-decimal space-y-1 pl-5 text-body text-muted-foreground">
-            <li>
-              Install an authenticator app — Google Authenticator, Authy, 1Password and Microsoft
-              Authenticator all work.
-            </li>
-            <li>Press the button below to generate your setup code.</li>
-            <li>Scan the QR code, then enter the six-digit code the app shows.</li>
-            <li>Save the recovery codes we give you at the end.</li>
+          {/*
+            A numbered rail rather than a `list-decimal` bullet run. The four steps are the whole
+            of what this screen asks of a person who has never done it, and at 15px grey they read
+            as a paragraph that happens to have numbers in it. The gold numerals are the demo's own
+            device — an accent used to mark sequence, not to decorate.
+          */}
+          <ol className="grid gap-3">
+            {[
+              "Install an authenticator app — Google Authenticator, Authy, 1Password and Microsoft Authenticator all work.",
+              "Press the button below to generate your setup code.",
+              "Scan the QR code, then enter the six-digit code the app shows.",
+              "Save the recovery codes we give you at the end.",
+            ].map((instruction, index) => (
+              <li key={instruction} className="flex items-start gap-3">
+                <span
+                  aria-hidden="true"
+                  className="mt-px flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 font-mono text-label font-medium text-primary"
+                >
+                  {index + 1}
+                </span>
+                <span className="text-small text-foreground-secondary">{instruction}</span>
+              </li>
+            ))}
           </ol>
-          <Button
-            type="button"
-            onClick={startEnrolment}
-            disabled={bootstrap.isPending}
-            data-testid="totp-enroll-start"
-          >
-            {bootstrap.isPending ? "Generating…" : "Generate my key"}
-          </Button>
-          <Button type="button" variant="ghost" onClick={onCancel} disabled={bootstrap.isPending}>
-            Back to sign in
-          </Button>
+          <div className="grid gap-2">
+            <Button
+              type="button"
+              onClick={startEnrolment}
+              disabled={bootstrap.isPending}
+              data-testid="totp-enroll-start"
+              className={authPrimaryButtonClass}
+            >
+              {bootstrap.isPending ? "Generating…" : "Generate my key"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onCancel}
+              disabled={bootstrap.isPending}
+              className={authSecondaryButtonClass}
+            >
+              Back to sign in
+            </Button>
+          </div>
         </>
       ) : (
         <>
-          <div className="grid gap-2 rounded-lg border bg-muted/40 p-3">
-            <p className="text-body font-medium">Scan this with your authenticator app</p>
+          <div className="grid gap-3 rounded-lg border border-border bg-surface-1 p-4">
+            <p className={authLabelClass}>Scan this with your authenticator app</p>
             <TotpQrCode otpauthUri={otpauthUri} />
-            <p className="text-label text-muted-foreground">
+            <p className="text-small text-foreground-tertiary">
               Can&apos;t scan it? Enter this key by hand instead:
             </p>
             {secret ? (
               <div className="flex items-center gap-2">
                 <code
-                  className="flex-1 select-all break-all rounded-md bg-background px-2 py-1.5 font-mono text-body tracking-wide"
+                  className="flex-1 select-all rounded-md border border-border bg-background px-2.5 py-2 font-mono text-small tracking-[0.14em] break-all text-foreground"
                   data-testid="totp-secret"
                 >
                   {grouped(secret)}
@@ -235,25 +269,28 @@ export function TotpEnrollment({
                 otpauth: scheme — which is the closest thing to scanning a code without one. */}
             <a
               href={otpauthUri}
-              className="text-body text-primary underline underline-offset-4"
+              className="text-small text-primary underline underline-offset-4"
               data-testid="totp-otpauth-link"
             >
               Open in your authenticator app
             </a>
-            <p className="text-label text-muted-foreground">
+            <p className="text-small text-foreground-tertiary">
               After you enter the code below we will give you recovery codes — those, not this key,
               are what gets you back in if you lose your phone.
             </p>
           </div>
 
-          <div className="grid gap-1.5">
-            <Label htmlFor="totp-enroll-code">Six-digit code from the app</Label>
+          <div className="grid gap-2">
+            <Label htmlFor="totp-enroll-code" className={authLabelClass}>
+              Six-digit code from the app
+            </Label>
             <Input
               id="totp-enroll-code"
               inputMode="numeric"
               autoComplete="one-time-code"
               placeholder="123456"
               maxLength={6}
+              className={cn(authInputClass, "font-mono tracking-[0.3em]")}
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
               onKeyDown={(e) => {
@@ -266,17 +303,26 @@ export function TotpEnrollment({
             />
           </div>
 
-          <Button
-            type="button"
-            onClick={submitCode}
-            disabled={verify.isPending || code.trim().length !== 6}
-            data-testid="totp-enroll-verify"
-          >
-            {verify.isPending ? "Verifying…" : "Finish setup"}
-          </Button>
-          <Button type="button" variant="ghost" onClick={onCancel} disabled={verify.isPending}>
-            Cancel
-          </Button>
+          <div className="grid gap-2">
+            <Button
+              type="button"
+              onClick={submitCode}
+              disabled={verify.isPending || code.trim().length !== 6}
+              data-testid="totp-enroll-verify"
+              className={authPrimaryButtonClass}
+            >
+              {verify.isPending ? "Verifying…" : "Finish setup"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onCancel}
+              disabled={verify.isPending}
+              className={authSecondaryButtonClass}
+            >
+              Cancel
+            </Button>
+          </div>
         </>
       )}
     </div>

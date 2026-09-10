@@ -59,13 +59,48 @@ test.describe("Finance opens on the day's takings", () => {
     await page.goto(`/app/finance/takings?date=${SEEDED_DATE}`);
     await expect(page.getByTestId("takings-date")).toHaveValue(SEEDED_DATE);
 
+    /*
+     * PRECONDITION, stated before the figures rather than discovered through them.
+     *
+     * <p>`TakingsBody` — and every `figure-tile-*` in it — is mounted only for a day that traded
+     * (`DailyTakings.tsx:126-137`); an empty day renders the empty state instead, and the tiles
+     * are simply not in the DOM. Without this check the whole test failed as
+     * `getByTestId('figure-tile-gross-sales') — element(s) not found`, which reads as a missing
+     * hook or a broken screen and is neither. Measured against dev 2026-08-22: 2026-08-06 shows
+     * "0 orders closed on this trading day", so the day this spec was written around does not
+     * exist on that database.
+     */
+    await expect(
+      page.getByText("No trading recorded on this date"),
+      `${SEEDED_DATE} has no trading on this environment, so the figures this test asserts do ` +
+        "not exist and the tiles are correctly absent. This is a SEED problem, not a Takings " +
+        "one — re-seed the trading day, or point SEEDED_DATE at a day this database holds.",
+    ).toHaveCount(0);
+
     // ── The figures, as pos-service states them ──────────────────────────────────────────────
     await expect(page.getByTestId("figure-tile-gross-sales")).toContainText("Rs 33,390.00");
-    await expect(page.getByTestId("figure-tile-net-sales")).toContainText("Rs 38,732.40");
+    /*
+     * TOTAL BILLED, not net sales — and the difference is the entire point of this screen.
+     *
+     * <p>This line read `figure-tile-net-sales` against `Rs 38,732.40` while the line above
+     * asserts gross is `Rs 33,390.00`. Net sales GREATER than gross sales is impossible under the
+     * identity the page prints two inches lower ("Gross sales − discounts = net sales", rendered
+     * as `takings-identity`), so this assertion could only ever have passed against a screen that
+     * was wrong. It is the pre-F5 defect written down as an expectation:
+     * `DailyTakings.tsx:207-211` records one tile carrying the bill total under the word "net",
+     * "and an accountant reading it over-stated revenue by the whole output-tax line".
+     *
+     * <p>`Rs 38,732.40` is net + tax + service charge, which is `figure-tile-total-billed` —
+     * the tile whose own hint calls it "the figure the tender split below reconciles against",
+     * and the number the two tender rows below add up to.
+     */
+    await expect(page.getByTestId("figure-tile-total-billed")).toContainText("Rs 38,732.40");
 
-    // ── The tender split ties to net ─────────────────────────────────────────────────────────
+    // ── The tender split ties to TOTAL BILLED ────────────────────────────────────────────────
     // Rs 10,068.80 card + Rs 28,663.60 cash = Rs 38,732.40. The SCREEN does not do this sum;
     // this assertion does, which is the point — a client-side total would be unfalsifiable.
+    // (The heading said "ties to net" and it does not: money is tendered against the bill, which
+    // includes the tax and the service charge. Same confusion, one line up.)
     await expect(page.getByTestId("tender-row-CARD")).toContainText("Rs 10,068.80");
     await expect(page.getByTestId("tender-row-CASH")).toContainText("Rs 28,663.60");
 

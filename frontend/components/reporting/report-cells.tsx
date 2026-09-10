@@ -91,16 +91,23 @@ export function ReportCell({ column, value }: { column: string; value: unknown }
     return <span aria-label={`${formatColumnLabel(column)} not available`}>—</span>;
   }
   if (isMoneyColumn(column) && (typeof value === "number" || typeof value === "bigint")) {
-    return <MoneyDisplay paisa={value} />;
+    // MONO, per the demo's table rule: every amount and every reference is set in the mono face,
+    // which is what makes a column of figures line up as a column rather than as a list. The
+    // formatting is still `MoneyDisplay`'s — this adds a face, never a second construction of
+    // the string (`money-display.tsx` is the only path, 37-01).
+    return <MoneyDisplay paisa={value} className="font-mono" />;
   }
   if (isInstantColumn(column) && (typeof value === "string" || typeof value === "number")) {
     return <span>{formatDateTime(value)}</span>;
   }
   if (typeof value === "number") {
     if (column === "hour_of_day") return <span>{formatHourLabel(value)}</span>;
-    if (isIdentifierColumn(column)) return <span>{String(value)}</span>;
-    return <span>{formatNumber(value)}</span>;
+    if (isIdentifierColumn(column)) return <span className="font-mono">{String(value)}</span>;
+    return <span className="tabular-nums">{formatNumber(value)}</span>;
   }
+  // A STRING in an `_id`/`_no` column is a reference too — `order_no`, `invoice_no` and every
+  // uuid arrive this way, and they are the `#INV-2041` / `PO-1094` the demo sets in mono.
+  if (isIdentifierColumn(column)) return <span className="font-mono">{String(value)}</span>;
   return <span>{String(value)}</span>;
 }
 

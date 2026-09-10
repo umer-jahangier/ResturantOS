@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -104,7 +105,7 @@ public class PrintJobServiceImpl implements PrintJobService {
         }
 
         int nextSeq = nextSequence(tenantId, orderId, type, targetPrinterId);
-        Instant issuedAt = Instant.now();
+        Instant issuedAt = stampNow();
 
         PrintDocument stamped = restamp(body, nextSeq, nextSeq > 1, issuedAt, originalIssuedAt);
 
@@ -156,7 +157,7 @@ public class PrintJobServiceImpl implements PrintJobService {
         PrintDocument.DocumentType type = PrintDocument.DocumentType.KITCHEN_TICKET;
 
         int nextSeq = nextSequence(tenantId, orderId, type, targetPrinterId);
-        Instant issuedAt = Instant.now();
+        Instant issuedAt = stampNow();
         // Sequence > 1 for a kitchen ticket means the SAME station is being re-issued for the same
         // order — a manual reprint of a lost ticket, not a new fire (a new fire carries a new
         // revision). Stamping it as a reprint is what puts "*** REPRINT #2 ***" on the paper, so a
@@ -214,7 +215,7 @@ public class PrintJobServiceImpl implements PrintJobService {
                 continue;
             }
             int nextSeq = nextSequence(tenantId, orderId, type, target);
-            Instant issuedAt = Instant.now();
+            Instant issuedAt = stampNow();
             // THE SAME BYTES the kitchen was originally given, restamped as a reprint so the
             // renderer bands it and a cook does not cook the order twice.
             PrintDocument stamped = restamp(first.getDocument(), nextSeq, true, issuedAt,
@@ -241,11 +242,27 @@ public class PrintJobServiceImpl implements PrintJobService {
         return reprinted;
     }
 
+    /**
+     * Now, at the precision the database can actually keep.
+     *
+     * <p>Postgres {@code timestamptz} holds microseconds; {@code Instant.now()} carries
+     * nanoseconds. Stamping the raw value made a document's own {@code issuedAt} differ from the
+     * one persisted alongside it in the sub-microsecond digits — so a reprint, which reads the
+     * first issue back through the repository, reported an {@code originalIssuedAt} that did not
+     * equal the original document's {@code issuedAt}. Whether that reread came from the database
+     * or from Hibernate's first-level cache decided which value you got, which is why
+     * {@code PrintJobIssuanceIT.reprint_isByteIdenticalApartFromIssueMetadata} failed only
+     * sometimes. Truncating here makes the stamp survive a round trip unchanged.
+     */
+    private static Instant stampNow() {
+        return Instant.now().truncatedTo(ChronoUnit.MICROS);
+    }
+
     private Instant firstIssuedAt(UUID tenantId, UUID orderId, PrintDocument.DocumentType type,
                                   String target) {
         return printJobRepository.findFirstIssue(tenantId, orderId, type, target)
                 .map(PrintJob::getIssuedAt)
-                .orElse(Instant.now());
+                .orElse(stampNow());
     }
 
     @Override

@@ -209,7 +209,9 @@ export function TaxConfigForm({
         <section className="space-y-2">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-medium">Income bands</h2>
+              <h2 className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary">
+                Income bands
+              </h2>
               <p className="text-muted-foreground text-small">
                 Bands must start at 0 and run without gaps or overlaps, and the highest band must
                 have no upper limit — leave its “up to” blank.
@@ -227,7 +229,12 @@ export function TaxConfigForm({
             </Button>
           </div>
 
-          <table className="w-full text-small">
+          {/*
+            `table-stack` (globals.css): below `md` each PAYE band becomes a card of four labelled
+            inputs. Four number fields plus a Remove button across a 390px row gave every field
+            about 60px, which is narrower than the figures they hold.
+          */}
+          <table className="table-stack w-full text-small">
             <thead>
               <tr className="text-muted-foreground border-b text-left">
                 <th className="py-1">From (Rs)</th>
@@ -241,7 +248,7 @@ export function TaxConfigForm({
               {bands.fields.map((band, index) => (
                 <tr key={band.id} className="border-b align-top">
                   {(["minRupees", "maxRupees", "baseTaxRupees", "ratePct"] as const).map((name) => (
-                    <td key={name} className="py-1 pr-2">
+                    <td key={name} className="py-1 pr-2" data-label={BAND_LABELS[name]}>
                       <FormField
                         control={form.control}
                         name={`slabs.${index}.${name}` as const}
@@ -263,7 +270,7 @@ export function TaxConfigForm({
                       />
                     </td>
                   ))}
-                  <td className="py-1 text-right">
+                  <td className="py-1 text-right" data-stack="full">
                     <Button
                       type="button"
                       variant="ghost"

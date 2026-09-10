@@ -1,10 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronRight, Menu, Search } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import { useTheme } from "@teispace/next-themes";
+
+import { cn } from "@/lib/utils";
+import { formatDateTime } from "@/lib/format/locale";
+import { useOnlineStatus } from "@/lib/offline/use-online-status";
+import { isOperatorRoute } from "@/components/pos/operator-strip";
 
 import { ThemeToggle, nextThemeInCycle } from "@/components/ui/theme-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -104,20 +109,195 @@ function Breadcrumb() {
   if (segments.length === 0) return null;
 
   return (
-    <nav aria-label="Breadcrumb" className="hidden md:flex items-center gap-1 text-sm">
+    /*
+     * `NEXUS_ERP_Demo.html:157-159` — three rules, and the third is the one that was missing:
+     *
+     *   .topbar-breadcrumb { font-size: 13px; color: var(--text-2); gap: 6px }
+     *   .topbar-breadcrumb .current { color: var(--text); font-weight: 600 }
+     *   .topbar-sep { opacity: 0.3 }
+     *
+     * The separator is a "/" at 30% opacity, not an icon. Its intent note is exact: *"the slash
+     * never reads as content"*. A full-strength `ChevronRight` at the same size as the labels is
+     * six glyphs of chrome competing with four words of information, which is what ours was.
+     *
+     * The ancestors dim and the CURRENT segment carries the weight, so the trail reads as one
+     * line with an emphasis rather than as four equal words.
+     *
+     * <h3>Below `md` the trail collapses to its last segment — it does not disappear</h3>
+     *
+     * <p>This nav was `hidden md:flex`, and everything else on the bar that carries meaning is
+     * `md:`-gated too: the branch chip, the connection pill and the clock. So the measured
+     * phone rendering of this header was a hamburger, a stretch of empty bar, and three icons
+     * — <b>the one surface that is on every screen never said which screen you were on</b>, on
+     * the device class the product owner asked to be judged on.
+     *
+     * <p>The fix is not to shrink four segments onto a 390px line; it is to show the segment
+     * that answers the question. The ancestors stay `hidden md:flex` (a phone user navigated
+     * here and knows the path they took), the current segment truncates rather than wraps, and
+     * the separators go with the ancestors so no line ever opens on a "/". At `md` and up the
+     * full trail is byte-identical to what shipped.
+     */
+    <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-small">
       {segments.map((segment, index) => {
         const isLast = index === segments.length - 1;
         const parent = allSegments[start + index - 1];
         return (
-          <span key={index} className="flex items-center gap-1">
-            {index > 0 && <ChevronRight className="size-3 text-muted-foreground" />}
-            <span className={isLast ? "font-medium text-foreground" : "text-muted-foreground"}>
+          <span
+            key={index}
+            className={cn("items-center gap-1.5", isLast ? "flex min-w-0" : "hidden md:flex")}
+          >
+            {index > 0 && (
+              <span aria-hidden="true" className="hidden opacity-30 select-none md:inline">
+                /
+              </span>
+            )}
+            <span
+              className={cn(
+                "truncate",
+                isLast ? "font-semibold text-foreground" : "text-muted-foreground",
+              )}
+            >
               {segmentLabel(segment, parent)}
             </span>
           </span>
         );
       })}
     </nav>
+  );
+}
+
+/**
+ * Does the shell chrome render ABOVE an operational screen on this route?
+ *
+ * <p>The shell's own zone is `restrained` and cannot be anything else, because — as
+ * `app/(tenant)/layout.tsx` puts it — *"the chrome cannot be richer than the poorest zone it can
+ * appear over"*. But `restrained` is the zone of the CHROME, not of the page under it, and React
+ * context cannot tell this component that a KDS board is mounted below: the zone provider for
+ * the board lives inside `<main>`, i.e. underneath this header, not above it.
+ *
+ * <p>So the one perpetual animation in this file is gated on the ROUTE, the same instrument the
+ * operator shell is gated on. `/app/pos/**` never reaches here at all (the layout returns the
+ * operator shell before TopBar is rendered); `/app/kitchen/**` DOES — a KDS station board is a
+ * back-office-shelled route — and a wall display that runs unattended for a twelve-hour shift is
+ * the last surface in the product that should carry a 2s breathing dot two feet above it.
+ */
+function isOperationalRoute(pathname: string | null): boolean {
+  if (!pathname) return false;
+  if (isOperatorRoute(pathname)) return true;
+  return pathname === "/app/kitchen" || pathname.startsWith("/app/kitchen/");
+}
+
+/**
+ * The LIVE pill (`NEXUS_ERP_Demo.html:175-182`), bound to something real.
+ *
+ * <h3>Why this is a connectivity pill and not a decoration that says LIVE</h3>
+ *
+ * The demo's pill is a static `<div>` and its dot pulses forever regardless of anything. Shipping
+ * that would repeat GA-059 exactly: this shell already carried a notification bell with
+ * `aria-label="Notifications (3 unread)"`, permanently, with no notification reader anywhere in
+ * the product — and the note left when it was deleted is the rule for this file. *"A control that
+ * cannot act, advertising a count that is not real, is not a placeholder: it is the shell
+ * manufacturing anxiety it has no way to resolve."*
+ *
+ * <p>The demo's own INTENT note says what the device is for — *"a 2s breath that says this data is
+ * arriving, not cached … earned because staleness is the one thing a live ops dashboard must
+ * never fake"* — and this product has a truthful source for exactly that claim:
+ * `lib/offline/use-online-status.ts`, the browser's `online`/`offline` events, already trusted by
+ * the POS to decide whether an order is sent or queued. So the pill states connectivity: LIVE
+ * when the screens can reach the server, OFFLINE when they cannot and the figures on screen are
+ * therefore last-known rather than current. On a restaurant's wifi that is not a hypothetical.
+ *
+ * <h3>Three channels, not one (D-38-13 §4.2)</h3>
+ *
+ * Hue is never the only signal: the pill states the condition in WORDS, changes its border and
+ * fill, and carries a `title` that says what the state means for what the reader is looking at.
+ * It survives greyscale and colour-blindness with the text alone.
+ */
+function ConnectionPill({ animate }: { animate: boolean }) {
+  const { isOnline } = useOnlineStatus();
+
+  return (
+    <span
+      role="status"
+      data-testid="top-bar-connection"
+      data-online={isOnline}
+      title={
+        isOnline
+          ? "Connected. Screens are reading from the server."
+          : "No connection. Figures on screen are the last values received, not current ones."
+      }
+      className={cn(
+        "hidden items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-label font-semibold tracking-brandmark md:inline-flex",
+        isOnline
+          ? "border-success/30 bg-success/10 text-success"
+          : "border-destructive/30 bg-destructive/10 text-destructive",
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "size-1.5 rounded-full",
+          isOnline ? "bg-success" : "bg-destructive",
+          // Tailwind's stock `animate-pulse` is `pulse 2s … infinite` and its keyframe moves
+          // OPACITY only — the demo's moves `transform: scale()` as well, which would make this
+          // dot a containing block for fixed descendants and put a transform in the shell that
+          // renders above `receipt-print.css`'s `position: fixed` bill. Same 2s breath, none of
+          // the compositing consequences. Reduced motion removes it through the global net in
+          // `globals.css`, which the demo's hand-rolled keyframe would also have needed.
+          animate && "animate-pulse",
+        )}
+      />
+      {isOnline ? "LIVE" : "OFFLINE"}
+    </span>
+  );
+}
+
+/**
+ * The wall clock (`NEXUS_ERP_Demo.html:161-162` + `:1344`) — mono, dimmest tier, ambient.
+ *
+ * <h3>Two of this repo's lint rules meet here, and one shape satisfies both</h3>
+ *
+ * The precedent is `components/reporting/DashboardTileGrid.tsx:49-58`, which solved the identical
+ * problem: `react-hooks/purity` forbids reading the wall clock during render (the prerender and
+ * the hydration would disagree on a value that changes every second — a text mismatch), and
+ * `react-hooks/set-state-in-effect` forbids seeding it synchronously from the effect body. So the
+ * time lives in state and is written ONLY from timer callbacks, and until the first one fires
+ * nothing is rendered — which is the honest rendering of "this component does not know what time
+ * it is yet" and is also what makes the server and the client agree at first paint.
+ *
+ * <h3>Why it ticks every 30s and not every second</h3>
+ *
+ * The demo calls `toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })` on a 1s
+ * interval — 59 of every 60 renders produce the identical string. This header is mounted on every
+ * back-office route including the KDS board, so a per-second re-render of the whole top bar is a
+ * cost paid on a wall display for a digit that does not exist. 30s is the coarsest interval that
+ * cannot show a stale minute.
+ *
+ * <p>Formatted through `lib/format/locale.ts`, which pins BOTH the locale and the time zone. A
+ * bare `toLocaleTimeString` is the G5 defect — it resolves to the server's ICU default in the
+ * prerender and to `navigator.language` in the browser.
+ */
+function Clock() {
+  const [now, setNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const tick = () => setNow(new Date());
+    // Not called synchronously here: `react-hooks/set-state-in-effect`. A zero-delay timeout is
+    // the next macrotask, so the clock still appears on the frame after mount.
+    const first = setTimeout(tick, 0);
+    const interval = setInterval(tick, 30_000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(interval);
+    };
+  }, []);
+
+  if (!now) return null;
+
+  return (
+    <span className="hidden font-mono text-small tabular-nums text-foreground-tertiary md:inline">
+      {formatDateTime(now, { hour: "2-digit", minute: "2-digit" })}
+    </span>
   );
 }
 
@@ -142,6 +322,7 @@ const NAV_COMMANDS: { label: string; href: string; roles?: string[]; permissions
 export function TopBar({ onMobileMenuToggle }: TopBarProps) {
   const [cmdOpen, setCmdOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+  const isOperational = isOperationalRoute(usePathname());
   const { userId, branchId, roles, permissions } = useCurrentUser();
   const canSeeAppearance = roles.includes("OWNER") || roles.includes("TENANT_ADMIN");
   // `any` of the listed codes, matching the backend's own `hasAnyAuthority(…)` gates: OWNER holds
@@ -177,19 +358,45 @@ export function TopBar({ onMobileMenuToggle }: TopBarProps) {
        * one of those routes — a compositing filter here is a compositing filter on the
        * operational zone, forcing a repaint of the screen beneath it on the cheap
        * Android tablet a restaurant actually buys. The chrome cannot be richer than the
-       * poorest zone it can appear over.
+       * poorest zone it can appear over. That rule is unchanged and is why the only
+       * animation below is gated on the route.
        *
-       * `bg-background` is the SAME role token the page beneath already resolves, so
-       * this introduces no new contrast pairing: every text-on-header pairing is a
-       * phase-20 §3.8 row that is already measured (foreground on background, 17.4:1
-       * light / 16.1:1 dark). Separation is now carried by the border plus elev-1
-       * rather than by translucency, which is what the token exists for.
+       * `bg-sidebar`, changed from `bg-background` (38-shell). The demo's topbar and its
+       * rail are the SAME surface — both `--bg-2`, one step off the content ground
+       * `--bg` (`NEXUS_ERP_Demo.html:69, :150`) — and that single fact is most of why its
+       * chrome reads as a frame around the work rather than as more page. Ours painted
+       * the header the same colour as the page, so there was nothing to frame.
+       *
+       * This is not a new colour and not a new pairing: `--sidebar` is a declared role
+       * token that already encodes exactly this relationship (`--neutral-50` against a
+       * `--neutral-0` page in light; `--neutral-950` against `--neutral-1000` in dark),
+       * and the header's foreground pairings barely move. Measured against the shipped
+       * stylesheet with the repo's own `css-tokens.ts` + `wcagContrastCheck`, `--background`
+       * -> `--sidebar`:
+       *
+       *   light  --foreground        19.19 -> 18.38:1     dark  19.23 -> 18.38:1
+       *   light  --muted-foreground   5.80 ->  5.55:1     dark   8.71 ->  8.32:1
+       *
+       * and the three tokens this rebuild newly puts on the chrome measure
+       * --foreground-tertiary 5.55 / 8.32, --primary 5.60 / 9.19, --success 5.05 / 8.76
+       * (light / dark) on `--sidebar`. Every one clears 4.5:1 with room. Separation is
+       * still the border plus elev-1, never translucency.
        */}
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 shadow-elev-1 lg:px-6">
-        {/* Mobile hamburger */}
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-sidebar-border bg-sidebar px-4 shadow-elev-1 lg:px-6">
+        {/*
+          Mobile hamburger. Carries the demo's `.topbar-btn` skin — 8px radius, hairline border,
+          a recessed fill, and a hover that lifts the BORDER and the ink and nothing else
+          (`DEMO-COMPONENTS.md:301`, intent: "the chrome stays quiet"). It is byte-identical to
+          the mobile search button eight lines down, which already had it.
+
+          It was `rounded-md` with no border and no fill: on a phone — where this is the FIRST
+          control on the first bar of every screen — a bare glyph sitting beside two bordered
+          chips does not read as restraint, it reads as an unstyled button. Three affordances on
+          one bar wearing two different skins is the "3rd class" verdict in miniature.
+        */}
         <button
           type="button"
-          className="touch-target inline-flex items-center justify-center rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground md:hidden"
+          className="touch-target inline-flex items-center justify-center rounded-lg border border-border bg-surface-2 p-2 text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground md:hidden"
           aria-label="Toggle mobile menu"
           onClick={onMobileMenuToggle}
         >
@@ -219,10 +426,19 @@ export function TopBar({ onMobileMenuToggle }: TopBarProps) {
             Branch unavailable
           </span>
         ) : branchName ? (
-          <span className="hidden md:inline-flex items-center rounded-full border bg-muted/60 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+          <span className="hidden md:inline-flex items-center rounded-full border bg-muted/60 px-2.5 py-0.5 text-label font-medium text-muted-foreground">
             {branchName}
           </span>
         ) : null}
+
+        {/*
+          The demo's right cluster, in its order (`NEXUS_ERP_Demo.html:161`,
+          `.topbar-right { margin-left: auto; gap: 12px }`): status pill, then the mono clock,
+          then the icon affordances, then identity. Ours keeps the branch chip in front of them
+          because it is the one thing on this bar that changes what the NUMBERS underneath mean.
+        */}
+        <ConnectionPill animate={!isOperational} />
+        <Clock />
 
         {/* Right actions */}
         <div className="flex items-center gap-2">
@@ -230,12 +446,15 @@ export function TopBar({ onMobileMenuToggle }: TopBarProps) {
           <button
             type="button"
             onClick={() => setCmdOpen(true)}
-            className="hidden md:flex touch-target items-center gap-2 rounded-md border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="hidden md:flex touch-target items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-small text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground"
             aria-label="Open command palette"
           >
             <Search className="size-3.5" />
-            <span className="text-xs">Search…</span>
-            <kbd className="ml-1 hidden rounded border bg-background px-1 py-0.5 text-[10px] font-mono lg:inline">
+            <span className="text-label">Search…</span>
+            {/* `--surface-3` rather than `--background`: the chip already sits on `--surface-2`,
+                and a key printed in the PAGE colour on a chip that is not the page reads as a
+                hole punched through the chrome. */}
+            <kbd className="ml-1 hidden rounded-sm border border-border bg-surface-3 px-1 py-0.5 font-mono text-label lg:inline">
               ⌘K
             </kbd>
           </button>
@@ -244,7 +463,7 @@ export function TopBar({ onMobileMenuToggle }: TopBarProps) {
           <button
             type="button"
             onClick={() => setCmdOpen(true)}
-            className="md:hidden touch-target inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            className="md:hidden touch-target inline-flex items-center justify-center rounded-lg border border-border bg-surface-2 p-2 text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground"
             aria-label="Search"
           >
             <Search className="size-4" />
@@ -273,7 +492,7 @@ export function TopBar({ onMobileMenuToggle }: TopBarProps) {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="touch-target inline-flex size-8 items-center justify-center rounded-full bg-primary-solid text-primary-solid-foreground text-sm font-semibold transition-opacity hover:opacity-90"
+                className="touch-target inline-flex size-8 items-center justify-center rounded-full bg-linear-to-br from-primary-400 to-secondary-400 text-small font-bold text-primary-solid-foreground transition-opacity hover:opacity-90"
                 aria-label="Open profile menu"
               >
                 {userInitial}

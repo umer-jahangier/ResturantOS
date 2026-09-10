@@ -242,7 +242,24 @@ interface Capture {
  * scope back would make the assertion pass or fail on chrome the boundary does not control.
  */
 async function capture(page: Page, anchor: string): Promise<Capture> {
-  const settled = page.locator(anchor);
+  /*
+   * `.filter({ visible: true })` because a text anchor on ANY `DataGrid` screen resolves twice.
+   *
+   * <p>`DataGrid` keeps both of its branches in the DOM at all times — the desktop `<table>` and
+   * the card fallback — and lets CSS choose between them, which is the shape
+   * `responsive.spec.ts:138-141` documents and the shape that spec's `tablesBelowMd` check
+   * exists to police. So `text=Forced Vendor A` matched `<div class="font-medium">` inside the
+   * table AND `<div class="truncate text-body font-medium">` inside `data-grid-cards`, and
+   * Playwright's strict mode refused both — a populated screen failing an assertion whose whole
+   * job is to prove the screen was populated (measured against dev 2026-08-22).
+   *
+   * <p>Filtering on visibility rather than taking `.first()` blindly is the part that matters:
+   * the surviving node is the branch CSS actually chose, so the text, the alerts and the
+   * screenshot below are all read off the rendering the user is looking at. It weakens nothing
+   * — the anchor's job was only ever "this screen resolved", and a hidden duplicate has never
+   * been evidence of that.
+   */
+  const settled = page.locator(anchor).filter({ visible: true }).first();
   await expect(
     settled,
     `ANCHOR NOT FOUND: nothing matched "${anchor}". A distinguishability assertion made ` +
@@ -445,12 +462,29 @@ test.describe("GA-001 · a forced failure and a forced empty result stay disting
     // showing "OPEN ORDERS".
     const live = await capture(page, '[data-testid="portlet-manager-open-orders"]');
 
-    expect(failure.text).toMatch(/Couldn.t load today.s service/i);
+    /*
+     * The notice NAMES THE RESOURCE, and this pattern has to name it too.
+     *
+     * <p>`DASHBOARD_FAIL_API` is `/api/v1/pos/tables`, and what the boundary renders for it is
+     * "Couldn't load tables. Unable to reach the server. Check your connection and try again."
+     * (measured against dev 2026-08-22). `Couldn't load today's service` is copy this product no
+     * longer writes — `QueryErrorNotice` composes the sentence from the `what` each portlet
+     * declares, which is the improvement: a manager is told which number is missing rather than
+     * that something, somewhere, did not load.
+     *
+     * <p>The NEGATIVE assertion below is why this could not simply be left alone. It reads "the
+     * live dashboard must not be claiming a failure" — and a pattern that matches nothing on any
+     * build passes it no matter what the screen says. Both directions were dead; both are alive
+     * now.
+     */
+    const FAILURE_COPY = /Couldn.t load tables/i;
+
+    expect(failure.text).toMatch(FAILURE_COPY);
     expect(failure.alerts.length).toBeGreaterThan(0);
     expect(
       live.text,
       "with all four of its queries answered the dashboard must not be claiming a failure",
-    ).not.toMatch(/Couldn.t load today.s service/i);
+    ).not.toMatch(FAILURE_COPY);
     expect(live.alerts, "a dashboard whose queries succeeded announces nothing").toEqual([]);
 
     const diff = await differingPixels(page, failure.shot, live.shot);

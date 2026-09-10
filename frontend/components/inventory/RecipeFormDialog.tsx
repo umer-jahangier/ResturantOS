@@ -506,7 +506,9 @@ export function RecipeFormDialog({ trigger, defaultMenuItemId }: RecipeFormDialo
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium">Ingredient lines</h3>
+                <h3 className="text-label font-semibold tracking-[0.08em] uppercase text-foreground-secondary">
+                  Ingredient lines
+                </h3>
                 <Button
                   type="button"
                   variant="outline"
